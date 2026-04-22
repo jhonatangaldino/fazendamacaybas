@@ -59,9 +59,6 @@
                     </div>
                 </div>
 
-                <p class="text-xs text-slate-500 italic">
-                    Para alterar endereço, e-mail ou telefone, acesse <strong>Admin → Configurações do site</strong>.
-                </p>
             </div>
 
             <div class="rounded-2xl overflow-hidden ring-1 ring-slate-200 shadow-sm min-h-[420px]">
