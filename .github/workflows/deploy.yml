@@ -1,0 +1,115 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  DEPLOY_BASE: /home/u931382046/domains/fazendamacaybas.com.br
+  PHP_VERSION: '8.2'
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ env.PHP_VERSION }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, pdo_mysql, xml, ctype, json, tokenizer, fileinfo, bcmath, intl, gd, curl, zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: |
+          composer install \
+            --no-dev \
+            --no-interaction \
+            --no-progress \
+            --prefer-dist \
+            --optimize-autoloader
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Prepare release tarball
+        run: |
+          set -e
+          RELEASE_ID=$(date -u +'%Y%m%d%H%M%S')
+          echo "RELEASE_ID=$RELEASE_ID" >> $GITHUB_ENV
+          mkdir -p artifact
+          # Copia só o necessário para produção (exclui dev files, tests, logs).
+          tar --exclude='./.git' \
+              --exclude='./.github' \
+              --exclude='./node_modules' \
+              --exclude='./tests' \
+              --exclude='./storage/logs/*' \
+              --exclude='./storage/framework/cache/data/*' \
+              --exclude='./storage/framework/sessions/*' \
+              --exclude='./storage/framework/views/*' \
+              --exclude='./.env*' \
+              --exclude='./CREDENCIAIS*' \
+              --exclude='./docs' \
+              -czf artifact/release-${RELEASE_ID}.tar.gz .
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload release via rsync
+        run: |
+          rsync -avz --progress \
+            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
+            artifact/release-${RELEASE_ID}.tar.gz \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.DEPLOY_BASE }}/artifacts/
+
+      - name: Activate release on server (atomic switch)
+        run: |
+          ssh -i ~/.ssh/id_deploy -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "RELEASE_ID=${RELEASE_ID} DEPLOY_BASE=${{ env.DEPLOY_BASE }} bash ${{ env.DEPLOY_BASE }}/shared/scripts/activate.sh"
+
+      - name: Health check
+        run: |
+          sleep 3
+          curl -fsS https://fazendamacaybas.com.br/up || (echo "Health check falhou"; exit 1)
+          curl -fsS https://fazendamacaybas.com.br/health | head -c 500
+
+      - name: Notify success
+        if: success()
+        run: echo "✅ Deploy ${RELEASE_ID} concluído com sucesso."
+
+      - name: Notify failure
+        if: failure()
+        run: echo "❌ Deploy falhou. Verifique os logs e o symlink atual."

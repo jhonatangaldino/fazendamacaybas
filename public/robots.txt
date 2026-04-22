@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /admin
+Disallow: /login
+Disallow: /logout
+Disallow: /password
+Disallow: /up
+Allow: /
+
+Sitemap: https://fazendamacaybas.com.br/sitemap.xml
