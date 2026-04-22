@@ -31,6 +31,14 @@ export function cnpjMask(v) {
     return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
 }
 
+export function cpfCnpjMask(v) {
+    if (!v) return '—';
+    const d = String(v).replace(/\D/g, '');
+    if (d.length === 14) return cnpjMask(d);
+    if (d.length === 11) return cpfMask(d);
+    return v;
+}
+
 export function telefoneMask(v) {
     if (!v) return '';
     const d = String(v).replace(/\D/g, '');

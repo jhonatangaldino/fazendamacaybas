@@ -7,14 +7,6 @@ import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { cpfCnpjMask, telefoneMask } from '@/utils/format.js';
 
-function cpfCnpjMask(v) {
-    if (!v) return '—';
-    const d = String(v).replace(/\D/g, '');
-    if (d.length === 14) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12,14)}`;
-    if (d.length === 11) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9,11)}`;
-    return v;
-}
-
 const props = defineProps({ partners: Object, filters: Object });
 const filtros = reactive({ ...props.filters });
 const confirmDelete = ref(null);
