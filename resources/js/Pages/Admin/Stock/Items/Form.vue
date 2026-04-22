@@ -32,49 +32,65 @@ const form = useForm({
 const showScanner = ref(false);
 const lookupLoading = ref(false);
 const produtoExistente = ref(null); // produto já cadastrado encontrado no lookup local
+const sugestaoPublica = ref(null);  // { source, nome, marca, imagem_url, ... } sugestão externa
 
 async function onBarcodeDetected(code) {
     showScanner.value = false;
     form.codigo_barras = code;
     lookupLoading.value = true;
+    sugestaoPublica.value = null;
 
     try {
-        // 1) Lookup local — produto já cadastrado?
-        const localResp = await fetch(route('admin.estoque.itens.lookup-barcode') + '?code=' + encodeURIComponent(code), {
+        const resp = await fetch(route('admin.estoque.itens.lookup-barcode') + '?code=' + encodeURIComponent(code), {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
         });
-        const local = await localResp.json();
+        const data = await resp.json();
 
-        if (local.found && local.item) {
-            // Se é um NOVO item e o produto já existe, avisar e oferecer atalho pra movimento de estoque
+        // 1) Produto já cadastrado localmente
+        if (data.found && data.item) {
             if (!isEdit) {
-                produtoExistente.value = local.item;
-                toast({ variant: 'warning', message: `"${local.item.nome}" já está cadastrado.` });
+                produtoExistente.value = data.item;
+                toast({ variant: 'warning', message: `"${data.item.nome}" já está cadastrado.` });
                 return;
             }
-            // Se é edit, apenas avisar
-            toast({ variant: 'info', message: `Este código já está associado a "${local.item.nome}".` });
-        } else {
-            toast({ variant: 'success', message: `Código ${code} lido. Produto não existe ainda.` });
+            toast({ variant: 'info', message: `Código já associado a "${data.item.nome}".` });
+            return;
         }
 
-        // 2) Fallback: Open Food Facts pra auto-preencher campos (só se novo + nome vazio)
-        if (!isEdit && !form.nome) {
-            try {
-                const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
-                const j = await r.json();
-                if (j.status === 1 && j.product) {
-                    const p = j.product;
-                    form.nome = p.product_name_pt || p.product_name || form.nome;
-                    if (p.brands && !form.marca) form.marca = p.brands.split(',')[0].trim();
-                    toast({ variant: 'success', message: `Produto encontrado na base pública: ${form.nome}` });
-                } else {
-                    toast({ variant: 'info', message: 'Código lido, mas produto não encontrado na base pública. Preencha manualmente.' });
-                }
-            } catch (_) { /* silencioso, não é crítico */ }
+        // 2) Sugestão de base pública
+        if (data.suggestion) {
+            const s = data.suggestion;
+            sugestaoPublica.value = s;
+            if (!isEdit) {
+                if (!form.nome && s.nome) form.nome = s.nome;
+                if (!form.marca && s.marca) form.marca = s.marca;
+            }
+            toast({ variant: 'success', message: `Produto identificado: ${s.nome} (${s.source})` });
+            // Foca o campo nome pra usuário revisar
+            requestAnimationFrame(() => {
+                const el = document.querySelector('input[placeholder*="RAC-"]')?.closest('.card')?.querySelector('input[required]');
+                el?.focus();
+            });
+            return;
         }
-    } catch (_) {
+
+        // 3) Nada encontrado — mensagem clara, foco no campo nome
+        toast({
+            variant: 'info',
+            message: `Código ${code} lido. Produto não está em bases públicas — preencha o nome manualmente. Das próximas vezes será reconhecido.`,
+            duration: 6000,
+        });
+        // Foca o campo Nome pra entrada rápida
+        requestAnimationFrame(() => {
+            document.querySelectorAll('input.form-input').forEach((el) => {
+                if (el.value === '' && el !== document.activeElement && el.type === 'text') {
+                    el.focus();
+                    return false;
+                }
+            });
+        });
+    } catch (e) {
         toast({ variant: 'warning', message: 'Falha ao consultar produto. Preencha manualmente.' });
     } finally {
         lookupLoading.value = false;
@@ -128,7 +144,24 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                                 Escanear
                             </button>
                         </div>
-                        <p v-if="lookupLoading" class="text-xs text-slate-500 mt-1">Buscando produto na base pública...</p>
+                        <p v-if="lookupLoading" class="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                            <svg class="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+                            Consultando bases públicas...
+                        </p>
+                        <!-- Cartão de sugestão externa (Open Food Facts / UPCItemDB) -->
+                        <div v-if="sugestaoPublica" class="mt-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+                            <img v-if="sugestaoPublica.imagem_url" :src="sugestaoPublica.imagem_url"
+                                 class="h-14 w-14 rounded object-contain bg-white ring-1 ring-emerald-200 flex-shrink-0">
+                            <div class="min-w-0 flex-1 text-sm">
+                                <div class="font-medium text-emerald-900 truncate">{{ sugestaoPublica.nome }}</div>
+                                <div v-if="sugestaoPublica.marca" class="text-xs text-emerald-700">{{ sugestaoPublica.marca }}</div>
+                                <div v-if="sugestaoPublica.quantidade_embalagem" class="text-xs text-emerald-700">{{ sugestaoPublica.quantidade_embalagem }}</div>
+                                <div class="text-[10px] uppercase tracking-wider text-emerald-600 mt-1">
+                                    Identificado em {{ sugestaoPublica.source }} · revise e ajuste se necessário
+                                </div>
+                            </div>
+                            <button type="button" @click="sugestaoPublica = null" class="text-emerald-600 hover:text-emerald-900 flex-shrink-0" aria-label="Fechar">&times;</button>
+                        </div>
                     </div>
                     <div>
                         <InputLabel value="Tipo" />

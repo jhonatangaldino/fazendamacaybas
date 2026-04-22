@@ -109,7 +109,9 @@ class StockItemController extends Controller
 
     /**
      * Lookup rápido por código de barras — usado pelo scanner no cadastro e movimentação.
-     * Retorna o item existente (se houver) para evitar duplicidade.
+     * 1. Checa se o produto já está cadastrado localmente (evita duplicidade).
+     * 2. Se não, consulta bases públicas (Open Food Facts + UPCItemDB) para sugerir nome/marca.
+     * Retorna JSON estruturado com feedback claro pro usuário.
      */
     public function lookupByBarcode(Request $request): \Illuminate\Http\JsonResponse
     {
@@ -118,38 +120,114 @@ class StockItemController extends Controller
             return response()->json(['ok' => false, 'message' => 'Código vazio.'], 422);
         }
 
+        // 1. LOCAL — produto já cadastrado
         $item = StockItem::with('category:id,nome')
             ->where('codigo_barras', $code)
             ->orWhere('codigo', $code)
             ->first();
 
-        if (! $item) {
+        if ($item) {
             return response()->json([
                 'ok' => true,
-                'found' => false,
-                'message' => 'Produto ainda não cadastrado.',
+                'source' => 'local',
+                'found' => true,
+                'item' => [
+                    'id' => $item->id,
+                    'codigo' => $item->codigo,
+                    'codigo_barras' => $item->codigo_barras,
+                    'nome' => $item->nome,
+                    'marca' => $item->marca,
+                    'unidade' => $item->unidade,
+                    'tipo' => $item->tipo,
+                    'category' => $item->category,
+                    'saldo_atual' => $item->saldoAtual(),
+                    'edit_url' => route('admin.estoque.itens.edit', $item->id),
+                    'movement_url' => route('admin.estoque.movimentos.index', ['item_id' => $item->id]),
+                ],
             ]);
         }
 
-        $saldo = $item->saldoAtual();
+        // 2. BASES PÚBLICAS — Open Food Facts (food), depois UPCItemDB (geral)
+        $suggestion = $this->searchPublicBarcode($code);
 
         return response()->json([
             'ok' => true,
-            'found' => true,
-            'item' => [
-                'id' => $item->id,
-                'codigo' => $item->codigo,
-                'codigo_barras' => $item->codigo_barras,
-                'nome' => $item->nome,
-                'marca' => $item->marca,
-                'unidade' => $item->unidade,
-                'tipo' => $item->tipo,
-                'category' => $item->category,
-                'saldo_atual' => $saldo,
-                'edit_url' => route('admin.estoque.itens.edit', $item->id),
-                'movement_url' => route('admin.estoque.movimentos.index', ['item_id' => $item->id]),
-            ],
+            'source' => $suggestion ? $suggestion['source'] : 'none',
+            'found' => false,
+            'suggestion' => $suggestion,
+            'message' => $suggestion
+                ? "Produto identificado em {$suggestion['source']}."
+                : 'Código não encontrado em bases públicas. Preencha o nome manualmente — das próximas vezes será reconhecido.',
         ]);
+    }
+
+    /**
+     * Consulta bases públicas de código de barras.
+     * Preserva rede: timeout curto (3s) e engole erros pra não travar o fluxo do usuário.
+     */
+    protected function searchPublicBarcode(string $code): ?array
+    {
+        // Open Food Facts — ótimo pra alimentos (rações embaladas, bebidas)
+        try {
+            $resp = \Illuminate\Support\Facades\Http::timeout(3)
+                ->acceptJson()
+                ->get("https://world.openfoodfacts.org/api/v2/product/{$code}.json");
+            if ($resp->successful()) {
+                $data = $resp->json();
+                if (($data['status'] ?? 0) === 1 && ! empty($data['product'])) {
+                    $p = $data['product'];
+                    $nome = $p['product_name_pt'] ?? $p['product_name'] ?? null;
+                    if ($nome) {
+                        return [
+                            'source' => 'Open Food Facts',
+                            'nome' => $nome,
+                            'marca' => $this->firstItem($p['brands'] ?? ''),
+                            'categoria_hint' => $p['categories'] ?? null,
+                            'imagem_url' => $p['image_front_small_url'] ?? null,
+                            'quantidade_embalagem' => $p['quantity'] ?? null,
+                        ];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // timeout ou rede — ignora e tenta próximo
+        }
+
+        // UPCItemDB (trial) — boa pra produtos gerais, incluindo medicamentos e ferramentas
+        try {
+            $resp = \Illuminate\Support\Facades\Http::timeout(3)
+                ->acceptJson()
+                ->get('https://api.upcitemdb.com/prod/trial/lookup', ['upc' => $code]);
+            if ($resp->successful()) {
+                $data = $resp->json();
+                $items = $data['items'] ?? [];
+                if (! empty($items)) {
+                    $i = $items[0];
+                    $nome = $i['title'] ?? null;
+                    if ($nome) {
+                        return [
+                            'source' => 'UPCItemDB',
+                            'nome' => $nome,
+                            'marca' => $i['brand'] ?? null,
+                            'categoria_hint' => $i['category'] ?? null,
+                            'imagem_url' => ! empty($i['images']) ? $i['images'][0] : null,
+                            'quantidade_embalagem' => null,
+                        ];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignora
+        }
+
+        return null;
+    }
+
+    protected function firstItem(?string $s): ?string
+    {
+        if (! $s) return null;
+        $first = explode(',', $s)[0] ?? null;
+        return $first ? trim($first) : null;
     }
 
     protected function validateItem(Request $request, ?int $id = null): array
