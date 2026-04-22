@@ -63,7 +63,14 @@ async function onBarcodeDetected(code) {
         // 2) Sugestão pública
         if (data.suggestion) {
             const s = data.suggestion;
-            sugestaoPublica.value = s;
+            // Normaliza shape novo (ProductResult): usa campo imagem_url OU imagem do fallback antigo
+            sugestaoPublica.value = {
+                source: s.source,
+                nome: s.nome,
+                marca: s.marca,
+                imagem_url: s.imagem_url || null,
+                quantidade_embalagem: s.quantidade_embalagem || null,
+            };
             if (!isEdit) {
                 if (!form.nome && s.nome) form.nome = s.nome;
                 if (!form.marca && s.marca) form.marca = s.marca;

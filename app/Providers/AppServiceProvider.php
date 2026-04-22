@@ -2,19 +2,30 @@
 
 namespace App\Providers;
 
+use App\Services\BarcodeLookup\ProductLookupService;
 use Carbon\Carbon;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Psr\Log\LoggerInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // ProductLookupService — orquestrador de consulta de produto por código de barras.
+        // Singleton: reusa as instâncias das 11 fontes por request (evita boot repetido).
+        $this->app->singleton(ProductLookupService::class, function ($app) {
+            return new ProductLookupService(
+                config: $app['config']->get('barcode_lookup', []),
+                logger: $app->make(LoggerInterface::class),
+                cache: $app->make(Cache::class),
+            );
+        });
     }
 
     public function boot(): void
