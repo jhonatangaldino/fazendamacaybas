@@ -39,17 +39,17 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'),
                 ] : null,
             ],
-            // Mapa route_name → hits para o usuário corrente; usado pela sidebar para
-            // ordenar dinamicamente os itens da seção "Operação" (mais usados no topo).
+            // Mapa route_name → hits_snapshot para o usuário corrente.
+            // Importante: usamos o snapshot (congelado às 3h via comando menu:snapshot),
+            // não o hits em tempo real — assim a ordem da sidebar NÃO muda durante o uso.
             'menuUsage' => fn () => $request->user()
                 ? MenuUsage::where('user_id', $request->user()->id)
-                    ->pluck('hits', 'menu_key')
+                    ->pluck('hits_snapshot', 'menu_key')
                     ->toArray()
                 : [],
-            // Agregado global — usado como fallback para usuários novos sem histórico.
-            // Assim a ordem "mais usados" aparece já no primeiro login.
+            // Agregado global (também do snapshot) — fallback para usuários novos sem histórico pessoal.
             'menuUsageGlobal' => fn () => $request->user()
-                ? MenuUsage::selectRaw('menu_key, SUM(hits) as total')
+                ? MenuUsage::selectRaw('menu_key, SUM(hits_snapshot) as total')
                     ->groupBy('menu_key')
                     ->pluck('total', 'menu_key')
                     ->toArray()
