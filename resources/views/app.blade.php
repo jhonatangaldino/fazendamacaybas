@@ -4,8 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="apple-touch-icon" href="/favicon.svg">
+    @php $faviconPath = \App\Models\Setting::getValue('site.favicon'); @endphp
+    @if($faviconPath)
+        <link rel="icon" href="{{ asset('storage/'.$faviconPath) }}?v={{ now()->timestamp }}">
+        <link rel="apple-touch-icon" href="{{ asset('storage/'.$faviconPath) }}">
+    @else
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="apple-touch-icon" href="/favicon.svg">
+    @endif
 
     <title inertia>{{ config('app.name', 'Fazenda Macaybas') }}</title>
 

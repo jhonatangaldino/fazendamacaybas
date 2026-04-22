@@ -15,8 +15,14 @@
     <meta property="og:url" content="{{ url()->current() }}">
     @isset($meta['og_image'])<meta property="og:image" content="{{ $meta['og_image'] }}">@endisset
 
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="apple-touch-icon" href="/favicon.svg">
+    @php $faviconPath = \App\Models\Setting::getValue('site.favicon'); @endphp
+    @if($faviconPath)
+        <link rel="icon" href="{{ asset('storage/'.$faviconPath) }}?v={{ now()->timestamp }}">
+        <link rel="apple-touch-icon" href="{{ asset('storage/'.$faviconPath) }}">
+    @else
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="apple-touch-icon" href="/favicon.svg">
+    @endif
     <link rel="canonical" href="{{ url()->current() }}">
 
     <link rel="preconnect" href="https://fonts.bunny.net">

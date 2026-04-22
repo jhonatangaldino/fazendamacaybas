@@ -94,6 +94,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::get('cms/configuracoes', [SettingsController::class, 'index'])->middleware('permission:cms.settings.view')->name('cms.settings');
         Route::put('cms/configuracoes', [SettingsController::class, 'update'])->middleware('permission:cms.settings.update')->name('cms.settings.update');
         Route::post('cms/configuracoes/upload', [SettingsController::class, 'uploadFile'])->middleware('permission:cms.settings.update')->name('cms.settings.upload');
+        Route::post('cms/configuracoes/remover-arquivo', [SettingsController::class, 'removeFile'])->middleware('permission:cms.settings.update')->name('cms.settings.remove-file');
     });
 
     // ------- PARCEIROS -------

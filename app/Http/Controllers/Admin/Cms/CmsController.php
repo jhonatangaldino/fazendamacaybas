@@ -111,15 +111,34 @@ class CmsController extends Controller
 
     public function uploadImage(Request $request)
     {
-        $request->validate([
-            'file' => ['required', 'image', 'max:5120'],
+        $validator = validator($request->all(), [
+            'file' => [
+                'required',
+                'file',
+                'max:5120',
+                'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/svg+xml',
+            ],
         ]);
 
-        $path = $request->file('file')->store('cms/'.date('Y/m'), 'public');
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'message' => $validator->errors()->first('file') ?: 'Arquivo inválido.',
+            ], 422);
+        }
+
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension()) ?: $file->guessExtension();
+        $filename = \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+            .'-'.now()->format('YmdHis')
+            .'.'.$ext;
+
+        $path = $file->storeAs('cms/'.date('Y/m'), $filename, 'public');
 
         return response()->json([
+            'ok' => true,
             'path' => $path,
-            'url' => Storage::url($path),
+            'url' => Storage::disk('public')->url($path),
         ]);
     }
 }

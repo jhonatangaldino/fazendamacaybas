@@ -8,6 +8,8 @@ import InputMasked from '@/Components/InputMasked.vue';
 const props = defineProps({ settings: Object });
 
 const local = ref(JSON.parse(JSON.stringify(props.settings)));
+const uploadError = ref({});
+const uploadLoading = ref({});
 
 function save() {
     const payload = [];
@@ -19,19 +21,66 @@ function save() {
     router.put(route('admin.cms.settings.update'), { settings: payload }, { preserveScroll: true });
 }
 
-async function uploadImage(event, key) {
+async function uploadImage(event, s) {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    uploadError.value = { ...uploadError.value, [s.key]: null };
+    uploadLoading.value = { ...uploadLoading.value, [s.key]: true };
+
     const fd = new FormData();
     fd.append('file', file);
-    fd.append('key', key);
-    fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-    await fetch(route('admin.cms.settings.upload'), {
-        method: 'POST',
-        body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    });
-    router.reload({ only: ['settings'] });
+    fd.append('key', s.key);
+
+    try {
+        const res = await fetch(route('admin.cms.settings.upload'), {
+            method: 'POST',
+            body: fd,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+            },
+        });
+
+        const json = await res.json();
+
+        if (!res.ok || !json.ok) {
+            uploadError.value = { ...uploadError.value, [s.key]: json.message || 'Falha no upload.' };
+            return;
+        }
+
+        // Atualiza o valor local imediatamente (sem F5)
+        s.value = json.path;
+    } catch (err) {
+        uploadError.value = { ...uploadError.value, [s.key]: 'Erro de rede — tente novamente.' };
+    } finally {
+        uploadLoading.value = { ...uploadLoading.value, [s.key]: false };
+        event.target.value = '';
+    }
+}
+
+async function removeImage(s) {
+    if (!confirm('Remover esta imagem?')) return;
+
+    const fd = new FormData();
+    fd.append('key', s.key);
+
+    try {
+        const res = await fetch(route('admin.cms.settings.remove-file'), {
+            method: 'POST',
+            body: fd,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+            },
+        });
+        const json = await res.json();
+        if (res.ok && json.ok) {
+            s.value = null;
+        }
+    } catch (err) { /* ignore */ }
 }
 
 const groupLabels = {
@@ -42,7 +91,6 @@ const groupLabels = {
     seo: 'SEO',
 };
 
-// Detecta tipo especial por chave (para aplicar máscara correta)
 function fieldKind(s) {
     if (s.type === 'image') return 'image';
     if (s.type === 'text') return 'textarea';
@@ -50,6 +98,11 @@ function fieldKind(s) {
     if (s.key === 'contato.telefone') return 'telefone';
     if (s.key === 'contato.whatsapp') return 'whatsapp';
     return 'text';
+}
+
+function cacheBusted(path) {
+    if (!path) return '';
+    return `/storage/${path}?t=${Date.now()}`;
 }
 </script>
 
@@ -71,21 +124,27 @@ function fieldKind(s) {
                                   v-model="s.value" rows="3" class="form-textarea"></textarea>
 
                         <div v-else-if="fieldKind(s) === 'image'" class="space-y-2">
-                            <img v-if="s.value" :src="`/storage/${s.value}`"
-                                 class="h-20 rounded-lg ring-1 ring-slate-200 object-contain bg-slate-50 px-3 py-1">
-                            <input type="file" accept="image/*" @change="uploadImage($event, s.key)" class="text-sm">
+                            <div v-if="s.value" class="flex items-center gap-3">
+                                <img :src="cacheBusted(s.value)"
+                                     class="h-20 rounded-lg ring-1 ring-slate-200 object-contain bg-slate-50 px-3 py-1">
+                                <button type="button" @click="removeImage(s)"
+                                        class="text-sm text-red-600 hover:underline">Remover</button>
+                            </div>
+                            <input type="file"
+                                   :disabled="uploadLoading[s.key]"
+                                   accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,image/x-icon,.ico"
+                                   @change="uploadImage($event, s)"
+                                   class="text-sm block">
+                            <p v-if="uploadLoading[s.key]" class="text-xs text-macaybas-primary">Enviando...</p>
+                            <p v-if="uploadError[s.key]" class="text-xs text-red-600">{{ uploadError[s.key] }}</p>
+                            <p v-else class="form-help">PNG, JPG, WebP, SVG ou ICO — até 5MB.</p>
                         </div>
 
                         <input v-else-if="fieldKind(s) === 'color'"
                                type="color" v-model="s.value"
                                class="h-10 w-full rounded-lg border border-slate-300 cursor-pointer">
 
-                        <InputMasked v-else-if="fieldKind(s) === 'telefone'"
-                                     v-model="s.value"
-                                     :mask="['(##) ####-####', '(##) #####-####']"
-                                     placeholder="(31) 99999-9999" />
-
-                        <InputMasked v-else-if="fieldKind(s) === 'whatsapp'"
+                        <InputMasked v-else-if="fieldKind(s) === 'telefone' || fieldKind(s) === 'whatsapp'"
                                      v-model="s.value"
                                      :mask="['(##) ####-####', '(##) #####-####']"
                                      placeholder="(31) 99999-9999" />
