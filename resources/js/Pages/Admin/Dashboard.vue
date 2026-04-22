@@ -13,6 +13,11 @@ defineProps({
     tarefas_pendentes: Array,
 });
 
+// Intervalo do mês corrente (usado nos filtros dos drill-downs)
+const hoje = new Date();
+const mesInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
+const mesFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10);
+
 const statusBadge = (status) => ({
     pendente: 'badge-yellow',
     pago: 'badge-green',
@@ -37,47 +42,78 @@ const prioridadeBadge = (p) => ({
 
         <PageHeader title="Visão geral" subtitle="Resumo da operação da fazenda" />
 
-        <!-- KPIs -->
+        <!-- KPIs clicáveis — cada card navega pro módulo correspondente com filtro -->
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-            <div class="card p-5">
-                <div class="text-xs uppercase tracking-wider text-slate-500">Receitas do mês</div>
+            <Link :href="route('admin.financeiro.transacoes.index', { tipo: 'receita', status: 'pago', from: mesInicio, to: mesFim })"
+                  class="card p-5 cursor-pointer hover:shadow-md hover:ring-macaybas-primary-200 transition-all group">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Receitas do mês</div>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
                 <div class="mt-2 text-2xl font-bold text-green-700">{{ brl(widgets.financeiro.receitas_mes) }}</div>
-            </div>
-            <div class="card p-5">
-                <div class="text-xs uppercase tracking-wider text-slate-500">Despesas do mês</div>
+                <div class="text-xs text-slate-400 mt-1">Clique para ver detalhes</div>
+            </Link>
+            <Link :href="route('admin.financeiro.transacoes.index', { tipo: 'despesa', from: mesInicio, to: mesFim })"
+                  class="card p-5 cursor-pointer hover:shadow-md hover:ring-red-200 transition-all group">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Despesas do mês</div>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
                 <div class="mt-2 text-2xl font-bold text-red-700">{{ brl(widgets.financeiro.despesas_mes) }}</div>
-            </div>
-            <div class="card p-5">
-                <div class="text-xs uppercase tracking-wider text-slate-500">Saldo do mês</div>
+                <div class="text-xs text-slate-400 mt-1">Clique para ver origem</div>
+            </Link>
+            <Link :href="route('admin.financeiro.transacoes.index', { from: mesInicio, to: mesFim })"
+                  class="card p-5 cursor-pointer hover:shadow-md transition-all group">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Saldo do mês</div>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
                 <div class="mt-2 text-2xl font-bold"
                      :class="widgets.financeiro.saldo_mes >= 0 ? 'text-macaybas-primary' : 'text-red-700'">
                     {{ brl(widgets.financeiro.saldo_mes) }}
                 </div>
-            </div>
-            <div class="card p-5">
-                <div class="text-xs uppercase tracking-wider text-slate-500">Rebanho</div>
+                <div class="text-xs text-slate-400 mt-1">Ver lançamentos completos</div>
+            </Link>
+            <Link :href="route('admin.rebanho.animais.index', { status: 'ativo' })"
+                  class="card p-5 cursor-pointer hover:shadow-md hover:ring-macaybas-primary-200 transition-all group">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Rebanho</div>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
                 <div class="mt-2 text-2xl font-bold text-slate-900">{{ widgets.rebanho.total }}</div>
-                <div class="text-xs text-slate-500 mt-1">animais ativos</div>
-            </div>
+                <div class="text-xs text-slate-500 mt-1">animais ativos — clique para listar</div>
+            </Link>
         </div>
 
-        <!-- Alertas -->
+        <!-- Alertas com bullets clicáveis pro drill-down -->
         <div v-if="widgets.financeiro.contas_atrasadas > 0 || widgets.estoque.itens_baixo_estoque > 0 || widgets.tarefas.atrasadas > 0"
              class="card mb-8 border-l-4 border-amber-400">
             <div class="card-body">
                 <h2 class="card-title mb-3">⚠️ Alertas</h2>
                 <ul class="space-y-2 text-sm">
-                    <li v-if="widgets.financeiro.contas_atrasadas > 0" class="flex items-center gap-2">
-                        <span class="badge-red">Financeiro</span>
-                        <span><strong>{{ widgets.financeiro.contas_atrasadas }}</strong> contas atrasadas</span>
+                    <li v-if="widgets.financeiro.contas_atrasadas > 0">
+                        <Link :href="route('admin.financeiro.transacoes.index', { status: 'atrasado' })"
+                              class="flex items-center gap-2 p-2 rounded-lg hover:bg-red-50 transition-colors group">
+                            <span class="badge-red">Financeiro</span>
+                            <span><strong>{{ widgets.financeiro.contas_atrasadas }}</strong> contas atrasadas</span>
+                            <svg class="h-4 w-4 text-slate-400 group-hover:text-red-600 ml-auto transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </Link>
                     </li>
-                    <li v-if="widgets.estoque.itens_baixo_estoque > 0" class="flex items-center gap-2">
-                        <span class="badge-yellow">Estoque</span>
-                        <span><strong>{{ widgets.estoque.itens_baixo_estoque }}</strong> itens abaixo do mínimo</span>
+                    <li v-if="widgets.estoque.itens_baixo_estoque > 0">
+                        <Link :href="route('admin.estoque.itens.index')"
+                              class="flex items-center gap-2 p-2 rounded-lg hover:bg-amber-50 transition-colors group">
+                            <span class="badge-yellow">Estoque</span>
+                            <span><strong>{{ widgets.estoque.itens_baixo_estoque }}</strong> itens abaixo do mínimo</span>
+                            <svg class="h-4 w-4 text-slate-400 group-hover:text-amber-600 ml-auto transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </Link>
                     </li>
-                    <li v-if="widgets.tarefas.atrasadas > 0" class="flex items-center gap-2">
-                        <span class="badge-red">Tarefas</span>
-                        <span><strong>{{ widgets.tarefas.atrasadas }}</strong> tarefas atrasadas</span>
+                    <li v-if="widgets.tarefas.atrasadas > 0">
+                        <Link :href="route('admin.tarefas.index', { status: 'atrasada' })"
+                              class="flex items-center gap-2 p-2 rounded-lg hover:bg-red-50 transition-colors group">
+                            <span class="badge-red">Tarefas</span>
+                            <span><strong>{{ widgets.tarefas.atrasadas }}</strong> tarefas atrasadas</span>
+                            <svg class="h-4 w-4 text-slate-400 group-hover:text-red-600 ml-auto transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </Link>
                     </li>
                 </ul>
             </div>

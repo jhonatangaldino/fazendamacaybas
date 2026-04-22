@@ -64,11 +64,38 @@ const statusBadge = (s) => ({
             </template>
         </PageHeader>
 
-        <!-- KPIs -->
+        <!-- KPIs clicáveis — filtram o tipo correspondente -->
         <div class="grid gap-4 sm:grid-cols-3 mb-6">
-            <div class="card p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Receitas no filtro</div><div class="mt-1 text-xl font-bold text-green-700">{{ brl(totais.receitas) }}</div></div>
-            <div class="card p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Despesas no filtro</div><div class="mt-1 text-xl font-bold text-red-700">{{ brl(totais.despesas) }}</div></div>
-            <div class="card p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Saldo</div><div class="mt-1 text-xl font-bold" :class="totais.saldo >= 0 ? 'text-macaybas-primary' : 'text-red-700'">{{ brl(totais.saldo) }}</div></div>
+            <button @click="filtros.tipo = 'receita'; filtrar()"
+                    :class="[filtros.tipo === 'receita' ? 'ring-2 ring-emerald-300' : '']"
+                    class="card p-5 text-left hover:shadow-md hover:ring-emerald-200 transition-all cursor-pointer">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Receitas no filtro</div>
+                    <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                </div>
+                <div class="mt-1 text-xl font-bold text-green-700">{{ brl(totais.receitas) }}</div>
+                <div class="text-xs text-slate-400 mt-1">Clique para filtrar receitas</div>
+            </button>
+            <button @click="filtros.tipo = 'despesa'; filtrar()"
+                    :class="[filtros.tipo === 'despesa' ? 'ring-2 ring-red-300' : '']"
+                    class="card p-5 text-left hover:shadow-md hover:ring-red-200 transition-all cursor-pointer">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Despesas no filtro</div>
+                    <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
+                </div>
+                <div class="mt-1 text-xl font-bold text-red-700">{{ brl(totais.despesas) }}</div>
+                <div class="text-xs text-slate-400 mt-1">Clique para filtrar despesas</div>
+            </button>
+            <button @click="filtros.tipo = ''; filtrar()"
+                    :class="[!filtros.tipo ? 'ring-2 ring-macaybas-primary-200' : '']"
+                    class="card p-5 text-left hover:shadow-md transition-all cursor-pointer">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Saldo</div>
+                    <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8"/></svg>
+                </div>
+                <div class="mt-1 text-xl font-bold" :class="totais.saldo >= 0 ? 'text-macaybas-primary' : 'text-red-700'">{{ brl(totais.saldo) }}</div>
+                <div class="text-xs text-slate-400 mt-1">Clique para ver tudo</div>
+            </button>
         </div>
 
         <!-- Filtros -->
