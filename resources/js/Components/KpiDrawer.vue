@@ -1,11 +1,14 @@
 <script setup>
 /**
- * Modal de detalhamento de KPI.
- *  - Desktop: modal centralizado com max-w-2xl, max-h-[90vh]
- *  - Mobile: modal que ocupa quase a tela toda (95vh) com header/footer sticky
+ * Painel de detalhamento de KPI.
+ *  - Mobile (< sm): docked no bottom, 85dvh máximo (dvh = dynamic viewport height,
+ *    respeita barras do navegador), bordas arredondadas só no topo, com safe-area
+ *    pro home indicator do iOS
+ *  - Desktop (sm+): modal centralizado max-w-2xl, max-h-[90vh]
  *
- * Sempre centralizado — listas longas ganham altura sem virar drawer estreito.
- * Fecha com ESC, clique no overlay ou X.
+ * Por que dvh e não vh: mobile navegadores contam a barra de endereço no vh,
+ * fazendo o modal ficar mais alto que a viewport visível (header cortado no topo).
+ * dvh atualiza quando a barra some/aparece.
  */
 import { onMounted, onBeforeUnmount, watch } from 'vue';
 
@@ -37,21 +40,28 @@ watch(() => props.open, (v) => { document.body.style.overflow = v ? 'hidden' : '
         </transition>
 
         <transition
-            enter-active-class="transition-all duration-200 ease-out"
-            enter-from-class="opacity-0 scale-95 sm:scale-100 sm:translate-y-4"
-            enter-to-class="opacity-100 scale-100 sm:translate-y-0"
-            leave-active-class="transition-all duration-150 ease-in"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95">
-            <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 pointer-events-none">
-                <div class="relative bg-white rounded-xl sm:rounded-2xl shadow-2xl flex flex-col pointer-events-auto
-                            w-full max-w-2xl h-[95vh] sm:h-auto sm:max-h-[90vh]"
+            :enter-active-class="'transition-all duration-250 ease-out'"
+            :enter-from-class="'opacity-0 translate-y-full sm:translate-y-0 sm:scale-95'"
+            :enter-to-class="'opacity-100 translate-y-0 sm:scale-100'"
+            :leave-active-class="'transition-all duration-200 ease-in'"
+            :leave-from-class="'opacity-100 translate-y-0 sm:scale-100'"
+            :leave-to-class="'opacity-0 translate-y-full sm:translate-y-0 sm:scale-95'">
+            <div v-if="open"
+                 class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 pointer-events-none">
+                <div class="kpi-drawer-panel relative bg-white shadow-2xl flex flex-col pointer-events-auto w-full max-w-2xl
+                            rounded-t-2xl sm:rounded-2xl
+                            max-h-[85dvh] sm:max-h-[90vh]"
                      @click.stop>
+                    <!-- Handle só no mobile (indica que é draggable/fechável) -->
+                    <div class="sm:hidden flex justify-center pt-2 pb-1 flex-shrink-0" @click="$emit('close')">
+                        <div class="h-1.5 w-12 bg-slate-300 rounded-full"></div>
+                    </div>
+
                     <!-- Header sticky -->
-                    <header class="flex items-start justify-between gap-3 px-5 py-4 border-b border-slate-200 flex-shrink-0">
+                    <header class="flex items-start justify-between gap-3 px-5 py-3 sm:py-4 border-b border-slate-200 flex-shrink-0">
                         <div class="min-w-0">
-                            <h2 class="text-lg font-semibold text-slate-900 truncate">{{ title }}</h2>
-                            <p v-if="subtitle" class="text-sm text-slate-500 truncate">{{ subtitle }}</p>
+                            <h2 class="text-base sm:text-lg font-semibold text-slate-900 truncate">{{ title }}</h2>
+                            <p v-if="subtitle" class="text-xs sm:text-sm text-slate-500 truncate">{{ subtitle }}</p>
                         </div>
                         <button @click="$emit('close')"
                                 class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg p-1.5 flex-shrink-0 transition-colors"
@@ -63,12 +73,12 @@ watch(() => props.open, (v) => { document.body.style.overflow = v ? 'hidden' : '
                     </header>
 
                     <!-- Corpo scrollável -->
-                    <div class="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+                    <div class="flex-1 overflow-y-auto overscroll-contain px-5 py-3 sm:py-4 min-h-0">
                         <slot />
                     </div>
 
-                    <!-- Footer opcional -->
-                    <footer v-if="fullLink" class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex-shrink-0 rounded-b-xl sm:rounded-b-2xl">
+                    <!-- Footer opcional — safe-area pro home indicator do iOS -->
+                    <footer v-if="fullLink" class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex-shrink-0 rounded-b-none sm:rounded-b-2xl kpi-drawer-footer">
                         <a :href="fullLink.href"
                            class="flex items-center justify-center gap-2 w-full btn-outline text-sm">
                             {{ fullLink.label || 'Ver lista completa' }}
@@ -80,3 +90,16 @@ watch(() => props.open, (v) => { document.body.style.overflow = v ? 'hidden' : '
         </transition>
     </Teleport>
 </template>
+
+<style>
+/* Fallback pra navegadores sem suporte a dvh: usa vh (pior, mas não quebra) */
+@supports not (height: 1dvh) {
+    .kpi-drawer-panel {
+        max-height: 85vh !important;
+    }
+}
+/* Respeita home indicator do iOS no rodapé */
+.kpi-drawer-footer {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+}
+</style>
