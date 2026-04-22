@@ -1,8 +1,10 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import GlobalLoading from '@/Components/GlobalLoading.vue';
 </script>
 
 <template>
+    <GlobalLoading />
     <div class="min-h-screen grid lg:grid-cols-2 bg-slate-50">
         <aside class="hidden lg:flex relative bg-gradient-to-br from-macaybas-primary-900 via-macaybas-primary-800 to-macaybas-accent-800 text-white p-12 flex-col justify-between">
             <div>

@@ -4,6 +4,9 @@ import { Head, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import InputMasked from '@/Components/InputMasked.vue';
+import { useLoading } from '@/composables/useLoading.js';
+
+const loading = useLoading();
 
 const props = defineProps({ settings: Object });
 
@@ -32,6 +35,7 @@ async function uploadImage(event, s) {
     fd.append('file', file);
     fd.append('key', s.key);
 
+    loading.start('Enviando ' + (s.label || 'arquivo').toLowerCase() + '...');
     try {
         const res = await fetch(route('admin.cms.settings.upload'), {
             method: 'POST',
@@ -50,11 +54,11 @@ async function uploadImage(event, s) {
             return;
         }
 
-        // Atualiza o valor local imediatamente (sem F5)
         s.value = json.path;
     } catch (err) {
         uploadError.value = { ...uploadError.value, [s.key]: 'Erro de rede — tente novamente.' };
     } finally {
+        loading.finish();
         uploadLoading.value = { ...uploadLoading.value, [s.key]: false };
         event.target.value = '';
     }

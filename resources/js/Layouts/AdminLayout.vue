@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import FlashMessages from '@/Components/FlashMessages.vue';
+import GlobalLoading from '@/Components/GlobalLoading.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -95,6 +96,7 @@ const iconPath = {
 </script>
 
 <template>
+    <GlobalLoading />
     <div class="min-h-screen flex bg-slate-50">
         <!-- SIDEBAR -->
         <aside

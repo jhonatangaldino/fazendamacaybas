@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { useLoading } from '@/composables/useLoading.js';
+
+const loading = useLoading();
 
 const props = defineProps({
     section: { type: Object, required: true },
@@ -124,6 +127,7 @@ async function uploadTo(event, cb) {
     fd.append('file', file);
     fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
     autoSaveStatus.value = 'saving';
+    loading.start('Enviando imagem...');
     try {
         const res = await fetch(route('admin.cms.upload-image'), {
             method: 'POST',
@@ -137,12 +141,12 @@ async function uploadTo(event, cb) {
             return;
         }
         cb(json.path);
-        // Auto-persistir no banco
         autoSaveDraft();
     } catch (err) {
         autoSaveStatus.value = 'error';
         alert('Erro de rede no upload.');
     } finally {
+        loading.finish();
         event.target.value = '';
     }
 }
