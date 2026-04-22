@@ -108,10 +108,11 @@ class StockItemController extends Controller
     }
 
     /**
-     * Lookup rápido por código de barras — usado pelo scanner no cadastro e movimentação.
-     * 1. Checa se o produto já está cadastrado localmente (evita duplicidade).
-     * 2. Se não, consulta bases públicas (Open Food Facts + UPCItemDB) para sugerir nome/marca.
-     * Retorna JSON estruturado com feedback claro pro usuário.
+     * Lookup por código de barras com:
+     *  1. Busca local (StockItem)
+     *  2. Fallback Open Food Facts + UPCItemDB
+     *  3. Log da tentativa em barcode_lookups para diagnóstico
+     *  4. Retorna `attempts` com status HTTP de cada fonte pro usuário entender
      */
     public function lookupByBarcode(Request $request): \Illuminate\Http\JsonResponse
     {
@@ -120,13 +121,30 @@ class StockItemController extends Controller
             return response()->json(['ok' => false, 'message' => 'Código vazio.'], 422);
         }
 
-        // 1. LOCAL — produto já cadastrado
+        $logData = [
+            'code' => $code,
+            'user_id' => $request->user()?->id,
+            'found_local' => false,
+            'source' => 'none',
+            'http_status_off' => null,
+            'http_status_upc' => null,
+            'nome_sugerido' => null,
+            'marca_sugerida' => null,
+            'nota_diagnostica' => null,
+        ];
+        $attempts = [];
+
+        // 1. LOCAL
         $item = StockItem::with('category:id,nome')
             ->where('codigo_barras', $code)
             ->orWhere('codigo', $code)
             ->first();
 
         if ($item) {
+            $logData['found_local'] = true;
+            $logData['source'] = 'local';
+            \App\Models\BarcodeLookup::create($logData);
+
             return response()->json([
                 'ok' => true,
                 'source' => 'local',
@@ -147,14 +165,25 @@ class StockItemController extends Controller
             ]);
         }
 
-        // 2. BASES PÚBLICAS — Open Food Facts (food), depois UPCItemDB (geral)
-        $suggestion = $this->searchPublicBarcode($code);
+        // 2. PÚBLICAS
+        [$suggestion, $attempts, $diag] = $this->searchPublicBarcode($code);
+        $logData['http_status_off'] = $attempts['openfoodfacts']['status'] ?? null;
+        $logData['http_status_upc'] = $attempts['upcitemdb']['status'] ?? null;
+        $logData['nota_diagnostica'] = $diag;
+        if ($suggestion) {
+            $logData['source'] = $suggestion['source'];
+            $logData['nome_sugerido'] = $suggestion['nome'];
+            $logData['marca_sugerida'] = $suggestion['marca'];
+        }
+        \App\Models\BarcodeLookup::create($logData);
 
         return response()->json([
             'ok' => true,
             'source' => $suggestion ? $suggestion['source'] : 'none',
             'found' => false,
             'suggestion' => $suggestion,
+            'attempts' => $attempts,
+            'diagnostico' => $diag,
             'message' => $suggestion
                 ? "Produto identificado em {$suggestion['source']}."
                 : 'Código não encontrado em bases públicas. Preencha o nome manualmente — das próximas vezes será reconhecido.',
@@ -162,42 +191,55 @@ class StockItemController extends Controller
     }
 
     /**
-     * Consulta bases públicas de código de barras.
-     * Preserva rede: timeout curto (3s) e engole erros pra não travar o fluxo do usuário.
+     * Consulta bases públicas. Retorna [suggestion, attempts, diagnostico].
+     * `attempts` expõe status HTTP e motivo de cada fonte, pro diagnóstico do usuário.
      */
-    protected function searchPublicBarcode(string $code): ?array
+    protected function searchPublicBarcode(string $code): array
     {
-        // Open Food Facts — ótimo pra alimentos (rações embaladas, bebidas)
+        $attempts = [
+            'openfoodfacts' => ['status' => null, 'encontrado' => false, 'nota' => null],
+            'upcitemdb' => ['status' => null, 'encontrado' => false, 'nota' => null],
+        ];
+
+        // Open Food Facts — alimentos
         try {
             $resp = \Illuminate\Support\Facades\Http::timeout(3)
                 ->acceptJson()
                 ->get("https://world.openfoodfacts.org/api/v2/product/{$code}.json");
+            $attempts['openfoodfacts']['status'] = $resp->status();
             if ($resp->successful()) {
                 $data = $resp->json();
                 if (($data['status'] ?? 0) === 1 && ! empty($data['product'])) {
                     $p = $data['product'];
                     $nome = $p['product_name_pt'] ?? $p['product_name'] ?? null;
                     if ($nome) {
-                        return [
+                        $attempts['openfoodfacts']['encontrado'] = true;
+                        return [[
                             'source' => 'Open Food Facts',
                             'nome' => $nome,
                             'marca' => $this->firstItem($p['brands'] ?? ''),
                             'categoria_hint' => $p['categories'] ?? null,
                             'imagem_url' => $p['image_front_small_url'] ?? null,
                             'quantidade_embalagem' => $p['quantity'] ?? null,
-                        ];
+                        ], $attempts, 'Encontrado em Open Food Facts.'];
                     }
+                    $attempts['openfoodfacts']['nota'] = 'produto existe mas sem nome';
+                } else {
+                    $attempts['openfoodfacts']['nota'] = 'não encontrado (status=0)';
                 }
+            } else {
+                $attempts['openfoodfacts']['nota'] = 'HTTP '.$resp->status();
             }
         } catch (\Throwable $e) {
-            // timeout ou rede — ignora e tenta próximo
+            $attempts['openfoodfacts']['nota'] = 'erro: '.substr($e->getMessage(), 0, 120);
         }
 
-        // UPCItemDB (trial) — boa pra produtos gerais, incluindo medicamentos e ferramentas
+        // UPCItemDB — produtos gerais
         try {
             $resp = \Illuminate\Support\Facades\Http::timeout(3)
                 ->acceptJson()
                 ->get('https://api.upcitemdb.com/prod/trial/lookup', ['upc' => $code]);
+            $attempts['upcitemdb']['status'] = $resp->status();
             if ($resp->successful()) {
                 $data = $resp->json();
                 $items = $data['items'] ?? [];
@@ -205,22 +247,33 @@ class StockItemController extends Controller
                     $i = $items[0];
                     $nome = $i['title'] ?? null;
                     if ($nome) {
-                        return [
+                        $attempts['upcitemdb']['encontrado'] = true;
+                        return [[
                             'source' => 'UPCItemDB',
                             'nome' => $nome,
                             'marca' => $i['brand'] ?? null,
                             'categoria_hint' => $i['category'] ?? null,
                             'imagem_url' => ! empty($i['images']) ? $i['images'][0] : null,
                             'quantidade_embalagem' => null,
-                        ];
+                        ], $attempts, 'Encontrado em UPCItemDB.'];
                     }
+                    $attempts['upcitemdb']['nota'] = 'item sem title';
+                } else {
+                    $attempts['upcitemdb']['nota'] = 'sem itens';
                 }
+            } elseif ($resp->status() === 429) {
+                $attempts['upcitemdb']['nota'] = 'limite da API gratuita atingido (100/dia)';
+            } else {
+                $attempts['upcitemdb']['nota'] = 'HTTP '.$resp->status();
             }
         } catch (\Throwable $e) {
-            // ignora
+            $attempts['upcitemdb']['nota'] = 'erro: '.substr($e->getMessage(), 0, 120);
         }
 
-        return null;
+        $diag = 'Tentativas: Open Food Facts — '.$attempts['openfoodfacts']['nota']
+            .'; UPCItemDB — '.$attempts['upcitemdb']['nota'];
+
+        return [null, $attempts, $diag];
     }
 
     protected function firstItem(?string $s): ?string

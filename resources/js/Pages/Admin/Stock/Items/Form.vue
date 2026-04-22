@@ -33,12 +33,14 @@ const showScanner = ref(false);
 const lookupLoading = ref(false);
 const produtoExistente = ref(null); // produto já cadastrado encontrado no lookup local
 const sugestaoPublica = ref(null);  // { source, nome, marca, imagem_url, ... } sugestão externa
+const ultimaTentativa = ref(null);  // { code, diagnostico, attempts } para debug quando nada é encontrado
 
 async function onBarcodeDetected(code) {
     showScanner.value = false;
     form.codigo_barras = code;
     lookupLoading.value = true;
     sugestaoPublica.value = null;
+    ultimaTentativa.value = null;
 
     try {
         const resp = await fetch(route('admin.estoque.itens.lookup-barcode') + '?code=' + encodeURIComponent(code), {
@@ -47,7 +49,7 @@ async function onBarcodeDetected(code) {
         });
         const data = await resp.json();
 
-        // 1) Produto já cadastrado localmente
+        // 1) Local
         if (data.found && data.item) {
             if (!isEdit) {
                 produtoExistente.value = data.item;
@@ -58,7 +60,7 @@ async function onBarcodeDetected(code) {
             return;
         }
 
-        // 2) Sugestão de base pública
+        // 2) Sugestão pública
         if (data.suggestion) {
             const s = data.suggestion;
             sugestaoPublica.value = s;
@@ -67,31 +69,26 @@ async function onBarcodeDetected(code) {
                 if (!form.marca && s.marca) form.marca = s.marca;
             }
             toast({ variant: 'success', message: `Produto identificado: ${s.nome} (${s.source})` });
-            // Foca o campo nome pra usuário revisar
-            requestAnimationFrame(() => {
-                const el = document.querySelector('input[placeholder*="RAC-"]')?.closest('.card')?.querySelector('input[required]');
-                el?.focus();
-            });
             return;
         }
 
-        // 3) Nada encontrado — mensagem clara, foco no campo nome
+        // 3) Nada encontrado — guarda diagnóstico pro usuário inspecionar
+        ultimaTentativa.value = {
+            code,
+            diagnostico: data.diagnostico || null,
+            attempts: data.attempts || null,
+        };
         toast({
             variant: 'info',
-            message: `Código ${code} lido. Produto não está em bases públicas — preencha o nome manualmente. Das próximas vezes será reconhecido.`,
-            duration: 6000,
+            message: `Código ${code} lido, mas não consta em nenhuma base pública. Preencha manualmente — das próximas vezes será reconhecido localmente.`,
+            duration: 8000,
         });
-        // Foca o campo Nome pra entrada rápida
         requestAnimationFrame(() => {
-            document.querySelectorAll('input.form-input').forEach((el) => {
-                if (el.value === '' && el !== document.activeElement && el.type === 'text') {
-                    el.focus();
-                    return false;
-                }
-            });
+            document.querySelector('input[required][class*="form-input"]:not([value])')?.focus();
         });
     } catch (e) {
-        toast({ variant: 'warning', message: 'Falha ao consultar produto. Preencha manualmente.' });
+        toast({ variant: 'warning', message: 'Falha de rede ao consultar produto. Preencha manualmente.' });
+        ultimaTentativa.value = { code, diagnostico: 'Erro de rede: ' + (e?.message || 'desconhecido'), attempts: null };
     } finally {
         lookupLoading.value = false;
     }
@@ -148,6 +145,29 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                             <svg class="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
                             Consultando bases públicas...
                         </p>
+                        <!-- Diagnóstico quando nada foi encontrado — mostra o porquê -->
+                        <details v-if="ultimaTentativa && !sugestaoPublica" class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900">
+                            <summary class="cursor-pointer font-medium flex items-center gap-2">
+                                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Código <span class="font-mono">{{ ultimaTentativa.code }}</span> não identificado — ver diagnóstico
+                            </summary>
+                            <div class="mt-2 space-y-1 pl-6">
+                                <div v-if="ultimaTentativa.attempts?.openfoodfacts">
+                                    <strong>Open Food Facts</strong>
+                                    · HTTP {{ ultimaTentativa.attempts.openfoodfacts.status ?? '—' }}
+                                    · {{ ultimaTentativa.attempts.openfoodfacts.nota || 'sem informação' }}
+                                </div>
+                                <div v-if="ultimaTentativa.attempts?.upcitemdb">
+                                    <strong>UPCItemDB</strong>
+                                    · HTTP {{ ultimaTentativa.attempts.upcitemdb.status ?? '—' }}
+                                    · {{ ultimaTentativa.attempts.upcitemdb.nota || 'sem informação' }}
+                                </div>
+                                <p class="text-xs text-amber-700 mt-1">
+                                    Após você salvar o cadastro manualmente, este código será reconhecido localmente nas próximas leituras.
+                                </p>
+                            </div>
+                        </details>
+
                         <!-- Cartão de sugestão externa (Open Food Facts / UPCItemDB) -->
                         <div v-if="sugestaoPublica" class="mt-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-3">
                             <img v-if="sugestaoPublica.imagem_url" :src="sugestaoPublica.imagem_url"
