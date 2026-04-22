@@ -4,6 +4,8 @@ import { Link, usePage, router } from '@inertiajs/vue3';
 import FlashMessages from '@/Components/FlashMessages.vue';
 import GlobalLoading from '@/Components/GlobalLoading.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import ToastContainer from '@/Components/ToastContainer.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -113,6 +115,9 @@ const iconPath = {
 
 <template>
     <GlobalLoading />
+    <ToastContainer />
+    <ConfirmDialog />
+    <FlashMessages />
     <div class="min-h-screen flex bg-slate-50">
         <!-- SIDEBAR -->
         <aside
@@ -207,8 +212,6 @@ const iconPath = {
                     </div>
                 </div>
             </header>
-
-            <FlashMessages />
 
             <main class="flex-1 p-4 lg:p-8">
                 <slot />

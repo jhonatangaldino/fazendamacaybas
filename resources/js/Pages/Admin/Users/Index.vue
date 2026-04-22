@@ -6,6 +6,9 @@ import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { dataHoraBR } from '@/utils/format.js';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 const props = defineProps({
     users: Object,
@@ -26,10 +29,15 @@ function doDelete() {
         onSuccess: () => (confirmDelete.value = null),
     });
 }
-function resetPassword(id) {
-    if (confirm('Resetar senha deste usuário?')) {
-        router.post(route('admin.users.reset-password', id));
-    }
+async function resetPassword(id) {
+    const ok = await confirm({
+        title: 'Resetar senha',
+        message: 'Uma senha temporária será gerada e o usuário será obrigado a trocá-la no próximo login. Continuar?',
+        confirmText: 'Resetar senha',
+        variant: 'primary',
+        icon: 'question',
+    });
+    if (ok) router.post(route('admin.users.reset-password', id));
 }
 </script>
 

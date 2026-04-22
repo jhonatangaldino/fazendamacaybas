@@ -8,6 +8,9 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import { dataBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 const props = defineProps({ documents: Object, filters: Object, categories: Array });
 useAutoReload(['documents'], 20000);
@@ -50,8 +53,14 @@ function createCategory() {
         onSuccess: () => { showCategoryForm.value = false; categoryForm.reset(); categoryForm.cor = '#64748b'; categoryForm.icon = 'file'; },
     });
 }
-function delCategory(id) {
-    if (confirm('Excluir categoria?')) {
+async function delCategory(id) {
+    const ok = await confirm({
+        title: 'Excluir categoria',
+        message: 'Tem certeza que deseja excluir esta categoria?',
+        confirmText: 'Excluir',
+        variant: 'danger',
+    });
+    if (ok) {
         router.delete(route('admin.documentos.categorias.destroy', id), { preserveScroll: true, only: ['categories'] });
     }
 }

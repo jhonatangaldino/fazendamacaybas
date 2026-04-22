@@ -5,8 +5,12 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import InputMasked from '@/Components/InputMasked.vue';
 import { useLoading } from '@/composables/useLoading.js';
+import { useConfirm } from '@/composables/useConfirm.js';
+import { useToast } from '@/composables/useToast.js';
 
 const loading = useLoading();
+const { confirm } = useConfirm();
+const { toast } = useToast();
 
 const props = defineProps({ settings: Object });
 
@@ -65,7 +69,13 @@ async function uploadImage(event, s) {
 }
 
 async function removeImage(s) {
-    if (!confirm('Remover esta imagem?')) return;
+    const ok = await confirm({
+        title: 'Remover imagem',
+        message: `Deseja realmente remover a ${s.label?.toLowerCase() || 'imagem'}?`,
+        confirmText: 'Remover',
+        variant: 'danger',
+    });
+    if (!ok) return;
 
     const fd = new FormData();
     fd.append('key', s.key);

@@ -4,6 +4,9 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import SectionEditor from './SectionEditor.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 const props = defineProps({
     page: Object,
@@ -38,10 +41,15 @@ function publishSection(section) {
     router.post(route('admin.cms.section.publish', section.id), {}, { preserveScroll: true });
 }
 
-function publishAll() {
-    if (confirm('Publicar todas as alterações agora? As mudanças ficarão visíveis no site público.')) {
-        router.post(route('admin.cms.publish-all', props.page.id));
-    }
+async function publishAll() {
+    const ok = await confirm({
+        title: 'Publicar alterações',
+        message: 'Todas as alterações em rascunho ficarão visíveis no site público. Deseja publicar agora?',
+        confirmText: 'Publicar',
+        variant: 'primary',
+        icon: 'question',
+    });
+    if (ok) router.post(route('admin.cms.publish-all', props.page.id));
 }
 
 function toggleActive(section) {

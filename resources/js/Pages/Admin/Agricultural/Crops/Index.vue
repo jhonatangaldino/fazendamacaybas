@@ -6,6 +6,9 @@ import PageHeader from '@/Components/PageHeader.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import { dataBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 defineProps({ crops: Array, seasons: Array });
 useAutoReload(['crops', 'seasons'], 20000);
@@ -28,11 +31,15 @@ function saveSeason() {
         onSuccess: () => { showSeasonForm.value = false; seasonForm.reset(); },
     });
 }
-function delCrop(id) {
-    if (confirm('Excluir cultura?')) router.delete(route('admin.agricola.culturas.destroy', id), { preserveScroll: true, only: ['crops'] });
+async function delCrop(id) {
+    if (await confirm({ title: 'Excluir cultura', message: 'Excluir esta cultura do catálogo?', variant: 'danger' })) {
+        router.delete(route('admin.agricola.culturas.destroy', id), { preserveScroll: true, only: ['crops'] });
+    }
 }
-function delSeason(id) {
-    if (confirm('Excluir safra?')) router.delete(route('admin.agricola.safras.destroy', id), { preserveScroll: true, only: ['seasons'] });
+async function delSeason(id) {
+    if (await confirm({ title: 'Excluir safra', message: 'Excluir esta safra do calendário?', variant: 'danger' })) {
+        router.delete(route('admin.agricola.safras.destroy', id), { preserveScroll: true, only: ['seasons'] });
+    }
 }
 </script>
 

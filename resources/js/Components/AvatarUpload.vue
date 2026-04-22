@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useLoading } from '@/composables/useLoading.js';
+import { useConfirm } from '@/composables/useConfirm.js';
+import { useToast } from '@/composables/useToast.js';
 
 const props = defineProps({
     url: { type: String, default: null },
@@ -12,6 +14,8 @@ const props = defineProps({
 
 const emit = defineEmits(['updated']);
 const loading = useLoading();
+const { confirm } = useConfirm();
+const { toast } = useToast();
 const error = ref('');
 const localUrl = ref(props.url);
 
@@ -55,7 +59,14 @@ async function onFile(event) {
 
 async function remove() {
     if (!props.removeUrl) return;
-    if (!confirm('Remover a foto atual?')) return;
+    const ok = await confirm({
+        title: 'Remover foto',
+        message: 'Tem certeza que deseja remover a foto atual?',
+        confirmText: 'Remover',
+        cancelText: 'Cancelar',
+        variant: 'danger',
+    });
+    if (!ok) return;
 
     loading.start('Removendo foto...');
     try {
@@ -70,12 +81,15 @@ async function remove() {
         const json = await res.json();
         if (!res.ok || !json.ok) {
             error.value = json.message || 'Falha ao remover.';
+            toast.error(error.value);
             return;
         }
         localUrl.value = null;
         emit('updated', { avatar_url: null, path: null });
+        toast.success('Foto removida.');
     } catch (err) {
         error.value = 'Erro de rede.';
+        toast.error(error.value);
     } finally {
         loading.finish();
     }

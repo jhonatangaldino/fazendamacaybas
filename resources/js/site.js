@@ -1,34 +1,96 @@
 import '../css/site.css';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Menu mobile toggle
-    const toggle = document.querySelector('[data-menu-toggle]');
-    const menu = document.querySelector('[data-menu]');
-    if (toggle && menu) {
-        toggle.addEventListener('click', () => {
-            menu.classList.toggle('hidden');
+    initMobileDrawer();
+    initUserDropdown();
+    initSmoothScroll();
+    initLightbox();
+});
+
+/**
+ * Menu mobile em formato drawer lateral (slide da direita).
+ */
+function initMobileDrawer() {
+    const openBtn = document.querySelector('[data-menu-open]');
+    const closeBtn = document.querySelector('[data-menu-close]');
+    const drawer = document.querySelector('[data-mobile-drawer]');
+    const overlay = document.querySelector('[data-mobile-overlay]');
+    const links = document.querySelectorAll('[data-menu-link]');
+
+    if (!openBtn || !drawer || !overlay) return;
+
+    function open() {
+        overlay.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+            drawer.style.transform = 'translateX(0)';
         });
+        document.body.style.overflow = 'hidden';
     }
 
-    // Scroll suave para âncoras
+    function close() {
+        overlay.style.opacity = '0';
+        drawer.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            document.body.style.overflow = '';
+        }, 300);
+    }
+
+    openBtn.addEventListener('click', open);
+    closeBtn?.addEventListener('click', close);
+    overlay.addEventListener('click', close);
+
+    // Fecha ao clicar num link interno
+    links.forEach((link) => {
+        link.addEventListener('click', () => setTimeout(close, 50));
+    });
+
+    // ESC fecha
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) close();
+    });
+}
+
+/**
+ * Dropdown do usuário logado (header desktop).
+ */
+function initUserDropdown() {
+    const trigger = document.querySelector('[data-user-trigger]');
+    const menu = document.querySelector('[data-user-menu]');
+    if (!trigger || !menu) return;
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!trigger.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
+}
+
+/**
+ * Scroll suave em âncoras.
+ */
+function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
         anchor.addEventListener('click', (e) => {
-            const target = document.querySelector(anchor.getAttribute('href'));
+            const hash = anchor.getAttribute('href');
+            if (hash === '#' || hash.length < 2) return;
+            const target = document.querySelector(hash);
             if (target) {
                 e.preventDefault();
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         });
     });
-
-    initLightbox();
-});
+}
 
 /**
- * Lightbox simples, sem dependências:
- * - Clique em qualquer [data-lightbox-item] abre a imagem em tela cheia
- * - Setas (← / →) ou botões para navegar
- * - ESC ou backdrop para fechar
+ * Lightbox da galeria (sem dependências).
  */
 function initLightbox() {
     const gallery = document.querySelector('[data-lightbox-gallery]');
@@ -51,14 +113,10 @@ function initLightbox() {
         if (index < 0) index = items.length - 1;
         if (index >= items.length) index = 0;
         currentIndex = index;
-
         const item = items[index];
-        const src = item.dataset.src;
-        const caption = item.dataset.caption || '';
-
-        imgEl.src = src;
-        imgEl.alt = caption;
-        captionEl.textContent = caption;
+        imgEl.src = item.dataset.src;
+        imgEl.alt = item.dataset.caption || '';
+        captionEl.textContent = item.dataset.caption || '';
         counterEl.textContent = `${index + 1} / ${items.length}`;
     }
 
@@ -66,9 +124,7 @@ function initLightbox() {
         show(index);
         lightbox.classList.remove('hidden');
         lightbox.classList.add('flex');
-        requestAnimationFrame(() => {
-            lightbox.style.opacity = '1';
-        });
+        requestAnimationFrame(() => lightbox.style.opacity = '1');
         document.body.style.overflow = 'hidden';
     }
 
@@ -82,20 +138,12 @@ function initLightbox() {
         }, 200);
     }
 
-    items.forEach((item, idx) => {
-        item.addEventListener('click', () => open(idx));
-    });
-
+    items.forEach((item, idx) => item.addEventListener('click', () => open(idx)));
     btnClose.addEventListener('click', close);
     btnPrev.addEventListener('click', (e) => { e.stopPropagation(); show(currentIndex - 1); });
     btnNext.addEventListener('click', (e) => { e.stopPropagation(); show(currentIndex + 1); });
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) close(); });
 
-    // Clique no backdrop fecha (mas não no próprio painel da imagem)
-    lightbox.addEventListener('click', (e) => {
-        if (e.target === lightbox) close();
-    });
-
-    // Teclado
     document.addEventListener('keydown', (e) => {
         if (lightbox.classList.contains('hidden')) return;
         if (e.key === 'Escape') close();

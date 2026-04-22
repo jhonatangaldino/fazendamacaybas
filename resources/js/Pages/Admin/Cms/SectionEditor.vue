@@ -2,8 +2,10 @@
 import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useLoading } from '@/composables/useLoading.js';
+import { useToast } from '@/composables/useToast.js';
 
 const loading = useLoading();
+const { toast } = useToast();
 
 const props = defineProps({
     section: { type: Object, required: true },
@@ -137,7 +139,7 @@ async function uploadTo(event, cb) {
         const json = await res.json();
         if (!res.ok || !json.ok) {
             autoSaveStatus.value = 'error';
-            alert(json.message || 'Falha no upload da imagem.');
+            toast.error(json.message || 'Falha no upload da imagem.');
             return;
         }
         cb(json.path);
