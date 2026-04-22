@@ -7,6 +7,7 @@ import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
 const props = defineProps({ roles: Array, permissions: Array });
@@ -203,11 +204,12 @@ const isSystemEditing = computed(() => {
                 </span>
             </template>
             <template #cell-acoes="{ row }">
-                <div class="flex gap-2 justify-end">
-                    <button @click="editar(row)" class="text-slate-500 hover:text-macaybas-primary">Editar</button>
-                    <button v-if="!row.is_system"
-                            @click="confirmDelete = row"
-                            class="text-red-600 hover:underline">Excluir</button>
+                <div class="flex gap-1 justify-end">
+                    <ActionIcon type="edit" title="Editar perfil e permissões" @click="editar(row)" />
+                    <ActionIcon v-if="!row.is_system"
+                                type="delete"
+                                title="Excluir perfil"
+                                @click="confirmDelete = row" />
                 </div>
             </template>
         </DataTable>

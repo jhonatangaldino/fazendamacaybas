@@ -8,6 +8,7 @@ import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
@@ -106,7 +107,9 @@ function doDelete() {
                 {{ Number(row.produtividade_por_ha).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) }} {{ row.unidade }}/ha
             </template>
             <template #cell-acoes="{ row }">
-                <button @click="confirmDelete = row" class="text-red-600 hover:underline">Excluir</button>
+                <div class="flex gap-1 justify-end">
+                    <ActionIcon type="delete" title="Excluir colheita" @click="confirmDelete = row" />
+                </div>
             </template>
         </DataTable>
 

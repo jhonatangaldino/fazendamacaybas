@@ -112,6 +112,7 @@ class StockItemController extends Controller
         return $request->validate([
             'category_id' => ['nullable', 'exists:categories,id'],
             'codigo' => ['required', 'string', 'max:50', Rule::unique('stock_items', 'codigo')->ignore($id)->whereNull('deleted_at')],
+            'codigo_barras' => ['nullable', 'string', 'max:32'],
             'nome' => ['required', 'string', 'max:255'],
             'descricao' => ['nullable', 'string'],
             'unidade' => ['required', 'string', 'max:10'],

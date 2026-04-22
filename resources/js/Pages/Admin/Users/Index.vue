@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import { dataHoraBR } from '@/utils/format.js';
 import { useConfirm } from '@/composables/useConfirm.js';
 
@@ -109,10 +110,12 @@ async function resetPassword(id) {
                 </span>
             </template>
             <template #cell-acoes="{ row }">
-                <div class="flex items-center gap-2 justify-end">
-                    <button @click="resetPassword(row.id)" class="text-slate-500 hover:text-amber-600" title="Resetar senha">🔑</button>
-                    <Link :href="route('admin.users.edit', row.id)" class="text-slate-500 hover:text-macaybas-primary">Editar</Link>
-                    <button @click="askDelete(row)" class="text-red-600 hover:underline">Excluir</button>
+                <div class="flex items-center gap-1 justify-end">
+                    <ActionIcon type="reset-password" title="Resetar senha" @click="resetPassword(row.id)" />
+                    <Link :href="route('admin.users.edit', row.id)" class="inline-flex">
+                        <ActionIcon type="edit" title="Editar usuário" />
+                    </Link>
+                    <ActionIcon type="delete" title="Excluir usuário" @click="askDelete(row)" />
                 </div>
             </template>
         </DataTable>

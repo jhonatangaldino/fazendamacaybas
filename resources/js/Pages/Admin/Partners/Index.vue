@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import { cpfCnpjMask, telefoneMask } from '@/utils/format.js';
 
 const props = defineProps({ partners: Object, filters: Object });
@@ -62,9 +63,11 @@ function doDelete() {
                 </span>
             </template>
             <template #cell-acoes="{ row }">
-                <div class="flex items-center gap-2 justify-end">
-                    <Link :href="route('admin.parceiros.edit', row.id)" class="text-slate-500 hover:text-macaybas-primary">Editar</Link>
-                    <button @click="confirmDelete = row" class="text-red-600 hover:underline">Excluir</button>
+                <div class="flex items-center gap-1 justify-end">
+                    <Link :href="route('admin.parceiros.edit', row.id)" class="inline-flex">
+                        <ActionIcon type="edit" title="Editar parceiro" />
+                    </Link>
+                    <ActionIcon type="delete" title="Excluir parceiro" @click="confirmDelete = row" />
                 </div>
             </template>
         </DataTable>

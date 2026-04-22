@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Farm;
 use App\Models\Livestock\Animal;
 use App\Models\Livestock\AnimalBreed;
+use App\Models\Livestock\AnimalEvent;
 use App\Models\Livestock\AnimalLot;
 use App\Models\Livestock\AnimalSpecies;
 use App\Models\Partner;
@@ -24,13 +25,35 @@ class AnimalController extends Controller
             ->when($request->species_id, fn ($qq) => $qq->where('species_id', $request->species_id))
             ->when($request->lot_id, fn ($qq) => $qq->where('lot_id', $request->lot_id))
             ->when($request->status, fn ($qq) => $qq->where('status', $request->status))
+            ->when($request->categoria, fn ($qq) => $qq->where('categoria', $request->categoria))
             ->orderBy('identificacao');
 
         return Inertia::render('Admin/Livestock/Animals/Index', [
-            'animals' => $q->paginate(25)->withQueryString(),
-            'filters' => $request->only(['search', 'species_id', 'lot_id', 'status']),
+            'animals' => $q->paginate(25)->withQueryString()->through(fn (Animal $a) => [
+                'id' => $a->id,
+                'identificacao' => $a->identificacao,
+                'nome' => $a->nome,
+                'sexo' => $a->sexo,
+                'categoria' => $a->categoria,
+                'status' => $a->status,
+                'data_nascimento' => $a->data_nascimento,
+                'peso_atual' => $a->peso_atual,
+                'photo_url' => $a->photoUrl(),
+                'species' => $a->species ? ['nome' => $a->species->nome] : null,
+                'breed' => $a->breed ? ['nome' => $a->breed->nome] : null,
+                'lot' => $a->lot ? ['nome' => $a->lot->nome] : null,
+            ]),
+            'filters' => $request->only(['search', 'species_id', 'lot_id', 'status', 'categoria']),
             'species' => AnimalSpecies::where('is_active', true)->get(['id', 'nome']),
             'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome']),
+            'categorias' => [
+                ['value' => 'leite', 'label' => 'Leite'],
+                ['value' => 'corte', 'label' => 'Corte'],
+                ['value' => 'reproducao', 'label' => 'Reprodução'],
+                ['value' => 'misto', 'label' => 'Misto'],
+                ['value' => 'pet', 'label' => 'Pet'],
+                ['value' => 'servico', 'label' => 'Serviço / trabalho'],
+            ],
         ]);
     }
 
@@ -145,5 +168,115 @@ class AnimalController extends Controller
         $animal->update(['photo_path' => null]);
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Página de detalhe do animal com timeline completa de eventos.
+     * Inclui evolução de peso, vacinas, medicamentos, eventos reprodutivos.
+     */
+    public function show(Animal $animal)
+    {
+        $events = $animal->events()
+            ->with(['partner:id,nome', 'lotOrigem:id,nome', 'lotDestino:id,nome', 'creator:id,name'])
+            ->orderByDesc('data')
+            ->orderByDesc('id')
+            ->get();
+
+        // Série para gráfico de evolução de peso (ordem cronológica)
+        $pesagens = $events->where('tipo', 'pesagem')
+            ->sortBy('data')
+            ->values()
+            ->map(fn ($e) => [
+                'data' => $e->data?->toDateString(),
+                'peso' => (float) $e->peso,
+            ]);
+
+        return Inertia::render('Admin/Livestock/Animals/Show', [
+            'animal' => [
+                ...$animal->load(['species:id,nome', 'breed:id,nome', 'lot:id,nome', 'farm:id,nome', 'fornecedor:id,nome'])->toArray(),
+                'photo_url' => $animal->photoUrl(),
+                'idade_em_meses' => $animal->data_nascimento?->diffInMonths(now()),
+            ],
+            'events' => $events,
+            'pesagens' => $pesagens,
+            'partners' => Partner::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
+            'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome']),
+        ]);
+    }
+
+    /**
+     * Registra um evento no animal (pesagem, vacinação, medicação, reprodução, etc.).
+     * Valor e partner opcionais — quando informados, alimentam o ecossistema financeiro.
+     */
+    public function storeEvent(Request $request, Animal $animal)
+    {
+        $data = $request->validate([
+            'tipo' => ['required', 'in:pesagem,vacinacao,medicacao,reproducao,movimentacao,observacao'],
+            'data' => ['required', 'date', 'before_or_equal:today'],
+            'peso' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
+            'vacina' => ['nullable', 'string', 'max:120'],
+            'medicamento' => ['nullable', 'string', 'max:120'],
+            'dose' => ['nullable', 'numeric', 'min:0'],
+            'via_aplicacao' => ['nullable', 'string', 'max:30'],
+            'responsavel' => ['nullable', 'string', 'max:120'],
+            'valor' => ['nullable', 'numeric', 'min:0'],
+            'partner_id' => ['nullable', 'exists:partners,id'],
+            'lot_origem_id' => ['nullable', 'exists:animal_lots,id'],
+            'lot_destino_id' => ['nullable', 'exists:animal_lots,id'],
+            'observacoes' => ['nullable', 'string'],
+        ], [
+            'data.before_or_equal' => 'A data do evento não pode ser futura.',
+            'tipo.required' => 'Informe o tipo de evento.',
+        ]);
+
+        // Regras por tipo
+        if ($data['tipo'] === 'pesagem' && empty($data['peso'])) {
+            return back()->with('error', 'Pesagem exige o valor do peso.');
+        }
+        if ($data['tipo'] === 'vacinacao' && empty($data['vacina'])) {
+            return back()->with('error', 'Vacinação exige o nome da vacina.');
+        }
+        if ($data['tipo'] === 'medicacao' && empty($data['medicamento'])) {
+            return back()->with('error', 'Medicação exige o nome do medicamento.');
+        }
+
+        $event = $animal->events()->create([
+            ...$data,
+            'lot_id' => $animal->lot_id,
+            'created_by' => $request->user()?->id,
+        ]);
+
+        // Pesagem atualiza o peso_atual (cache desnormalizado no Animal)
+        if ($data['tipo'] === 'pesagem') {
+            $animal->update(['peso_atual' => $data['peso']]);
+        }
+
+        // Movimentação altera lote atual
+        if ($data['tipo'] === 'movimentacao' && ! empty($data['lot_destino_id'])) {
+            $animal->update(['lot_id' => $data['lot_destino_id']]);
+        }
+
+        return back()->with('success', match ($data['tipo']) {
+            'pesagem' => 'Pesagem registrada.',
+            'vacinacao' => 'Vacinação registrada.',
+            'medicacao' => 'Medicação registrada.',
+            'reproducao' => 'Evento reprodutivo registrado.',
+            'movimentacao' => 'Movimentação registrada.',
+            default => 'Evento registrado.',
+        });
+    }
+
+    public function destroyEvent(Animal $animal, AnimalEvent $event)
+    {
+        abort_if($event->animal_id !== $animal->id, 404);
+        $event->delete();
+
+        // Se era a última pesagem, recalcula peso_atual
+        if ($event->tipo === 'pesagem') {
+            $ultima = $animal->events()->where('tipo', 'pesagem')->orderByDesc('data')->first();
+            $animal->update(['peso_atual' => $ultima?->peso]);
+        }
+
+        return back()->with('success', 'Evento removido.');
     }
 }

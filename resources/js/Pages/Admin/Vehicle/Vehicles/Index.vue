@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
@@ -149,9 +150,9 @@ const tipoLabel = {
                 <button @click="toggle(row)" :class="row.is_active ? 'badge-green' : 'badge-slate'" class="cursor-pointer">{{ row.is_active ? 'Ativo' : 'Inativo' }}</button>
             </template>
             <template #cell-acoes="{ row }">
-                <div class="flex gap-2 justify-end">
-                    <button @click="editar(row)" class="text-slate-500 hover:text-macaybas-primary">Editar</button>
-                    <button @click="confirmDelete = row" class="text-red-600 hover:underline">Excluir</button>
+                <div class="flex gap-1 justify-end">
+                    <ActionIcon type="edit" title="Editar veículo" @click="editar(row)" />
+                    <ActionIcon type="delete" title="Excluir veículo" @click="confirmDelete = row" />
                 </div>
             </template>
         </DataTable>

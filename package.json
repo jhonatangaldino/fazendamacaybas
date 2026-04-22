@@ -29,9 +29,13 @@
         "@tiptap/starter-kit": "^2.2.4",
         "@tiptap/vue-3": "^2.2.4",
         "@vueuse/core": "^10.8.0",
+        "@zxing/browser": "^0.1.5",
+        "chart.js": "^4.5.1",
         "dayjs": "^1.11.10",
+        "flatpickr": "^4.6.13",
         "maska": "^3.0.0",
         "pinia": "^2.1.7",
+        "vue-chartjs": "^5.3.3",
         "vue-draggable-next": "^2.2.1",
         "ziggy-js": "^2.0.0"
     }

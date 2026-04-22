@@ -6,7 +6,10 @@ import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputDate from '@/Components/InputDate.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR } from '@/utils/format.js';
+import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     transactions: Object,
@@ -29,13 +32,16 @@ function doDelete() {
     });
 }
 
-function pay(t) {
-    const d = prompt('Data de pagamento (dd/mm/aaaa):', new Date().toLocaleDateString('pt-BR'));
-    if (!d) return;
-    const [dd, mm, yy] = d.split('/');
-    router.post(route('admin.financeiro.transacoes.pay', t.id), {
-        data_pagamento: `${yy}-${mm}-${dd}`,
-        forma_pagamento: 'pix',
+const payModal = ref(null);
+const payForm = useForm({ data_pagamento: '', forma_pagamento: 'pix' });
+function askPay(t) {
+    payModal.value = t;
+    payForm.data_pagamento = new Date().toISOString().slice(0, 10);
+    payForm.forma_pagamento = 'pix';
+}
+function confirmPay() {
+    payForm.post(route('admin.financeiro.transacoes.pay', payModal.value.id), {
+        onSuccess: () => { payModal.value = null; payForm.reset(); },
     });
 }
 
@@ -111,13 +117,51 @@ const statusBadge = (s) => ({
                 <span :class="statusBadge(row.status)">{{ row.status }}</span>
             </template>
             <template #cell-acoes="{ row }">
-                <div class="flex items-center gap-2 justify-end">
-                    <button v-if="row.status === 'pendente'" @click="pay(row)" class="text-green-700 hover:underline">Quitar</button>
-                    <Link :href="route('admin.financeiro.transacoes.edit', row.id)" class="text-slate-500 hover:text-macaybas-primary">Editar</Link>
-                    <button @click="askDelete(row)" class="text-red-600 hover:underline">Excluir</button>
+                <div class="flex items-center gap-1 justify-end">
+                    <ActionIcon v-if="row.status === 'pendente'" type="pay" title="Registrar pagamento" @click="askPay(row)" />
+                    <Link :href="route('admin.financeiro.transacoes.edit', row.id)" class="inline-flex">
+                        <ActionIcon type="edit" title="Editar lançamento" />
+                    </Link>
+                    <ActionIcon type="delete" title="Excluir lançamento" @click="askDelete(row)" />
                 </div>
             </template>
         </DataTable>
+
+        <!-- Modal: Registrar pagamento -->
+        <Teleport to="body">
+            <div v-if="payModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="payModal = null"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-1">Registrar pagamento</h3>
+                    <p class="text-sm text-slate-500 mb-4">Lançamento: <strong>{{ payModal.descricao }}</strong> ({{ brl(payModal.valor) }})</p>
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Data de pagamento *" />
+                            <InputDate v-model="payForm.data_pagamento" :max="new Date().toISOString().slice(0,10)" required />
+                            <p v-if="payForm.errors.data_pagamento" class="text-xs text-red-600 mt-1">{{ payForm.errors.data_pagamento }}</p>
+                        </div>
+                        <div>
+                            <InputLabel value="Forma de pagamento" />
+                            <select v-model="payForm.forma_pagamento" class="form-select">
+                                <option value="pix">PIX</option>
+                                <option value="dinheiro">Dinheiro</option>
+                                <option value="transferencia">Transferência</option>
+                                <option value="boleto">Boleto</option>
+                                <option value="cartao">Cartão</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="payModal = null" class="btn-outline">Cancelar</button>
+                        <button @click="confirmPay" :disabled="payForm.processing" class="btn-primary bg-emerald-600 hover:bg-emerald-700">
+                            {{ payForm.processing ? 'Registrando...' : 'Confirmar pagamento' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <div v-if="transactions.links" class="mt-4 flex gap-2 flex-wrap justify-end">
             <Link v-for="link in transactions.links" :key="link.label"

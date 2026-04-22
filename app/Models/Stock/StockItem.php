@@ -13,7 +13,7 @@ class StockItem extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'category_id', 'codigo', 'nome', 'descricao', 'unidade', 'marca',
+        'category_id', 'codigo', 'codigo_barras', 'nome', 'descricao', 'unidade', 'marca',
         'estoque_minimo', 'estoque_maximo', 'custo_medio', 'tipo', 'registro_ms', 'is_active',
     ];
 

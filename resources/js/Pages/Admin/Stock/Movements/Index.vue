@@ -9,6 +9,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
@@ -191,7 +192,9 @@ const tipoBadge = (t) => ({
             <template #cell-quantidade="{ row }">{{ Number(row.quantidade).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) }} {{ row.item?.unidade }}</template>
             <template #cell-partner="{ row }">{{ row.partner?.nome ?? '—' }}</template>
             <template #cell-acoes="{ row }">
-                <button @click="confirmDelete = row" class="text-red-600 hover:underline">Excluir</button>
+                <div class="flex gap-1 justify-end">
+                    <ActionIcon type="delete" title="Excluir movimentação" @click="confirmDelete = row" />
+                </div>
             </template>
         </DataTable>
 

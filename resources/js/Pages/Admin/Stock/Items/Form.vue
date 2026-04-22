@@ -1,17 +1,22 @@
 <script setup>
+import { ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import BarcodeScanner from '@/Components/BarcodeScanner.vue';
+import { useToast } from '@/composables/useToast.js';
 
+const { toast } = useToast();
 const props = defineProps({ item: Object, categories: Array });
 const isEdit = !!props.item;
 
 const form = useForm({
     category_id: props.item?.category_id ?? null,
     codigo: props.item?.codigo ?? '',
+    codigo_barras: props.item?.codigo_barras ?? '',
     nome: props.item?.nome ?? '',
     descricao: props.item?.descricao ?? '',
     unidade: props.item?.unidade ?? 'un',
@@ -23,6 +28,35 @@ const form = useForm({
     registro_ms: props.item?.registro_ms ?? '',
     is_active: props.item?.is_active ?? true,
 });
+
+const showScanner = ref(false);
+const lookupLoading = ref(false);
+
+async function onBarcodeDetected(code) {
+    showScanner.value = false;
+    form.codigo_barras = code;
+    toast({ variant: 'success', message: `Código ${code} lido! Buscando produto...` });
+    // Lookup Open Food Facts (sem preencher nome se usuário já digitou)
+    if (!form.nome) {
+        lookupLoading.value = true;
+        try {
+            const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
+            const j = await r.json();
+            if (j.status === 1 && j.product) {
+                const p = j.product;
+                form.nome = p.product_name_pt || p.product_name || form.nome;
+                if (p.brands && !form.marca) form.marca = p.brands.split(',')[0].trim();
+                toast({ variant: 'success', message: `Produto encontrado: ${form.nome}` });
+            } else {
+                toast({ variant: 'info', message: 'Código lido, mas produto não encontrado na base pública. Preencha manualmente.' });
+            }
+        } catch (_) {
+            toast({ variant: 'warning', message: 'Código lido, mas a busca online falhou. Preencha manualmente.' });
+        } finally {
+            lookupLoading.value = false;
+        }
+    }
+}
 
 function submit() {
     if (isEdit) form.put(route('admin.estoque.itens.update', props.item.id));
@@ -46,9 +80,24 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                 <div class="card-header"><h2 class="card-title">Identificação</h2></div>
                 <div class="card-body grid gap-4 sm:grid-cols-2">
                     <div>
-                        <InputLabel value="Código" />
+                        <InputLabel value="Código interno" />
                         <input v-model="form.codigo" required class="form-input" placeholder="Ex: RAC-001">
                         <InputError :message="form.errors.codigo" />
+                    </div>
+                    <div>
+                        <InputLabel value="Código de barras (EAN/UPC)" />
+                        <div class="flex gap-2">
+                            <input v-model="form.codigo_barras" class="form-input flex-1 font-mono" placeholder="Ex: 7891234567890">
+                            <button type="button" @click="showScanner = true"
+                                    class="btn-outline flex items-center gap-1.5 flex-shrink-0"
+                                    :disabled="lookupLoading">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9zM15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                Escanear
+                            </button>
+                        </div>
+                        <p v-if="lookupLoading" class="text-xs text-slate-500 mt-1">Buscando produto na base pública...</p>
                     </div>
                     <div>
                         <InputLabel value="Tipo" />
@@ -127,5 +176,9 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                 <button type="submit" class="btn-primary" :disabled="form.processing">Salvar</button>
             </div>
         </form>
+
+        <BarcodeScanner v-if="showScanner"
+                        @detected="onBarcodeDetected"
+                        @close="showScanner = false" />
     </AdminLayout>
 </template>

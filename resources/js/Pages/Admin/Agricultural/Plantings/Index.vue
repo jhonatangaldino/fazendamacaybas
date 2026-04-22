@@ -8,6 +8,7 @@ import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
@@ -149,9 +150,9 @@ const statusBadge = (s) => ({
             <template #cell-area_plantada_ha="{ row }">{{ Number(row.area_plantada_ha).toLocaleString('pt-BR', { maximumFractionDigits: 4 }) }}</template>
             <template #cell-status="{ row }"><span :class="statusBadge(row.status)">{{ row.status.replace('_', ' ') }}</span></template>
             <template #cell-acoes="{ row }">
-                <div class="flex gap-2 justify-end">
-                    <button @click="editar(row)" class="text-slate-500 hover:text-macaybas-primary">Editar</button>
-                    <button @click="confirmDelete = row" class="text-red-600 hover:underline">Excluir</button>
+                <div class="flex gap-1 justify-end">
+                    <ActionIcon type="edit" title="Editar plantio" @click="editar(row)" />
+                    <ActionIcon type="delete" title="Excluir plantio" @click="confirmDelete = row" />
                 </div>
             </template>
         </DataTable>

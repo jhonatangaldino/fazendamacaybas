@@ -6,6 +6,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import { dataBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 import { useConfirm } from '@/composables/useConfirm.js';
@@ -186,9 +187,11 @@ const isProxVenc = (d) => {
                         <div v-if="d.data_vencimento">⏰ Vence em {{ dataBR(d.data_vencimento) }}</div>
                         <div>📎 {{ d.nome_arquivo }} ({{ formatSize(d.size) }})</div>
                     </div>
-                    <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
-                        <a :href="d.url" target="_blank" class="btn-outline btn-sm flex-1 text-center">Abrir</a>
-                        <button @click="confirmDelete = d" class="btn-sm text-red-600 hover:underline">Excluir</button>
+                    <div class="flex gap-1 mt-3 pt-3 border-t border-slate-100 justify-end">
+                        <a :href="d.url" target="_blank" class="inline-flex">
+                            <ActionIcon type="download" title="Baixar arquivo" />
+                        </a>
+                        <ActionIcon type="delete" title="Excluir documento" @click="confirmDelete = d" />
                     </div>
                 </div>
             </div>

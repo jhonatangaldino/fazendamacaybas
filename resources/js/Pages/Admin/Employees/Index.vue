@@ -8,6 +8,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMasked from '@/Components/InputMasked.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR, cpfMask, telefoneMask } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
@@ -137,14 +138,10 @@ function confirmarDesligamento() {
                 </span>
             </template>
             <template #cell-acoes="{ row }">
-                <div class="flex gap-3 justify-end">
-                    <button @click="editar(row)" class="text-slate-500 hover:text-macaybas-primary">Editar</button>
-                    <button v-if="row.is_active"
-                            @click="abrirDesligamento(row)"
-                            class="text-red-600 hover:underline">Desligar</button>
-                    <button v-else
-                            @click="toggle(row)"
-                            class="text-emerald-600 hover:underline">Reativar</button>
+                <div class="flex gap-1 justify-end">
+                    <ActionIcon type="edit" title="Editar funcionário" @click="editar(row)" />
+                    <ActionIcon v-if="row.is_active" type="power-off" title="Desligar funcionário (exige data)" @click="abrirDesligamento(row)" />
+                    <ActionIcon v-else type="reactivate" title="Reativar funcionário" @click="toggle(row)" />
                 </div>
             </template>
         </DataTable>
