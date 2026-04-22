@@ -188,6 +188,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::get('estoque', fn () => Inertia::render('Admin/Stock/Index'))->name('estoque.index');
 
         Route::get('estoque/itens', [StockItemController::class, 'index'])->name('estoque.itens.index');
+        Route::get('estoque/itens/lookup-barcode', [StockItemController::class, 'lookupByBarcode'])->name('estoque.itens.lookup-barcode');
         Route::get('estoque/itens/novo', [StockItemController::class, 'create'])->middleware('permission:estoque.itens.create')->name('estoque.itens.create');
         Route::post('estoque/itens', [StockItemController::class, 'store'])->middleware('permission:estoque.itens.create')->name('estoque.itens.store');
         Route::get('estoque/itens/{item}/editar', [StockItemController::class, 'edit'])->middleware('permission:estoque.itens.update')->name('estoque.itens.edit');

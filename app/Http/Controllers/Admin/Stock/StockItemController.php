@@ -107,6 +107,51 @@ class StockItemController extends Controller
         return back()->with('success', $item->is_active ? 'Item ativado.' : 'Item desativado.');
     }
 
+    /**
+     * Lookup rápido por código de barras — usado pelo scanner no cadastro e movimentação.
+     * Retorna o item existente (se houver) para evitar duplicidade.
+     */
+    public function lookupByBarcode(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $code = trim((string) $request->query('code', ''));
+        if ($code === '') {
+            return response()->json(['ok' => false, 'message' => 'Código vazio.'], 422);
+        }
+
+        $item = StockItem::with('category:id,nome')
+            ->where('codigo_barras', $code)
+            ->orWhere('codigo', $code)
+            ->first();
+
+        if (! $item) {
+            return response()->json([
+                'ok' => true,
+                'found' => false,
+                'message' => 'Produto ainda não cadastrado.',
+            ]);
+        }
+
+        $saldo = $item->saldoAtual();
+
+        return response()->json([
+            'ok' => true,
+            'found' => true,
+            'item' => [
+                'id' => $item->id,
+                'codigo' => $item->codigo,
+                'codigo_barras' => $item->codigo_barras,
+                'nome' => $item->nome,
+                'marca' => $item->marca,
+                'unidade' => $item->unidade,
+                'tipo' => $item->tipo,
+                'category' => $item->category,
+                'saldo_atual' => $saldo,
+                'edit_url' => route('admin.estoque.itens.edit', $item->id),
+                'movement_url' => route('admin.estoque.movimentos.index', ['item_id' => $item->id]),
+            ],
+        ]);
+    }
+
     protected function validateItem(Request $request, ?int $id = null): array
     {
         return $request->validate([

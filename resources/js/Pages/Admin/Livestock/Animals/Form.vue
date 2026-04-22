@@ -53,6 +53,25 @@ function submit() {
         </PageHeader>
 
         <form @submit.prevent="submit" class="space-y-6 max-w-4xl">
+            <!-- Foto do animal — só faz sentido após criação (precisa de ID pra upload) -->
+            <div v-if="isEdit" class="card">
+                <div class="card-header"><h2 class="card-title">Foto do animal</h2></div>
+                <div class="card-body">
+                    <AvatarUpload
+                        :url="animal.photo_url"
+                        :name="animal.identificacao"
+                        size="h-32 w-32"
+                        :upload-url="route('admin.rebanho.animais.foto.upload', animal.id)"
+                        :remove-url="route('admin.rebanho.animais.foto.remove', animal.id)"
+                    />
+                </div>
+            </div>
+            <div v-else class="card bg-slate-50">
+                <div class="card-body text-sm text-slate-500">
+                    📷 A foto poderá ser adicionada após salvar o cadastro inicial.
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header"><h2 class="card-title">Identificação</h2></div>
                 <div class="card-body grid gap-4 sm:grid-cols-2">
@@ -99,6 +118,23 @@ function submit() {
                             <Link :href="route('admin.rebanho.animais.show', animal.id)" class="text-xs text-macaybas-primary hover:underline">Ver histórico →</Link>
                         </div>
                         <p class="text-xs text-slate-400 mt-1">Derivado da última pesagem — não é editável aqui.</p>
+                    </div>
+                    <div>
+                        <InputLabel value="Categoria de uso" />
+                        <select v-model="form.categoria" class="form-select">
+                            <option value="">—</option>
+                            <option value="leite">Leite</option>
+                            <option value="corte">Corte</option>
+                            <option value="reproducao">Reprodução</option>
+                            <option value="misto">Misto (leite+corte)</option>
+                            <option value="pet">Pet</option>
+                            <option value="servico">Serviço / trabalho</option>
+                        </select>
+                        <p class="text-xs text-slate-400 mt-1">Define o tipo de acompanhamento (ex: leite → produção diária; corte → ganho de peso).</p>
+                    </div>
+                    <div>
+                        <InputLabel value="Número de registro (opcional)" />
+                        <input v-model="form.numero_registro" class="form-input" placeholder="Ex: ABCZ 123456">
                     </div>
                     <div>
                         <InputLabel value="Status" />

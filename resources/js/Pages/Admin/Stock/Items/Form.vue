@@ -31,31 +31,62 @@ const form = useForm({
 
 const showScanner = ref(false);
 const lookupLoading = ref(false);
+const produtoExistente = ref(null); // produto já cadastrado encontrado no lookup local
 
 async function onBarcodeDetected(code) {
     showScanner.value = false;
     form.codigo_barras = code;
-    toast({ variant: 'success', message: `Código ${code} lido! Buscando produto...` });
-    // Lookup Open Food Facts (sem preencher nome se usuário já digitou)
-    if (!form.nome) {
-        lookupLoading.value = true;
-        try {
-            const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
-            const j = await r.json();
-            if (j.status === 1 && j.product) {
-                const p = j.product;
-                form.nome = p.product_name_pt || p.product_name || form.nome;
-                if (p.brands && !form.marca) form.marca = p.brands.split(',')[0].trim();
-                toast({ variant: 'success', message: `Produto encontrado: ${form.nome}` });
-            } else {
-                toast({ variant: 'info', message: 'Código lido, mas produto não encontrado na base pública. Preencha manualmente.' });
+    lookupLoading.value = true;
+
+    try {
+        // 1) Lookup local — produto já cadastrado?
+        const localResp = await fetch(route('admin.estoque.itens.lookup-barcode') + '?code=' + encodeURIComponent(code), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+        const local = await localResp.json();
+
+        if (local.found && local.item) {
+            // Se é um NOVO item e o produto já existe, avisar e oferecer atalho pra movimento de estoque
+            if (!isEdit) {
+                produtoExistente.value = local.item;
+                toast({ variant: 'warning', message: `"${local.item.nome}" já está cadastrado.` });
+                return;
             }
-        } catch (_) {
-            toast({ variant: 'warning', message: 'Código lido, mas a busca online falhou. Preencha manualmente.' });
-        } finally {
-            lookupLoading.value = false;
+            // Se é edit, apenas avisar
+            toast({ variant: 'info', message: `Este código já está associado a "${local.item.nome}".` });
+        } else {
+            toast({ variant: 'success', message: `Código ${code} lido. Produto não existe ainda.` });
         }
+
+        // 2) Fallback: Open Food Facts pra auto-preencher campos (só se novo + nome vazio)
+        if (!isEdit && !form.nome) {
+            try {
+                const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
+                const j = await r.json();
+                if (j.status === 1 && j.product) {
+                    const p = j.product;
+                    form.nome = p.product_name_pt || p.product_name || form.nome;
+                    if (p.brands && !form.marca) form.marca = p.brands.split(',')[0].trim();
+                    toast({ variant: 'success', message: `Produto encontrado na base pública: ${form.nome}` });
+                } else {
+                    toast({ variant: 'info', message: 'Código lido, mas produto não encontrado na base pública. Preencha manualmente.' });
+                }
+            } catch (_) { /* silencioso, não é crítico */ }
+        }
+    } catch (_) {
+        toast({ variant: 'warning', message: 'Falha ao consultar produto. Preencha manualmente.' });
+    } finally {
+        lookupLoading.value = false;
     }
+}
+
+function irParaMovimentacao() {
+    // Redireciona pra tela de movimentos com o item pré-selecionado
+    window.location.href = produtoExistente.value.movement_url;
+}
+function irParaEdicao() {
+    window.location.href = produtoExistente.value.edit_url;
 }
 
 function submit() {
@@ -180,5 +211,47 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
         <BarcodeScanner v-if="showScanner"
                         @detected="onBarcodeDetected"
                         @close="showScanner = false" />
+
+        <!-- Modal: Produto já cadastrado -->
+        <Teleport to="body">
+            <div v-if="produtoExistente" class="fixed inset-0 z-[55] flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/50" @click="produtoExistente = null"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <div class="flex items-start gap-3 mb-4">
+                        <div class="h-10 w-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-slate-900">Produto já cadastrado</h3>
+                            <p class="text-sm text-slate-500 mt-1">Este código de barras já está vinculado a um item existente do seu estoque.</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 mb-4 space-y-1">
+                        <div class="font-semibold text-slate-900">{{ produtoExistente.nome }}</div>
+                        <div class="text-sm text-slate-600">
+                            <span class="font-mono">{{ produtoExistente.codigo }}</span>
+                            <span v-if="produtoExistente.marca"> · {{ produtoExistente.marca }}</span>
+                            <span v-if="produtoExistente.category?.nome"> · {{ produtoExistente.category.nome }}</span>
+                        </div>
+                        <div class="text-sm pt-2 border-t border-slate-200">
+                            Saldo atual:
+                            <strong :class="produtoExistente.saldo_atual > 0 ? 'text-emerald-700' : 'text-slate-500'">
+                                {{ Number(produtoExistente.saldo_atual).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) }} {{ produtoExistente.unidade }}
+                            </strong>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">
+                        Você só precisa <strong>dar entrada em estoque</strong>. Deseja ir direto para a tela de movimentação?
+                    </p>
+                    <div class="flex flex-col sm:flex-row justify-end gap-2">
+                        <button @click="produtoExistente = null" class="btn-outline">Cancelar</button>
+                        <button @click="irParaEdicao" class="btn-outline">Editar cadastro</button>
+                        <button @click="irParaMovimentacao" class="btn-primary">Entrada em estoque →</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AdminLayout>
 </template>
