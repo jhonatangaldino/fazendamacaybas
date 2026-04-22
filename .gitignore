@@ -55,3 +55,4 @@ macaybas_deploy.pub
 *.swp
 *.swo
 *~
+.claude/

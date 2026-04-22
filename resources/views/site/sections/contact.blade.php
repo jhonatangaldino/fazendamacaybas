@@ -1,52 +1,78 @@
+@php
+    $endereco = $data['endereco'] ?? \App\Models\Setting::getValue('contato.endereco', 'Itabirito, Minas Gerais');
+    $enderecoEnc = urlencode($endereco);
+    $mapaSrc = "https://maps.google.com/maps?q={$enderecoEnc}&z=13&hl=pt-BR&output=embed";
+    $mapaLinkExterno = "https://www.google.com/maps/search/?api=1&query={$enderecoEnc}";
+@endphp
 <section id="fale-conosco" class="section-site bg-white">
-    <div class="container-site grid lg:grid-cols-2 gap-12">
-        <div>
-            <h2 class="font-serif text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{{ $data['titulo'] ?? 'Fale conosco' }}</h2>
+    <div class="container-site">
+        <div class="text-center mb-12">
+            <h2 class="font-serif text-3xl sm:text-4xl font-bold text-slate-900">{{ $data['titulo'] ?? 'Onde estamos' }}</h2>
             @if(!empty($data['subtitulo']))
-                <p class="text-slate-600 mb-8">{{ $data['subtitulo'] }}</p>
+                <p class="mt-3 text-slate-600 max-w-2xl mx-auto">{{ $data['subtitulo'] }}</p>
             @endif
-
-            <ul class="space-y-4 text-slate-700">
-                @if(!empty($data['email']))
-                    <li class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center">✉️</div>
-                        <a href="mailto:{{ $data['email'] }}" class="hover:text-macaybas-primary">{{ $data['email'] }}</a>
-                    </li>
-                @endif
-                @if(!empty($data['telefone']))
-                    <li class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center">📞</div>
-                        <a href="tel:{{ apenasDigitos($data['telefone']) }}" class="hover:text-macaybas-primary">{{ telefoneMask($data['telefone']) }}</a>
-                    </li>
-                @endif
-                @if(!empty($data['endereco']))
-                    <li class="flex items-start gap-3">
-                        <div class="h-10 w-10 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center">📍</div>
-                        <span>{{ $data['endereco'] }}</span>
-                    </li>
-                @endif
-            </ul>
         </div>
 
-        <form action="{{ route('site.contato') }}" method="POST" class="bg-slate-50 p-8 rounded-2xl space-y-4">
-            @csrf
-            <div>
-                <label class="form-label">Nome</label>
-                <input name="nome" required class="form-input">
+        <div class="grid lg:grid-cols-[1fr,1.2fr] gap-8 items-stretch">
+            <div class="space-y-6">
+                <div class="card">
+                    <div class="card-body space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="h-10 w-10 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center flex-shrink-0">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Localização</div>
+                                <div class="text-slate-900 font-medium">{{ $endereco }}</div>
+                            </div>
+                        </div>
+
+                        @if(!empty($data['email']))
+                            <div class="flex items-start gap-3">
+                                <div class="h-10 w-10 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center flex-shrink-0">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                </div>
+                                <div>
+                                    <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">E-mail</div>
+                                    <a href="mailto:{{ $data['email'] }}" class="text-slate-900 font-medium hover:text-macaybas-primary">{{ $data['email'] }}</a>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if(!empty($data['telefone']))
+                            <div class="flex items-start gap-3">
+                                <div class="h-10 w-10 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center flex-shrink-0">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                </div>
+                                <div>
+                                    <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Telefone</div>
+                                    <a href="tel:{{ apenasDigitos($data['telefone']) }}" class="text-slate-900 font-medium hover:text-macaybas-primary">{{ telefoneMask($data['telefone']) }}</a>
+                                </div>
+                            </div>
+                        @endif
+
+                        <a href="{{ $mapaLinkExterno }}" target="_blank" rel="noopener"
+                           class="btn-site-primary w-full justify-center !py-2.5 mt-2">
+                            Abrir no Google Maps
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div>
-                <label class="form-label">E-mail</label>
-                <input type="email" name="email" required class="form-input">
+
+            <div class="rounded-2xl overflow-hidden ring-1 ring-slate-200 shadow-sm min-h-[380px]">
+                <iframe
+                    src="{{ $mapaSrc }}"
+                    class="w-full h-full min-h-[380px] border-0"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    allowfullscreen
+                    title="Localização — {{ $endereco }}">
+                </iframe>
             </div>
-            <div>
-                <label class="form-label">Telefone</label>
-                <input name="telefone" class="form-input" placeholder="(31) 99999-9999">
-            </div>
-            <div>
-                <label class="form-label">Mensagem</label>
-                <textarea name="mensagem" rows="4" required class="form-textarea"></textarea>
-            </div>
-            <button type="submit" class="btn-site-primary w-full">Enviar mensagem</button>
-        </form>
+        </div>
     </div>
 </section>

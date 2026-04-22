@@ -20,8 +20,6 @@ use Illuminate\Support\Facades\Route;
 
 // ===================== SITE PÚBLICO =====================
 Route::get('/', [SiteController::class, 'home'])->name('site.home');
-Route::post('/newsletter', [SiteController::class, 'newsletter'])->name('site.newsletter');
-Route::post('/contato', [SiteController::class, 'contato'])->name('site.contato');
 Route::get('/health', [SiteController::class, 'health'])->name('site.health');
 
 // ===================== AUTENTICAÇÃO =====================

@@ -90,21 +90,11 @@ class CmsPageSeeder extends Seeder
                 ],
             ],
             [
-                'type' => 'newsletter',
-                'nome' => 'Newsletter',
-                'data' => [
-                    'titulo' => 'Receba novidades da fazenda',
-                    'subtitulo' => 'Cadastre seu e-mail e acompanhe o que produzimos.',
-                    'placeholder' => 'Seu melhor e-mail',
-                    'cta_texto' => 'Quero receber',
-                ],
-            ],
-            [
                 'type' => 'contact',
-                'nome' => 'Fale conosco',
+                'nome' => 'Onde estamos',
                 'data' => [
-                    'titulo' => 'Fale conosco',
-                    'subtitulo' => 'Estamos à disposição para esclarecer dúvidas e atender parceiros.',
+                    'titulo' => 'Onde estamos',
+                    'subtitulo' => 'Venha conhecer a Fazenda Macaybas em Itabirito, no coração de Minas Gerais.',
                     'email' => 'contato@fazendamacaybas.com.br',
                     'telefone' => '',
                     'endereco' => 'Itabirito, Minas Gerais',

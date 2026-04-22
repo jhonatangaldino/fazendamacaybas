@@ -44,18 +44,12 @@ const fields = computed(() => {
             { key: 'subtitulo', label: 'Subtítulo', type: 'text' },
             { key: 'items', label: 'Depoimentos', type: 'items', schema: { nome: 'Nome', cargo: 'Cargo/Localização', texto: 'Texto', foto: 'Foto' } },
         ],
-        newsletter: [
-            { key: 'titulo', label: 'Título', type: 'text' },
-            { key: 'subtitulo', label: 'Subtítulo', type: 'text' },
-            { key: 'placeholder', label: 'Placeholder do campo e-mail', type: 'text' },
-            { key: 'cta_texto', label: 'Botão: texto', type: 'text' },
-        ],
         contact: [
             { key: 'titulo', label: 'Título', type: 'text' },
             { key: 'subtitulo', label: 'Subtítulo', type: 'text' },
             { key: 'email', label: 'E-mail de contato', type: 'text' },
             { key: 'telefone', label: 'Telefone', type: 'text' },
-            { key: 'endereco', label: 'Endereço', type: 'text' },
+            { key: 'endereco', label: 'Endereço (usado no mapa do Google)', type: 'text' },
         ],
     };
     return map[local.value.type] ?? [];
