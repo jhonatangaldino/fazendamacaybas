@@ -40,6 +40,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'settings' => fn () => [
                 'logo' => Setting::getValue('site.logo'),
+                'favicon' => Setting::getValue('site.favicon'),
+                'nome' => Setting::getValue('site.nome', 'Fazenda Macaybas'),
                 'cor_primaria' => Setting::getValue('tema.cor_primaria', '#166534'),
             ],
             'flash' => [

@@ -8,6 +8,8 @@ import AvatarUpload from '@/Components/AvatarUpload.vue';
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const perms = computed(() => page.props.auth.user?.permissions ?? []);
+const siteLogo = computed(() => page.props.settings?.logo || null);
+const siteNome = computed(() => page.props.settings?.nome || 'Macaybas');
 const sidebarOpen = ref(false);
 const userMenuOpen = ref(false);
 const profileModalOpen = ref(false);
@@ -118,9 +120,13 @@ const iconPath = {
             class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform lg:static lg:flex-shrink-0"
         >
             <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10">
-                <div class="h-9 w-9 rounded-full bg-white text-macaybas-primary-900 flex items-center justify-center font-serif text-lg font-bold">M</div>
-                <div>
-                    <div class="text-white font-serif font-bold leading-none">Macaybas</div>
+                <img v-if="siteLogo"
+                     :src="`/storage/${siteLogo}`"
+                     :alt="siteNome"
+                     class="h-10 w-10 rounded-full object-contain bg-white p-0.5 ring-1 ring-white/20">
+                <div v-else class="h-9 w-9 rounded-full bg-white text-macaybas-primary-900 flex items-center justify-center font-serif text-lg font-bold">M</div>
+                <div class="min-w-0">
+                    <div class="text-white font-serif font-bold leading-none truncate">{{ siteNome }}</div>
                     <div class="text-xs text-macaybas-secondary-300">Sistema</div>
                 </div>
             </div>

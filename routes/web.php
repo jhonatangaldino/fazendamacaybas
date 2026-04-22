@@ -49,6 +49,14 @@ Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('alterar-senha', [ChangePasswordController::class, 'create'])->name('password.change');
     Route::put('alterar-senha', [ChangePasswordController::class, 'update']);
+
+    // Avatar próprio — qualquer usuário autenticado pode trocar a própria foto
+    Route::post('meu-avatar', function (Request $req) {
+        return app(\App\Http\Controllers\Admin\UserController::class)->uploadAvatar($req, $req->user());
+    })->name('me.avatar.upload');
+    Route::delete('meu-avatar', function (Request $req) {
+        return app(\App\Http\Controllers\Admin\UserController::class)->removeAvatar($req, $req->user());
+    })->name('me.avatar.remove');
 });
 
 // ===================== ÁREA ADMIN =====================
@@ -70,15 +78,6 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::post('usuarios/{user}/avatar', [UserController::class, 'uploadAvatar'])->name('users.avatar.upload');
         Route::delete('usuarios/{user}/avatar', [UserController::class, 'removeAvatar'])->name('users.avatar.remove');
     });
-
-    // Auto-avatar: qualquer usuário autenticado pode trocar o próprio avatar
-    // (fora do grupo de permission:users.view para não bloquear quem não gerencia outros)
-    Route::post('meu-avatar', function (Request $req) {
-        return app(UserController::class)->uploadAvatar($req, $req->user());
-    })->name('me.avatar.upload');
-    Route::delete('meu-avatar', function (Request $req) {
-        return app(UserController::class)->removeAvatar($req, $req->user());
-    })->name('me.avatar.remove');
 
     // Perfis e permissões
     Route::middleware('permission:roles.view')->group(function () {
