@@ -145,28 +145,17 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                             <svg class="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
                             Consultando bases públicas...
                         </p>
-                        <!-- Diagnóstico quando nada foi encontrado — mostra o porquê -->
-                        <details v-if="ultimaTentativa && !sugestaoPublica" class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900">
-                            <summary class="cursor-pointer font-medium flex items-center gap-2">
-                                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                Código <span class="font-mono">{{ ultimaTentativa.code }}</span> não identificado — ver diagnóstico
-                            </summary>
-                            <div class="mt-2 space-y-1 pl-6">
-                                <div v-if="ultimaTentativa.attempts?.openfoodfacts">
-                                    <strong>Open Food Facts</strong>
-                                    · HTTP {{ ultimaTentativa.attempts.openfoodfacts.status ?? '—' }}
-                                    · {{ ultimaTentativa.attempts.openfoodfacts.nota || 'sem informação' }}
-                                </div>
-                                <div v-if="ultimaTentativa.attempts?.upcitemdb">
-                                    <strong>UPCItemDB</strong>
-                                    · HTTP {{ ultimaTentativa.attempts.upcitemdb.status ?? '—' }}
-                                    · {{ ultimaTentativa.attempts.upcitemdb.nota || 'sem informação' }}
-                                </div>
-                                <p class="text-xs text-amber-700 mt-1">
-                                    Após você salvar o cadastro manualmente, este código será reconhecido localmente nas próximas leituras.
+                        <!-- Alerta simples e limpo quando nada foi encontrado -->
+                        <div v-if="ultimaTentativa && !sugestaoPublica"
+                             class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900 flex items-start gap-2">
+                            <svg class="h-5 w-5 flex-shrink-0 mt-0.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div class="flex-1">
+                                <div class="font-medium">Produto não identificado</div>
+                                <p class="text-xs text-amber-800 mt-0.5">
+                                    Preencha o nome manualmente — nas próximas leituras, este código será reconhecido automaticamente.
                                 </p>
                             </div>
-                        </details>
+                        </div>
 
                         <!-- Cartão de sugestão externa (Open Food Facts / UPCItemDB) -->
                         <div v-if="sugestaoPublica" class="mt-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-3">

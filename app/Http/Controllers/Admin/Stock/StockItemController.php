@@ -165,11 +165,12 @@ class StockItemController extends Controller
             ]);
         }
 
-        // 2. PÚBLICAS
+        // 2. PÚBLICAS (cadeia de fontes — Open Food Facts, UPCItemDB, Cosmos, Go-UPC, UPCDatabase, Barcode Lookup)
         [$suggestion, $attempts, $diag] = $this->searchPublicBarcode($code);
         $logData['http_status_off'] = $attempts['openfoodfacts']['status'] ?? null;
         $logData['http_status_upc'] = $attempts['upcitemdb']['status'] ?? null;
         $logData['nota_diagnostica'] = $diag;
+        $logData['attempts_json'] = $attempts;
         if ($suggestion) {
             $logData['source'] = $suggestion['source'];
             $logData['nome_sugerido'] = $suggestion['nome'];
@@ -191,89 +192,214 @@ class StockItemController extends Controller
     }
 
     /**
-     * Consulta bases públicas. Retorna [suggestion, attempts, diagnostico].
-     * `attempts` expõe status HTTP e motivo de cada fonte, pro diagnóstico do usuário.
+     * Consulta cadeia de bases públicas de código de barras.
+     * Fontes na ordem (falha em uma vai pra próxima):
+     *   1. Open Food Facts — alimentos (forte em Brasil/Europa)
+     *   2. UPCItemDB — geral, trial sem key (limite 100/dia)
+     *   3. Cosmos BlueSoft — oficial brasileira (quando BARCODE_COSMOS_TOKEN configurado)
+     *   4. Go-UPC — cobertura ampla (quando BARCODE_GOUPC_KEY configurado)
+     *   5. UPCDatabase.org — fallback comunitário (quando BARCODE_UPCDB_KEY configurado)
+     *   6. Barcode Lookup — robusto (quando BARCODE_LOOKUP_KEY configurado)
+     *
+     * Chaves são opcionais: sem elas, a fonte é pulada com nota "sem API key".
      */
     protected function searchPublicBarcode(string $code): array
     {
-        $attempts = [
-            'openfoodfacts' => ['status' => null, 'encontrado' => false, 'nota' => null],
-            'upcitemdb' => ['status' => null, 'encontrado' => false, 'nota' => null],
+        $attempts = [];
+        $sources = [
+            ['openfoodfacts', 'Open Food Facts', fn () => $this->tryOpenFoodFacts($code)],
+            ['upcitemdb', 'UPCItemDB', fn () => $this->tryUpcItemDb($code)],
+            ['cosmos', 'Cosmos (GS1 Brasil)', fn () => $this->tryCosmos($code)],
+            ['goupc', 'Go-UPC', fn () => $this->tryGoUpc($code)],
+            ['upcdatabase', 'UPCDatabase.org', fn () => $this->tryUpcDatabase($code)],
+            ['barcodelookup', 'Barcode Lookup', fn () => $this->tryBarcodeLookup($code)],
         ];
 
-        // Open Food Facts — alimentos
-        try {
-            $resp = \Illuminate\Support\Facades\Http::timeout(3)
-                ->acceptJson()
-                ->get("https://world.openfoodfacts.org/api/v2/product/{$code}.json");
-            $attempts['openfoodfacts']['status'] = $resp->status();
-            if ($resp->successful()) {
-                $data = $resp->json();
-                if (($data['status'] ?? 0) === 1 && ! empty($data['product'])) {
-                    $p = $data['product'];
-                    $nome = $p['product_name_pt'] ?? $p['product_name'] ?? null;
-                    if ($nome) {
-                        $attempts['openfoodfacts']['encontrado'] = true;
-                        return [[
-                            'source' => 'Open Food Facts',
-                            'nome' => $nome,
-                            'marca' => $this->firstItem($p['brands'] ?? ''),
-                            'categoria_hint' => $p['categories'] ?? null,
-                            'imagem_url' => $p['image_front_small_url'] ?? null,
-                            'quantidade_embalagem' => $p['quantity'] ?? null,
-                        ], $attempts, 'Encontrado em Open Food Facts.'];
-                    }
-                    $attempts['openfoodfacts']['nota'] = 'produto existe mas sem nome';
-                } else {
-                    $attempts['openfoodfacts']['nota'] = 'não encontrado (status=0)';
+        foreach ($sources as [$key, $label, $fn]) {
+            try {
+                [$suggestion, $status, $nota] = $fn();
+                $attempts[$key] = [
+                    'label' => $label,
+                    'status' => $status,
+                    'encontrado' => (bool) $suggestion,
+                    'nota' => $nota,
+                ];
+                if ($suggestion) {
+                    $diag = "Encontrado em {$label}.";
+                    return [$suggestion, $attempts, $diag];
                 }
-            } else {
-                $attempts['openfoodfacts']['nota'] = 'HTTP '.$resp->status();
+            } catch (\Throwable $e) {
+                $attempts[$key] = [
+                    'label' => $label,
+                    'status' => null,
+                    'encontrado' => false,
+                    'nota' => 'erro: '.substr($e->getMessage(), 0, 120),
+                ];
             }
-        } catch (\Throwable $e) {
-            $attempts['openfoodfacts']['nota'] = 'erro: '.substr($e->getMessage(), 0, 120);
         }
 
-        // UPCItemDB — produtos gerais
-        try {
-            $resp = \Illuminate\Support\Facades\Http::timeout(3)
-                ->acceptJson()
-                ->get('https://api.upcitemdb.com/prod/trial/lookup', ['upc' => $code]);
-            $attempts['upcitemdb']['status'] = $resp->status();
-            if ($resp->successful()) {
-                $data = $resp->json();
-                $items = $data['items'] ?? [];
-                if (! empty($items)) {
-                    $i = $items[0];
-                    $nome = $i['title'] ?? null;
-                    if ($nome) {
-                        $attempts['upcitemdb']['encontrado'] = true;
-                        return [[
-                            'source' => 'UPCItemDB',
-                            'nome' => $nome,
-                            'marca' => $i['brand'] ?? null,
-                            'categoria_hint' => $i['category'] ?? null,
-                            'imagem_url' => ! empty($i['images']) ? $i['images'][0] : null,
-                            'quantidade_embalagem' => null,
-                        ], $attempts, 'Encontrado em UPCItemDB.'];
-                    }
-                    $attempts['upcitemdb']['nota'] = 'item sem title';
-                } else {
-                    $attempts['upcitemdb']['nota'] = 'sem itens';
-                }
-            } elseif ($resp->status() === 429) {
-                $attempts['upcitemdb']['nota'] = 'limite da API gratuita atingido (100/dia)';
-            } else {
-                $attempts['upcitemdb']['nota'] = 'HTTP '.$resp->status();
-            }
-        } catch (\Throwable $e) {
-            $attempts['upcitemdb']['nota'] = 'erro: '.substr($e->getMessage(), 0, 120);
-        }
-
-        $diag = 'Tentativas: Open Food Facts — '.$attempts['openfoodfacts']['nota']
-            .'; UPCItemDB — '.$attempts['upcitemdb']['nota'];
+        $diag = collect($attempts)
+            ->map(fn ($a, $k) => $a['label'].' — '.($a['nota'] ?? 'sem informação'))
+            ->implode('; ');
 
         return [null, $attempts, $diag];
+    }
+
+    protected function tryOpenFoodFacts(string $code): array
+    {
+        $resp = \Illuminate\Support\Facades\Http::timeout(3)
+            ->acceptJson()
+            ->get("https://world.openfoodfacts.org/api/v2/product/{$code}.json");
+        $status = $resp->status();
+        if (! $resp->successful()) return [null, $status, 'HTTP '.$status];
+
+        $data = $resp->json();
+        if (($data['status'] ?? 0) !== 1 || empty($data['product'])) {
+            return [null, $status, 'não encontrado'];
+        }
+        $p = $data['product'];
+        $nome = $p['product_name_pt'] ?? $p['product_name'] ?? null;
+        if (! $nome) return [null, $status, 'sem nome'];
+
+        return [[
+            'source' => 'Open Food Facts',
+            'nome' => $nome,
+            'marca' => $this->firstItem($p['brands'] ?? ''),
+            'categoria_hint' => $p['categories'] ?? null,
+            'imagem_url' => $p['image_front_small_url'] ?? null,
+            'quantidade_embalagem' => $p['quantity'] ?? null,
+        ], $status, 'OK'];
+    }
+
+    protected function tryUpcItemDb(string $code): array
+    {
+        $resp = \Illuminate\Support\Facades\Http::timeout(3)
+            ->acceptJson()
+            ->get('https://api.upcitemdb.com/prod/trial/lookup', ['upc' => $code]);
+        $status = $resp->status();
+        if ($status === 429) return [null, $status, 'limite diário atingido (100/dia) — adicione BARCODE_UPCITEMDB_KEY'];
+        if (! $resp->successful()) return [null, $status, 'HTTP '.$status];
+
+        $items = $resp->json('items') ?? [];
+        if (empty($items)) return [null, $status, 'sem itens'];
+        $i = $items[0];
+        if (empty($i['title'])) return [null, $status, 'item sem título'];
+
+        return [[
+            'source' => 'UPCItemDB',
+            'nome' => $i['title'],
+            'marca' => $i['brand'] ?? null,
+            'categoria_hint' => $i['category'] ?? null,
+            'imagem_url' => ! empty($i['images']) ? $i['images'][0] : null,
+            'quantidade_embalagem' => null,
+        ], $status, 'OK'];
+    }
+
+    protected function tryCosmos(string $code): array
+    {
+        $token = env('BARCODE_COSMOS_TOKEN');
+        if (! $token) return [null, null, 'sem API key (BARCODE_COSMOS_TOKEN) — cadastre em cosmos.bluesoft.com.br'];
+
+        $resp = \Illuminate\Support\Facades\Http::timeout(4)
+            ->acceptJson()
+            ->withHeaders(['X-Cosmos-Token' => $token, 'User-Agent' => 'Cosmos-API-Request'])
+            ->get("https://api.cosmos.bluesoft.com.br/gtins/{$code}.json");
+        $status = $resp->status();
+        if ($status === 404) return [null, $status, 'não encontrado'];
+        if (! $resp->successful()) return [null, $status, 'HTTP '.$status];
+
+        $d = $resp->json();
+        $nome = $d['description'] ?? $d['title'] ?? null;
+        if (! $nome) return [null, $status, 'sem descrição'];
+
+        return [[
+            'source' => 'Cosmos (GS1 Brasil)',
+            'nome' => $nome,
+            'marca' => $d['brand']['name'] ?? null,
+            'categoria_hint' => $d['ncm']['description'] ?? null,
+            'imagem_url' => $d['thumbnail'] ?? null,
+            'quantidade_embalagem' => $d['gross_weight'] ?? null,
+        ], $status, 'OK'];
+    }
+
+    protected function tryGoUpc(string $code): array
+    {
+        $key = env('BARCODE_GOUPC_KEY');
+        if (! $key) return [null, null, 'sem API key (BARCODE_GOUPC_KEY) — cadastre em go-upc.com'];
+
+        $resp = \Illuminate\Support\Facades\Http::timeout(4)
+            ->acceptJson()
+            ->withHeaders(['Authorization' => 'Bearer '.$key])
+            ->get("https://go-upc.com/api/v1/code/{$code}");
+        $status = $resp->status();
+        if (! $resp->successful()) return [null, $status, 'HTTP '.$status];
+
+        $p = $resp->json('product');
+        if (empty($p['name'])) return [null, $status, 'sem nome'];
+
+        return [[
+            'source' => 'Go-UPC',
+            'nome' => $p['name'],
+            'marca' => $p['brand'] ?? null,
+            'categoria_hint' => $p['category'] ?? null,
+            'imagem_url' => $p['imageUrl'] ?? null,
+            'quantidade_embalagem' => null,
+        ], $status, 'OK'];
+    }
+
+    protected function tryUpcDatabase(string $code): array
+    {
+        $key = env('BARCODE_UPCDB_KEY');
+        if (! $key) return [null, null, 'sem API key (BARCODE_UPCDB_KEY) — cadastre em upcdatabase.org'];
+
+        $resp = \Illuminate\Support\Facades\Http::timeout(4)
+            ->acceptJson()
+            ->withHeaders(['Authorization' => 'Bearer '.$key])
+            ->get("https://api.upcdatabase.org/product/{$code}");
+        $status = $resp->status();
+        if (! $resp->successful()) return [null, $status, 'HTTP '.$status];
+
+        $d = $resp->json();
+        $nome = $d['title'] ?? $d['description'] ?? null;
+        if (! $nome) return [null, $status, 'sem título'];
+
+        return [[
+            'source' => 'UPCDatabase.org',
+            'nome' => $nome,
+            'marca' => $d['brand'] ?? null,
+            'categoria_hint' => $d['category'] ?? null,
+            'imagem_url' => null,
+            'quantidade_embalagem' => $d['size'] ?? null,
+        ], $status, 'OK'];
+    }
+
+    protected function tryBarcodeLookup(string $code): array
+    {
+        $key = env('BARCODE_LOOKUP_KEY');
+        if (! $key) return [null, null, 'sem API key (BARCODE_LOOKUP_KEY) — cadastre em barcodelookup.com'];
+
+        $resp = \Illuminate\Support\Facades\Http::timeout(4)
+            ->acceptJson()
+            ->get('https://api.barcodelookup.com/v3/products', [
+                'barcode' => $code,
+                'key' => $key,
+            ]);
+        $status = $resp->status();
+        if (! $resp->successful()) return [null, $status, 'HTTP '.$status];
+
+        $products = $resp->json('products') ?? [];
+        if (empty($products)) return [null, $status, 'sem produtos'];
+        $p = $products[0];
+        if (empty($p['product_name']) && empty($p['title'])) return [null, $status, 'sem nome'];
+
+        return [[
+            'source' => 'Barcode Lookup',
+            'nome' => $p['product_name'] ?? $p['title'],
+            'marca' => $p['brand'] ?? $p['manufacturer'] ?? null,
+            'categoria_hint' => $p['category'] ?? null,
+            'imagem_url' => ! empty($p['images']) ? $p['images'][0] : null,
+            'quantidade_embalagem' => $p['size'] ?? null,
+        ], $status, 'OK'];
     }
 
     protected function firstItem(?string $s): ?string
