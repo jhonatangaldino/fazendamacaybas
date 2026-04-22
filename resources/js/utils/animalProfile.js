@@ -53,32 +53,137 @@ export function allowedEventsFor(species, categoria) {
 }
 
 /**
- * Retorna a configuração de ações que aparecem na linha da tabela para um animal.
- * Só inclui eventos de alta frequência (pesagem, vacinação, ordenha) como ícones diretos —
- * o resto fica acessível pelo botão de histórico/novo-evento.
+ * Ações rápidas na linha da tabela — apenas o que é diário/frequente.
+ * Venda, abate, exclusão NÃO são rápidas (são eventos ocasionais com fluxo próprio).
  */
 export function tableActionsFor(species, categoria) {
     const allowed = new Set(allowedEventsFor(species, categoria));
     const actions = [];
 
-    // Pesagem / biometria: ação rápida primária
+    // Vacinação/vermifugação — rotina sanitária, alta frequência
+    if (allowed.has('vacinacao')) {
+        actions.push({ key: 'vacinacao', icon: 'syringe', title: 'Registrar vacinação' });
+    }
+
+    // Pesagem / biometria — controle de ganho
     if (allowed.has('pesagem')) {
         actions.push({ key: 'pesagem', icon: 'scale', title: 'Registrar pesagem' });
     } else if (allowed.has('biometria_amostral')) {
         actions.push({ key: 'biometria_amostral', icon: 'scale', title: 'Registrar biometria' });
     }
 
-    // Ordenha rápida pra vacas leiteiras / búfalas / cabras
+    // Ordenha pra vacas/búfalas/cabras leiteiras
     if (allowed.has('ordenha') && categoria === 'leite') {
         actions.push({ key: 'ordenha', icon: 'scale', title: 'Registrar ordenha' });
     }
 
-    // Postura rápida pra aves de postura
+    // Postura pra aves de postura
     if (allowed.has('postura_diaria')) {
         actions.push({ key: 'postura_diaria', icon: 'scale', title: 'Registrar postura' });
     }
 
     return actions;
+}
+
+/**
+ * Configuração da venda por perfil — unidade de mercado, conversões e labels.
+ * Seguindo prática real do campo:
+ *   - Bovino de corte/abate: arroba (@) = 15kg de carcaça, valor em R$/@
+ *   - Bovino leite vivo: cabeça ou kg
+ *   - Peixe: kg (biometria) ou unidade
+ *   - Aves: kg vivo ou unidade (postura: dúzia de ovos)
+ */
+export function vendaConfigFor(species, categoria) {
+    const profile = species?.profile;
+
+    if (profile === 'ruminante_corte' || (profile === 'ruminante_leite' && categoria === 'corte')) {
+        return {
+            modo: 'arroba',
+            label: 'Venda em arroba (carcaça)',
+            unidades: [
+                { v: 'arroba', l: 'Arroba (@ = 15 kg)' },
+                { v: 'kg', l: 'Quilograma (peso vivo)' },
+                { v: 'cabeca', l: 'Cabeça (valor fixo)' },
+            ],
+            unidadePadrao: 'arroba',
+            kgPorUnidade: { arroba: 15, kg: 1, cabeca: null },
+            perguntaPesoMedio: true, // pede peso médio por cabeça
+        };
+    }
+    if (profile === 'ruminante_leite' || profile === 'ruminante_lan') {
+        return {
+            modo: 'kg',
+            label: 'Venda por kg ou cabeça',
+            unidades: [
+                { v: 'kg', l: 'Quilograma (peso vivo)' },
+                { v: 'arroba', l: 'Arroba (@ = 15 kg)' },
+                { v: 'cabeca', l: 'Cabeça (valor fixo)' },
+            ],
+            unidadePadrao: 'kg',
+            kgPorUnidade: { arroba: 15, kg: 1, cabeca: null },
+            perguntaPesoMedio: true,
+        };
+    }
+    if (profile === 'suino') {
+        return {
+            modo: 'kg',
+            label: 'Venda por kg (peso vivo ou carcaça)',
+            unidades: [
+                { v: 'kg', l: 'Quilograma' },
+                { v: 'cabeca', l: 'Cabeça' },
+            ],
+            unidadePadrao: 'kg',
+            kgPorUnidade: { kg: 1, cabeca: null },
+            perguntaPesoMedio: true,
+        };
+    }
+    if (profile === 'aquicultura_lote') {
+        return {
+            modo: 'kg',
+            label: 'Venda por kg ou unidade',
+            unidades: [
+                { v: 'kg', l: 'Quilograma' },
+                { v: 'un', l: 'Unidade (peixe)' },
+            ],
+            unidadePadrao: 'kg',
+            kgPorUnidade: { kg: 1, un: null },
+            perguntaPesoMedio: false, // lote direto — informar quantidade total
+        };
+    }
+    if (profile === 'ave_postura' || profile === 'ave_lote') {
+        return {
+            modo: 'kg',
+            label: 'Venda de aves',
+            unidades: [
+                { v: 'kg', l: 'Quilograma (vivo)' },
+                { v: 'un', l: 'Unidade (ave)' },
+                { v: 'duzia', l: 'Dúzia (ovos)' },
+            ],
+            unidadePadrao: 'un',
+            kgPorUnidade: { kg: 1, un: null, duzia: null },
+            perguntaPesoMedio: false,
+        };
+    }
+    if (profile === 'equino' || profile === 'pet' || profile === 'roedor_pequeno') {
+        return {
+            modo: 'cabeca',
+            label: 'Venda por unidade',
+            unidades: [{ v: 'cabeca', l: 'Cabeça' }],
+            unidadePadrao: 'cabeca',
+            kgPorUnidade: { cabeca: null },
+            perguntaPesoMedio: false,
+        };
+    }
+
+    // default conservador
+    return {
+        modo: 'cabeca',
+        label: 'Venda por cabeça',
+        unidades: [{ v: 'cabeca', l: 'Cabeça' }],
+        unidadePadrao: 'cabeca',
+        kgPorUnidade: { cabeca: null },
+        perguntaPesoMedio: false,
+    };
 }
 
 /**

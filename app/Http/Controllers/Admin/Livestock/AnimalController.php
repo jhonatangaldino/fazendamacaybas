@@ -301,6 +301,11 @@ class AnimalController extends Controller
             'valor_total' => ['required', 'numeric', 'min:0'],
             'partner_id' => ['nullable', 'exists:partners,id'],
             'observacoes' => ['nullable', 'string'],
+            // Contexto da operação (opcional) — alimenta observações detalhadas
+            'unidade' => ['nullable', 'string', 'max:20'],
+            'quantidade' => ['nullable', 'numeric', 'min:0'],
+            'peso_medio' => ['nullable', 'numeric', 'min:0'],
+            'valor_unitario' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $animais = Animal::whereIn('id', $data['animal_ids'])->where('status', 'ativo')->get();
@@ -308,23 +313,50 @@ class AnimalController extends Controller
             return back()->with('error', 'Nenhum animal ativo selecionado.');
         }
 
+        // Verifica espécie homogênea (regra UX: não misturar bovino com peixe)
+        $especies = $animais->pluck('species_id')->unique();
+        if ($especies->count() > 1) {
+            return back()->with('error', 'Não é possível vender animais de espécies diferentes em lote.');
+        }
+
         $valorUnitario = round($data['valor_total'] / $animais->count(), 2);
 
-        \DB::transaction(function () use ($animais, $data, $valorUnitario, $request) {
+        // Texto detalhado para as observações (preserva a contabilidade do negócio)
+        $detalhes = [];
+        if (! empty($data['unidade']) && ! empty($data['quantidade']) && ! empty($data['valor_unitario'])) {
+            $detalhes[] = sprintf(
+                'Venda: %s %s × R$ %s = R$ %s',
+                number_format((float) $data['quantidade'], 3, ',', '.'),
+                $data['unidade'],
+                number_format((float) $data['valor_unitario'], 2, ',', '.'),
+                number_format((float) $data['valor_total'], 2, ',', '.'),
+            );
+        }
+        if (! empty($data['peso_medio'])) {
+            $detalhes[] = sprintf('Peso médio por cabeça: %s kg', number_format((float) $data['peso_medio'], 2, ',', '.'));
+        }
+        if (! empty($data['observacoes'])) {
+            $detalhes[] = $data['observacoes'];
+        }
+        $obsFinal = $detalhes ? implode("\n", $detalhes) : null;
+
+        \DB::transaction(function () use ($animais, $data, $valorUnitario, $obsFinal, $request) {
             foreach ($animais as $animal) {
                 $animal->events()->create([
                     'tipo' => 'venda',
                     'data' => $data['data'],
                     'valor' => $valorUnitario,
+                    'peso' => ! empty($data['peso_medio']) ? (float) $data['peso_medio'] : null,
                     'partner_id' => $data['partner_id'] ?? null,
-                    'observacoes' => $data['observacoes'] ?? null,
+                    'observacoes' => $obsFinal,
                     'created_by' => $request->user()?->id,
                 ]);
                 $animal->update(['status' => 'vendido', 'data_saida' => $data['data']]);
             }
         });
 
-        return back()->with('success', $animais->count().' animais vendidos em lote (R$ '.number_format($data['valor_total'], 2, ',', '.').').');
+        return back()->with('success', $animais->count().' '.str($especies->first() ? 'animais' : 'animal')
+            .' vendido'.($animais->count() === 1 ? '' : 's').' em lote (R$ '.number_format($data['valor_total'], 2, ',', '.').').');
     }
 
     public function destroyEvent(Animal $animal, AnimalEvent $event)
