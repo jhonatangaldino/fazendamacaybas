@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\MenuUsage;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -38,6 +39,13 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'),
                 ] : null,
             ],
+            // Mapa route_name → hits para o usuário corrente; usado pela sidebar para
+            // ordenar dinamicamente os itens da seção "Operação" (mais usados no topo).
+            'menuUsage' => fn () => $request->user()
+                ? MenuUsage::where('user_id', $request->user()->id)
+                    ->pluck('hits', 'menu_key')
+                    ->toArray()
+                : [],
             'settings' => fn () => [
                 'logo' => Setting::getValue('site.logo'),
                 'favicon' => Setting::getValue('site.favicon'),

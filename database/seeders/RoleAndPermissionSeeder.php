@@ -67,27 +67,31 @@ class RoleAndPermissionSeeder extends Seeder
             // ================ ADMIN MASTER ================
             $adminMaster = Role::firstOrCreate(
                 ['name' => 'admin_master', 'guard_name' => 'web'],
-                ['description' => 'Administrador Master — controle total do sistema', 'is_system' => true]
+                ['short_name' => 'Admin', 'description' => 'Administrador Master — controle total do sistema', 'is_system' => true]
             );
+            if (! $adminMaster->short_name) $adminMaster->update(['short_name' => 'Admin']);
             $adminMaster->syncPermissions(Permission::all());
 
             // ================ DONO DA FAZENDA ================
             $donoFazenda = Role::firstOrCreate(
                 ['name' => 'dono_fazenda', 'guard_name' => 'web'],
-                ['description' => 'Dono da Fazenda — visão e controle total da operação', 'is_system' => true]
+                ['short_name' => 'Dono', 'description' => 'Dono da Fazenda — visão e controle total da operação', 'is_system' => true]
             );
-            // Dono NÃO mexe em roles/permissions nem no CMS institucional, mas vê tudo operacional.
+            if (! $donoFazenda->short_name) $donoFazenda->update(['short_name' => 'Dono']);
+            // Dono NÃO mexe em roles/permissions, nem no CMS/site institucional (só admin_master), nem em reset de senha.
             $donoPerms = Permission::where(function ($q) {
                 $q->where('name', 'not like', 'roles.%')
-                    ->where('name', 'not like', 'users.reset_password');
+                    ->where('name', 'not like', 'cms%')
+                    ->where('name', '!=', 'users.reset_password');
             })->get();
             $donoFazenda->syncPermissions($donoPerms);
 
             // ================ GERENTE ================
             $gerente = Role::firstOrCreate(
                 ['name' => 'gerente', 'guard_name' => 'web'],
-                ['description' => 'Gerente — operação completa, sem administração do sistema', 'is_system' => true]
+                ['short_name' => 'Gerente', 'description' => 'Gerente — operação completa, sem administração do sistema', 'is_system' => true]
             );
+            if (! $gerente->short_name) $gerente->update(['short_name' => 'Gerente']);
             $gerente->syncPermissions(Permission::whereIn('module', [
                 'dashboard', 'financeiro', 'rebanho', 'agricola', 'estoque', 'maquinas',
                 'funcionarios', 'documentos', 'relatorios', 'parceiros', 'fazendas',
@@ -96,8 +100,9 @@ class RoleAndPermissionSeeder extends Seeder
             // ================ FINANCEIRO ================
             $financeiro = Role::firstOrCreate(
                 ['name' => 'financeiro', 'guard_name' => 'web'],
-                ['description' => 'Equipe financeira', 'is_system' => true]
+                ['short_name' => 'Financeiro', 'description' => 'Equipe financeira', 'is_system' => true]
             );
+            if (! $financeiro->short_name) $financeiro->update(['short_name' => 'Financeiro']);
             $financeiro->syncPermissions(Permission::whereIn('module', [
                 'dashboard', 'financeiro', 'parceiros', 'relatorios', 'documentos',
             ])->get());
@@ -105,8 +110,9 @@ class RoleAndPermissionSeeder extends Seeder
             // ================ VETERINÁRIO ================
             $veterinario = Role::firstOrCreate(
                 ['name' => 'veterinario', 'guard_name' => 'web'],
-                ['description' => 'Veterinário — rebanho + sanidade', 'is_system' => true]
+                ['short_name' => 'Veterinário', 'description' => 'Veterinário — rebanho + sanidade', 'is_system' => true]
             );
+            if (! $veterinario->short_name) $veterinario->update(['short_name' => 'Veterinário']);
             $veterinario->syncPermissions(Permission::whereIn('module', [
                 'dashboard', 'rebanho', 'estoque', 'documentos',
             ])->get());
@@ -114,8 +120,9 @@ class RoleAndPermissionSeeder extends Seeder
             // ================ AGRÔNOMO ================
             $agronomo = Role::firstOrCreate(
                 ['name' => 'agronomo', 'guard_name' => 'web'],
-                ['description' => 'Agrônomo — produção agrícola + insumos', 'is_system' => true]
+                ['short_name' => 'Agrônomo', 'description' => 'Agrônomo — produção agrícola + insumos', 'is_system' => true]
             );
+            if (! $agronomo->short_name) $agronomo->update(['short_name' => 'Agrônomo']);
             $agronomo->syncPermissions(Permission::whereIn('module', [
                 'dashboard', 'agricola', 'estoque', 'documentos',
             ])->get());
@@ -123,8 +130,9 @@ class RoleAndPermissionSeeder extends Seeder
             // ================ ADMINISTRATIVO ================
             $administrativo = Role::firstOrCreate(
                 ['name' => 'administrativo', 'guard_name' => 'web'],
-                ['description' => 'Equipe administrativa — documentos, funcionários, tarefas', 'is_system' => true]
+                ['short_name' => 'Administrativo', 'description' => 'Equipe administrativa — documentos, funcionários, tarefas', 'is_system' => true]
             );
+            if (! $administrativo->short_name) $administrativo->update(['short_name' => 'Administrativo']);
             $administrativo->syncPermissions(Permission::whereIn('module', [
                 'dashboard', 'funcionarios', 'documentos', 'parceiros',
             ])->get());
@@ -132,8 +140,9 @@ class RoleAndPermissionSeeder extends Seeder
             // ================ FUNCIONÁRIO ================
             $funcionario = Role::firstOrCreate(
                 ['name' => 'funcionario', 'guard_name' => 'web'],
-                ['description' => 'Funcionário operacional', 'is_system' => true]
+                ['short_name' => 'Funcionário', 'description' => 'Funcionário operacional', 'is_system' => true]
             );
+            if (! $funcionario->short_name) $funcionario->update(['short_name' => 'Funcionário']);
             $funcionario->syncPermissions(Permission::whereIn('name', [
                 'dashboard.view',
                 'rebanho.view', 'rebanho.eventos.view', 'rebanho.eventos.create',
@@ -146,15 +155,17 @@ class RoleAndPermissionSeeder extends Seeder
             // ================ AUDITOR ================
             $auditor = Role::firstOrCreate(
                 ['name' => 'auditor', 'guard_name' => 'web'],
-                ['description' => 'Auditor — somente leitura', 'is_system' => true]
+                ['short_name' => 'Auditor', 'description' => 'Auditor — somente leitura', 'is_system' => true]
             );
+            if (! $auditor->short_name) $auditor->update(['short_name' => 'Auditor']);
             $auditor->syncPermissions(Permission::where('name', 'like', '%.view')->get());
 
             // ================ VISITANTE ================
             $visitante = Role::firstOrCreate(
                 ['name' => 'visitante', 'guard_name' => 'web'],
-                ['description' => 'Visitante — acesso restrito ao dashboard', 'is_system' => false]
+                ['short_name' => 'Visitante', 'description' => 'Visitante — acesso restrito ao dashboard', 'is_system' => false]
             );
+            if (! $visitante->short_name) $visitante->update(['short_name' => 'Visitante']);
             $visitante->syncPermissions(Permission::whereIn('name', ['dashboard.view'])->get());
         });
 

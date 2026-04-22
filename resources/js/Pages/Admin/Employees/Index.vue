@@ -4,7 +4,6 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
-import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
@@ -17,7 +16,8 @@ useAutoReload(['employees'], 25000);
 
 const filtros = reactive({ ...props.filters });
 const editing = ref(null);
-const confirmDelete = ref(null);
+const desligamento = ref(null); // funcionário em processo de desligamento
+const desligForm = useForm({ data_demissao: '', motivo_demissao: '' });
 
 const form = useForm({
     farm_id: null, nome: '', cpf: '', rg: '', data_nascimento: '',
@@ -38,10 +38,17 @@ function salvar() {
     else form.put(route('admin.funcionarios.update', editing.value), opts);
 }
 function toggle(row) { router.post(route('admin.funcionarios.toggle', row.id), {}, { preserveScroll: true, only: ['employees'] }); }
-function doDelete() {
-    router.delete(route('admin.funcionarios.destroy', confirmDelete.value.id), {
+
+function abrirDesligamento(row) {
+    desligamento.value = row;
+    desligForm.reset();
+    desligForm.clearErrors();
+    desligForm.data_demissao = new Date().toISOString().slice(0, 10);
+}
+function confirmarDesligamento() {
+    desligForm.delete(route('admin.funcionarios.destroy', desligamento.value.id), {
         preserveScroll: true, only: ['employees'],
-        onSuccess: () => confirmDelete.value = null,
+        onSuccess: () => { desligamento.value = null; desligForm.reset(); },
     });
 }
 </script>
@@ -76,8 +83,8 @@ function doDelete() {
                 <div><InputLabel value="Setor" /><input v-model="form.setor" class="form-input" placeholder="Ex: Pecuária"></div>
                 <div><InputLabel value="Função / cargo" /><input v-model="form.funcao" class="form-input" placeholder="Ex: Vaqueiro"></div>
                 <div><InputLabel value="Salário" /><InputMoney v-model="form.salario" /></div>
-                <div><InputLabel value="Admissão" /><InputDate v-model="form.data_admissao" /></div>
-                <div><InputLabel value="Demissão" /><InputDate v-model="form.data_demissao" /></div>
+                <div><InputLabel value="Admissão" /><InputDate v-model="form.data_admissao" :max="form.data_demissao || undefined" /></div>
+                <div><InputLabel value="Demissão" /><InputDate v-model="form.data_demissao" :min="form.data_admissao || undefined" /></div>
                 <div><InputLabel value="CEP" /><InputMasked v-model="form.cep" mask="#####-###" /></div>
                 <div class="sm:col-span-2"><InputLabel value="Endereço" /><input v-model="form.endereco" class="form-input"></div>
                 <div><InputLabel value="Número" /><input v-model="form.numero" class="form-input"></div>
@@ -124,18 +131,62 @@ function doDelete() {
             :rows="employees.data"
         >
             <template #cell-is_active="{ row }">
-                <button @click="toggle(row)" :class="row.is_active ? 'badge-green' : 'badge-slate'" class="cursor-pointer">{{ row.is_active ? 'Ativo' : 'Inativo' }}</button>
+                <span v-if="row.is_active" class="badge-green">Ativo</span>
+                <span v-else class="badge-slate" :title="row.data_demissao ? `Desligado em ${dataBR(row.data_demissao)}` : 'Desligado'">
+                    Inativo<span v-if="row.data_demissao" class="ml-1 text-[11px] text-slate-500">({{ dataBR(row.data_demissao) }})</span>
+                </span>
             </template>
             <template #cell-acoes="{ row }">
-                <div class="flex gap-2 justify-end">
+                <div class="flex gap-3 justify-end">
                     <button @click="editar(row)" class="text-slate-500 hover:text-macaybas-primary">Editar</button>
-                    <button @click="confirmDelete = row" class="text-red-600 hover:underline">Desligar</button>
+                    <button v-if="row.is_active"
+                            @click="abrirDesligamento(row)"
+                            class="text-red-600 hover:underline">Desligar</button>
+                    <button v-else
+                            @click="toggle(row)"
+                            class="text-emerald-600 hover:underline">Reativar</button>
                 </div>
             </template>
         </DataTable>
 
-        <ConfirmModal :show="!!confirmDelete" title="Desligar funcionário"
-                      :message="`Desligar ${confirmDelete?.nome}? O registro será mantido, apenas marcado como inativo.`"
-                      @cancel="confirmDelete = null" @confirm="doDelete" />
+        <!-- Modal: Desligar funcionário com data obrigatória -->
+        <Teleport to="body">
+            <div v-if="desligamento" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="desligamento = null"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold text-slate-900">Desligar funcionário</h3>
+                        <p class="text-sm text-slate-500 mt-1">Informe a data de desligamento de <strong>{{ desligamento.nome }}</strong>. O registro será mantido — apenas marcado como inativo.</p>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Data do desligamento *" />
+                            <InputDate
+                                v-model="desligForm.data_demissao"
+                                :min="desligamento.data_admissao || null"
+                                :max="new Date().toISOString().slice(0,10)"
+                                required
+                            />
+                            <p v-if="desligForm.errors.data_demissao" class="text-xs text-red-600 mt-1">{{ desligForm.errors.data_demissao }}</p>
+                            <p v-if="desligamento.data_admissao" class="text-xs text-slate-500 mt-1">
+                                Admissão: {{ dataBR(desligamento.data_admissao) }} — a data de desligamento não pode ser anterior a ela nem futura.
+                            </p>
+                        </div>
+                        <div>
+                            <InputLabel value="Motivo (opcional)" />
+                            <textarea v-model="desligForm.motivo_demissao" rows="2" class="form-textarea"
+                                      placeholder="Ex: pedido de demissão, reestruturação, etc."></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="desligamento = null" class="btn-outline">Cancelar</button>
+                        <button @click="confirmarDesligamento" :disabled="desligForm.processing"
+                                class="btn-primary bg-red-600 hover:bg-red-700">
+                            {{ desligForm.processing ? 'Desligando...' : 'Confirmar desligamento' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AdminLayout>
 </template>

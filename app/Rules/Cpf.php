@@ -9,7 +9,7 @@ class Cpf implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (! validarCpf((string) $value)) {
+        if (! validarCpfStrict((string) $value)) {
             $fail('O campo :attribute deve ser um CPF válido.');
         }
     }

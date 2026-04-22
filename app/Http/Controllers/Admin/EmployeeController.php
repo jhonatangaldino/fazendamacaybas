@@ -46,18 +46,48 @@ class EmployeeController extends Controller
         return back()->with('success', 'Funcionário atualizado.');
     }
 
-    public function destroy(Employee $employee)
+    public function destroy(Request $request, Employee $employee)
     {
-        $employee->update(['is_active' => false, 'data_demissao' => $employee->data_demissao ?? now()]);
+        if (! $employee->is_active) {
+            return back()->with('error', 'Este funcionário já está desligado.');
+        }
 
-        return back()->with('success', 'Funcionário desligado (inativado).');
+        $data = $request->validate([
+            'data_demissao' => ['required', 'date', 'before_or_equal:today', 'after_or_equal:'.($employee->data_admissao?->toDateString() ?? '1900-01-01')],
+            'motivo_demissao' => ['nullable', 'string', 'max:255'],
+        ], [
+            'data_demissao.required' => 'Informe a data de desligamento.',
+            'data_demissao.before_or_equal' => 'A data de desligamento não pode ser futura.',
+            'data_demissao.after_or_equal' => 'A data de desligamento não pode ser anterior à data de admissão.',
+        ]);
+
+        $employee->update([
+            'is_active' => false,
+            'data_demissao' => $data['data_demissao'],
+            'observacoes' => $data['motivo_demissao']
+                ? trim(($employee->observacoes ? $employee->observacoes."\n" : '')."[Desligamento em ".$data['data_demissao']."] ".$data['motivo_demissao'])
+                : $employee->observacoes,
+        ]);
+
+        return back()->with('success', 'Funcionário desligado em '.\Carbon\Carbon::parse($data['data_demissao'])->format('d/m/Y').'.');
     }
 
+    /**
+     * Reativa um funcionário previamente desligado (limpa data_demissao).
+     */
     public function toggle(Employee $employee)
     {
-        $employee->update(['is_active' => ! $employee->is_active]);
+        if ($employee->is_active) {
+            // Usar o endpoint de destroy para "desligar" com data exige ir pelo modal
+            return back()->with('error', 'Para desligar, clique em "Desligar" e informe a data.');
+        }
 
-        return back();
+        $employee->update([
+            'is_active' => true,
+            'data_demissao' => null,
+        ]);
+
+        return back()->with('success', 'Funcionário reativado.');
     }
 
     protected function validateEmployee(Request $request, ?int $id = null): array
@@ -70,7 +100,7 @@ class EmployeeController extends Controller
             'data_nascimento' => ['nullable', 'date'],
             'telefone' => ['nullable', 'string', 'max:20'],
             'celular' => ['nullable', 'string', 'max:20'],
-            'email' => ['nullable', 'email'],
+            'email' => ['nullable', 'email:rfc', 'max:255'],
             'setor' => ['nullable', 'string', 'max:100'],
             'funcao' => ['nullable', 'string', 'max:100'],
             'salario' => ['nullable', 'numeric', 'min:0'],

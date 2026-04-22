@@ -4,6 +4,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import InputLabel from '@/Components/InputLabel.vue';
+import InputDate from '@/Components/InputDate.vue';
 import { dataBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 import { useConfirm } from '@/composables/useConfirm.js';
@@ -98,8 +99,8 @@ async function delSeason(id) {
                 <div v-if="showSeasonForm" class="card-body border-b bg-slate-50 grid gap-3">
                     <div><InputLabel value="Nome" /><input v-model="seasonForm.nome" class="form-input" placeholder="Ex: Safra 2025/2026"></div>
                     <div class="grid gap-3 sm:grid-cols-2">
-                        <div><InputLabel value="Início" /><input type="date" v-model="seasonForm.data_inicio" class="form-input"></div>
-                        <div><InputLabel value="Fim (opcional)" /><input type="date" v-model="seasonForm.data_fim" class="form-input"></div>
+                        <div><InputLabel value="Início" /><InputDate v-model="seasonForm.data_inicio" :max="seasonForm.data_fim || undefined" /></div>
+                        <div><InputLabel value="Fim (opcional)" /><InputDate v-model="seasonForm.data_fim" :min="seasonForm.data_inicio || undefined" /></div>
                     </div>
                     <div class="flex justify-end gap-2">
                         <button @click="showSeasonForm = false" class="btn-outline">Cancelar</button>

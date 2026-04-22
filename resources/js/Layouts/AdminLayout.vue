@@ -12,9 +12,32 @@ const user = computed(() => page.props.auth.user);
 const perms = computed(() => page.props.auth.user?.permissions ?? []);
 const siteLogo = computed(() => page.props.settings?.logo || null);
 const siteNome = computed(() => page.props.settings?.nome || 'Macaybas');
+const menuUsage = computed(() => page.props.menuUsage || {});
 const sidebarOpen = ref(false);
 const userMenuOpen = ref(false);
 const profileModalOpen = ref(false);
+
+/**
+ * Registra uso de um menu (fire-and-forget). Não usa Inertia pra evitar reload.
+ * O backend incrementa hits; na próxima navegação a ordenação reflete.
+ */
+function trackMenuHit(menuKey) {
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        fetch(route('admin.menu-usage.bump'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf || '',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ key: menuKey }),
+            keepalive: true,
+        }).catch(() => {});
+    } catch (_) { /* noop */ }
+}
 
 function openProfile() {
     userMenuOpen.value = false;
@@ -80,12 +103,28 @@ const menu = computed(() => [
     },
 ]);
 
+/**
+ * Aplica permissão + ordena a seção "Operação" pelos itens mais usados por este usuário.
+ * Itens sem histórico ficam na ordem original (estável), abaixo dos mais usados.
+ */
 const visibleMenu = computed(() =>
     menu.value
-        .map((section) => ({
-            ...section,
-            items: section.items.filter((i) => can(i.perm)),
-        }))
+        .map((section) => {
+            const allowed = section.items.filter((i) => can(i.perm));
+            if (section.section === 'Operação') {
+                const indexed = allowed.map((item, idx) => ({
+                    item,
+                    idx,
+                    hits: menuUsage.value[item.route] || 0,
+                }));
+                indexed.sort((a, b) => {
+                    if (b.hits !== a.hits) return b.hits - a.hits;
+                    return a.idx - b.idx;
+                });
+                return { ...section, items: indexed.map((x) => x.item) };
+            }
+            return { ...section, items: allowed };
+        })
         .filter((section) => section.items.length > 0)
 );
 
@@ -143,7 +182,7 @@ const iconPath = {
                         <li v-for="item in section.items" :key="item.label">
                             <Link
                                 :href="route(item.route)"
-                                @click="sidebarOpen = false"
+                                @click="sidebarOpen = false; trackMenuHit(item.route)"
                                 :class="[route().current(item.route + '*') ? 'bg-white/10 text-white' : 'hover:bg-white/5 hover:text-white']"
                                 class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition"
                             >

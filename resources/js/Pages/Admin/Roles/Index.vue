@@ -17,6 +17,7 @@ const confirmDelete = ref(null);
 
 const form = useForm({
     name: '',
+    short_name: '',
     description: '',
     permissions: [],
 });
@@ -46,6 +47,7 @@ function novo() {
 
 function editar(role) {
     form.name = role.name;
+    form.short_name = role.short_name || '';
     form.description = role.description;
     form.permissions = [...role.permissions];
     editing.value = role.id;
@@ -106,7 +108,7 @@ const isSystemEditing = computed(() => {
                 <span v-if="isSystemEditing" class="badge-blue">Perfil de sistema</span>
             </div>
             <div class="card-body space-y-4">
-                <div class="grid gap-4 sm:grid-cols-3">
+                <div class="grid gap-4 sm:grid-cols-4">
                     <div>
                         <InputLabel value="Nome técnico" />
                         <input v-model="form.name"
@@ -114,13 +116,20 @@ const isSystemEditing = computed(() => {
                                required class="form-input"
                                placeholder="ex: gerente_financeiro">
                         <InputError :message="form.errors.name" />
-                        <p class="form-help">Só letras minúsculas, números e _. Usado internamente.</p>
+                        <p class="form-help">Usado internamente. Só letras minúsculas, números e _.</p>
+                    </div>
+                    <div>
+                        <InputLabel value="Nome curto" />
+                        <input v-model="form.short_name" required class="form-input" placeholder="ex: Gerente">
+                        <InputError :message="form.errors.short_name" />
+                        <p class="form-help">Aparece nas tabelas/badges.</p>
                     </div>
                     <div class="sm:col-span-2">
                         <InputLabel value="Descrição" />
                         <input v-model="form.description" required class="form-input"
                                placeholder="ex: Gerente com acesso financeiro completo">
                         <InputError :message="form.errors.description" />
+                        <p class="form-help">Aparece em tooltip sobre o badge.</p>
                     </div>
                 </div>
 
@@ -169,7 +178,8 @@ const isSystemEditing = computed(() => {
 
         <DataTable
             :columns="[
-                { key: 'description', label: 'Perfil' },
+                { key: 'short_name', label: 'Perfil', primary: true },
+                { key: 'description', label: 'Descrição' },
                 { key: 'name', label: 'Nome técnico' },
                 { key: 'users_count', label: 'Usuários', align: 'right' },
                 { key: 'permissions_count', label: 'Permissões', align: 'right' },
@@ -178,8 +188,11 @@ const isSystemEditing = computed(() => {
             ]"
             :rows="roles"
         >
+            <template #cell-short_name="{ row }">
+                <div class="font-semibold text-slate-900">{{ row.short_name || row.name }}</div>
+            </template>
             <template #cell-description="{ row }">
-                <div class="font-medium text-slate-900">{{ row.description }}</div>
+                <span class="text-sm text-slate-600">{{ row.description }}</span>
             </template>
             <template #cell-name="{ row }">
                 <code class="text-xs text-slate-500">{{ row.name }}</code>

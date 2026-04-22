@@ -3,6 +3,7 @@ import { reactive } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
+import InputDate from '@/Components/InputDate.vue';
 import { brl } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
@@ -44,11 +45,11 @@ function maxValueIn(arr, key) {
             <div class="card-body grid gap-3 sm:grid-cols-3">
                 <div>
                     <label class="form-label">De</label>
-                    <input type="date" v-model="filtros.from" @change="filtrar" class="form-input">
+                    <InputDate v-model="filtros.from" :max="filtros.to || undefined" @update:modelValue="filtrar" />
                 </div>
                 <div>
                     <label class="form-label">Até</label>
-                    <input type="date" v-model="filtros.to" @change="filtrar" class="form-input">
+                    <InputDate v-model="filtros.to" :min="filtros.from || undefined" @update:modelValue="filtrar" />
                 </div>
                 <div class="flex items-end">
                     <span class="text-sm text-slate-500">Atualizado a cada 30s automaticamente</span>

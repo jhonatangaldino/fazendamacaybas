@@ -18,8 +18,10 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
+        $isMaster = $request->user()->hasRole('admin_master');
+
         $q = User::query()
-            ->with('roles:id,name,description')
+            ->with('roles:id,name,short_name,description')
             ->when($request->search, fn ($qq) => $qq->where(function ($w) use ($request) {
                 $w->where('name', 'like', "%{$request->search}%")
                     ->orWhere('email', 'like', "%{$request->search}%");
@@ -27,6 +29,8 @@ class UserController extends Controller
             ->when($request->role, fn ($qq) => $qq->whereHas('roles', fn ($r) => $r->where('name', $request->role)))
             ->when($request->status === 'ativos', fn ($qq) => $qq->where('is_active', true))
             ->when($request->status === 'inativos', fn ($qq) => $qq->where('is_active', false))
+            // Não-masters não enxergam usuários admin_master
+            ->when(! $isMaster, fn ($qq) => $qq->whereDoesntHave('roles', fn ($r) => $r->where('name', 'admin_master')))
             ->orderBy('name');
 
         return Inertia::render('Admin/Users/Index', [
@@ -38,10 +42,14 @@ class UserController extends Controller
                 'avatar_url' => $u->avatarUrl(),
                 'is_active' => $u->is_active,
                 'last_login_at' => $u->last_login_at,
-                'roles' => $u->roles->map(fn ($r) => ['name' => $r->name, 'description' => $r->description]),
+                'roles' => $u->roles->map(fn ($r) => [
+                    'name' => $r->name,
+                    'short_name' => $r->short_name ?: ucfirst(str_replace('_', ' ', $r->name)),
+                    'description' => $r->description,
+                ]),
             ]),
             'filters' => $request->only(['search', 'role', 'status']),
-            'roles' => Role::orderBy('name')->get(['id', 'name', 'description']),
+            'roles' => $this->availableRoles(),
         ]);
     }
 
@@ -49,7 +57,7 @@ class UserController extends Controller
     {
         return Inertia::render('Admin/Users/Form', [
             'user' => null,
-            'roles' => Role::orderBy('name')->get(['id', 'name', 'description']),
+            'roles' => $this->availableRoles(),
         ]);
     }
 
@@ -57,7 +65,7 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => ['required', 'email:rfc', 'max:255', 'unique:users,email'],
             'cpf' => ['nullable', 'string', 'max:14'],
             'telefone' => ['nullable', 'string', 'max:20'],
             'cargo' => ['nullable', 'string', 'max:100'],
@@ -67,6 +75,11 @@ class UserController extends Controller
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
+
+        // Não-masters não podem atribuir o perfil admin_master
+        if (! $request->user()->hasRole('admin_master') && in_array('admin_master', $data['roles'] ?? [], true)) {
+            return back()->with('error', 'Você não tem permissão para atribuir o perfil Admin Master.');
+        }
 
         $user = User::create([
             ...collect($data)->except('password', 'roles')->all(),
@@ -93,15 +106,20 @@ class UserController extends Controller
                 'must_change_password' => $user->must_change_password,
                 'roles' => $user->roles->pluck('name'),
             ],
-            'roles' => Role::orderBy('name')->get(['id', 'name', 'description']),
+            'roles' => $this->availableRoles(),
         ]);
     }
 
     public function update(Request $request, User $user)
     {
+        // Não-masters não podem editar um admin_master
+        if ($user->hasRole('admin_master') && ! $request->user()->hasRole('admin_master')) {
+            return back()->with('error', 'Você não tem permissão para editar este usuário.');
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users')->ignore($user->id)],
             'cpf' => ['nullable', 'string', 'max:14'],
             'telefone' => ['nullable', 'string', 'max:20'],
             'cargo' => ['nullable', 'string', 'max:100'],
@@ -111,6 +129,10 @@ class UserController extends Controller
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
+
+        if (! $request->user()->hasRole('admin_master') && in_array('admin_master', $data['roles'] ?? [], true)) {
+            return back()->with('error', 'Você não tem permissão para atribuir o perfil Admin Master.');
+        }
 
         $payload = collect($data)->except('password', 'roles')->all();
         if (! empty($data['password'])) {
@@ -224,5 +246,18 @@ class UserController extends Controller
         if ($actor->can('users.update')) return true;
 
         return false;
+    }
+
+    /**
+     * Perfis que o usuário atual pode atribuir. Não-masters nunca veem admin_master.
+     */
+    protected function availableRoles()
+    {
+        $actor = request()->user();
+
+        return Role::query()
+            ->when($actor && ! $actor->hasRole('admin_master'), fn ($qq) => $qq->where('name', '!=', 'admin_master'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'short_name', 'description']);
     }
 }

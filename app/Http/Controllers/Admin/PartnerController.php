@@ -68,7 +68,7 @@ class PartnerController extends Controller
             'nome_fantasia' => ['nullable', 'string', 'max:255'],
             'documento' => ['nullable', 'string', 'max:18', Rule::unique('partners', 'documento')->ignore($id)->whereNull('deleted_at')],
             'inscricao_estadual' => ['nullable', 'string', 'max:30'],
-            'email' => ['nullable', 'email'],
+            'email' => ['nullable', 'email:rfc', 'max:255'],
             'telefone' => ['nullable', 'string', 'max:20'],
             'celular' => ['nullable', 'string', 'max:20'],
             'cep' => ['nullable', 'string', 'max:9'],

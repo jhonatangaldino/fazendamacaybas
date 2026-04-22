@@ -80,8 +80,8 @@ function doDelete() {
 
         <div class="card mb-4">
             <div class="card-body grid gap-3 sm:grid-cols-2">
-                <input type="date" v-model="filtros.from" @change="filtrar" class="form-input">
-                <input type="date" v-model="filtros.to" @change="filtrar" class="form-input">
+                <InputDate v-model="filtros.from" :max="filtros.to || undefined" @update:modelValue="filtrar" />
+                <InputDate v-model="filtros.to" :min="filtros.from || undefined" @update:modelValue="filtrar" />
             </div>
         </div>
 

@@ -92,8 +92,12 @@ async function resetPassword(id) {
                 </div>
             </template>
             <template #cell-roles="{ row }">
-                <div class="flex flex-wrap gap-1">
-                    <span v-for="r in row.roles" :key="r.name" class="badge-blue">{{ r.description || r.name }}</span>
+                <div class="flex flex-wrap gap-1.5">
+                    <span v-for="r in row.roles" :key="r.name"
+                          class="badge-blue"
+                          :data-tooltip="r.description">
+                        {{ r.short_name || r.name }}
+                    </span>
                 </div>
             </template>
             <template #cell-last_login_at="{ row }">

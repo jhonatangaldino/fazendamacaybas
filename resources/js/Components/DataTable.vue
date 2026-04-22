@@ -42,7 +42,7 @@ function renderCell(col, row) {
 </script>
 
 <template>
-    <div class="card overflow-hidden">
+    <div class="lg:card lg:overflow-hidden">
         <!-- =============== DESKTOP (≥ 1024px) =============== -->
         <div class="hidden lg:block overflow-x-auto">
             <table class="table-base">
@@ -72,15 +72,16 @@ function renderCell(col, row) {
             </table>
         </div>
 
-        <!-- =============== MOBILE + TABLET (< 1024px) =============== -->
-        <div class="lg:hidden divide-y divide-slate-100">
+        <!-- =============== MOBILE + TABLET (< 1024px) — cards com respiro =============== -->
+        <div class="lg:hidden p-3 space-y-3 bg-slate-50">
             <div v-if="!rows.length" class="text-center text-slate-500 py-10">{{ emptyText }}</div>
             <div v-for="(row, i) in rows" :key="row.id ?? i"
-                 :class="['p-4', rowClickable ? 'cursor-pointer active:bg-slate-50' : '']"
+                 :class="['bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4',
+                          rowClickable ? 'cursor-pointer active:bg-slate-50 hover:shadow-md transition-shadow' : '']"
                  @click="rowClickable && $emit('row-click', row)">
 
                 <!-- Primary no topo -->
-                <div v-if="primaryCol" class="mb-3">
+                <div v-if="primaryCol" class="mb-3 pb-3 border-b border-slate-100">
                     <slot :name="slotName(primaryCol.key)" :row="row" :value="row[primaryCol.key]">
                         <div class="text-base font-semibold text-slate-900 break-words">
                             {{ renderCell(primaryCol, row) }}
@@ -88,12 +89,12 @@ function renderCell(col, row) {
                     </slot>
                 </div>
 
-                <!-- Secundárias em pares label:valor -->
-                <div class="space-y-1.5">
+                <!-- Secundárias em pares label:valor com bastante respiro -->
+                <div class="space-y-2.5">
                     <div v-for="col in secondaryCols" :key="col.key"
                          class="flex items-start gap-3 text-sm">
-                        <span class="text-[11px] uppercase tracking-wide text-slate-500 flex-shrink-0 w-24 pt-0.5">{{ col.label }}</span>
-                        <span class="text-slate-800 break-words min-w-0 flex-1">
+                        <span class="text-[10px] uppercase tracking-wider font-semibold text-slate-400 flex-shrink-0 w-24 pt-0.5">{{ col.label }}</span>
+                        <span class="text-slate-800 break-words min-w-0 flex-1 leading-relaxed">
                             <slot :name="slotName(col.key)" :row="row" :value="row[col.key]">
                                 {{ renderCell(col, row) }}
                             </slot>
@@ -103,10 +104,12 @@ function renderCell(col, row) {
 
                 <!-- Ações no rodapé -->
                 <div v-if="hasActions"
-                     class="flex flex-wrap items-center justify-end gap-3 mt-3 pt-3 border-t border-slate-100">
+                     class="flex flex-wrap items-center justify-end gap-4 mt-4 pt-3 border-t border-slate-100">
                     <slot name="cell-acoes" :row="row" :value="row['acoes']" />
                 </div>
             </div>
         </div>
+
+        <!-- Wrapper para o card não herdar o bg cinza mobile quando o .card externo cuidou disso -->
     </div>
 </template>

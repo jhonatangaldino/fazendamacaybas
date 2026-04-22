@@ -69,8 +69,12 @@ class AnimalController extends Controller
 
     protected function renderForm(?Animal $animal)
     {
+        $animalPayload = $animal ? array_merge($animal->toArray(), [
+            'photo_url' => $animal->photoUrl(),
+        ]) : null;
+
         return Inertia::render('Admin/Livestock/Animals/Form', [
-            'animal' => $animal,
+            'animal' => $animalPayload,
             'species' => AnimalSpecies::where('is_active', true)->with(['breeds:id,species_id,nome'])->get(),
             'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome', 'codigo']),
             'farms' => Farm::where('is_active', true)->get(['id', 'nome']),
@@ -97,6 +101,49 @@ class AnimalController extends Controller
             'valor_aquisicao' => ['nullable', 'numeric', 'min:0'],
             'status' => ['required', 'in:ativo,vendido,morto,abatido,transferido'],
             'observacoes' => ['nullable', 'string'],
+            'categoria' => ['nullable', 'in:leite,corte,reproducao,misto,pet,servico'],
+            'numero_registro' => ['nullable', 'string', 'max:50'],
         ]);
+    }
+
+    /**
+     * Upload de foto do animal.
+     */
+    public function uploadPhoto(Request $request, Animal $animal): \Illuminate\Http\JsonResponse
+    {
+        $v = validator($request->all(), [
+            'file' => ['required', 'file', 'max:5120', 'mimetypes:image/jpeg,image/png,image/webp,image/gif'],
+        ]);
+        if ($v->fails()) {
+            return response()->json(['ok' => false, 'message' => $v->errors()->first('file')], 422);
+        }
+
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension()) ?: $file->guessExtension();
+        $filename = 'animal-'.$animal->id.'-'.\Illuminate\Support\Str::random(8).'.'.$ext;
+        $path = $file->storeAs('animals', $filename, 'public');
+
+        if ($animal->photo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($animal->photo_path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($animal->photo_path);
+        }
+
+        $animal->update(['photo_path' => $path]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Foto atualizada.',
+            'avatar_url' => asset('storage/'.$path),
+            'path' => $path,
+        ]);
+    }
+
+    public function removePhoto(Animal $animal): \Illuminate\Http\JsonResponse
+    {
+        if ($animal->photo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($animal->photo_path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($animal->photo_path);
+        }
+        $animal->update(['photo_path' => null]);
+
+        return response()->json(['ok' => true]);
     }
 }

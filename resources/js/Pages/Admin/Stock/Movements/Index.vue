@@ -167,8 +167,8 @@ const tipoBadge = (t) => ({
                     <option value="">Todos os armazéns</option>
                     <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.nome }}</option>
                 </select>
-                <input type="date" v-model="filtros.from" @change="filtrar" class="form-input">
-                <input type="date" v-model="filtros.to" @change="filtrar" class="form-input">
+                <InputDate v-model="filtros.from" :max="filtros.to || undefined" @update:modelValue="filtrar" />
+                <InputDate v-model="filtros.to" :min="filtros.from || undefined" @update:modelValue="filtrar" />
             </div>
         </div>
 

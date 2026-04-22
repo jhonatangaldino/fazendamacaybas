@@ -14,13 +14,17 @@ class RoleController extends Controller
 {
     public function index()
     {
+        $isMaster = request()->user()?->hasRole('admin_master');
+
         $roles = Role::withCount(['users', 'permissions'])
+            ->when(! $isMaster, fn ($q) => $q->where('name', '!=', 'admin_master'))
             ->orderBy('is_system', 'desc')
             ->orderBy('name')
             ->get()
             ->map(fn (Role $r) => [
                 'id' => $r->id,
                 'name' => $r->name,
+                'short_name' => $r->short_name,
                 'description' => $r->description,
                 'is_system' => (bool) $r->is_system,
                 'users_count' => $r->users_count,
@@ -50,6 +54,7 @@ class RoleController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:50', 'regex:/^[a-z0-9_]+$/', 'unique:roles,name'],
+            'short_name' => ['required', 'string', 'max:40'],
             'description' => ['required', 'string', 'max:200'],
             'permissions' => ['array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
@@ -60,6 +65,7 @@ class RoleController extends Controller
         $role = Role::create([
             'name' => $data['name'],
             'guard_name' => 'web',
+            'short_name' => $data['short_name'],
             'description' => $data['description'],
             'is_system' => false,
         ]);
@@ -71,8 +77,14 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
+        // Não-masters nunca mexem no perfil admin_master (defesa em profundidade)
+        if ($role->name === 'admin_master' && ! $request->user()->hasRole('admin_master')) {
+            return back()->with('error', 'Apenas um Admin Master pode alterar este perfil.');
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:50', 'regex:/^[a-z0-9_]+$/', Rule::unique('roles', 'name')->ignore($role->id)],
+            'short_name' => ['required', 'string', 'max:40'],
             'description' => ['required', 'string', 'max:200'],
             'permissions' => ['array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
@@ -85,6 +97,7 @@ class RoleController extends Controller
 
         $role->update([
             'name' => $data['name'],
+            'short_name' => $data['short_name'],
             'description' => $data['description'],
         ]);
 

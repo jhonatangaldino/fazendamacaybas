@@ -17,10 +17,16 @@ class Animal extends Model
 
     protected $fillable = [
         'farm_id', 'species_id', 'breed_id', 'lot_id', 'mae_id', 'pai_id',
-        'identificacao', 'nome', 'sexo', 'data_nascimento',
+        'identificacao', 'nome', 'numero_registro', 'sexo', 'data_nascimento',
         'peso_nascimento', 'peso_atual', 'origem', 'partner_id',
-        'data_aquisicao', 'valor_aquisicao', 'status', 'data_saida', 'observacoes',
+        'data_aquisicao', 'valor_aquisicao', 'status', 'data_saida',
+        'categoria', 'observacoes', 'photo_path',
     ];
+
+    public function photoUrl(): ?string
+    {
+        return $this->photo_path ? asset('storage/'.$this->photo_path) : null;
+    }
 
     protected $casts = [
         'data_nascimento' => 'date',

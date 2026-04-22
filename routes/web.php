@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\Cms\CmsController;
 use App\Http\Controllers\Admin\Cms\MenuController;
 use App\Http\Controllers\Admin\Cms\SettingsController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\MenuUsageController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\Financial\FinancialIndexController;
@@ -66,6 +67,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:dashboard.view')->name('dashboard');
 
+    // Contador de uso dos itens da sidebar — alimenta a ordenação "mais usados no topo"
+    Route::post('menu-usage', [MenuUsageController::class, 'bump'])->name('menu-usage.bump');
+
     // ------- USUÁRIOS -------
     Route::middleware('permission:users.view')->group(function () {
         Route::get('usuarios', [UserController::class, 'index'])->name('users.index');
@@ -87,8 +91,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::delete('perfis/{role}', [RoleController::class, 'destroy'])->middleware('permission:roles.delete')->name('roles.destroy');
     });
 
-    // ------- CMS -------
-    Route::middleware('permission:cms.view')->group(function () {
+    // ------- CMS (exclusivo Admin Master: ninguém além do master mexe no site público) -------
+    Route::middleware(['role:admin_master', 'permission:cms.view'])->group(function () {
         Route::get('cms', [CmsController::class, 'index'])->name('cms.index');
         Route::get('cms/pagina/{page}', [CmsController::class, 'edit'])->name('cms.edit');
         Route::put('cms/pagina/{page}', [CmsController::class, 'updatePage'])->middleware('permission:cms.pages.update')->name('cms.update-page');
@@ -142,6 +146,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::get('rebanho/animais/{animal}/editar', [AnimalController::class, 'edit'])->middleware('permission:rebanho.animais.update')->name('rebanho.animais.edit');
         Route::put('rebanho/animais/{animal}', [AnimalController::class, 'update'])->middleware('permission:rebanho.animais.update')->name('rebanho.animais.update');
         Route::delete('rebanho/animais/{animal}', [AnimalController::class, 'destroy'])->middleware('permission:rebanho.animais.delete')->name('rebanho.animais.destroy');
+        Route::post('rebanho/animais/{animal}/foto', [AnimalController::class, 'uploadPhoto'])->middleware('permission:rebanho.animais.update')->name('rebanho.animais.foto.upload');
+        Route::delete('rebanho/animais/{animal}/foto', [AnimalController::class, 'removePhoto'])->middleware('permission:rebanho.animais.update')->name('rebanho.animais.foto.remove');
     });
 
     // ------- AGRÍCOLA -------

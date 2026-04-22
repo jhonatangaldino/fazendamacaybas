@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
+import InputDate from '@/Components/InputDate.vue';
 import { brl, dataBR } from '@/utils/format.js';
 
 const props = defineProps({
@@ -83,8 +84,8 @@ const statusBadge = (s) => ({
                     <option value="">Todas as contas</option>
                     <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.nome }}</option>
                 </select>
-                <input type="date" v-model="filtros.from" @change="filtrar" class="form-input">
-                <input type="date" v-model="filtros.to" @change="filtrar" class="form-input">
+                <InputDate v-model="filtros.from" :max="filtros.to || undefined" @update:modelValue="filtrar" />
+                <InputDate v-model="filtros.to" :min="filtros.from || undefined" @update:modelValue="filtrar" />
             </div>
         </div>
 

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -38,12 +39,17 @@ class AuthenticatedSessionController extends Controller
         return redirect()->intended(route('admin.dashboard'));
     }
 
-    public function destroy(Request $request): RedirectResponse
+    /**
+     * Logout. Usa Inertia::location() para forçar navegação completa (full page reload),
+     * evitando o bug do Inertia renderizar a landing (view Blade) dentro de um overlay
+     * quando a origem era uma página Inertia.
+     */
+    public function destroy(Request $request): HttpResponse
     {
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return Inertia::location('/');
     }
 }

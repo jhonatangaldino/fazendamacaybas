@@ -121,8 +121,8 @@ function submit() {
                             <input type="checkbox" :value="r.name" v-model="form.roles"
                                    class="mt-1 rounded border-slate-300 text-macaybas-primary focus:ring-macaybas-primary">
                             <div>
-                                <div class="font-medium text-slate-900 text-sm">{{ r.description || r.name }}</div>
-                                <div class="text-xs text-slate-500">{{ r.name }}</div>
+                                <div class="font-semibold text-slate-900 text-sm">{{ r.short_name || r.name }}</div>
+                                <div v-if="r.description" class="text-xs text-slate-500 mt-0.5">{{ r.description }}</div>
                             </div>
                         </label>
                     </div>

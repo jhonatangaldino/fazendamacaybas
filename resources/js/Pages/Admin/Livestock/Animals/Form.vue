@@ -7,6 +7,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import AvatarUpload from '@/Components/AvatarUpload.vue';
 
 const props = defineProps({ animal: Object, species: Array, lots: Array, farms: Array, partners: Array });
 const isEdit = !!props.animal;
@@ -18,6 +19,7 @@ const form = useForm({
     lot_id: props.animal?.lot_id ?? null,
     identificacao: props.animal?.identificacao ?? '',
     nome: props.animal?.nome ?? '',
+    numero_registro: props.animal?.numero_registro ?? '',
     sexo: props.animal?.sexo ?? 'F',
     data_nascimento: props.animal?.data_nascimento ?? '',
     peso_nascimento: props.animal?.peso_nascimento ?? '',
@@ -27,6 +29,7 @@ const form = useForm({
     data_aquisicao: props.animal?.data_aquisicao ?? '',
     valor_aquisicao: props.animal?.valor_aquisicao ?? '',
     status: props.animal?.status ?? 'ativo',
+    categoria: props.animal?.categoria ?? '',
     observacoes: props.animal?.observacoes ?? '',
 });
 
