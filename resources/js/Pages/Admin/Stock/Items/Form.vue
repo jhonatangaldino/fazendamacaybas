@@ -13,10 +13,18 @@ const { toast } = useToast();
 const props = defineProps({ item: Object, categories: Array });
 const isEdit = !!props.item;
 
+// Se viemos do fluxo "scan → não encontrado em nenhuma base → cadastrar",
+// o código é pré-preenchido via query (?codigo_barras=XXX&scanned=1) e tratado
+// como verificado. Aumenta a robustez da base interna.
+const qs = new URLSearchParams(window.location.search);
+const codigoBarrasFromScan = qs.get('codigo_barras') || '';
+const scannedFlag = qs.get('scanned') === '1';
+const codigoVerificado = ref(scannedFlag && !!codigoBarrasFromScan);
+
 const form = useForm({
     category_id: props.item?.category_id ?? null,
     codigo: props.item?.codigo ?? '',
-    codigo_barras: props.item?.codigo_barras ?? '',
+    codigo_barras: props.item?.codigo_barras ?? codigoBarrasFromScan,
     nome: props.item?.nome ?? '',
     descricao: props.item?.descricao ?? '',
     unidade: props.item?.unidade ?? 'un',
@@ -38,6 +46,7 @@ const ultimaTentativa = ref(null);  // { code, diagnostico, attempts } para debu
 async function onBarcodeDetected(code) {
     showScanner.value = false;
     form.codigo_barras = code;
+    codigoVerificado.value = true; // foi lido via câmera → verificado
     lookupLoading.value = true;
     sugestaoPublica.value = null;
     ultimaTentativa.value = null;
@@ -138,7 +147,15 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                     <div>
                         <InputLabel value="Código de barras (EAN/UPC)" />
                         <div class="flex gap-2">
-                            <input v-model="form.codigo_barras" class="form-input flex-1 font-mono" placeholder="Ex: 7891234567890">
+                            <div class="relative flex-1">
+                                <input v-model="form.codigo_barras" class="form-input w-full font-mono"
+                                       :class="codigoVerificado ? 'pl-9 bg-emerald-50 border-emerald-300' : ''"
+                                       placeholder="Ex: 7891234567890">
+                                <!-- Selo de verificação quando veio via scanner -->
+                                <svg v-if="codigoVerificado" class="absolute left-2.5 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                            </div>
                             <button type="button" @click="showScanner = true"
                                     class="btn-outline flex items-center gap-1.5 flex-shrink-0"
                                     :disabled="lookupLoading">
@@ -148,6 +165,10 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                                 Escanear
                             </button>
                         </div>
+                        <p v-if="codigoVerificado" class="text-xs text-emerald-700 mt-1 flex items-center gap-1">
+                            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            Código verificado via scanner — ajuda a fortalecer a base interna da fazenda
+                        </p>
                         <p v-if="lookupLoading" class="text-xs text-slate-500 mt-1 flex items-center gap-2">
                             <svg class="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
                             Consultando bases públicas...
