@@ -2,18 +2,11 @@ import { onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 
 /**
- * Composable que mantém a listagem atualizada sem F5.
+ * Polling leve que mantém a listagem atualizada sem F5.
  *
- * - Após cada ação (submit de form, delete, toggle), use router.post/put/delete
- *   com opções { preserveScroll: true, only: [...props para recarregar] } — o Inertia
- *   já busca apenas as props alteradas e re-hidrata a tela automaticamente.
- *
- * - Este composable adiciona um polling leve que dá `router.reload` na propriedade
- *   informada a cada N segundos, garantindo que várias abas/usuários vejam a mesma coisa.
- *
- * Uso:
- *   import { useAutoReload } from '@/composables/useAutoReload.js';
- *   useAutoReload(['items'], 15000); // reload de `items` a cada 15s
+ * IMPORTANTE: esse reload é marcado como `__silent` no objeto visit
+ * para o componente GlobalLoading ignorá-lo — não queremos overlay
+ * aparecendo a cada 15 segundos.
  */
 export function useAutoReload(props = [], intervalMs = 15000, options = {}) {
     const onlyProps = Array.isArray(props) ? props : [props];
@@ -27,6 +20,10 @@ export function useAutoReload(props = [], intervalMs = 15000, options = {}) {
             preserveScroll: true,
             preserveState: true,
             ...options,
+            onBefore: (visit) => {
+                visit.__silent = true;
+                if (options.onBefore) options.onBefore(visit);
+            },
         });
     };
 
@@ -55,8 +52,6 @@ export function useAutoReload(props = [], intervalMs = 15000, options = {}) {
 
 /**
  * Helper para submissões de form que precisam atualizar só uma prop após salvar.
- *
- * Ex.: `submitForm(form, route('admin.items.store'), ['items'])`
  */
 export function submitForm(form, url, onlyProps = [], method = 'post') {
     return form[method](url, {
