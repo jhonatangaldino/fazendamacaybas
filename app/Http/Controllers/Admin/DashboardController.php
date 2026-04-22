@@ -20,16 +20,31 @@ class DashboardController extends Controller
         $inicioMes = Carbon::now()->startOfMonth();
         $fimMes = Carbon::now()->endOfMonth();
 
-        // Financeiro do mês
-        $receitasMes = FinancialTransaction::receitas()
+        // Financeiro do mês — totais + listas de drill-down
+        $receitasMesTotal = FinancialTransaction::receitas()
             ->pagas()
             ->whereBetween('data_pagamento', [$inicioMes, $fimMes])
             ->sum('valor');
 
-        $despesasMes = FinancialTransaction::despesas()
+        $despesasMesTotal = FinancialTransaction::despesas()
             ->pagas()
             ->whereBetween('data_pagamento', [$inicioMes, $fimMes])
             ->sum('valor');
+
+        // Top 15 de cada tipo para alimentar o drawer de drill-down
+        $receitasMesLista = FinancialTransaction::receitas()
+            ->pagas()
+            ->whereBetween('data_pagamento', [$inicioMes, $fimMes])
+            ->orderByDesc('valor')
+            ->limit(15)
+            ->get(['id', 'descricao', 'valor', 'data_pagamento']);
+
+        $despesasMesLista = FinancialTransaction::despesas()
+            ->pagas()
+            ->whereBetween('data_pagamento', [$inicioMes, $fimMes])
+            ->orderByDesc('valor')
+            ->limit(15)
+            ->get(['id', 'descricao', 'valor', 'data_pagamento']);
 
         $contasAPagar = FinancialTransaction::despesas()
             ->pendentes()
@@ -85,9 +100,9 @@ class DashboardController extends Controller
         return Inertia::render('Admin/Dashboard', [
             'widgets' => [
                 'financeiro' => [
-                    'receitas_mes' => (float) $receitasMes,
-                    'despesas_mes' => (float) $despesasMes,
-                    'saldo_mes' => (float) $receitasMes - (float) $despesasMes,
+                    'receitas_mes' => (float) $receitasMesTotal,
+                    'despesas_mes' => (float) $despesasMesTotal,
+                    'saldo_mes' => (float) $receitasMesTotal - (float) $despesasMesTotal,
                     'contas_atrasadas' => $contasAtrasadas,
                 ],
                 'rebanho' => [
@@ -106,6 +121,9 @@ class DashboardController extends Controller
             'contas_a_receber' => $contasAReceber,
             'itens_baixo_estoque' => $itensBaixoEstoque,
             'tarefas_pendentes' => $tarefasPendentes,
+            // Listas de drill-down dos KPIs (para drawers)
+            'drillReceitasMes' => $receitasMesLista,
+            'drillDespesasMes' => $despesasMesLista,
         ]);
     }
 }

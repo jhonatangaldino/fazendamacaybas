@@ -1,9 +1,15 @@
 <script setup>
+import { ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
+import KpiDrawer from '@/Components/KpiDrawer.vue';
 import { brl, dataBR } from '@/utils/format.js';
+
+const drawer = ref(null);
+function abrir(nome) { drawer.value = nome; }
+function fechar() { drawer.value = null; }
 
 defineProps({
     widgets: Object,
@@ -11,6 +17,8 @@ defineProps({
     contas_a_receber: Array,
     itens_baixo_estoque: Array,
     tarefas_pendentes: Array,
+    drillReceitasMes: Array,
+    drillDespesasMes: Array,
 });
 
 // Intervalo do mês corrente (usado nos filtros dos drill-downs)
@@ -42,47 +50,47 @@ const prioridadeBadge = (p) => ({
 
         <PageHeader title="Visão geral" subtitle="Resumo da operação da fazenda" />
 
-        <!-- KPIs clicáveis — cada card navega pro módulo correspondente com filtro -->
+        <!-- KPIs: cada card abre um drawer lateral com o detalhamento (fecha com ESC/clique fora) -->
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-            <Link :href="route('admin.financeiro.transacoes.index', { tipo: 'receita', status: 'pago', from: mesInicio, to: mesFim })"
-                  class="card p-5 cursor-pointer hover:shadow-md hover:ring-macaybas-primary-200 transition-all group">
+            <button @click="abrir('receitas')"
+                    class="card p-5 text-left hover:shadow-md hover:ring-emerald-200 transition-all group">
                 <div class="flex items-start justify-between">
                     <div class="text-xs uppercase tracking-wider text-slate-500">Receitas do mês</div>
-                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3m12 0l-4-4m4 4l-4 4m10-8v8"/></svg>
                 </div>
                 <div class="mt-2 text-2xl font-bold text-green-700">{{ brl(widgets.financeiro.receitas_mes) }}</div>
-                <div class="text-xs text-slate-400 mt-1">Clique para ver detalhes</div>
-            </Link>
-            <Link :href="route('admin.financeiro.transacoes.index', { tipo: 'despesa', from: mesInicio, to: mesFim })"
-                  class="card p-5 cursor-pointer hover:shadow-md hover:ring-red-200 transition-all group">
+                <div class="text-xs text-slate-400 mt-1">Ver quais receitas entraram</div>
+            </button>
+            <button @click="abrir('despesas')"
+                    class="card p-5 text-left hover:shadow-md hover:ring-red-200 transition-all group">
                 <div class="flex items-start justify-between">
                     <div class="text-xs uppercase tracking-wider text-slate-500">Despesas do mês</div>
-                    <svg class="h-4 w-4 text-slate-400 group-hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3m12 0l-4-4m4 4l-4 4m10-8v8"/></svg>
                 </div>
                 <div class="mt-2 text-2xl font-bold text-red-700">{{ brl(widgets.financeiro.despesas_mes) }}</div>
-                <div class="text-xs text-slate-400 mt-1">Clique para ver origem</div>
-            </Link>
-            <Link :href="route('admin.financeiro.transacoes.index', { from: mesInicio, to: mesFim })"
-                  class="card p-5 cursor-pointer hover:shadow-md transition-all group">
+                <div class="text-xs text-slate-400 mt-1">Ver onde o dinheiro saiu</div>
+            </button>
+            <button @click="abrir('saldo')"
+                    class="card p-5 text-left hover:shadow-md transition-all group">
                 <div class="flex items-start justify-between">
                     <div class="text-xs uppercase tracking-wider text-slate-500">Saldo do mês</div>
-                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3m12 0l-4-4m4 4l-4 4m10-8v8"/></svg>
                 </div>
                 <div class="mt-2 text-2xl font-bold"
                      :class="widgets.financeiro.saldo_mes >= 0 ? 'text-macaybas-primary' : 'text-red-700'">
                     {{ brl(widgets.financeiro.saldo_mes) }}
                 </div>
-                <div class="text-xs text-slate-400 mt-1">Ver lançamentos completos</div>
-            </Link>
-            <Link :href="route('admin.rebanho.animais.index', { status: 'ativo' })"
-                  class="card p-5 cursor-pointer hover:shadow-md hover:ring-macaybas-primary-200 transition-all group">
+                <div class="text-xs text-slate-400 mt-1">Receitas menos despesas</div>
+            </button>
+            <button @click="abrir('rebanho')"
+                    class="card p-5 text-left hover:shadow-md hover:ring-macaybas-primary-200 transition-all group">
                 <div class="flex items-start justify-between">
                     <div class="text-xs uppercase tracking-wider text-slate-500">Rebanho</div>
-                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3m12 0l-4-4m4 4l-4 4m10-8v8"/></svg>
                 </div>
                 <div class="mt-2 text-2xl font-bold text-slate-900">{{ widgets.rebanho.total }}</div>
-                <div class="text-xs text-slate-500 mt-1">animais ativos — clique para listar</div>
-            </Link>
+                <div class="text-xs text-slate-500 mt-1">animais ativos — ver por espécie</div>
+            </button>
         </div>
 
         <!-- Alertas com bullets clicáveis pro drill-down -->
@@ -186,5 +194,81 @@ const prioridadeBadge = (p) => ({
                 </DataTable>
             </div>
         </div>
+
+        <!-- Drawers KPI: compõem o que está sendo somado -->
+        <KpiDrawer :open="drawer === 'receitas'" title="Receitas pagas no mês"
+                   :subtitle="`Total: ${brl(widgets.financeiro.receitas_mes)}`"
+                   :full-link="{ href: route('admin.financeiro.transacoes.index', { tipo: 'receita', status: 'pago', from: mesInicio, to: mesFim }), label: 'Ver todas no Financeiro' }"
+                   @close="fechar">
+            <div v-if="!drillReceitasMes?.length" class="text-center text-slate-500 py-10">
+                Sem receitas pagas neste mês ainda.
+            </div>
+            <ul v-else class="divide-y divide-slate-100">
+                <li v-for="r in drillReceitasMes" :key="r.id" class="py-3 flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-medium text-slate-900 truncate">{{ r.descricao }}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">Pago em {{ dataBR(r.data_pagamento) }}</div>
+                    </div>
+                    <div class="text-sm font-mono font-semibold text-emerald-700 flex-shrink-0">{{ brl(r.valor) }}</div>
+                </li>
+            </ul>
+        </KpiDrawer>
+
+        <KpiDrawer :open="drawer === 'despesas'" title="Despesas pagas no mês"
+                   :subtitle="`Total: ${brl(widgets.financeiro.despesas_mes)}`"
+                   :full-link="{ href: route('admin.financeiro.transacoes.index', { tipo: 'despesa', status: 'pago', from: mesInicio, to: mesFim }), label: 'Ver todas no Financeiro' }"
+                   @close="fechar">
+            <div v-if="!drillDespesasMes?.length" class="text-center text-slate-500 py-10">
+                Sem despesas pagas neste mês ainda.
+            </div>
+            <ul v-else class="divide-y divide-slate-100">
+                <li v-for="d in drillDespesasMes" :key="d.id" class="py-3 flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-medium text-slate-900 truncate">{{ d.descricao }}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">Pago em {{ dataBR(d.data_pagamento) }}</div>
+                    </div>
+                    <div class="text-sm font-mono font-semibold text-red-700 flex-shrink-0">{{ brl(d.valor) }}</div>
+                </li>
+            </ul>
+        </KpiDrawer>
+
+        <KpiDrawer :open="drawer === 'saldo'" title="Saldo do mês"
+                   :subtitle="`${brl(widgets.financeiro.receitas_mes)} de receitas − ${brl(widgets.financeiro.despesas_mes)} de despesas`"
+                   :full-link="{ href: route('admin.financeiro.transacoes.index', { from: mesInicio, to: mesFim }), label: 'Ver lançamentos do mês' }"
+                   @close="fechar">
+            <div class="space-y-4">
+                <div class="p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <div class="text-xs uppercase tracking-wider text-emerald-700">Entradas (receitas pagas)</div>
+                    <div class="mt-1 text-2xl font-bold text-emerald-700">+ {{ brl(widgets.financeiro.receitas_mes) }}</div>
+                </div>
+                <div class="p-4 rounded-lg bg-red-50 border border-red-200">
+                    <div class="text-xs uppercase tracking-wider text-red-700">Saídas (despesas pagas)</div>
+                    <div class="mt-1 text-2xl font-bold text-red-700">− {{ brl(widgets.financeiro.despesas_mes) }}</div>
+                </div>
+                <div class="p-4 rounded-lg" :class="widgets.financeiro.saldo_mes >= 0 ? 'bg-macaybas-primary-50 border border-macaybas-primary-200' : 'bg-red-100 border border-red-300'">
+                    <div class="text-xs uppercase tracking-wider" :class="widgets.financeiro.saldo_mes >= 0 ? 'text-macaybas-primary-900' : 'text-red-800'">Saldo</div>
+                    <div class="mt-1 text-3xl font-bold" :class="widgets.financeiro.saldo_mes >= 0 ? 'text-macaybas-primary' : 'text-red-700'">{{ brl(widgets.financeiro.saldo_mes) }}</div>
+                </div>
+                <p class="text-sm text-slate-600">
+                    Inclui apenas lançamentos com status <strong>pago</strong> no mês corrente. Lançamentos em aberto
+                    (a pagar / a receber) aparecem nas tabelas abaixo.
+                </p>
+            </div>
+        </KpiDrawer>
+
+        <KpiDrawer :open="drawer === 'rebanho'" title="Rebanho ativo"
+                   :subtitle="`${widgets.rebanho.total} animal${widgets.rebanho.total === 1 ? '' : 'is'} em atividade`"
+                   :full-link="{ href: route('admin.rebanho.animais.index', { status: 'ativo' }), label: 'Ver todos os animais' }"
+                   @close="fechar">
+            <div v-if="!widgets.rebanho.por_especie?.length" class="text-center text-slate-500 py-10">
+                Sem animais ativos cadastrados.
+            </div>
+            <ul v-else class="divide-y divide-slate-100">
+                <li v-for="(e, i) in widgets.rebanho.por_especie" :key="i" class="py-3 flex items-center justify-between gap-3">
+                    <div class="font-medium text-slate-900">{{ e.especie || '(sem espécie)' }}</div>
+                    <div class="text-sm font-mono font-semibold text-macaybas-primary">{{ e.total }}</div>
+                </li>
+            </ul>
+        </KpiDrawer>
     </AdminLayout>
 </template>

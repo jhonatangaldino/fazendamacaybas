@@ -20,13 +20,34 @@ class AgriculturalController extends Controller
 {
     public function index()
     {
+        $fields = Field::where('is_active', true)->orderBy('nome')->get(['id', 'nome', 'codigo', 'area_ha']);
+        $plantings = Planting::with(['field:id,nome', 'crop:id,nome'])
+            ->where('status', 'em_andamento')
+            ->orderByDesc('data_plantio')
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'field_nome' => $p->field?->nome,
+                'crop_nome' => $p->crop?->nome,
+                'data_plantio' => $p->data_plantio,
+                'area_plantada' => (float) $p->area_plantada,
+                'status' => $p->status,
+            ]);
+        $seasons = Season::where('is_active', true)
+            ->orderByDesc('data_inicio')
+            ->get(['id', 'nome', 'data_inicio', 'data_fim']);
+
         return Inertia::render('Admin/Agricultural/Index', [
             'totals' => [
-                'fields' => Field::where('is_active', true)->count(),
-                'plantings_ativos' => Planting::where('status', 'em_andamento')->count(),
-                'seasons' => Season::where('is_active', true)->count(),
-                'area_total' => (float) Field::where('is_active', true)->sum('area_ha'),
+                'fields' => $fields->count(),
+                'plantings_ativos' => $plantings->count(),
+                'seasons' => $seasons->count(),
+                'area_total' => (float) $fields->sum('area_ha'),
             ],
+            // Listas leves pra alimentar os drawers de drill-down (clique no KPI)
+            'drillFields' => $fields,
+            'drillPlantings' => $plantings,
+            'drillSeasons' => $seasons,
         ]);
     }
 
