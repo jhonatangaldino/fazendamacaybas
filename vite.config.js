@@ -28,11 +28,6 @@ export default defineConfig({
             '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
         },
     },
-    build: {
-        outDir: 'public/build',
-        emptyOutDir: true,
-        manifest: true,
-    },
     server: {
         host: '0.0.0.0',
     },
