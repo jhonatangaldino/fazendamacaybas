@@ -146,7 +146,7 @@ async function uploadTo(event, cb) {
         autoSaveDraft();
     } catch (err) {
         autoSaveStatus.value = 'error';
-        alert('Erro de rede no upload.');
+        toast.error('Erro de rede. Tente novamente.');
     } finally {
         loading.finish();
         event.target.value = '';

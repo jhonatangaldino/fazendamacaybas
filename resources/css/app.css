@@ -5,17 +5,34 @@
 @layer base {
     html {
         font-feature-settings: 'cv11', 'ss01';
+        scroll-behavior: smooth;
     }
 
     body {
         @apply text-slate-800 bg-slate-50 antialiased;
+    }
+
+    /* Interações mais fluidas em todo o sistema */
+    button, a, input, select, textarea, label {
+        transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease,
+                    box-shadow 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+    }
+
+    /* Focus ring mais bonito */
+    :focus-visible {
+        @apply outline-none ring-2 ring-macaybas-primary-400 ring-offset-2 ring-offset-white rounded;
+    }
+
+    /* Remove default de input file feio */
+    input[type="file"]::file-selector-button {
+        @apply mr-3 py-2 px-3 rounded-lg border-0 bg-macaybas-primary-100 text-macaybas-primary-800 text-sm font-medium hover:bg-macaybas-primary-200 cursor-pointer;
     }
 }
 
 @layer components {
     /* ============ Botões ============ */
     .btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
     }
     .btn-primary {
         @apply btn bg-macaybas-primary text-white hover:bg-macaybas-primary-900 focus:ring-macaybas-primary-700;
@@ -51,16 +68,50 @@
 
     /* ============ Cartões ============ */
     .card {
-        @apply rounded-xl bg-white shadow-sm ring-1 ring-slate-200;
+        @apply rounded-xl bg-white shadow-sm ring-1 ring-slate-200 transition-shadow duration-200;
+    }
+    .card-hover:hover {
+        @apply shadow-md ring-macaybas-primary-200;
     }
     .card-header {
-        @apply flex items-center justify-between border-b border-slate-200 px-5 py-4;
+        @apply flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4;
     }
     .card-title {
         @apply text-base font-semibold text-slate-900;
     }
     .card-body {
         @apply px-5 py-4;
+    }
+
+    /* ============ Skeleton (loading placeholder) ============ */
+    .skeleton {
+        @apply bg-slate-200 animate-pulse rounded;
+    }
+
+    /* ============ Tooltip simples ============ */
+    [data-tooltip] {
+        position: relative;
+    }
+    [data-tooltip]::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        padding: 4px 8px;
+        background: rgb(15 23 42);
+        color: #fff;
+        font-size: 11px;
+        white-space: nowrap;
+        border-radius: 6px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .15s ease, transform .15s ease;
+        z-index: 60;
+    }
+    [data-tooltip]:hover::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
     }
 
     /* ============ Badges / tags ============ */
