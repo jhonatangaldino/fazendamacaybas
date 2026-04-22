@@ -3,12 +3,26 @@ import { ref, computed } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import FlashMessages from '@/Components/FlashMessages.vue';
 import GlobalLoading from '@/Components/GlobalLoading.vue';
+import AvatarUpload from '@/Components/AvatarUpload.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const perms = computed(() => page.props.auth.user?.permissions ?? []);
 const sidebarOpen = ref(false);
 const userMenuOpen = ref(false);
+const profileModalOpen = ref(false);
+
+function openProfile() {
+    userMenuOpen.value = false;
+    profileModalOpen.value = true;
+}
+
+function onAvatarUpdated() {
+    // Recarrega apenas auth.user pra topbar refletir avatar novo
+    router.reload({ only: ['auth'], preserveScroll: true, preserveState: true,
+        onBefore: (v) => { v.__silent = true; },
+    });
+}
 
 function can(permission) {
     return perms.value.includes(permission);
@@ -154,7 +168,10 @@ const iconPath = {
                     </a>
 
                     <button @click="userMenuOpen = !userMenuOpen" class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100">
-                        <div class="h-8 w-8 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center text-sm font-semibold">
+                        <img v-if="user?.avatar"
+                             :src="user.avatar"
+                             class="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200">
+                        <div v-else class="h-8 w-8 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center text-sm font-semibold">
                             {{ user?.name?.[0]?.toUpperCase() }}
                         </div>
                         <span class="text-sm font-medium text-slate-700 hidden sm:block">{{ user?.name }}</span>
@@ -162,12 +179,23 @@ const iconPath = {
                     </button>
 
                     <div v-if="userMenuOpen" @click.away="userMenuOpen = false"
-                         class="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg ring-1 ring-slate-200 py-2">
+                         class="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg ring-1 ring-slate-200 py-2">
                         <div class="px-4 py-3 border-b border-slate-100">
-                            <div class="text-sm font-semibold text-slate-900">{{ user?.name }}</div>
-                            <div class="text-xs text-slate-500">{{ user?.email }}</div>
-                            <div class="mt-1 text-xs text-macaybas-primary font-medium">{{ user?.cargo }}</div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <img v-if="user?.avatar"
+                                     :src="user.avatar"
+                                     class="h-12 w-12 rounded-full object-cover ring-1 ring-slate-200">
+                                <div v-else class="h-12 w-12 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center text-lg font-semibold">
+                                    {{ user?.name?.[0]?.toUpperCase() }}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-semibold text-slate-900 truncate">{{ user?.name }}</div>
+                                    <div class="text-xs text-slate-500 truncate">{{ user?.email }}</div>
+                                    <div class="text-xs text-macaybas-primary font-medium truncate">{{ user?.cargo }}</div>
+                                </div>
+                            </div>
                         </div>
+                        <button @click="openProfile" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-50">Alterar foto do perfil</button>
                         <Link :href="route('password.change')" class="block px-4 py-2 text-sm hover:bg-slate-50">Alterar senha</Link>
                         <button @click="logout" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 text-red-600">Sair</button>
                     </div>
@@ -180,5 +208,29 @@ const iconPath = {
                 <slot />
             </main>
         </div>
+
+        <!-- Modal: Alterar foto do perfil -->
+        <Teleport to="body">
+            <div v-if="profileModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="profileModalOpen = false"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-900">Sua foto de perfil</h3>
+                            <p class="text-sm text-slate-500">Aparece no topo do sistema e nas listagens.</p>
+                        </div>
+                        <button @click="profileModalOpen = false" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+                    </div>
+                    <AvatarUpload
+                        :url="user?.avatar"
+                        :name="user?.name"
+                        size="h-28 w-28"
+                        :upload-url="route('me.avatar.upload')"
+                        :remove-url="route('me.avatar.remove')"
+                        @updated="onAvatarUpdated"
+                    />
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>

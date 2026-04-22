@@ -71,6 +71,18 @@ function resetPassword(id) {
             ]"
             :rows="users.data"
         >
+            <template #cell-name="{ row }">
+                <div class="flex items-center gap-3">
+                    <img v-if="row.avatar_url"
+                         :src="row.avatar_url"
+                         class="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200 flex-shrink-0">
+                    <div v-else
+                         class="h-9 w-9 rounded-full flex items-center justify-center bg-macaybas-primary-100 text-macaybas-primary-800 text-sm font-semibold flex-shrink-0">
+                        {{ (row.name || '?').charAt(0).toUpperCase() }}
+                    </div>
+                    <span class="truncate">{{ row.name }}</span>
+                </div>
+            </template>
             <template #cell-roles="{ row }">
                 <div class="flex flex-wrap gap-1">
                     <span v-for="r in row.roles" :key="r.name" class="badge-blue">{{ r.description || r.name }}</span>

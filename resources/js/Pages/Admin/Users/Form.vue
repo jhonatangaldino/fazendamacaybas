@@ -1,11 +1,13 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputMasked from '@/Components/InputMasked.vue';
+import AvatarUpload from '@/Components/AvatarUpload.vue';
 
 const props = defineProps({
     user: Object,
@@ -48,6 +50,18 @@ function submit() {
         </PageHeader>
 
         <form @submit.prevent="submit" class="space-y-6 max-w-3xl">
+            <div v-if="isEdit" class="card">
+                <div class="card-header"><h2 class="card-title">Foto do perfil</h2></div>
+                <div class="card-body">
+                    <AvatarUpload
+                        :url="user.avatar_url"
+                        :name="form.name || user.name"
+                        :upload-url="route('admin.users.avatar.upload', user.id)"
+                        :remove-url="route('admin.users.avatar.remove', user.id)"
+                    />
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header"><h2 class="card-title">Dados pessoais</h2></div>
                 <div class="card-body grid gap-4 sm:grid-cols-2">

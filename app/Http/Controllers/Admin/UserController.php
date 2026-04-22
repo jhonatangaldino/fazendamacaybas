@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -32,6 +35,7 @@ class UserController extends Controller
                 'name' => $u->name,
                 'email' => $u->email,
                 'cargo' => $u->cargo,
+                'avatar_url' => $u->avatarUrl(),
                 'is_active' => $u->is_active,
                 'last_login_at' => $u->last_login_at,
                 'roles' => $u->roles->map(fn ($r) => ['name' => $r->name, 'description' => $r->description]),
@@ -84,6 +88,7 @@ class UserController extends Controller
                 'cpf' => $user->cpf,
                 'telefone' => $user->telefone,
                 'cargo' => $user->cargo,
+                'avatar_url' => $user->avatarUrl(),
                 'is_active' => $user->is_active,
                 'must_change_password' => $user->must_change_password,
                 'roles' => $user->roles->pluck('name'),
@@ -138,5 +143,86 @@ class UserController extends Controller
         ]);
 
         return back()->with('success', "Senha resetada. Senha temporária: {$novaSenha} — o usuário será obrigado a trocá-la no próximo login.");
+    }
+
+    /**
+     * Upload/substituição do avatar. Retorna JSON para atualização imediata na UI.
+     */
+    public function uploadAvatar(Request $request, User $user): JsonResponse
+    {
+        $validator = validator($request->all(), [
+            'file' => [
+                'required',
+                'file',
+                'max:5120',
+                'mimetypes:image/jpeg,image/png,image/gif,image/webp',
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'message' => $validator->errors()->first('file') ?: 'Arquivo inválido.',
+            ], 422);
+        }
+
+        // Autorização: só admin_master/dono_fazenda editam de outros,
+        // usuário comum só pode editar o próprio avatar
+        if (! $this->canEditAvatarOf($request->user(), $user)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Sem permissão para alterar o avatar deste usuário.',
+            ], 403);
+        }
+
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension()) ?: $file->guessExtension();
+        $filename = 'user-'.$user->id.'-'.Str::random(8).'.'.$ext;
+        $path = $file->storeAs('avatars', $filename, 'public');
+
+        // Apaga avatar anterior
+        if ($user->avatar_path && Storage::disk('public')->exists($user->avatar_path)) {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
+
+        $user->update(['avatar_path' => $path]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Avatar atualizado.',
+            'avatar_url' => $user->fresh()->avatarUrl(),
+            'path' => $path,
+        ]);
+    }
+
+    public function removeAvatar(Request $request, User $user): JsonResponse
+    {
+        if (! $this->canEditAvatarOf($request->user(), $user)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Sem permissão.',
+            ], 403);
+        }
+
+        if ($user->avatar_path && Storage::disk('public')->exists($user->avatar_path)) {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
+
+        $user->update(['avatar_path' => null]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Avatar removido.',
+        ]);
+    }
+
+    protected function canEditAvatarOf(User $actor, User $target): bool
+    {
+        if ($actor->id === $target->id) return true;
+        if ($actor->hasRole('admin_master')) return true;
+        if ($actor->hasRole('dono_fazenda')) return true;
+        if ($actor->can('users.update')) return true;
+
+        return false;
     }
 }

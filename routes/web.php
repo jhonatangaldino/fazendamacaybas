@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\Livestock\AnimalController;
 use App\Http\Controllers\Admin\Livestock\LivestockIndexController;
 use App\Http\Controllers\Admin\PartnerController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\Stock\StockItemController;
 use App\Http\Controllers\Admin\Stock\StockMovementController;
 use App\Http\Controllers\Admin\Stock\WarehouseController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\SiteController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -65,13 +67,26 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::put('usuarios/{user}', [UserController::class, 'update'])->middleware('permission:users.update')->name('users.update');
         Route::delete('usuarios/{user}', [UserController::class, 'destroy'])->middleware('permission:users.delete')->name('users.destroy');
         Route::post('usuarios/{user}/resetar-senha', [UserController::class, 'resetPassword'])->middleware('permission:users.reset_password')->name('users.reset-password');
+        Route::post('usuarios/{user}/avatar', [UserController::class, 'uploadAvatar'])->name('users.avatar.upload');
+        Route::delete('usuarios/{user}/avatar', [UserController::class, 'removeAvatar'])->name('users.avatar.remove');
     });
 
-    Route::get('perfis', fn () => Inertia::render('Admin/Stub', [
-        'title' => 'Perfis e permissões',
-        'module' => 'roles',
-        'next' => ['Editor visual de permissões por perfil', 'Criação de perfis customizados'],
-    ]))->middleware('permission:roles.view')->name('roles.index');
+    // Auto-avatar: qualquer usuário autenticado pode trocar o próprio avatar
+    // (fora do grupo de permission:users.view para não bloquear quem não gerencia outros)
+    Route::post('meu-avatar', function (Request $req) {
+        return app(UserController::class)->uploadAvatar($req, $req->user());
+    })->name('me.avatar.upload');
+    Route::delete('meu-avatar', function (Request $req) {
+        return app(UserController::class)->removeAvatar($req, $req->user());
+    })->name('me.avatar.remove');
+
+    // Perfis e permissões
+    Route::middleware('permission:roles.view')->group(function () {
+        Route::get('perfis', [RoleController::class, 'index'])->name('roles.index');
+        Route::post('perfis', [RoleController::class, 'store'])->middleware('permission:roles.create')->name('roles.store');
+        Route::put('perfis/{role}', [RoleController::class, 'update'])->middleware('permission:roles.update')->name('roles.update');
+        Route::delete('perfis/{role}', [RoleController::class, 'destroy'])->middleware('permission:roles.delete')->name('roles.destroy');
+    });
 
     // ------- CMS -------
     Route::middleware('permission:cms.view')->group(function () {
