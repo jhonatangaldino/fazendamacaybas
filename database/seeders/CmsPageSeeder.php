@@ -95,9 +95,6 @@ class CmsPageSeeder extends Seeder
                 'data' => [
                     'titulo' => 'Onde estamos',
                     'subtitulo' => 'Venha conhecer a Fazenda Macaybas em Itabirito, no coração de Minas Gerais.',
-                    'email' => 'contato@fazendamacaybas.com.br',
-                    'telefone' => '',
-                    'endereco' => 'Itabirito, Minas Gerais',
                 ],
             ],
         ];
