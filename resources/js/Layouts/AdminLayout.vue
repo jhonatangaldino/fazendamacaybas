@@ -116,6 +116,7 @@ const iconPath = {
                         <li v-for="item in section.items" :key="item.label">
                             <Link
                                 :href="route(item.route)"
+                                @click="sidebarOpen = false"
                                 :class="[route().current(item.route + '*') ? 'bg-white/10 text-white' : 'hover:bg-white/5 hover:text-white']"
                                 class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition"
                             >

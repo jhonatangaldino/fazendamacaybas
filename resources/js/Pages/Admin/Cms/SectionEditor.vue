@@ -1,13 +1,22 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
     section: { type: Object, required: true },
 });
 
-const emit = defineEmits(['save', 'publish', 'toggle-active']);
+const emit = defineEmits(['save', 'publish', 'toggle-active', 'autosaved']);
 
 const local = ref(JSON.parse(JSON.stringify(props.section)));
+const autoSaveStatus = ref(''); // '' | 'saving' | 'saved' | 'error'
+
+// Detecta mudanças vindas do servidor (ex: após autosave) e re-sincroniza
+watch(() => props.section.draft_data, (newVal) => {
+    if (JSON.stringify(newVal) !== JSON.stringify(local.value.draft_data)) {
+        local.value = JSON.parse(JSON.stringify(props.section));
+    }
+}, { deep: true });
 
 const fields = computed(() => {
     const map = {
@@ -80,20 +89,62 @@ function save() { emit('save', local.value); }
 function publish() { emit('publish', local.value); }
 function toggleActive() { emit('toggle-active', local.value); }
 
+/** Persiste imediatamente no servidor (chamado após upload bem-sucedido) */
+function autoSaveDraft() {
+    autoSaveStatus.value = 'saving';
+    router.put(
+        route('admin.cms.section.draft', local.value.id),
+        {
+            draft_data: local.value.draft_data,
+            nome: local.value.nome,
+            is_active: local.value.is_active,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['sections', 'page'],
+            onSuccess: () => {
+                autoSaveStatus.value = 'saved';
+                local.value.has_draft = true;
+                emit('autosaved');
+                setTimeout(() => autoSaveStatus.value = '', 2500);
+            },
+            onError: () => {
+                autoSaveStatus.value = 'error';
+                setTimeout(() => autoSaveStatus.value = '', 4000);
+            },
+        }
+    );
+}
+
 async function uploadTo(event, cb) {
     const file = event.target.files?.[0];
     if (!file) return;
     const fd = new FormData();
     fd.append('file', file);
     fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-    const res = await fetch(route('admin.cms.upload-image'), {
-        method: 'POST',
-        body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    });
-    const json = await res.json();
-    if (json.path) cb(json.path);
-    event.target.value = '';
+    autoSaveStatus.value = 'saving';
+    try {
+        const res = await fetch(route('admin.cms.upload-image'), {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        });
+        const json = await res.json();
+        if (!res.ok || !json.ok) {
+            autoSaveStatus.value = 'error';
+            alert(json.message || 'Falha no upload da imagem.');
+            return;
+        }
+        cb(json.path);
+        // Auto-persistir no banco
+        autoSaveDraft();
+    } catch (err) {
+        autoSaveStatus.value = 'error';
+        alert('Erro de rede no upload.');
+    } finally {
+        event.target.value = '';
+    }
 }
 
 function uploadMainImage(event, key) {
@@ -105,18 +156,33 @@ function uploadMainImage(event, key) {
 function uploadItemImage(event, fieldKey, itemIndex, subKey) {
     uploadTo(event, (path) => {
         if (!Array.isArray(local.value.draft_data[fieldKey])) local.value.draft_data[fieldKey] = [];
+        if (!local.value.draft_data[fieldKey][itemIndex]) local.value.draft_data[fieldKey][itemIndex] = {};
         local.value.draft_data[fieldKey][itemIndex][subKey] = path;
     });
+}
+
+function removeMainImage(key) {
+    local.value.draft_data[key] = null;
+    autoSaveDraft();
+}
+
+function removeItemImage(fieldKey, idx, subKey) {
+    if (local.value.draft_data[fieldKey] && local.value.draft_data[fieldKey][idx]) {
+        local.value.draft_data[fieldKey][idx][subKey] = null;
+        autoSaveDraft();
+    }
 }
 
 function addItem(field) {
     const blank = Object.fromEntries(field.schema.map((s) => [s.key, '']));
     if (!Array.isArray(local.value.draft_data[field.key])) local.value.draft_data[field.key] = [];
     local.value.draft_data[field.key].push(blank);
+    autoSaveDraft();
 }
 
 function removeItem(fieldKey, idx) {
     local.value.draft_data[fieldKey] = local.value.draft_data[fieldKey].filter((_, i) => i !== idx);
+    autoSaveDraft();
 }
 
 function moveItem(fieldKey, idx, delta) {
@@ -124,6 +190,12 @@ function moveItem(fieldKey, idx, delta) {
     const newIdx = idx + delta;
     if (newIdx < 0 || newIdx >= arr.length) return;
     [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+    autoSaveDraft();
+}
+
+function cacheBusted(path) {
+    if (!path) return '';
+    return `/storage/${path}?t=${Date.now()}`;
 }
 </script>
 
@@ -135,7 +207,10 @@ function moveItem(fieldKey, idx, delta) {
                 <p class="text-xs text-slate-500 mt-0.5">Tipo: {{ local.type }}</p>
             </div>
             <div class="flex items-center gap-2">
-                <span v-if="local.has_draft" class="badge-yellow">Rascunho não publicado</span>
+                <span v-if="autoSaveStatus === 'saving'" class="text-xs text-slate-500">Salvando rascunho...</span>
+                <span v-else-if="autoSaveStatus === 'saved'" class="text-xs text-green-600">✓ Rascunho salvo</span>
+                <span v-else-if="autoSaveStatus === 'error'" class="text-xs text-red-600">✗ Erro ao salvar</span>
+                <span v-else-if="local.has_draft" class="badge-yellow">Rascunho não publicado</span>
                 <button @click="toggleActive" class="btn-sm btn-outline">
                     {{ local.is_active ? 'Desativar' : 'Ativar' }}
                 </button>
@@ -154,25 +229,30 @@ function moveItem(fieldKey, idx, delta) {
 
                     <input v-if="field.type === 'text'"
                            v-model="local.draft_data[field.key]"
+                           @blur="autoSaveDraft"
                            class="form-input" />
 
                     <textarea v-else-if="field.type === 'textarea'"
                               v-model="local.draft_data[field.key]"
+                              @blur="autoSaveDraft"
                               :rows="field.rows || 4"
                               class="form-textarea"></textarea>
 
                     <input v-else-if="field.type === 'number'"
                            type="number" :step="field.step || 1"
                            v-model.number="local.draft_data[field.key]"
+                           @blur="autoSaveDraft"
                            class="form-input" />
 
                     <div v-else-if="field.type === 'image'" class="space-y-2">
                         <div v-if="local.draft_data[field.key]" class="flex items-center gap-3">
-                            <img :src="`/storage/${local.draft_data[field.key]}`" class="h-24 w-24 object-cover rounded-lg ring-1 ring-slate-200">
-                            <button type="button" @click="local.draft_data[field.key] = null" class="text-sm text-red-600 hover:underline">Remover</button>
+                            <img :src="cacheBusted(local.draft_data[field.key])"
+                                 class="h-24 w-24 object-cover rounded-lg ring-1 ring-slate-200">
+                            <button type="button" @click="removeMainImage(field.key)"
+                                    class="text-sm text-red-600 hover:underline">Remover</button>
                         </div>
                         <input type="file" accept="image/*" @change="uploadMainImage($event, field.key)" class="text-sm">
-                        <p class="form-help">JPG, PNG ou WebP — até 5MB.</p>
+                        <p class="form-help">JPG, PNG, WebP ou SVG — até 5MB. Salva automaticamente.</p>
                     </div>
 
                     <div v-else-if="field.type === 'items'" class="space-y-3">
@@ -191,29 +271,31 @@ function moveItem(fieldKey, idx, delta) {
                                 <template v-for="sub in field.schema" :key="sub.key">
                                     <div v-if="sub.type === 'image'" class="sm:col-span-2">
                                         <label class="text-xs text-slate-600 font-medium">{{ sub.label }}</label>
-                                        <div class="mt-1 flex items-center gap-3">
+                                        <div class="mt-1 flex items-center gap-3 flex-wrap">
                                             <img v-if="item[sub.key]"
-                                                 :src="`/storage/${item[sub.key]}`"
+                                                 :src="cacheBusted(item[sub.key])"
                                                  class="h-24 w-24 object-cover rounded-lg ring-1 ring-slate-200">
                                             <div v-else class="h-24 w-24 rounded-lg bg-slate-200 flex items-center justify-center text-slate-400 text-xs">
                                                 sem imagem
                                             </div>
-                                            <div class="flex flex-col gap-1">
+                                            <div class="flex flex-col gap-1 min-w-0">
                                                 <input type="file" accept="image/*"
                                                        @change="uploadItemImage($event, field.key, i, sub.key)"
-                                                       class="text-xs">
-                                                <button v-if="item[sub.key]" type="button" @click="item[sub.key] = null"
+                                                       class="text-xs max-w-full">
+                                                <button v-if="item[sub.key]" type="button"
+                                                        @click="removeItemImage(field.key, i, sub.key)"
                                                         class="text-xs text-red-600 hover:underline self-start">Remover imagem</button>
                                             </div>
                                         </div>
                                     </div>
                                     <div v-else-if="sub.type === 'textarea'" class="sm:col-span-2">
                                         <label class="text-xs text-slate-600 font-medium">{{ sub.label }}</label>
-                                        <textarea v-model="item[sub.key]" rows="2" class="form-textarea mt-1 text-sm"></textarea>
+                                        <textarea v-model="item[sub.key]" @blur="autoSaveDraft"
+                                                  rows="2" class="form-textarea mt-1 text-sm"></textarea>
                                     </div>
                                     <div v-else>
                                         <label class="text-xs text-slate-600 font-medium">{{ sub.label }}</label>
-                                        <input v-model="item[sub.key]" class="form-input mt-1 text-sm">
+                                        <input v-model="item[sub.key]" @blur="autoSaveDraft" class="form-input mt-1 text-sm">
                                     </div>
                                 </template>
                             </div>
@@ -223,7 +305,7 @@ function moveItem(fieldKey, idx, delta) {
                 </template>
             </div>
 
-            <div class="flex justify-end gap-2 pt-4 border-t border-slate-100">
+            <div class="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t border-slate-100">
                 <button @click="save" class="btn-outline">Salvar rascunho</button>
                 <button @click="publish" class="btn-primary">Salvar e publicar</button>
             </div>
