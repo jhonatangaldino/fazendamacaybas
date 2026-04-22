@@ -15,7 +15,8 @@
     <meta property="og:url" content="{{ url()->current() }}">
     @isset($meta['og_image'])<meta property="og:image" content="{{ $meta['og_image'] }}">@endisset
 
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/favicon.svg">
     <link rel="canonical" href="{{ url()->current() }}">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
