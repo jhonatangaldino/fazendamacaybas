@@ -23,7 +23,6 @@ const form = useForm({
     sexo: props.animal?.sexo ?? 'F',
     data_nascimento: props.animal?.data_nascimento ?? '',
     peso_nascimento: props.animal?.peso_nascimento ?? '',
-    peso_atual: props.animal?.peso_atual ?? '',
     origem: props.animal?.origem ?? 'nascido',
     partner_id: props.animal?.partner_id ?? null,
     data_aquisicao: props.animal?.data_aquisicao ?? '',
@@ -87,8 +86,20 @@ function submit() {
                         </select>
                     </div>
                     <div><InputLabel value="Data de nascimento" /><InputDate v-model="form.data_nascimento" /></div>
-                    <div><InputLabel value="Peso ao nascer (kg)" /><input type="number" step="0.01" v-model="form.peso_nascimento" class="form-input"></div>
-                    <div><InputLabel value="Peso atual (kg)" /><input type="number" step="0.01" v-model="form.peso_atual" class="form-input"></div>
+                    <div>
+                        <InputLabel value="Peso ao nascer (kg)" />
+                        <input type="number" step="0.01" v-model="form.peso_nascimento" class="form-input">
+                        <p class="text-xs text-slate-400 mt-1">Valor único (imutável). Pesagens seguintes vão em <em>Histórico ⚖</em>.</p>
+                    </div>
+                    <div v-if="isEdit" class="sm:col-span-1">
+                        <InputLabel value="Peso atual" />
+                        <div class="form-input bg-slate-50 text-slate-700 font-mono flex items-center justify-between">
+                            <span v-if="animal?.peso_atual">{{ Number(animal.peso_atual).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }} kg</span>
+                            <span v-else class="text-slate-400">Sem pesagem</span>
+                            <Link :href="route('admin.rebanho.animais.show', animal.id)" class="text-xs text-macaybas-primary hover:underline">Ver histórico →</Link>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Derivado da última pesagem — não é editável aqui.</p>
+                    </div>
                     <div>
                         <InputLabel value="Status" />
                         <select v-model="form.status" class="form-select">

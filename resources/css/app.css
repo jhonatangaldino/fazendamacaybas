@@ -6,10 +6,19 @@
     html {
         font-feature-settings: 'cv11', 'ss01';
         scroll-behavior: smooth;
+        /* Evita que qualquer elemento force barra de rolagem horizontal no mobile */
+        overflow-x: hidden;
     }
 
     body {
         @apply text-slate-800 bg-slate-50 antialiased;
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    /* Limita imagens a nunca estourar o container */
+    img, video, canvas, svg {
+        max-width: 100%;
     }
 
     /* Interações mais fluidas em todo o sistema */

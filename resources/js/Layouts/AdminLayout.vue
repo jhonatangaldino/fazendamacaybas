@@ -157,7 +157,7 @@ const iconPath = {
     <ToastContainer />
     <ConfirmDialog />
     <FlashMessages />
-    <div class="min-h-screen flex bg-slate-50">
+    <div class="min-h-screen flex bg-slate-50 w-full overflow-x-hidden">
         <!-- SIDEBAR -->
         <aside
             :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', 'lg:translate-x-0']"
@@ -200,7 +200,7 @@ const iconPath = {
         <div v-if="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black/40 z-30 lg:hidden"></div>
 
         <!-- MAIN -->
-        <div class="flex-1 flex flex-col min-w-0">
+        <div class="flex-1 flex flex-col min-w-0 w-full">
             <!-- TOPBAR -->
             <header class="sticky top-0 z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 px-4 lg:px-8">
                 <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
@@ -252,7 +252,7 @@ const iconPath = {
                 </div>
             </header>
 
-            <main class="flex-1 p-4 lg:p-8">
+            <main class="flex-1 p-4 lg:p-8 min-w-0 w-full max-w-full overflow-x-hidden">
                 <slot />
             </main>
         </div>

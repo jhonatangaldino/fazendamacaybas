@@ -117,7 +117,7 @@ class AnimalController extends Controller
             'sexo' => ['required', 'in:M,F'],
             'data_nascimento' => ['nullable', 'date'],
             'peso_nascimento' => ['nullable', 'numeric', 'min:0'],
-            'peso_atual' => ['nullable', 'numeric', 'min:0'],
+            // peso_atual NÃO é editável no form — é derivado do último evento de pesagem (regra incremental-first)
             'origem' => ['required', 'in:nascido,compra'],
             'partner_id' => ['nullable', 'exists:partners,id'],
             'data_aquisicao' => ['nullable', 'date'],

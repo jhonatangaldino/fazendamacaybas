@@ -73,10 +73,10 @@ function renderCell(col, row) {
         </div>
 
         <!-- =============== MOBILE + TABLET (< 1024px) — cards com respiro =============== -->
-        <div class="lg:hidden p-3 space-y-3 bg-slate-50">
+        <div class="lg:hidden p-3 space-y-3 bg-slate-50 w-full max-w-full overflow-hidden rounded-xl">
             <div v-if="!rows.length" class="text-center text-slate-500 py-10">{{ emptyText }}</div>
             <div v-for="(row, i) in rows" :key="row.id ?? i"
-                 :class="['bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4',
+                 :class="['bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4 w-full max-w-full overflow-hidden',
                           rowClickable ? 'cursor-pointer active:bg-slate-50 hover:shadow-md transition-shadow' : '']"
                  @click="rowClickable && $emit('row-click', row)">
 
@@ -92,9 +92,9 @@ function renderCell(col, row) {
                 <!-- Secundárias em pares label:valor com bastante respiro -->
                 <div class="space-y-2.5">
                     <div v-for="col in secondaryCols" :key="col.key"
-                         class="flex items-start gap-3 text-sm">
-                        <span class="text-[10px] uppercase tracking-wider font-semibold text-slate-400 flex-shrink-0 w-24 pt-0.5">{{ col.label }}</span>
-                        <span class="text-slate-800 break-words min-w-0 flex-1 leading-relaxed">
+                         class="flex items-start gap-3 text-sm w-full max-w-full">
+                        <span class="text-[10px] uppercase tracking-wider font-semibold text-slate-400 flex-shrink-0 w-20 pt-0.5">{{ col.label }}</span>
+                        <span class="text-slate-800 break-words min-w-0 flex-1 leading-relaxed overflow-hidden">
                             <slot :name="slotName(col.key)" :row="row" :value="row[col.key]">
                                 {{ renderCell(col, row) }}
                             </slot>
