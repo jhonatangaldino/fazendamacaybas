@@ -61,6 +61,7 @@ function submit() {
                         :url="animal.photo_url"
                         :name="animal.identificacao"
                         size="h-32 w-32"
+                        shape="square"
                         :upload-url="route('admin.rebanho.animais.foto.upload', animal.id)"
                         :remove-url="route('admin.rebanho.animais.foto.remove', animal.id)"
                     />

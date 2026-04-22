@@ -7,6 +7,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
+import AvatarUpload from '@/Components/AvatarUpload.vue';
 import { dataBR, brl } from '@/utils/format.js';
 import {
     Chart as ChartJS, LineElement, PointElement, LinearScale, TimeScale,
@@ -16,6 +17,23 @@ import { Line } from 'vue-chartjs';
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, TimeScale, Tooltip, Legend, Title, Filler);
 
 const props = defineProps({ animal: Object, events: Array, pesagens: Array, partners: Array, lots: Array });
+
+// Idade amigável em anos/meses/dias
+const idadeFormatada = computed(() => {
+    if (!props.animal?.data_nascimento) return '—';
+    const nasc = new Date(props.animal.data_nascimento);
+    const agora = new Date();
+    const diffMs = agora - nasc;
+    if (diffMs < 0) return '—';
+    const dias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (dias < 30) return `${dias} dia${dias === 1 ? '' : 's'}`;
+    const meses = Math.floor(dias / 30.44);
+    if (meses < 12) return `${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+    const anos = Math.floor(meses / 12);
+    const mesesRestantes = meses % 12;
+    if (mesesRestantes === 0) return `${anos} ano${anos === 1 ? '' : 's'}`;
+    return `${anos} ano${anos === 1 ? '' : 's'} e ${mesesRestantes} ${mesesRestantes === 1 ? 'mês' : 'meses'}`;
+});
 
 const activeTab = ref('timeline'); // timeline | grafico | dados
 
@@ -150,21 +168,26 @@ const eventoLabel = (tipo) => ({
             </template>
         </PageHeader>
 
-        <!-- Cabeçalho com foto + dados principais -->
+        <!-- Cabeçalho com foto editável + dados principais -->
         <div class="card mb-6">
             <div class="card-body flex flex-col sm:flex-row gap-6">
-                <img v-if="animal.photo_url" :src="animal.photo_url"
-                     class="h-40 w-40 rounded-xl object-cover ring-1 ring-slate-200 flex-shrink-0">
-                <div v-else class="h-40 w-40 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <svg class="h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 20.5c-4.5 0-8-3-8-7 0-4 3.5-7.5 8-7.5s8 3.5 8 7.5c0 4-3.5 7-8 7zM9 11h.01M15 11h.01M9 15c1 1 2 1.5 3 1.5s2-.5 3-1.5"/>
-                    </svg>
+                <!-- Foto clicável: clique na imagem abre o seletor (mesmo componente do form) -->
+                <div class="flex-shrink-0">
+                    <AvatarUpload
+                        :url="animal.photo_url"
+                        :name="animal.identificacao"
+                        size="h-40 w-40"
+                        shape="square"
+                        layout="stacked"
+                        :upload-url="route('admin.rebanho.animais.foto.upload', animal.id)"
+                        :remove-url="route('admin.rebanho.animais.foto.remove', animal.id)"
+                    />
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1">
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Espécie</div><div class="font-medium">{{ animal.species?.nome || '—' }}</div></div>
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Raça</div><div class="font-medium">{{ animal.breed?.nome || '—' }}</div></div>
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Sexo</div><div class="font-medium">{{ animal.sexo === 'M' ? 'Macho' : 'Fêmea' }}</div></div>
-                    <div><div class="text-xs uppercase tracking-wide text-slate-500">Idade</div><div class="font-medium">{{ animal.idade_em_meses != null ? `${animal.idade_em_meses} meses` : '—' }}</div></div>
+                    <div><div class="text-xs uppercase tracking-wide text-slate-500">Idade</div><div class="font-medium">{{ idadeFormatada }}</div></div>
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Peso atual</div><div class="font-medium">{{ animal.peso_atual ? Number(animal.peso_atual).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) + ' kg' : '—' }}</div></div>
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Categoria</div><div class="font-medium">{{ animal.categoria || '—' }}</div></div>
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Lote</div><div class="font-medium">{{ animal.lot?.nome || '—' }}</div></div>
