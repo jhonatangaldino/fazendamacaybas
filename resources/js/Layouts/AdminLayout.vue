@@ -13,6 +13,18 @@ const perms = computed(() => page.props.auth.user?.permissions ?? []);
 const siteLogo = computed(() => page.props.settings?.logo || null);
 const siteNome = computed(() => page.props.settings?.nome || 'Macaybas');
 const menuUsage = computed(() => page.props.menuUsage || {});
+const menuUsageGlobal = computed(() => page.props.menuUsageGlobal || {});
+
+/**
+ * Score de uso: prioriza o uso pessoal (peso 10) sobre o global (peso 1).
+ * Assim usuários sem histórico ainda veem a ordem "mais usados na fazenda";
+ * à medida que usam, seu próprio perfil toma conta.
+ */
+function usageScore(routeKey) {
+    const pessoal = menuUsage.value[routeKey] || 0;
+    const global = menuUsageGlobal.value[routeKey] || 0;
+    return pessoal * 10 + global;
+}
 const sidebarOpen = ref(false);
 const userMenuOpen = ref(false);
 const profileModalOpen = ref(false);
@@ -115,10 +127,10 @@ const visibleMenu = computed(() =>
                 const indexed = allowed.map((item, idx) => ({
                     item,
                     idx,
-                    hits: menuUsage.value[item.route] || 0,
+                    score: usageScore(item.route),
                 }));
                 indexed.sort((a, b) => {
-                    if (b.hits !== a.hits) return b.hits - a.hits;
+                    if (b.score !== a.score) return b.score - a.score;
                     return a.idx - b.idx;
                 });
                 return { ...section, items: indexed.map((x) => x.item) };

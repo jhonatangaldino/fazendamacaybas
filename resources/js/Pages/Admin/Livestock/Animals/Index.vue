@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -8,10 +8,11 @@ import ConfirmModal from '@/Components/ConfirmModal.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
-import { dataBR } from '@/utils/format.js';
+import InputMoney from '@/Components/InputMoney.vue';
+import { dataBR, brl } from '@/utils/format.js';
 import { tableActionsFor, isLoteSpecies, EVENT_CATALOG, allowedEventsFor } from '@/utils/animalProfile.js';
 
-const props = defineProps({ animals: Object, filters: Object, species: Array, lots: Array, categorias: Array });
+const props = defineProps({ animals: Object, filters: Object, species: Array, lots: Array, categorias: Array, partners: Array });
 const filtros = reactive({
     search: props.filters?.search ?? '',
     species_id: props.filters?.species_id ?? '',
@@ -55,6 +56,86 @@ function confirmarPesagem() {
 
 function labelEvento(tipo) { return EVENT_CATALOG[tipo]?.label || tipo; }
 
+// === Venda contextual (individual ou lote) ===
+// Individual: uma cabeça, só valor.
+// Lote (peixe, ave): unidade de venda (kg/un/dúzia) × quantidade × valor_unitário.
+const vendaAnimal = ref(null);
+const vendaForm = useForm({
+    tipo: 'venda', data: '', valor: '', partner_id: null, observacoes: '',
+    unidade_venda: 'cabeca', quantidade: '', valor_unitario: '',
+});
+
+function abrirVenda(row) {
+    vendaAnimal.value = row;
+    vendaForm.reset();
+    vendaForm.tipo = 'venda';
+    vendaForm.data = new Date().toISOString().slice(0, 10);
+    // Decide unidade default pelo profile da espécie
+    const profile = row.species?.profile;
+    if (profile === 'aquicultura_lote') vendaForm.unidade_venda = 'kg';
+    else if (profile === 'ave_postura' || profile === 'ave_lote') vendaForm.unidade_venda = 'un';
+    else vendaForm.unidade_venda = 'cabeca';
+}
+
+const unidadesVenda = computed(() => {
+    const p = vendaAnimal.value?.species?.profile;
+    if (p === 'aquicultura_lote') return [
+        { v: 'kg', l: 'Quilogramas (kg)' },
+        { v: 'un', l: 'Unidades (peixes)' },
+    ];
+    if (p === 'ave_postura' || p === 'ave_lote') return [
+        { v: 'un', l: 'Unidades (aves)' },
+        { v: 'duzia', l: 'Dúzias (ovos)' },
+        { v: 'kg', l: 'Quilogramas' },
+    ];
+    return [{ v: 'cabeca', l: 'Cabeça (unidade)' }];
+});
+
+const totalCalculado = computed(() => {
+    const q = parseFloat(vendaForm.quantidade) || 0;
+    const vu = parseFloat(vendaForm.valor_unitario) || 0;
+    return q * vu;
+});
+
+function confirmarVenda() {
+    // Prepara o valor total final e agrega detalhamento em observações
+    const isLote = vendaAnimal.value?.species?.gestao === 'lote';
+    if (isLote) {
+        vendaForm.valor = totalCalculado.value.toFixed(2);
+        const detail = `Venda: ${vendaForm.quantidade} ${vendaForm.unidade_venda} × R$ ${Number(vendaForm.valor_unitario).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+        vendaForm.observacoes = vendaForm.observacoes ? `${detail}\n${vendaForm.observacoes}` : detail;
+    }
+    vendaForm.post(route('admin.rebanho.animais.eventos.store', vendaAnimal.value.id), {
+        preserveScroll: true, only: ['animals', 'flash'],
+        onSuccess: () => { vendaAnimal.value = null; vendaForm.reset(); },
+    });
+}
+
+// === Venda de lote filtrado ===
+const vendaLote = ref(false);
+const vendaLoteForm = useForm({ animal_ids: [], data: '', valor_total: '', partner_id: null, observacoes: '' });
+function abrirVendaLote() {
+    const ativos = (props.animals?.data || []).filter(a => a.status === 'ativo');
+    if (!ativos.length) return;
+    vendaLoteForm.reset();
+    vendaLoteForm.animal_ids = ativos.map(a => a.id);
+    vendaLoteForm.data = new Date().toISOString().slice(0, 10);
+    vendaLote.value = true;
+}
+function confirmarVendaLote() {
+    vendaLoteForm.post(route('admin.rebanho.animais.vender-lote'), {
+        preserveScroll: true, only: ['animals', 'flash'],
+        onSuccess: () => { vendaLote.value = false; vendaLoteForm.reset(); },
+    });
+}
+
+const loteFiltrado = computed(() => {
+    if (!filtros.lot_id) return null;
+    const l = props.lots.find(x => x.id == filtros.lot_id);
+    return l?.nome || null;
+});
+const animaisAtivosFiltrados = computed(() => (props.animals?.data || []).filter(a => a.status === 'ativo'));
+
 const statusBadge = (s) => ({
     ativo: 'badge-green', vendido: 'badge-blue', morto: 'badge-red',
     abatido: 'badge-slate', transferido: 'badge-yellow',
@@ -78,6 +159,12 @@ const categoriaLabel = (c) => props.categorias.find(x => x.value === c)?.label |
         <template #page-title>Rebanho</template>
         <PageHeader title="Animais" subtitle="Cadastro individual com histórico incremental de pesagens, vacinas e eventos">
             <template #actions>
+                <button v-if="loteFiltrado && animaisAtivosFiltrados.length"
+                        @click="abrirVendaLote"
+                        class="btn-outline border-emerald-300 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
+                    Vender lote ({{ animaisAtivosFiltrados.length }})
+                </button>
                 <Link :href="route('admin.rebanho.animais.create')" class="btn-primary">Novo animal</Link>
             </template>
         </PageHeader>
@@ -149,6 +236,7 @@ const categoriaLabel = (c) => props.categorias.find(x => x.value === c)?.label |
                     <ActionIcon v-for="ac in acoesDoAnimal(row)" :key="ac.key"
                                 :type="ac.icon" :title="ac.title"
                                 @click="abrirEventoRapido(row, ac.key)" />
+                    <ActionIcon v-if="row.status === 'ativo'" type="pay" title="Registrar venda" @click="abrirVenda(row)" />
                     <Link :href="route('admin.rebanho.animais.show', row.id)" class="inline-flex">
                         <ActionIcon type="history" title="Histórico completo" />
                     </Link>
@@ -225,6 +313,126 @@ const categoriaLabel = (c) => props.categorias.find(x => x.value === c)?.label |
                         <button @click="pesagem = null" class="btn-outline">Cancelar</button>
                         <button @click="confirmarPesagem" :disabled="pesagemForm.processing" class="btn-primary">
                             {{ pesagemForm.processing ? 'Salvando...' : `Registrar ${labelEvento(pesagemTipo).toLowerCase()}` }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Modal: Venda individual (contextual por profile) -->
+        <Teleport to="body">
+            <div v-if="vendaAnimal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="vendaAnimal = null"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-1">
+                        Registrar venda — {{ vendaAnimal.identificacao }}<span v-if="vendaAnimal.nome"> · {{ vendaAnimal.nome }}</span>
+                    </h3>
+                    <p class="text-sm text-slate-500 mb-4">
+                        {{ vendaAnimal.species?.gestao === 'lote'
+                           ? 'Lote — informe quantidade, unidade e valor unitário'
+                           : 'Animal individual — informe valor total e comprador' }}
+                    </p>
+
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <InputLabel value="Data da venda *" />
+                            <InputDate v-model="vendaForm.data" :max="new Date().toISOString().slice(0,10)" required />
+                            <p v-if="vendaForm.errors.data" class="text-xs text-red-600 mt-1">{{ vendaForm.errors.data }}</p>
+                        </div>
+                        <div>
+                            <InputLabel value="Comprador" />
+                            <select v-model="vendaForm.partner_id" class="form-select">
+                                <option :value="null">—</option>
+                                <option v-for="p in partners" :key="p.id" :value="p.id">{{ p.nome }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Individual: valor total único -->
+                        <template v-if="vendaAnimal.species?.gestao !== 'lote'">
+                            <div class="sm:col-span-2">
+                                <InputLabel value="Valor total *" />
+                                <InputMoney v-model="vendaForm.valor" />
+                            </div>
+                        </template>
+
+                        <!-- Lote: unidade + quantidade + valor unitário -->
+                        <template v-else>
+                            <div>
+                                <InputLabel value="Unidade de venda *" />
+                                <select v-model="vendaForm.unidade_venda" class="form-select">
+                                    <option v-for="u in unidadesVenda" :key="u.v" :value="u.v">{{ u.l }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <InputLabel value="Quantidade *" />
+                                <input type="number" step="0.001" min="0" v-model="vendaForm.quantidade" class="form-input" placeholder="Ex: 250">
+                            </div>
+                            <div>
+                                <InputLabel :value="`Valor por ${vendaForm.unidade_venda} *`" />
+                                <InputMoney v-model="vendaForm.valor_unitario" />
+                            </div>
+                            <div>
+                                <InputLabel value="Total calculado" />
+                                <div class="form-input bg-slate-50 font-mono text-slate-800">
+                                    {{ brl(totalCalculado) }}
+                                </div>
+                            </div>
+                        </template>
+
+                        <div class="sm:col-span-2">
+                            <InputLabel value="Observações" />
+                            <textarea v-model="vendaForm.observacoes" rows="2" class="form-textarea"
+                                      placeholder="Ex: venda em balança, abate imediato..."></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="vendaAnimal = null" class="btn-outline">Cancelar</button>
+                        <button @click="confirmarVenda" :disabled="vendaForm.processing" class="btn-primary bg-emerald-600 hover:bg-emerald-700">
+                            {{ vendaForm.processing ? 'Salvando...' : 'Confirmar venda' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Modal: Venda em lote (múltiplos animais ativos do filtro) -->
+        <Teleport to="body">
+            <div v-if="vendaLote" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="vendaLote = false"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-1">Venda de lote — {{ loteFiltrado }}</h3>
+                    <p class="text-sm text-slate-500 mb-4">
+                        <strong>{{ vendaLoteForm.animal_ids.length }}</strong> animais ativos serão marcados como vendidos.
+                        O valor total é rateado igualmente entre eles.
+                    </p>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <InputLabel value="Data da venda *" />
+                            <InputDate v-model="vendaLoteForm.data" :max="new Date().toISOString().slice(0,10)" required />
+                        </div>
+                        <div>
+                            <InputLabel value="Comprador" />
+                            <select v-model="vendaLoteForm.partner_id" class="form-select">
+                                <option :value="null">—</option>
+                                <option v-for="p in partners" :key="p.id" :value="p.id">{{ p.nome }}</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <InputLabel value="Valor total do lote *" />
+                            <InputMoney v-model="vendaLoteForm.valor_total" />
+                            <p v-if="vendaLoteForm.animal_ids.length && vendaLoteForm.valor_total" class="text-xs text-slate-500 mt-1">
+                                Valor por cabeça: {{ brl(Number(vendaLoteForm.valor_total) / vendaLoteForm.animal_ids.length) }}
+                            </p>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <InputLabel value="Observações" />
+                            <textarea v-model="vendaLoteForm.observacoes" rows="2" class="form-textarea"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="vendaLote = false" class="btn-outline">Cancelar</button>
+                        <button @click="confirmarVendaLote" :disabled="vendaLoteForm.processing" class="btn-primary bg-emerald-600 hover:bg-emerald-700">
+                            {{ vendaLoteForm.processing ? 'Salvando...' : 'Confirmar venda do lote' }}
                         </button>
                     </div>
                 </div>

@@ -150,6 +150,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::delete('rebanho/animais/{animal}/foto', [AnimalController::class, 'removePhoto'])->middleware('permission:rebanho.animais.update')->name('rebanho.animais.foto.remove');
         Route::get('rebanho/animais/{animal}', [AnimalController::class, 'show'])->name('rebanho.animais.show');
         Route::post('rebanho/animais/{animal}/eventos', [AnimalController::class, 'storeEvent'])->middleware('permission:rebanho.eventos.create')->name('rebanho.animais.eventos.store');
+        Route::post('rebanho/animais/vender-lote', [AnimalController::class, 'sellBatch'])->middleware('permission:rebanho.animais.update')->name('rebanho.animais.vender-lote');
         Route::delete('rebanho/animais/{animal}/eventos/{event}', [AnimalController::class, 'destroyEvent'])->middleware('permission:rebanho.eventos.delete')->name('rebanho.animais.eventos.destroy');
     });
 

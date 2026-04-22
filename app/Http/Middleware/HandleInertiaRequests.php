@@ -46,6 +46,14 @@ class HandleInertiaRequests extends Middleware
                     ->pluck('hits', 'menu_key')
                     ->toArray()
                 : [],
+            // Agregado global — usado como fallback para usuários novos sem histórico.
+            // Assim a ordem "mais usados" aparece já no primeiro login.
+            'menuUsageGlobal' => fn () => $request->user()
+                ? MenuUsage::selectRaw('menu_key, SUM(hits) as total')
+                    ->groupBy('menu_key')
+                    ->pluck('total', 'menu_key')
+                    ->toArray()
+                : [],
             'settings' => fn () => [
                 'logo' => Setting::getValue('site.logo'),
                 'favicon' => Setting::getValue('site.favicon'),
