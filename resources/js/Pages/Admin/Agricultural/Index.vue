@@ -14,11 +14,40 @@ useAutoReload(['totals'], 30000);
         <template #page-title>Produção agrícola</template>
         <PageHeader title="Produção agrícola" subtitle="Talhões, culturas, plantios, colheitas e aplicações" />
 
+        <!-- KPIs clicáveis: drill-down direto para listas filtradas -->
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <div class="card p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Talhões ativos</div><div class="mt-1 text-2xl font-bold">{{ totals.fields }}</div></div>
-            <div class="card p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Área total (ha)</div><div class="mt-1 text-2xl font-bold">{{ Number(totals.area_total).toLocaleString('pt-BR', {maximumFractionDigits: 2}) }}</div></div>
-            <div class="card p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Plantios em andamento</div><div class="mt-1 text-2xl font-bold">{{ totals.plantings_ativos }}</div></div>
-            <div class="card p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Safras ativas</div><div class="mt-1 text-2xl font-bold">{{ totals.seasons }}</div></div>
+            <Link :href="route('admin.agricola.talhoes.index')" class="card p-5 hover:shadow-md hover:ring-macaybas-primary-200 transition-all group">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Talhões ativos</div>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+                <div class="mt-1 text-2xl font-bold">{{ totals.fields }}</div>
+                <div class="text-xs text-slate-400 mt-1">Ver todos os talhões</div>
+            </Link>
+            <Link :href="route('admin.agricola.talhoes.index')" class="card p-5 hover:shadow-md hover:ring-macaybas-primary-200 transition-all group">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Área total (ha)</div>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-macaybas-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+                <div class="mt-1 text-2xl font-bold">{{ Number(totals.area_total).toLocaleString('pt-BR', {maximumFractionDigits: 2}) }}</div>
+                <div class="text-xs text-slate-400 mt-1">Distribuição por talhão</div>
+            </Link>
+            <Link :href="route('admin.agricola.plantios.index', { status: 'em_andamento' })" class="card p-5 hover:shadow-md hover:ring-emerald-200 transition-all group">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Plantios em andamento</div>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+                <div class="mt-1 text-2xl font-bold text-emerald-700">{{ totals.plantings_ativos }}</div>
+                <div class="text-xs text-slate-400 mt-1">Ver plantios em curso</div>
+            </Link>
+            <Link :href="route('admin.agricola.culturas.index')" class="card p-5 hover:shadow-md hover:ring-amber-200 transition-all group">
+                <div class="flex items-start justify-between">
+                    <div class="text-xs uppercase tracking-wider text-slate-500">Safras ativas</div>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-amber-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+                <div class="mt-1 text-2xl font-bold text-amber-700">{{ totals.seasons }}</div>
+                <div class="text-xs text-slate-400 mt-1">Ver safras cadastradas</div>
+            </Link>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

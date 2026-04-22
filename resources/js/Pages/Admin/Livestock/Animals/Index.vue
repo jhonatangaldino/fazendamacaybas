@@ -9,6 +9,7 @@ import ActionIcon from '@/Components/ActionIcon.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import { dataBR } from '@/utils/format.js';
+import { tableActionsFor, isLoteSpecies, EVENT_CATALOG, allowedEventsFor } from '@/utils/animalProfile.js';
 
 const props = defineProps({ animals: Object, filters: Object, species: Array, lots: Array, categorias: Array });
 const filtros = reactive({
@@ -19,8 +20,17 @@ const filtros = reactive({
     categoria: props.filters?.categoria ?? '',
 });
 const confirmDelete = ref(null);
-const pesagem = ref(null);
-const pesagemForm = useForm({ tipo: 'pesagem', data: '', peso: '', observacoes: '' });
+const pesagem = ref(null); // animal em processo de pesagem (ou evento rápido equivalente)
+const pesagemTipo = ref('pesagem'); // tipo selecionado (pesagem, ordenha, biometria, etc.)
+const pesagemForm = useForm({
+    tipo: 'pesagem', data: '', peso: '', observacoes: '',
+    litros: '', qtd_ovos: '',
+});
+
+// Retorna ações contextuais da espécie do animal (respeita peixe≠pesagem etc.)
+function acoesDoAnimal(row) {
+    return tableActionsFor(row.species, row.categoria);
+}
 
 function filtrar() { router.get(route('admin.rebanho.animais.index'), filtros, { preserveState: true, replace: true }); }
 function doDelete() {
@@ -29,10 +39,11 @@ function doDelete() {
     });
 }
 
-function abrirPesagem(row) {
+function abrirEventoRapido(row, tipo = 'pesagem') {
     pesagem.value = row;
+    pesagemTipo.value = tipo;
     pesagemForm.reset();
-    pesagemForm.tipo = 'pesagem';
+    pesagemForm.tipo = tipo;
     pesagemForm.data = new Date().toISOString().slice(0, 10);
 }
 function confirmarPesagem() {
@@ -41,6 +52,8 @@ function confirmarPesagem() {
         onSuccess: () => { pesagem.value = null; pesagemForm.reset(); },
     });
 }
+
+function labelEvento(tipo) { return EVENT_CATALOG[tipo]?.label || tipo; }
 
 const statusBadge = (s) => ({
     ativo: 'badge-green', vendido: 'badge-blue', morto: 'badge-red',
@@ -132,7 +145,10 @@ const categoriaLabel = (c) => props.categorias.find(x => x.value === c)?.label |
             <template #cell-status="{ row }"><span :class="statusBadge(row.status)">{{ row.status }}</span></template>
             <template #cell-acoes="{ row }">
                 <div class="flex gap-1 justify-end">
-                    <ActionIcon type="scale" title="Registrar pesagem" @click="abrirPesagem(row)" />
+                    <!-- Ações contextuais: só aparecem se fazem sentido para a espécie/categoria -->
+                    <ActionIcon v-for="ac in acoesDoAnimal(row)" :key="ac.key"
+                                :type="ac.icon" :title="ac.title"
+                                @click="abrirEventoRapido(row, ac.key)" />
                     <Link :href="route('admin.rebanho.animais.show', row.id)" class="inline-flex">
                         <ActionIcon type="history" title="Histórico completo" />
                     </Link>
@@ -148,7 +164,7 @@ const categoriaLabel = (c) => props.categorias.find(x => x.value === c)?.label |
                       :message="`Excluir ${confirmDelete?.identificacao}?`"
                       @cancel="confirmDelete = null" @confirm="doDelete" />
 
-        <!-- Modal: Registrar pesagem (incremental) -->
+        <!-- Modal: Evento rápido contextual (pesagem / ordenha / biometria / postura) -->
         <Teleport to="body">
             <div v-if="pesagem" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="pesagem = null"></div>
@@ -156,34 +172,59 @@ const categoriaLabel = (c) => props.categorias.find(x => x.value === c)?.label |
                     <div class="flex items-start gap-4 mb-4">
                         <img v-if="pesagem.photo_url" :src="pesagem.photo_url" class="h-14 w-14 rounded-lg object-cover ring-1 ring-slate-200 flex-shrink-0">
                         <div>
-                            <h3 class="text-lg font-semibold text-slate-900">Registrar pesagem</h3>
-                            <p class="text-sm text-slate-500">Brinco <strong>{{ pesagem.identificacao }}</strong><span v-if="pesagem.nome"> · {{ pesagem.nome }}</span></p>
-                            <p v-if="pesagem.peso_atual" class="text-xs text-slate-400 mt-1">Peso anterior: {{ Number(pesagem.peso_atual).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }} kg</p>
+                            <h3 class="text-lg font-semibold text-slate-900">Registrar {{ labelEvento(pesagemTipo).toLowerCase() }}</h3>
+                            <p class="text-sm text-slate-500">
+                                <span v-if="pesagem.species?.gestao === 'lote'">Lote</span>
+                                <span v-else>Brinco</span>
+                                <strong> {{ pesagem.identificacao }}</strong><span v-if="pesagem.nome"> · {{ pesagem.nome }}</span>
+                            </p>
+                            <p v-if="pesagemTipo === 'pesagem' && pesagem.peso_atual" class="text-xs text-slate-400 mt-1">Peso anterior: {{ Number(pesagem.peso_atual).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }} kg</p>
                         </div>
                     </div>
                     <div class="space-y-3">
                         <div>
-                            <InputLabel value="Data da pesagem *" />
+                            <InputLabel :value="`Data da ${labelEvento(pesagemTipo).toLowerCase()} *`" />
                             <InputDate v-model="pesagemForm.data" :max="new Date().toISOString().slice(0,10)" required />
                             <p v-if="pesagemForm.errors.data" class="text-xs text-red-600 mt-1">{{ pesagemForm.errors.data }}</p>
                         </div>
-                        <div>
-                            <InputLabel value="Peso (kg) *" />
+
+                        <!-- Pesagem ou biometria amostral -->
+                        <div v-if="pesagemTipo === 'pesagem' || pesagemTipo === 'biometria_amostral'">
+                            <InputLabel :value="pesagemTipo === 'biometria_amostral' ? 'Peso médio do lote (kg) *' : 'Peso (kg) *'" />
                             <input type="number" step="0.01" min="0" max="9999.99"
                                    v-model="pesagemForm.peso" class="form-input"
                                    placeholder="Ex: 420.5" required>
                             <p v-if="pesagemForm.errors.peso" class="text-xs text-red-600 mt-1">{{ pesagemForm.errors.peso }}</p>
                         </div>
+
+                        <!-- Ordenha: armazena volume em 'peso' pra reaproveitar coluna -->
+                        <div v-if="pesagemTipo === 'ordenha'">
+                            <InputLabel value="Volume (litros) *" />
+                            <input type="number" step="0.01" min="0" max="999.99"
+                                   v-model="pesagemForm.peso" class="form-input"
+                                   placeholder="Ex: 12.5" required>
+                            <p class="text-xs text-slate-400 mt-1">Total ordenhado no dia (soma manhã + tarde).</p>
+                        </div>
+
+                        <!-- Postura de ovos -->
+                        <div v-if="pesagemTipo === 'postura_diaria'">
+                            <InputLabel value="Ovos coletados *" />
+                            <input type="number" step="1" min="0"
+                                   v-model="pesagemForm.peso" class="form-input"
+                                   placeholder="Ex: 45" required>
+                            <p class="text-xs text-slate-400 mt-1">Quantidade total de ovos do dia.</p>
+                        </div>
+
                         <div>
                             <InputLabel value="Observações" />
                             <textarea v-model="pesagemForm.observacoes" rows="2" class="form-textarea"
-                                      placeholder="Ex: condição corporal 3.5, escore de 1-5..."></textarea>
+                                      :placeholder="pesagemTipo === 'pesagem' ? 'Ex: condição corporal 3.5, escore de 1-5...' : ''"></textarea>
                         </div>
                     </div>
                     <div class="mt-5 flex justify-end gap-2">
                         <button @click="pesagem = null" class="btn-outline">Cancelar</button>
                         <button @click="confirmarPesagem" :disabled="pesagemForm.processing" class="btn-primary">
-                            {{ pesagemForm.processing ? 'Salvando...' : 'Registrar pesagem' }}
+                            {{ pesagemForm.processing ? 'Salvando...' : `Registrar ${labelEvento(pesagemTipo).toLowerCase()}` }}
                         </button>
                     </div>
                 </div>

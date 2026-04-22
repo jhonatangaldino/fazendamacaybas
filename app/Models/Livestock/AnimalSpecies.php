@@ -9,9 +9,12 @@ class AnimalSpecies extends Model
 {
     protected $table = 'animal_species';
 
-    protected $fillable = ['nome', 'slug', 'is_active'];
+    protected $fillable = ['nome', 'slug', 'is_active', 'gestao', 'profile', 'allowed_events'];
 
-    protected $casts = ['is_active' => 'boolean'];
+    protected $casts = [
+        'is_active' => 'boolean',
+        'allowed_events' => 'array',
+    ];
 
     public function breeds(): HasMany
     {

@@ -18,7 +18,7 @@ class AnimalController extends Controller
 {
     public function index(Request $request)
     {
-        $q = Animal::with(['species:id,nome', 'breed:id,nome', 'lot:id,nome', 'farm:id,nome'])
+        $q = Animal::with(['species:id,nome,gestao,profile,allowed_events', 'breed:id,nome', 'lot:id,nome', 'farm:id,nome'])
             ->when($request->search, fn ($qq) => $qq->where(fn ($w) => $w
                 ->where('identificacao', 'like', "%{$request->search}%")
                 ->orWhere('nome', 'like', "%{$request->search}%")))
@@ -39,7 +39,13 @@ class AnimalController extends Controller
                 'data_nascimento' => $a->data_nascimento,
                 'peso_atual' => $a->peso_atual,
                 'photo_url' => $a->photoUrl(),
-                'species' => $a->species ? ['nome' => $a->species->nome] : null,
+                'species' => $a->species ? [
+                    'id' => $a->species->id,
+                    'nome' => $a->species->nome,
+                    'gestao' => $a->species->gestao,
+                    'profile' => $a->species->profile,
+                    'allowed_events' => $a->species->allowed_events,
+                ] : null,
                 'breed' => $a->breed ? ['nome' => $a->breed->nome] : null,
                 'lot' => $a->lot ? ['nome' => $a->lot->nome] : null,
             ]),
