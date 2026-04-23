@@ -4,6 +4,8 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
+import ActionIcon from '@/Components/ActionIcon.vue';
+import MobileFilters from '@/Components/MobileFilters.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import { dataBR, brl } from '@/utils/format.js';
@@ -429,34 +431,33 @@ function vinculoLabel(t) {
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-body grid gap-3 sm:grid-cols-4">
-                <select v-model="filtros.status" @change="filtrar" class="form-select">
-                    <option value="">Todos os status</option>
-                    <option value="pendente">Pendentes</option>
-                    <option value="em_andamento">Em andamento</option>
-                    <option value="concluida">Concluídas</option>
-                </select>
-                <select v-model="filtros.prioridade" @change="filtrar" class="form-select">
-                    <option value="">Toda prioridade</option>
-                    <option value="baixa">Baixa</option><option value="media">Média</option>
-                    <option value="alta">Alta</option><option value="urgente">Urgente</option>
-                </select>
-                <select v-model="filtros.modulo" @change="filtrar" class="form-select">
-                    <option value="">Todos os módulos</option>
-                    <option value="geral">Geral</option>
-                    <option value="rebanho">Rebanho</option>
-                    <option value="agricola">Agrícola</option>
-                    <option value="estoque">Estoque</option>
-                    <option value="maquinas">Máquinas</option>
-                    <option value="financeiro">Financeiro</option>
-                </select>
-                <select v-model="filtros.employee_id" @change="filtrar" class="form-select">
-                    <option value="">Todos os responsáveis</option>
-                    <option v-for="e in employees" :key="e.id" :value="e.id">{{ e.nome }}</option>
-                </select>
-            </div>
-        </div>
+        <!-- F4.2 · Filtros colapsáveis em mobile -->
+        <MobileFilters cols="sm:grid-cols-4">
+            <select v-model="filtros.status" @change="filtrar" class="form-select">
+                <option value="">Todos os status</option>
+                <option value="pendente">Pendentes</option>
+                <option value="em_andamento">Em andamento</option>
+                <option value="concluida">Concluídas</option>
+            </select>
+            <select v-model="filtros.prioridade" @change="filtrar" class="form-select">
+                <option value="">Toda prioridade</option>
+                <option value="baixa">Baixa</option><option value="media">Média</option>
+                <option value="alta">Alta</option><option value="urgente">Urgente</option>
+            </select>
+            <select v-model="filtros.modulo" @change="filtrar" class="form-select">
+                <option value="">Todos os módulos</option>
+                <option value="geral">Geral</option>
+                <option value="rebanho">Rebanho</option>
+                <option value="agricola">Agrícola</option>
+                <option value="estoque">Estoque</option>
+                <option value="maquinas">Máquinas</option>
+                <option value="financeiro">Financeiro</option>
+            </select>
+            <select v-model="filtros.employee_id" @change="filtrar" class="form-select">
+                <option value="">Todos os responsáveis</option>
+                <option v-for="e in employees" :key="e.id" :value="e.id">{{ e.nome }}</option>
+            </select>
+        </MobileFilters>
 
         <div class="space-y-3">
             <div v-for="t in tasks.data" :key="t.id" class="card">
@@ -488,11 +489,24 @@ function vinculoLabel(t) {
                             </div>
                         </div>
 
-                        <div class="flex flex-col gap-2">
-                            <button v-if="t.status !== 'concluida'" @click="concluir(t)" class="btn-primary btn-sm">Concluir</button>
-                            <button v-else @click="reabrir(t)" class="btn-outline btn-sm">Reabrir</button>
-                            <button @click="editar(t)" class="btn-outline btn-sm">Editar</button>
-                            <button @click="confirmDelete = t" class="text-red-600 text-xs hover:underline">Excluir</button>
+                        <!-- F4.2: ações com área de toque adequada em mobile -->
+                        <div class="flex flex-row sm:flex-col gap-1.5 items-end flex-shrink-0">
+                            <ActionIcon
+                                v-if="t.status !== 'concluida'"
+                                type="toggle-on"
+                                title="Marcar como concluída"
+                                variant="success"
+                                @click="concluir(t)"
+                            />
+                            <ActionIcon
+                                v-else
+                                type="reactivate"
+                                title="Reabrir tarefa"
+                                variant="slate"
+                                @click="reabrir(t)"
+                            />
+                            <ActionIcon type="edit" title="Editar tarefa" @click="editar(t)" />
+                            <ActionIcon type="delete" title="Excluir tarefa" @click="confirmDelete = t" />
                         </div>
                     </div>
                 </div>

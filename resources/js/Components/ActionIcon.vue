@@ -1,16 +1,14 @@
 <script setup>
 /**
  * Botão de ação icônico para colunas de ações em DataTables.
- * UX:
- *  - Ícone SVG 20x20, clicável em área 36x36 (WCAG)
- *  - Tooltip nativo via title (acessível por teclado e mouse)
- *  - Variantes de cor mapeadas a intenção semântica (edit=slate, danger=red, success=green...)
- *  - Estado desabilitado reduz opacidade e remove cursor
  *
- * Uso:
- *   <ActionIcon type="edit" title="Editar" @click="..." />
- *   <ActionIcon type="delete" title="Excluir" @click="..." />
- *   <ActionIcon type="power-off" title="Desligar" variant="danger" @click="..." />
+ * F4.2 — MOBILE-FIRST:
+ *   - Área de toque 44×44 em mobile (padrão WCAG 2.5.5)
+ *   - 36×36 em desktop (md:) para densidade em tabelas grandes
+ *   - Ícone SVG cresce junto: 20px mobile, 18px desktop
+ *   - Tooltip nativo via `title` (mouse/teclado)
+ *   - Label textual visível ao lado do ícone se `showLabel` ativo (mobile)
+ *   - Variantes de cor por intenção (edit=slate, danger=red, success=green…)
  */
 import { computed } from 'vue';
 
@@ -88,8 +86,18 @@ const effectiveVariant = computed(() =>
     props.variant === 'auto' ? (autoVariant[props.type] || 'slate') : props.variant
 );
 const d = computed(() => paths[props.type] || paths.edit);
-const sizeClass = computed(() => props.size === 'sm' ? 'h-7 w-7' : 'h-9 w-9');
-const iconSize = computed(() => props.size === 'sm' ? 'h-4 w-4' : 'h-[18px] w-[18px]');
+// F4.2: área de toque 44×44 em mobile, 36×36 em desktop (padrão WCAG 2.5.5)
+// size='sm' é mais compacto mas ainda garante 40×40 mobile, 28×28 desktop
+const sizeClass = computed(() =>
+    props.size === 'sm'
+        ? 'h-10 w-10 md:h-7 md:w-7'
+        : 'h-11 w-11 md:h-9 md:w-9',
+);
+const iconSize = computed(() =>
+    props.size === 'sm'
+        ? 'h-5 w-5 md:h-4 md:w-4'
+        : 'h-5 w-5 md:h-[18px] md:w-[18px]',
+);
 </script>
 
 <template>
@@ -104,7 +112,7 @@ const iconSize = computed(() => props.size === 'sm' ? 'h-4 w-4' : 'h-[18px] w-[1
             variantClasses[effectiveVariant],
             disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer',
         ]"
-        class="inline-flex items-center justify-center rounded-lg transition-colors"
+        class="inline-flex items-center justify-center rounded-lg transition-colors touch-manipulation"
     >
         <svg :class="iconSize" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" :d="d" />

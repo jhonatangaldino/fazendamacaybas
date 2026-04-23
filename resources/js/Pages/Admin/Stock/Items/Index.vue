@@ -6,6 +6,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
+import MobileFilters from '@/Components/MobileFilters.vue';
 import BarcodeScanner from '@/Components/BarcodeScanner.vue';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 import { useToast } from '@/composables/useToast.js';
@@ -95,25 +96,27 @@ const tipoLabel = {
             </template>
         </PageHeader>
 
-        <div class="card mb-4">
-            <div class="card-body grid gap-3 sm:grid-cols-4">
-                <input v-model="filtros.search" @keyup.enter="filtrar" placeholder="Buscar por código ou nome" class="form-input sm:col-span-2">
-                <select v-model="filtros.tipo" @change="filtrar" class="form-select">
-                    <option value="">Todos os tipos</option>
-                    <option value="insumo">Insumo</option>
-                    <option value="medicamento">Medicamento</option>
-                    <option value="racao">Ração</option>
-                    <option value="ferramenta">Ferramenta</option>
-                    <option value="peca">Peça</option>
-                    <option value="combustivel">Combustível</option>
-                    <option value="material">Material</option>
-                </select>
-                <select v-model="filtros.status" @change="filtrar" class="form-select">
-                    <option value="ativos">Ativos</option>
-                    <option value="inativos">Inativos</option>
-                </select>
-            </div>
-        </div>
+        <!-- F4.2 · Filtros colapsáveis em mobile (busca sempre visível) -->
+        <MobileFilters cols="sm:grid-cols-2">
+            <template #always>
+                <input v-model="filtros.search" @keyup.enter="filtrar"
+                       placeholder="Buscar por código ou nome…" class="form-input">
+            </template>
+            <select v-model="filtros.tipo" @change="filtrar" class="form-select">
+                <option value="">Todos os tipos</option>
+                <option value="insumo">Insumo</option>
+                <option value="medicamento">Medicamento</option>
+                <option value="racao">Ração</option>
+                <option value="ferramenta">Ferramenta</option>
+                <option value="peca">Peça</option>
+                <option value="combustivel">Combustível</option>
+                <option value="material">Material</option>
+            </select>
+            <select v-model="filtros.status" @change="filtrar" class="form-select">
+                <option value="ativos">Ativos</option>
+                <option value="inativos">Inativos</option>
+            </select>
+        </MobileFilters>
 
         <DataTable
             :columns="[

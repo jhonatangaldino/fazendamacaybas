@@ -89,11 +89,13 @@ function renderCell(col, row) {
                     </slot>
                 </div>
 
-                <!-- Secundárias em pares label:valor com bastante respiro -->
+                <!-- Secundárias em pares label:valor — F4.2: layout vertical em
+                     telas ≤360px (label em cima, valor abaixo) para não espremer
+                     valores longos. Horizontal a partir de sm:. -->
                 <div class="space-y-2.5">
                     <div v-for="col in secondaryCols" :key="col.key"
-                         class="flex items-start gap-3 text-sm w-full max-w-full">
-                        <span class="text-[10px] uppercase tracking-wider font-semibold text-slate-400 flex-shrink-0 w-20 pt-0.5">{{ col.label }}</span>
+                         class="flex flex-col sm:flex-row sm:items-start sm:gap-3 text-sm w-full max-w-full">
+                        <span class="text-[10px] uppercase tracking-wider font-semibold text-slate-400 flex-shrink-0 sm:w-24 sm:pt-0.5">{{ col.label }}</span>
                         <span class="text-slate-800 break-words min-w-0 flex-1 leading-relaxed overflow-hidden">
                             <slot :name="slotName(col.key)" :row="row" :value="row[col.key]">
                                 {{ renderCell(col, row) }}

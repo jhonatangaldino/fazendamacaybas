@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
+import MobileFilters from '@/Components/MobileFilters.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
@@ -98,29 +99,27 @@ const statusBadge = (s) => ({
             </button>
         </div>
 
-        <!-- Filtros -->
-        <div class="card mb-4">
-            <div class="card-body grid gap-3 sm:grid-cols-5">
-                <select v-model="filtros.tipo" @change="filtrar" class="form-select">
-                    <option value="">Todos os tipos</option>
-                    <option value="receita">Receitas</option>
-                    <option value="despesa">Despesas</option>
-                </select>
-                <select v-model="filtros.status" @change="filtrar" class="form-select">
-                    <option value="">Todos os status</option>
-                    <option value="pendente">Pendente</option>
-                    <option value="pago">Pago</option>
-                    <option value="atrasado">Atrasado</option>
-                    <option value="cancelado">Cancelado</option>
-                </select>
-                <select v-model="filtros.account_id" @change="filtrar" class="form-select">
-                    <option value="">Todas as contas</option>
-                    <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.nome }}</option>
-                </select>
-                <InputDate v-model="filtros.from" :max="filtros.to || undefined" @update:modelValue="filtrar" />
-                <InputDate v-model="filtros.to" :min="filtros.from || undefined" @update:modelValue="filtrar" />
-            </div>
-        </div>
+        <!-- F4.2 · Filtros colapsáveis em mobile -->
+        <MobileFilters cols="sm:grid-cols-5">
+            <select v-model="filtros.tipo" @change="filtrar" class="form-select">
+                <option value="">Todos os tipos</option>
+                <option value="receita">Receitas</option>
+                <option value="despesa">Despesas</option>
+            </select>
+            <select v-model="filtros.status" @change="filtrar" class="form-select">
+                <option value="">Todos os status</option>
+                <option value="pendente">Pendente</option>
+                <option value="pago">Pago</option>
+                <option value="atrasado">Atrasado</option>
+                <option value="cancelado">Cancelado</option>
+            </select>
+            <select v-model="filtros.account_id" @change="filtrar" class="form-select">
+                <option value="">Todas as contas</option>
+                <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.nome }}</option>
+            </select>
+            <InputDate v-model="filtros.from" :max="filtros.to || undefined" @update:modelValue="filtrar" />
+            <InputDate v-model="filtros.to" :min="filtros.from || undefined" @update:modelValue="filtrar" />
+        </MobileFilters>
 
         <DataTable
             :columns="[

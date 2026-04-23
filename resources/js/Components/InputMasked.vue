@@ -33,6 +33,17 @@ const maskAttr = computed(() => {
     if (Array.isArray(props.mask)) return JSON.stringify(props.mask);
     return props.mask;
 });
+
+/**
+ * F4.2: inputmode adequado por tipo de máscara.
+ * Máscaras contendo @ (letra) ou * (alfanumérico) usam teclado alfabético.
+ * Máscaras somente numéricas (# = dígito) mostram teclado numérico em mobile.
+ */
+const inputModeComputed = computed(() => {
+    const masks = Array.isArray(props.mask) ? props.mask : [props.mask];
+    const hasLetters = masks.some((m) => /[@*]/.test(m));
+    return hasLetters ? 'text' : 'numeric';
+});
 </script>
 
 <template>
@@ -43,6 +54,7 @@ const maskAttr = computed(() => {
         :value="modelValue"
         :placeholder="placeholder"
         :autocomplete="autocomplete"
+        :inputmode="inputModeComputed"
         @input="$emit('update:modelValue', $event.target.value)"
         class="form-input"
     />

@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
+import MobileFilters from '@/Components/MobileFilters.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
@@ -175,32 +176,33 @@ function doDelete() {
             </template>
         </PageHeader>
 
-        <!-- Filtros -->
-        <div class="card mb-4">
-            <div class="card-body grid gap-3 sm:grid-cols-5">
-                <input v-model="filtros.search" @keyup.enter="filtrar" placeholder="Brinco ou nome" class="form-input">
-                <select v-model="filtros.categoria" @change="filtrar" class="form-select">
-                    <option value="">Todas as categorias</option>
-                    <option v-for="c in categorias" :key="c.value" :value="c.value">{{ c.label }}</option>
-                </select>
-                <select v-model="filtros.species_id" @change="filtrar" class="form-select">
-                    <option value="">Todas as espécies</option>
-                    <option v-for="s in species" :key="s.id" :value="s.id">{{ s.nome }}</option>
-                </select>
-                <select v-model="filtros.lot_id" @change="filtrar" class="form-select">
-                    <option value="">Todos os lotes</option>
-                    <option v-for="l in lots" :key="l.id" :value="l.id">{{ l.nome }}</option>
-                </select>
-                <select v-model="filtros.status" @change="filtrar" class="form-select">
-                    <option value="">Todos os status</option>
-                    <option value="ativo">Ativo</option>
-                    <option value="vendido">Vendido</option>
-                    <option value="morto">Morto</option>
-                    <option value="abatido">Abatido</option>
-                    <option value="transferido">Transferido</option>
-                </select>
-            </div>
-        </div>
+        <!-- F4.2 · Filtros colapsáveis em mobile (busca sempre visível) -->
+        <MobileFilters cols="sm:grid-cols-4">
+            <template #always>
+                <input v-model="filtros.search" @keyup.enter="filtrar"
+                       placeholder="Buscar por brinco ou nome…" class="form-input">
+            </template>
+            <select v-model="filtros.categoria" @change="filtrar" class="form-select">
+                <option value="">Todas as categorias</option>
+                <option v-for="c in categorias" :key="c.value" :value="c.value">{{ c.label }}</option>
+            </select>
+            <select v-model="filtros.species_id" @change="filtrar" class="form-select">
+                <option value="">Todas as espécies</option>
+                <option v-for="s in species" :key="s.id" :value="s.id">{{ s.nome }}</option>
+            </select>
+            <select v-model="filtros.lot_id" @change="filtrar" class="form-select">
+                <option value="">Todos os lotes</option>
+                <option v-for="l in lots" :key="l.id" :value="l.id">{{ l.nome }}</option>
+            </select>
+            <select v-model="filtros.status" @change="filtrar" class="form-select">
+                <option value="">Todos os status</option>
+                <option value="ativo">Ativo</option>
+                <option value="vendido">Vendido</option>
+                <option value="morto">Morto</option>
+                <option value="abatido">Abatido</option>
+                <option value="transferido">Transferido</option>
+            </select>
+        </MobileFilters>
 
         <!-- Barra sticky de ações em lote (aparece quando há seleção) -->
         <transition
