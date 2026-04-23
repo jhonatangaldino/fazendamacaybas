@@ -48,9 +48,38 @@ class VehicleController extends Controller
         ]);
     }
 
+    /**
+     * ═════ D5 — Consolidação de Domínio · VEÍCULOS/MÁQUINAS ═════
+     *
+     * Mapeia os 7 valores de `vehicles.tipo` para 3 categorias conceituais
+     * (veiculo / implemento / maquina_agricola) e aplica regras coerentes
+     * com o uso real de cada uma no campo.
+     *
+     * RETROCOMPAT:
+     *   - Em UPDATE, regras só disparam se `tipo`, `placa` ou `renavam`
+     *     mudaram (veículos) OU `tipo`, `placa`, `renavam` (implementos).
+     *   - Tipo `outros` e combinações fora das matrizes passam sem regra
+     *     extra — fallback permissivo.
+     */
+
+    /** Veículos rodoviários — exigem documentação legal (placa + RENAVAM). */
+    private const TIPOS_VEICULO_COM_DOCS = ['caminhao', 'pick_up', 'motocicleta'];
+
+    /** Implementos agrícolas — rebocados, sem motor próprio, sem documentação. */
+    private const TIPOS_IMPLEMENTO = ['implemento'];
+
+    /** Máquinas autopropelidas — exigem controle de uso via hodômetro/horímetro. */
+    private const TIPOS_MAQUINA_AGRICOLA = ['trator', 'colheitadeira'];
+
     public function vehicleStore(Request $request)
     {
         $data = $this->validateVehicle($request);
+
+        // D5 · Coerência tipo ↔ documentação/medidor
+        if ($err = $this->validateDomainCoherence($data, null)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         Vehicle::create($data);
 
         return back()->with('success', 'Veículo cadastrado.');
@@ -59,6 +88,13 @@ class VehicleController extends Controller
     public function vehicleUpdate(Request $request, Vehicle $vehicle)
     {
         $data = $this->validateVehicle($request, $vehicle->id);
+
+        // D5 · Coerência também em update — respeita legado (só valida
+        // campos que mudaram).
+        if ($err = $this->validateDomainCoherence($data, $vehicle)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         $vehicle->update($data);
 
         return back()->with('success', 'Veículo atualizado.');
@@ -105,6 +141,102 @@ class VehicleController extends Controller
             'is_active' => ['boolean'],
             'observacoes' => ['nullable', 'string'],
         ]);
+    }
+
+    /**
+     * D5 · Coerência entre `tipo` e documentos/medição.
+     *
+     * Regras:
+     *   R1. Veículos rodoviários (caminhao/pick_up/motocicleta) EXIGEM
+     *       placa E RENAVAM (documentação legal obrigatória no Brasil).
+     *   R2. Implementos NÃO aceitam placa nem RENAVAM (não têm motor
+     *       próprio, andam rebocados).
+     *   R3. Máquinas agrícolas (trator/colheitadeira) exigem medidor
+     *       (horímetro/hodômetro) para controle de uso. O validator base
+     *       já torna `medidor` required=in:km,h; esta camada só reforça
+     *       a mensagem prescritiva caso alguma forma de bypass apareça.
+     *
+     * `outros` e combinações fora das matrizes passam sem regra extra.
+     *
+     * Em UPDATE, a regra só dispara se `tipo`, `placa` OU `renavam`
+     * mudaram. Veículos legados com documento incompleto continuam
+     * editáveis sem forçar preenchimento retroativo — desde que o
+     * usuário não mexa nos campos afetados.
+     */
+    protected function validateDomainCoherence(array $data, ?Vehicle $existing): ?string
+    {
+        $tipo = $data['tipo'] ?? null;
+        if (! $tipo) {
+            return null; // já validado pelo validator base
+        }
+
+        $placa = trim((string) ($data['placa'] ?? ''));
+        $renavam = trim((string) ($data['renavam'] ?? ''));
+
+        $tipoMudou = $existing === null || $tipo !== $existing->tipo;
+        $placaMudou = $existing === null || $placa !== (string) ($existing->placa ?? '');
+        $renavamMudou = $existing === null || $renavam !== (string) ($existing->renavam ?? '');
+
+        // ── R1. Veículos rodoviários exigem placa + RENAVAM ────────────────
+        if (in_array($tipo, self::TIPOS_VEICULO_COM_DOCS, true)) {
+            $deveValidar = $existing === null || $tipoMudou || $placaMudou || $renavamMudou;
+
+            if ($deveValidar) {
+                $faltando = [];
+                if ($placa === '') $faltando[] = 'placa';
+                if ($renavam === '') $faltando[] = 'RENAVAM';
+
+                if (! empty($faltando)) {
+                    $nomeCat = match ($tipo) {
+                        'caminhao' => 'Caminhões',
+                        'pick_up' => 'Pick-ups',
+                        'motocicleta' => 'Motocicletas',
+                        default => 'Veículos',
+                    };
+
+                    return "{$nomeCat} exigem placa E RENAVAM para identificação legal. "
+                        . 'Falta preencher: ' . implode(' e ', $faltando) . '. '
+                        . 'Estes dados são obrigatórios pelo DETRAN para qualquer veículo que circula em via pública. '
+                        . 'Se este registro NÃO é um veículo rodoviário, troque o tipo para "implemento" ou "trator".';
+                }
+            }
+        }
+
+        // ── R2. Implementos NÃO podem ter placa nem RENAVAM ────────────────
+        if (in_array($tipo, self::TIPOS_IMPLEMENTO, true)) {
+            $deveValidar = $existing === null || $tipoMudou || $placaMudou || $renavamMudou;
+
+            if ($deveValidar) {
+                $indevidos = [];
+                if ($placa !== '') $indevidos[] = "placa '{$placa}'";
+                if ($renavam !== '') $indevidos[] = "RENAVAM '{$renavam}'";
+
+                if (! empty($indevidos)) {
+                    return 'Implementos agrícolas não possuem placa ou RENAVAM — são equipamentos rebocados (ex.: arado, grade, pulverizador) sem motor próprio. '
+                        . 'Remova o(s) valor(es) indevido(s): ' . implode(' e ', $indevidos) . '. '
+                        . 'Se este equipamento é autopropelido (tem motor), troque o tipo para "trator", "caminhão" ou "pick-up" conforme o caso.';
+                }
+            }
+        }
+
+        // ── R3. Máquinas agrícolas exigem medidor de uso ───────────────────
+        // O validator base já garante `medidor` required. Este bloco só
+        // dispara se o campo vazar a validação base (defesa em profundidade)
+        // e dá mensagem específica do domínio.
+        if (in_array($tipo, self::TIPOS_MAQUINA_AGRICOLA, true)) {
+            $medidor = $data['medidor'] ?? null;
+            if (empty($medidor)) {
+                $rotulo = $tipo === 'trator' ? 'Tratores' : 'Colheitadeiras';
+
+                return "{$rotulo} exigem controle de uso (horas ou km). "
+                    . 'Selecione o tipo de medição no campo "Medidor": '
+                    . '"h" para horímetro (mais comum em equipamento agrícola) '
+                    . 'ou "km" para hodômetro. '
+                    . 'Este controle é essencial para planejar manutenção preventiva.';
+            }
+        }
+
+        return null;
     }
 
     // =============== MANUTENÇÕES ===============
