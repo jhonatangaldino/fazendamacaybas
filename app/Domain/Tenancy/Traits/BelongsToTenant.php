@@ -3,6 +3,7 @@
 namespace App\Domain\Tenancy\Traits;
 
 use App\Domain\Tenancy\Detector\TenancyDetectorRegistry;
+use App\Domain\Tenancy\Scopes\BelongsToTenantScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
@@ -47,15 +48,21 @@ trait BelongsToTenant
      * Hook de boot chamado automaticamente pelo Laravel ao usar o trait.
      * O nome `bootTraitName` é convenção do Eloquent.
      *
-     * R2.3: o observer `creating` agora faz enforcement — preenche
-     * model->tenant_id = app('tenant_id'), sobrescrevendo qualquer valor
-     * vindo do request. Isso fecha o risco de mass-assignment cross-tenant.
+     * Responsabilidades acumuladas:
+     *   R1.5  — Detector-only em retrieved/creating/updating (logs warning)
+     *   R2.3  — Enforcement no creating (sobrescreve tenant_id com container)
+     *   R2.4  — Global scope de leitura via BelongsToTenantScope (NOVO)
      *
-     * Os observers de `retrieved` e `updating` continuam apenas como detector
-     * (R1.5). Enforcement de leitura entra em R2.4, de update em R2.5.
+     * Reservas futuras:
+     *   R2.5  — Enforcement no updating (prevenir mover registro entre tenants)
+     *   R2.6+ — Middleware EnforceFarm/Subscription
      */
     public static function bootBelongsToTenant(): void
     {
+        // R2.4 — Global scope de leitura (filtra toda query por tenant_id)
+        // Salvaguardas (CLI, container vazio, null) ficam na classe Scope.
+        static::addGlobalScope(new BelongsToTenantScope());
+
         static::retrieved(function (Model $model) {
             if (static::tenancyDetectorIsActive()) {
                 static::tenancyDetectorObserve($model, 'retrieved');
