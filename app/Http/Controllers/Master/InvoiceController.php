@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Master;
 
 use App\Domain\Billing\Models\Invoice;
+use App\Domain\Billing\Models\Subscription;
 use App\Domain\Billing\Models\Tenant;
 use App\Http\Controllers\Controller;
+use App\Services\Billing\PixPayloadGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -73,10 +75,15 @@ class InvoiceController extends Controller
     }
 
     /**
-     * Cria nova invoice para um tenant. Usa a subscription ativa do tenant
-     * e o preço do plano como default do valor (editável no form).
+     * Cria nova invoice para um tenant. Gera automaticamente o payload PIX
+     * (copia-e-cola simulado — padrão EMV BR Code válido, mas aponta para
+     * chave fictícia). Quando a integração com gateway real for implementada,
+     * basta trocar a chave PIX em config/billing.php.
+     *
+     * Redireciona direto para a tela de PIX após criar — facilita o fluxo
+     * "gerou cobrança → envia pro cliente".
      */
-    public function store(Request $request, Tenant $tenant): RedirectResponse
+    public function store(Request $request, Tenant $tenant, PixPayloadGenerator $pix): RedirectResponse
     {
         $validated = $request->validate([
             'valor' => ['required', 'numeric', 'min:0', 'max:9999999.99'],
@@ -91,9 +98,16 @@ class InvoiceController extends Controller
         ]);
 
         $subscription = $tenant->subscription()->first();
-
-        // Próximo número sequencial por tenant
         $nextNumero = (int) (Invoice::where('tenant_id', $tenant->id)->max('numero') ?? 0) + 1;
+
+        // Gera identificador PIX e payload EMV (simulado — válido por formato,
+        // mas sem gateway real atrás)
+        $txid = $pix->generateTxid();
+        $payload = $pix->build(
+            amount: (float) $validated['valor'],
+            txid: $txid,
+            merchantName: config('app.name', 'Fazenda Macaybas'),
+        );
 
         $invoice = Invoice::create([
             'tenant_id' => $tenant->id,
@@ -103,15 +117,51 @@ class InvoiceController extends Controller
             'status' => 'pending',
             'data_emissao' => $validated['data_emissao'],
             'data_vencimento' => $validated['data_vencimento'],
+            'pix_txid' => $txid,
+            'pix_payload' => $payload,
         ]);
 
         return redirect()
-            ->route('master.tenants.subscription.show', $tenant)
-            ->with('success', 'Cobrança #'.$invoice->numero.' gerada para '.$tenant->nome.'.');
+            ->route('master.cobrancas.pix', $invoice->id)
+            ->with('success', 'Cobrança #'.$invoice->numero.' gerada. Envie o PIX ao cliente.');
+    }
+
+    /**
+     * Tela de pagamento PIX — exibe payload copia-e-cola, valor, vencimento
+     * e permite marcar como paga manualmente (fluxo sem gateway).
+     */
+    public function showPix(Invoice $invoice): Response
+    {
+        $invoice->load('tenant:id,nome');
+
+        return Inertia::render('Master/Cobrancas/Pix', [
+            'invoice' => [
+                'id' => $invoice->id,
+                'numero' => $invoice->numero,
+                'tenant_id' => $invoice->tenant_id,
+                'tenant_nome' => $invoice->tenant?->nome,
+                'valor' => (float) $invoice->valor,
+                'status' => $invoice->status,
+                'data_emissao' => $invoice->data_emissao?->format('d/m/Y'),
+                'data_vencimento' => $invoice->data_vencimento?->format('d/m/Y'),
+                'data_vencimento_iso' => $invoice->data_vencimento?->toDateString(),
+                'data_pagamento' => $invoice->data_pagamento?->format('d/m/Y'),
+                'pix_txid' => $invoice->pix_txid,
+                'pix_payload' => $invoice->pix_payload,
+            ],
+        ]);
     }
 
     /**
      * Marca invoice como paga, registra data_pagamento = hoje (ou fornecida).
+     *
+     * LÓGICA DE NEGÓCIO (fluxo real de billing):
+     *   Se a subscription do tenant estava `overdue` e NÃO há mais invoices
+     *   vencidas, a subscription volta para `active`. Isso automatiza o
+     *   "regularizou o pagamento → sistema destrava" manualmente.
+     *
+     * Não estende current_period_end nem cria próxima cobrança — essas
+     * regras ficam para uma próxima iteração (billing recurrente automático).
      */
     public function markPaid(Request $request, Invoice $invoice): RedirectResponse
     {
@@ -124,20 +174,68 @@ class InvoiceController extends Controller
             'data_pagamento' => $validated['data_pagamento'] ?? now()->toDateString(),
         ]);
 
+        // Regulariza subscription: se estava em atraso E não há mais overdue,
+        // volta para active.
+        $this->reconcileSubscriptionFromInvoices($invoice->tenant_id);
+
         return back()->with('success', 'Cobrança #'.$invoice->numero.' marcada como paga.');
+    }
+
+    /**
+     * Re-avalia o status da subscription do tenant com base nas invoices.
+     *
+     * Regras:
+     *   - Se há qualquer invoice `overdue` → subscription = `overdue`
+     *   - Se não há overdue E subscription estava `overdue` → volta para `active`
+     *
+     * Chamado automaticamente em markPaid/markPending e no command
+     * billing:mark-overdue. Idempotente.
+     */
+    private function reconcileSubscriptionFromInvoices(int $tenantId): void
+    {
+        $sub = Subscription::where('tenant_id', $tenantId)->first();
+        if ($sub === null) {
+            return;
+        }
+
+        $hasOverdue = Invoice::where('tenant_id', $tenantId)
+            ->where('status', 'overdue')
+            ->exists();
+
+        if ($hasOverdue && $sub->status === 'active') {
+            $sub->update(['status' => 'overdue']);
+        } elseif (! $hasOverdue && $sub->status === 'overdue') {
+            $sub->update(['status' => 'active']);
+        }
     }
 
     /**
      * Reverte status para pending (caso marcação por engano).
      * data_pagamento volta para NULL.
+     *
+     * Se a invoice já venceu e voltar para pending, o command
+     * billing:mark-overdue irá re-marcá-la como overdue no próximo ciclo.
+     * Por simplicidade, reavaliamos já aqui: se data_vencimento < hoje,
+     * status vira diretamente `overdue` (evita janela intermediária).
      */
     public function markPending(Invoice $invoice): RedirectResponse
     {
+        $newStatus = 'pending';
+        if ($invoice->data_vencimento && $invoice->data_vencimento->isPast()) {
+            $newStatus = 'overdue';
+        }
+
         $invoice->update([
-            'status' => 'pending',
+            'status' => $newStatus,
             'data_pagamento' => null,
         ]);
 
-        return back()->with('success', 'Cobrança #'.$invoice->numero.' voltou a pendente.');
+        $this->reconcileSubscriptionFromInvoices($invoice->tenant_id);
+
+        $msg = $newStatus === 'overdue'
+            ? 'Cobrança #'.$invoice->numero.' voltou a pendente (e já está vencida).'
+            : 'Cobrança #'.$invoice->numero.' voltou a pendente.';
+
+        return back()->with('success', $msg);
     }
 }

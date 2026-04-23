@@ -130,22 +130,31 @@ function marcarPendente(invoice) {
                             <td class="px-4 py-3 text-slate-600">{{ i.data_vencimento }}</td>
                             <td class="px-4 py-3 text-slate-600 hidden md:table-cell">{{ i.data_pagamento || '—' }}</td>
                             <td class="px-4 py-3 text-right">
-                                <button
-                                    v-if="i.status !== 'paid'"
-                                    @click="marcarPaga(i)"
-                                    title="Marcar como paga"
-                                    class="p-2 rounded-md hover:bg-emerald-50 text-slate-600 hover:text-emerald-700"
-                                >
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                </button>
-                                <button
-                                    v-else
-                                    @click="marcarPendente(i)"
-                                    title="Reverter para pendente"
-                                    class="p-2 rounded-md hover:bg-amber-50 text-slate-600 hover:text-amber-700"
-                                >
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                                </button>
+                                <div class="inline-flex items-center gap-1">
+                                    <Link
+                                        :href="route('master.cobrancas.pix', i.id)"
+                                        title="Ver PIX copia-e-cola"
+                                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+                                    >
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                    </Link>
+                                    <button
+                                        v-if="i.status !== 'paid'"
+                                        @click="marcarPaga(i)"
+                                        title="Marcar como paga"
+                                        class="p-2 rounded-md hover:bg-emerald-50 text-slate-600 hover:text-emerald-700"
+                                    >
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    </button>
+                                    <button
+                                        v-else
+                                        @click="marcarPendente(i)"
+                                        title="Reverter para pendente"
+                                        class="p-2 rounded-md hover:bg-amber-50 text-slate-600 hover:text-amber-700"
+                                    >
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>

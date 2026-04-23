@@ -102,6 +102,7 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
 
     // M6 — Cobranças (listagem global + ações de status)
     Route::get('cobrancas', [InvoiceController::class, 'index'])->name('cobrancas.index');
+    Route::get('cobrancas/{invoice}/pix', [InvoiceController::class, 'showPix'])->name('cobrancas.pix');
     Route::post('cobrancas/{invoice}/marcar-paga', [InvoiceController::class, 'markPaid'])->name('cobrancas.mark-paid');
     Route::post('cobrancas/{invoice}/marcar-pendente', [InvoiceController::class, 'markPending'])->name('cobrancas.mark-pending');
 
