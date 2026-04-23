@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Agricultural\Field;
+use App\Models\Agricultural\Planting;
 use App\Models\Document\Document;
 use App\Models\Document\DocumentCategory;
+use App\Models\Financial\FinancialTransaction;
+use App\Models\Livestock\Animal;
+use App\Models\Partner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -121,6 +126,29 @@ class DocumentController extends Controller
             ]),
             'filters' => $request->only(['search', 'category_id', 'venc']),
             'categories' => DocumentCategory::where('is_active', true)->orderBy('nome')->get(),
+
+            // F3 · Entidades linkáveis para related_type/related_id (D8).
+            // A UI filtra por tipo conceitual (contrato → partners, laudo → animals/plantings/fields, etc.).
+            // Transactions limitadas a 200 recentes para não pesar o payload — o típico
+            // caso de uso é anexar NF a um lançamento recém-criado, não histórico antigo.
+            'linkables' => [
+                'partners' => Partner::where('is_active', true)
+                    ->orderBy('nome')
+                    ->get(['id', 'nome', 'pessoa']),
+                'animals' => Animal::where('status', 'ativo')
+                    ->orderBy('identificacao')
+                    ->get(['id', 'identificacao', 'nome']),
+                'plantings' => Planting::with(['field:id,nome', 'crop:id,nome'])
+                    ->orderByDesc('data_plantio')
+                    ->limit(500)
+                    ->get(['id', 'field_id', 'crop_id', 'data_plantio', 'status']),
+                'fields' => Field::where('is_active', true)
+                    ->orderBy('nome')
+                    ->get(['id', 'nome']),
+                'transactions' => FinancialTransaction::orderByDesc('data_vencimento')
+                    ->limit(200)
+                    ->get(['id', 'descricao', 'valor', 'tipo', 'data_vencimento', 'status']),
+            ],
         ]);
     }
 
