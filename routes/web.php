@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
 use App\Http\Controllers\Master\MasterDashboardController;
+use App\Http\Controllers\Master\TenantController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\Financial\FinancialIndexController;
@@ -69,6 +70,14 @@ Route::middleware('auth')->group(function () {
 // para evitar loops com o tenant.user.only do grupo admin).
 Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')->group(function () {
     Route::get('dashboard', [MasterDashboardController::class, 'index'])->name('dashboard');
+
+    // M3 — CRUD de tenants (clientes do SaaS)
+    Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
+    Route::get('tenants/novo', [TenantController::class, 'create'])->name('tenants.create');
+    Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
+    Route::get('tenants/{tenant}/editar', [TenantController::class, 'edit'])->name('tenants.edit');
+    Route::put('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
+    Route::post('tenants/{tenant}/toggle', [TenantController::class, 'toggle'])->name('tenants.toggle');
 });
 
 // ===================== ÁREA ADMIN =====================

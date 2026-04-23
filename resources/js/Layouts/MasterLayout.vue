@@ -30,10 +30,15 @@ const user = computed(() => page.props.auth?.user ?? null);
 const sidebarOpen = ref(false);
 
 /**
- * Detecta se uma rota está ativa. Usa ziggy (injetado em page.props.ziggy
- * via HandleInertiaRequests). M2 só tem Dashboard real — o resto é disabled.
+ * Detecta se uma rota está ativa. Para rotas `.index` de um CRUD, considera
+ * ativa toda a família (index/create/edit/etc) — assim ao entrar em
+ * /master/tenants/novo, o item "Tenants" na sidebar permanece destacado.
  */
 function isActive(routeName) {
+    if (routeName.endsWith('.index')) {
+        const family = routeName.replace(/\.index$/, '.*');
+        return route().current(family);
+    }
     return route().current(routeName);
 }
 
@@ -48,7 +53,7 @@ function logout() {
  */
 const menu = [
     { label: 'Dashboard', route: 'master.dashboard', phase: null, icon: 'dashboard' },
-    { label: 'Tenants', route: null, phase: 'M3', icon: 'building' },
+    { label: 'Tenants', route: 'master.tenants.index', phase: null, icon: 'building' },
     { label: 'Fazendas', route: null, phase: 'M4', icon: 'farm' },
     { label: 'Planos', route: null, phase: 'M6', icon: 'card' },
     { label: 'Cobranças', route: null, phase: 'M6', icon: 'invoice' },
