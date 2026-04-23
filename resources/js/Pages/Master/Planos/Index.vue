@@ -26,7 +26,7 @@ function toggle(plan) {
         <div class="flex items-start justify-between gap-4 mb-6">
             <div>
                 <h2 class="text-xl font-serif font-bold text-slate-900">Catálogo de planos</h2>
-                <p class="mt-1 text-sm text-slate-600">Defina os pacotes que serão oferecidos aos tenants.</p>
+                <p class="mt-1 text-sm text-slate-600">Defina os pacotes que serão oferecidos aos clientes.</p>
             </div>
             <Link
                 :href="route('master.planos.create')"

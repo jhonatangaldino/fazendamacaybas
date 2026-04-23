@@ -38,7 +38,7 @@ function handleEstadoInput(e) {
 
         <!-- Breadcrumb -->
         <nav class="text-sm text-slate-500 mb-4 flex items-center gap-1.5 flex-wrap">
-            <Link :href="route('master.tenants.index')" class="hover:text-slate-900">Tenants</Link>
+            <Link :href="route('master.tenants.index')" class="hover:text-slate-900">Clientes</Link>
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             <span>{{ tenant.nome }}</span>
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -54,7 +54,7 @@ function handleEstadoInput(e) {
                     {{ isEdit ? `Editar "${farm.nome}"` : 'Cadastrar nova fazenda' }}
                 </h2>
                 <p class="mt-1 text-sm text-slate-600">
-                    Vinculada a <strong>{{ tenant.nome }}</strong>. Campos básicos; detalhes (CNPJ, endereço, área) poderão ser preenchidos pelo tenant na área operacional.
+                    Vinculada a <strong>{{ tenant.nome }}</strong>. Campos básicos; detalhes (CNPJ, endereço, área) poderão ser preenchidos pelo cliente na área operacional.
                 </p>
             </div>
             <Link
@@ -126,7 +126,7 @@ function handleEstadoInput(e) {
                         <span class="text-sm text-slate-700">
                             Fazenda ativa
                             <span class="block text-xs text-slate-500">
-                                Fazendas inativas não aparecem no seletor dos usuários deste tenant.
+                                Fazendas inativas não aparecem no seletor dos usuários deste cliente.
                             </span>
                         </span>
                     </label>

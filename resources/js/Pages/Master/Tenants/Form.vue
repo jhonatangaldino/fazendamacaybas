@@ -43,15 +43,15 @@ function submit() {
 </script>
 
 <template>
-    <Head :title="(isEdit ? 'Editar tenant' : 'Novo tenant') + ' · Plataforma'" />
+    <Head :title="(isEdit ? 'Editar cliente' : 'Novo cliente') + ' · Plataforma'" />
     <MasterLayout>
-        <template #page-title>{{ isEdit ? 'Editar tenant' : 'Novo tenant' }}</template>
+        <template #page-title>{{ isEdit ? 'Editar cliente' : 'Novo cliente' }}</template>
 
         <!-- Cabeçalho -->
         <div class="flex items-start justify-between gap-4 mb-6">
             <div>
                 <h2 class="text-xl font-serif font-bold text-slate-900">
-                    {{ isEdit ? `Editar "${tenant.nome}"` : 'Cadastrar novo tenant' }}
+                    {{ isEdit ? `Editar "${tenant.nome}"` : 'Cadastrar novo cliente' }}
                 </h2>
                 <p class="mt-1 text-sm text-slate-600">
                     {{ isEdit
@@ -117,7 +117,7 @@ function submit() {
                             class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
                         >
                         <span class="text-sm text-slate-700">
-                            Tenant ativo
+                            Cliente ativo
                             <span class="block text-xs text-slate-500">
                                 Controla se o cliente pode usar o sistema. Pode ser alterado depois.
                             </span>
@@ -139,7 +139,7 @@ function submit() {
                 >
                     {{ form.processing
                         ? 'Salvando…'
-                        : (isEdit ? 'Salvar alterações' : 'Criar tenant') }}
+                        : (isEdit ? 'Salvar alterações' : 'Criar cliente') }}
                 </button>
             </div>
         </form>

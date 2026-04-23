@@ -72,7 +72,7 @@ function gerarCobranca() {
 
         <!-- Breadcrumb -->
         <nav class="text-sm text-slate-500 mb-4 flex items-center gap-1.5">
-            <Link :href="route('master.tenants.index')" class="hover:text-slate-900">Tenants</Link>
+            <Link :href="route('master.tenants.index')" class="hover:text-slate-900">Clientes</Link>
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             <span>{{ tenant.nome }}</span>
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -143,7 +143,7 @@ function gerarCobranca() {
                 </div>
 
                 <div v-else class="text-center py-6">
-                    <p class="text-sm text-slate-600 mb-4">Este tenant ainda não tem assinatura.</p>
+                    <p class="text-sm text-slate-600 mb-4">Este cliente ainda não tem assinatura.</p>
                     <button
                         @click="editMode = true"
                         class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"

@@ -24,7 +24,7 @@ function toggle(tenant, farm) {
 
         <!-- Breadcrumb minimalista -->
         <nav class="text-sm text-slate-500 mb-4 flex items-center gap-1.5">
-            <Link :href="route('master.tenants.index')" class="hover:text-slate-900">Tenants</Link>
+            <Link :href="route('master.tenants.index')" class="hover:text-slate-900">Clientes</Link>
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             <span class="text-slate-900 font-medium">{{ tenant.nome }}</span>
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -38,9 +38,9 @@ function toggle(tenant, farm) {
                     Fazendas de {{ tenant.nome }}
                 </h2>
                 <p class="mt-1 text-sm text-slate-600">
-                    Unidades operacionais vinculadas a este tenant.
+                    Unidades operacionais vinculadas a este cliente.
                     <span v-if="! tenant.is_active" class="ml-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-200 text-xs">
-                        Tenant inativo
+                        Cliente inativo
                     </span>
                 </p>
             </div>
@@ -61,7 +61,7 @@ function toggle(tenant, farm) {
                 </svg>
             </div>
             <h3 class="mt-3 text-sm font-semibold text-slate-900">Nenhuma fazenda cadastrada</h3>
-            <p class="mt-1 text-sm text-slate-500">Este tenant ainda não tem fazendas. Clique em <strong>Nova fazenda</strong> para criar a primeira.</p>
+            <p class="mt-1 text-sm text-slate-500">Este cliente ainda não tem fazendas. Clique em <strong>Nova fazenda</strong> para criar a primeira.</p>
         </div>
 
         <!-- Tabela -->

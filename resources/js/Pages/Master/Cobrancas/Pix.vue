@@ -38,7 +38,7 @@ async function copiarPix() {
 }
 
 function marcarPaga() {
-    if (! confirm(`Confirma marcar cobrança #${props.invoice.numero} como PAGA?\n\nEssa ação atualiza a assinatura do tenant automaticamente se estava em atraso.`)) return;
+    if (! confirm(`Confirma marcar cobrança #${props.invoice.numero} como PAGA?\n\nEssa ação atualiza a assinatura do cliente automaticamente se estava em atraso.`)) return;
     router.post(route('master.cobrancas.mark-paid', props.invoice.id));
 }
 
@@ -80,7 +80,7 @@ function marcarPendente() {
                 <!-- Metadados -->
                 <dl class="grid sm:grid-cols-2 gap-3 text-sm pt-4 border-t border-slate-100">
                     <div>
-                        <dt class="text-xs uppercase tracking-wider text-slate-500">Tenant</dt>
+                        <dt class="text-xs uppercase tracking-wider text-slate-500">Cliente</dt>
                         <dd class="text-slate-900 font-medium">{{ invoice.tenant_nome }}</dd>
                     </div>
                     <div>
@@ -160,7 +160,7 @@ function marcarPendente() {
                     <Link
                         :href="route('master.tenants.subscription.show', invoice.tenant_id)"
                         class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm hover:bg-slate-200"
-                    >Ver assinatura do tenant</Link>
+                    >Ver assinatura do cliente</Link>
 
                     <Link
                         :href="route('master.cobrancas.index')"
@@ -169,7 +169,7 @@ function marcarPendente() {
                 </div>
 
                 <p v-if="isPayable" class="mt-4 text-xs text-slate-500">
-                    Ao marcar como paga, se a assinatura do tenant estava em atraso, ela volta automaticamente para ativa.
+                    Ao marcar como paga, se a assinatura do cliente estava em atraso, ela volta automaticamente para ativa.
                 </p>
             </div>
         </div>

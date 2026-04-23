@@ -54,7 +54,7 @@ function logout() {
  */
 const menu = [
     { label: 'Dashboard', route: 'master.dashboard', phase: null, icon: 'dashboard' },
-    { label: 'Tenants', route: 'master.tenants.index', phase: null, icon: 'building' },
+    { label: 'Clientes', route: 'master.tenants.index', phase: null, icon: 'building' },
     { label: 'Planos', route: 'master.planos.index', phase: null, icon: 'card' },
     { label: 'Cobranças', route: 'master.cobrancas.index', phase: null, icon: 'invoice' },
     { label: 'CMS (Landing)', route: 'master.cms.index', phase: null, icon: 'globe' },

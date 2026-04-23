@@ -40,8 +40,8 @@ import MasterLayout from '@/Layouts/MasterLayout.vue';
                 <div class="rounded-xl bg-white ring-1 ring-slate-200 p-4">
                     <div class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Próximas fases</div>
                     <ul class="mt-3 space-y-2 text-sm text-slate-700">
-                        <li class="flex items-baseline gap-2"><span class="text-[10px] font-mono text-slate-400 w-8">M3</span> CRUD de tenants</li>
-                        <li class="flex items-baseline gap-2"><span class="text-[10px] font-mono text-slate-400 w-8">M4</span> Fazendas e 1º usuário por tenant</li>
+                        <li class="flex items-baseline gap-2"><span class="text-[10px] font-mono text-slate-400 w-8">M3</span> CRUD de clientes</li>
+                        <li class="flex items-baseline gap-2"><span class="text-[10px] font-mono text-slate-400 w-8">M4</span> Fazendas e 1º usuário por cliente</li>
                         <li class="flex items-baseline gap-2"><span class="text-[10px] font-mono text-slate-400 w-8">M5</span> Impersonação controlada</li>
                         <li class="flex items-baseline gap-2"><span class="text-[10px] font-mono text-slate-400 w-8">M6</span> Planos, assinaturas, cobranças</li>
                     </ul>

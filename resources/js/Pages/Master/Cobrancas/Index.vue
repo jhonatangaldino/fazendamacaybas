@@ -42,7 +42,7 @@ function marcarPendente(invoice) {
 
         <div class="mb-6">
             <h2 class="text-xl font-serif font-bold text-slate-900">Cobranças emitidas</h2>
-            <p class="mt-1 text-sm text-slate-600">Todas as invoices geradas para os tenants da plataforma.</p>
+            <p class="mt-1 text-sm text-slate-600">Todas as invoices geradas para os clientes da plataforma.</p>
         </div>
 
         <!-- Totais -->
@@ -88,7 +88,7 @@ function marcarPendente(invoice) {
         <div v-if="invoices.length === 0" class="rounded-2xl bg-white ring-1 ring-slate-200 p-10 text-center">
             <h3 class="text-sm font-semibold text-slate-900">Nenhuma cobrança encontrada</h3>
             <p class="mt-1 text-sm text-slate-500">
-                {{ filter_status ? 'Nenhuma cobrança com esse status.' : 'Gere cobranças a partir da página de assinatura de cada tenant.' }}
+                {{ filter_status ? 'Nenhuma cobrança com esse status.' : 'Gere cobranças a partir da página de assinatura de cada cliente.' }}
             </p>
         </div>
 
@@ -98,7 +98,7 @@ function marcarPendente(invoice) {
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
                             <th class="px-4 py-3 text-left font-medium">#</th>
-                            <th class="px-4 py-3 text-left font-medium">Tenant</th>
+                            <th class="px-4 py-3 text-left font-medium">Cliente</th>
                             <th class="px-4 py-3 text-right font-medium">Valor</th>
                             <th class="px-4 py-3 text-left font-medium">Status</th>
                             <th class="px-4 py-3 text-left font-medium hidden sm:table-cell">Emissão</th>

@@ -16,23 +16,23 @@ function toggle(tenant) {
 }
 
 function impersonate(tenant) {
-    if (! confirm(`Entrar no tenant "${tenant.nome}" em modo impersonação?\n\nVocê operará como tenant user deste cliente até sair da impersonação.`)) return;
+    if (! confirm(`Entrar no sistema do cliente "${tenant.nome}" em modo impersonação?\n\nVocê operará como usuário deste cliente até sair da impersonação.`)) return;
 
     router.post(route('master.tenants.impersonate', tenant.id));
 }
 </script>
 
 <template>
-    <Head title="Tenants · Plataforma" />
+    <Head title="Clientes · Plataforma" />
     <MasterLayout>
-        <template #page-title>Tenants</template>
+        <template #page-title>Clientes</template>
 
         <!-- Cabeçalho da página -->
         <div class="flex items-start justify-between gap-4 mb-6">
             <div>
                 <h2 class="text-xl font-serif font-bold text-slate-900">Clientes da plataforma</h2>
                 <p class="mt-1 text-sm text-slate-600">
-                    Gestão dos tenants (contas de cliente) que operam o sistema.
+                    Gestão dos clientes que operam o sistema.
                 </p>
             </div>
             <Link
@@ -40,7 +40,7 @@ function impersonate(tenant) {
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
             >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Novo Tenant
+                Novo Cliente
             </Link>
         </div>
 
@@ -49,7 +49,7 @@ function impersonate(tenant) {
             <div class="h-12 w-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
             </div>
-            <h3 class="mt-3 text-sm font-semibold text-slate-900">Nenhum tenant cadastrado</h3>
+            <h3 class="mt-3 text-sm font-semibold text-slate-900">Nenhum cliente cadastrado</h3>
             <p class="mt-1 text-sm text-slate-500">Comece cadastrando o primeiro cliente da plataforma.</p>
         </div>
 
@@ -96,7 +96,7 @@ function impersonate(tenant) {
                                     <button
                                         @click="impersonate(t)"
                                         :disabled="! t.is_active"
-                                        :title="t.is_active ? 'Impersonar este tenant' : 'Tenant inativo — ative para impersonar'"
+                                        :title="t.is_active ? 'Entrar no sistema deste cliente' : 'Cliente inativo — ative para entrar'"
                                         class="p-2 rounded-md hover:bg-amber-50 text-slate-600 hover:text-amber-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-600"
                                     >
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
