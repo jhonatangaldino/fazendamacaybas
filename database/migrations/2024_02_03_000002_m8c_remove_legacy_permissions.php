@@ -18,7 +18,7 @@ use Spatie\Permission\Models\Role;
  *     Durante impersonação, Gate::before (M8.B) libera operational.*
  *     dinamicamente — admin_master não precisa tê-las no DB.
  *  4. Roles operacionais (dono_fazenda etc.) perdem qualquer `platform.*`
- *     (ganhas em M8.A via users.*/fazendas.*/dashboard.view/roles.*)
+ *     (ganhas em M8.A via users/fazendas/dashboard.view/roles)
  *     — tenant users são PURAMENTE operational.
  *
  * RESET:
