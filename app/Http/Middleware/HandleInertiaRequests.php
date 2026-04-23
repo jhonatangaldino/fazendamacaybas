@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Farm;
 use App\Models\MenuUsage;
 use App\Models\Setting;
@@ -55,6 +56,27 @@ class HandleInertiaRequests extends Middleware
                     ->pluck('total', 'menu_key')
                     ->toArray()
                 : [],
+            // M5 — Sessão de impersonação ativa (banner global).
+            // Retorna null quando:
+            //   - não há session('impersonation')
+            //   - ou a session tem chave mas o tenant foi removido/inexistente
+            // O banner some automaticamente nesses casos.
+            'impersonation' => function () use ($request) {
+                $imp = $request->session()->get('impersonation');
+                if (! is_array($imp) || empty($imp['tenant_id'])) {
+                    return null;
+                }
+                $tenant = Tenant::find($imp['tenant_id']);
+                if (! $tenant) {
+                    return null;
+                }
+                return [
+                    'tenant_id' => (int) $tenant->id,
+                    'tenant_nome' => $tenant->nome,
+                    'started_at' => $imp['started_at'] ?? null,
+                ];
+            },
+
             // R2.6 — Contexto de fazenda ativo.
             // `currentFarm` é {id, nome} quando EnforceFarm resolveu (grupo admin autenticado).
             // `availableFarms` é listado apenas se houver >1 — consumido pelo topbar para

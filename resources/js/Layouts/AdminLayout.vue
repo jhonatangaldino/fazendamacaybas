@@ -5,6 +5,7 @@ import FlashMessages from '@/Components/FlashMessages.vue';
 import GlobalLoading from '@/Components/GlobalLoading.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 
 const page = usePage();
@@ -181,6 +182,7 @@ const iconPath = {
 <template>
     <GlobalLoading />
     <ToastContainer />
+    <ImpersonationBanner />
     <ConfirmDialog />
     <FlashMessages />
     <div class="min-h-screen flex bg-slate-50 w-full overflow-x-hidden">

@@ -14,6 +14,12 @@ function toggle(tenant) {
         preserveScroll: true,
     });
 }
+
+function impersonate(tenant) {
+    if (! confirm(`Entrar no tenant "${tenant.nome}" em modo impersonação?\n\nVocê operará como tenant user deste cliente até sair da impersonação.`)) return;
+
+    router.post(route('master.tenants.impersonate', tenant.id));
+}
 </script>
 
 <template>
@@ -86,6 +92,18 @@ function toggle(tenant) {
                             <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ t.created_at }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="inline-flex items-center gap-1">
+                                    <!-- M5: impersonar este tenant (só habilita se ativo) -->
+                                    <button
+                                        @click="impersonate(t)"
+                                        :disabled="! t.is_active"
+                                        :title="t.is_active ? 'Impersonar este tenant' : 'Tenant inativo — ative para impersonar'"
+                                        class="p-2 rounded-md hover:bg-amber-50 text-slate-600 hover:text-amber-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-600"
+                                    >
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                        </svg>
+                                    </button>
+
                                     <!-- M4: acesso às fazendas deste tenant -->
                                     <Link
                                         :href="route('master.tenants.farms.index', t.id)"

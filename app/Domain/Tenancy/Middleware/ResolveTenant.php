@@ -6,26 +6,33 @@ use Closure;
 use Illuminate\Http\Request;
 
 /**
- * ResolveTenant — R2.1
+ * ResolveTenant — R2.1 + M5
  *
- * Resolve o tenant_id do usuário autenticado e registra no container da aplicação,
- * tornando-o acessível via `app('tenant_id')` em qualquer ponto da request.
+ * Resolve `app('tenant_id')` de acordo com o tipo do request.
  *
- * Comportamento (R2.1):
- *   - Se há usuário autenticado com tenant_id preenchido → seta container
- *   - Se há usuário autenticado com tenant_id = NULL (master global) → não seta
- *   - Se não há usuário autenticado (rotas públicas) → não seta
- *   - NUNCA bloqueia request, NUNCA lança exception
+ * 3 BRANCHES (ordem de precedência):
  *
- * Este middleware é idempotente e seguro em rotas públicas — apenas não faz
- * nada quando não há contexto para resolver. Pode ser aplicado no grupo web
- * sem risco.
+ *   1. TENANT USER — user.tenant_id preenchido
+ *      → `app('tenant_id')` = user.tenant_id
+ *      Comportamento original (R2.1). Nunca alterado por impersonação:
+ *      tenant user tem tenant_id no DB, independente da sessão.
  *
- * Implicação downstream:
- *   - Trait BelongsToTenant usa app('tenant_id') no creating() para forçar
- *     o valor em novos registros (R2.3).
- *   - Detector de tenancy (R1.5) para de logar `retrieved_without_context`
- *     quando o container passa a ter o valor — comportamento esperado.
+ *   2. MASTER IMPERSONANDO — user.tenant_id NULL + session('impersonation')
+ *      → `app('tenant_id')` = session['impersonation']['tenant_id']
+ *      Entrega M5. Só ativa se:
+ *        - user é master (tenant_id NULL)
+ *        - session tem chave 'impersonation'
+ *        - impersonator_user_id da session bate com o user atual
+ *          (defesa contra session hijacking entre masters)
+ *
+ *   3. MASTER PURO — user.tenant_id NULL + sem session
+ *      → não binda
+ *      `BelongsToTenantScope` bypassa → master vê tudo na área platform.
+ *
+ * NÃO BLOQUEIA, NÃO LANÇA EXCEPTION.
+ * Se session de impersonação existir mas tenant_id for inválido/deletado,
+ * downstream (EnforceFarm, queries) cuida — não é papel deste middleware
+ * validar integridade do DB por request.
  */
 class ResolveTenant
 {
@@ -33,10 +40,29 @@ class ResolveTenant
     {
         $user = $request->user();
 
-        if ($user !== null && $user->tenant_id !== null) {
-            app()->instance('tenant_id', (int) $user->tenant_id);
+        if ($user === null) {
+            return $next($request);
         }
 
+        // BRANCH 1 — tenant user: autoritativo sobre qualquer session
+        if ($user->tenant_id !== null) {
+            app()->instance('tenant_id', (int) $user->tenant_id);
+
+            return $next($request);
+        }
+
+        // BRANCH 2 — master impersonando
+        $imp = $request->session()->get('impersonation');
+        if (is_array($imp)
+            && isset($imp['tenant_id'], $imp['impersonator_user_id'])
+            && (int) $imp['impersonator_user_id'] === (int) $user->id) {
+
+            app()->instance('tenant_id', (int) $imp['tenant_id']);
+
+            return $next($request);
+        }
+
+        // BRANCH 3 — master puro: deixa sem bind (scope R2.4 bypassa)
         return $next($request);
     }
 }

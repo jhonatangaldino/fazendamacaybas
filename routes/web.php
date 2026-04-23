@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
 use App\Http\Controllers\Master\FarmController as MasterFarmController;
+use App\Http\Controllers\Master\ImpersonationController;
 use App\Http\Controllers\Master\MasterDashboardController;
 use App\Http\Controllers\Master\TenantController;
 use App\Http\Controllers\Admin\DocumentController;
@@ -79,6 +80,14 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
     Route::get('tenants/{tenant}/editar', [TenantController::class, 'edit'])->name('tenants.edit');
     Route::put('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
     Route::post('tenants/{tenant}/toggle', [TenantController::class, 'toggle'])->name('tenants.toggle');
+
+    // M5 — Impersonação. `start` fica junto do tenant (POST /master/tenants/{tenant}/impersonate),
+    // `exit` em rota própria para ser chamável de qualquer contexto (admin ou master)
+    // via banner. Ambas passam por auth+enforce.master (master com tenant_id=NULL).
+    Route::post('tenants/{tenant}/impersonate', [ImpersonationController::class, 'start'])
+        ->name('tenants.impersonate');
+    Route::post('impersonation/sair', [ImpersonationController::class, 'exit'])
+        ->name('impersonation.exit');
 
     // M4 — Fazendas do tenant (sempre aninhadas). scopeBindings() garante
     // que {farm} pertença a {tenant} via Tenant::farms() relation — 404 se

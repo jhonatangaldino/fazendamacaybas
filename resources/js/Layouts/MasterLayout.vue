@@ -23,6 +23,7 @@ import { computed, ref } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import FlashMessages from '@/Components/FlashMessages.vue';
 import GlobalLoading from '@/Components/GlobalLoading.vue';
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 
 const page = usePage();
@@ -66,6 +67,7 @@ const menu = [
     <GlobalLoading />
     <ToastContainer />
     <FlashMessages />
+    <ImpersonationBanner />
 
     <div class="min-h-screen flex bg-slate-50">
         <!-- SIDEBAR -->
