@@ -46,24 +46,66 @@ trait BelongsToTenant
     /**
      * Hook de boot chamado automaticamente pelo Laravel ao usar o trait.
      * O nome `bootTraitName` é convenção do Eloquent.
+     *
+     * R2.3: o observer `creating` agora faz enforcement — preenche
+     * model->tenant_id = app('tenant_id'), sobrescrevendo qualquer valor
+     * vindo do request. Isso fecha o risco de mass-assignment cross-tenant.
+     *
+     * Os observers de `retrieved` e `updating` continuam apenas como detector
+     * (R1.5). Enforcement de leitura entra em R2.4, de update em R2.5.
      */
     public static function bootBelongsToTenant(): void
     {
-        if (! static::tenancyDetectorIsActive()) {
-            return;
-        }
-
         static::retrieved(function (Model $model) {
-            static::tenancyDetectorObserve($model, 'retrieved');
+            if (static::tenancyDetectorIsActive()) {
+                static::tenancyDetectorObserve($model, 'retrieved');
+            }
         });
 
         static::creating(function (Model $model) {
-            static::tenancyDetectorObserve($model, 'creating');
+            // R2.3 — ENFORCEMENT no creating (sempre roda, independente do detector)
+            static::enforceTenantOnCreating($model);
+
+            // Detector continua observando depois do enforcement
+            if (static::tenancyDetectorIsActive()) {
+                static::tenancyDetectorObserve($model, 'creating');
+            }
         });
 
         static::updating(function (Model $model) {
-            static::tenancyDetectorObserve($model, 'updating');
+            if (static::tenancyDetectorIsActive()) {
+                static::tenancyDetectorObserve($model, 'updating');
+            }
         });
+    }
+
+    /**
+     * R2.3 — Enforcement de tenant_id no create.
+     *
+     * Se o container tem tenant_id resolvido (ResolveTenant middleware rodou),
+     * sobrescreve tenant_id do model com o valor do container — protegendo
+     * contra mass-assignment cross-tenant via request body.
+     *
+     * Quando o container NÃO tem tenant_id (CLI, master global, rota sem
+     * ResolveTenant), não faz nada — respeitando o valor atual ou deixando
+     * que o DEFAULT 1 do banco (R1.2) atue.
+     *
+     * Esta função nunca lança exceção — é defensiva por design.
+     */
+    protected static function enforceTenantOnCreating(Model $model): void
+    {
+        if (! app()->bound('tenant_id')) {
+            return;
+        }
+
+        $containerTenant = app('tenant_id');
+
+        if ($containerTenant === null) {
+            return;
+        }
+
+        // Sobrescreve sempre — qualquer valor injetado via request é descartado
+        $model->tenant_id = (int) $containerTenant;
     }
 
     /**

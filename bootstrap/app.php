@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Tenancy\Middleware\ResolveTenant;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocaleTimezone;
 use Illuminate\Foundation\Application;
@@ -16,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
             SetLocaleTimezone::class,
+            // R2.1: resolve app('tenant_id') a partir do user autenticado.
+            // Posicionado ANTES do HandleInertiaRequests para que o share()
+            // possa enxergar o tenant já resolvido (uso futuro em R2+).
+            // Em rotas públicas ou sem user, o middleware passa sem efeito.
+            ResolveTenant::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
