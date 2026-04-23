@@ -10,6 +10,25 @@ use Inertia\Inertia;
 
 class PartnerController extends Controller
 {
+    /**
+     * ═════ D4 — Consolidação de Domínio · PARCEIROS ═════
+     *
+     * Regras legais brasileiras: CPF (11 dígitos) para pessoa física, CNPJ
+     * (14 dígitos, possivelmente alfanumérico por Resolução CGSIM 2026)
+     * para pessoa jurídica. Validação com DV usando os helpers globais
+     * `validarCpfStrict` e `validarCnpjStrict` de app/Support/br-validators.php.
+     *
+     * O schema usa `pessoa` (pf|pj) — campo que representa a natureza jurídica.
+     * O brief chama de "tipo = pessoa_fisica/pessoa_juridica"; aplicamos a
+     * regra no campo real `pessoa`.
+     *
+     * RETROCOMPAT:
+     *   - Em UPDATE, as regras só disparam quando `pessoa` OU `documento`
+     *     mudou. Parceiros legados com documento formatado, com CPF em
+     *     PJ etc. continuam editáveis sem forçar retrabalho, desde que
+     *     o usuário não mexa nos campos afetados.
+     *   - Cadastros novos (store) sempre validam.
+     */
     public function index(Request $request)
     {
         $q = Partner::query()
@@ -34,6 +53,12 @@ class PartnerController extends Controller
     public function store(Request $request)
     {
         $data = $this->validatePartner($request);
+
+        // D4 · Coerência pessoa ↔ documento
+        if ($err = $this->validateDomainCoherence($data, null)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         Partner::create($data);
 
         return redirect()->route('admin.parceiros.index')->with('success', 'Parceiro cadastrado.');
@@ -47,6 +72,13 @@ class PartnerController extends Controller
     public function update(Request $request, Partner $parceiro)
     {
         $data = $this->validatePartner($request, $parceiro->id);
+
+        // D4 · Coerência pessoa ↔ documento — aplicada em update apenas se
+        // `pessoa` OU `documento` mudou (retrocompat p/ cadastros legados).
+        if ($err = $this->validateDomainCoherence($data, $parceiro)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         $parceiro->update($data);
 
         return redirect()->route('admin.parceiros.index')->with('success', 'Parceiro atualizado.');
@@ -81,5 +113,79 @@ class PartnerController extends Controller
             'observacoes' => ['nullable', 'string'],
             'is_active' => ['boolean'],
         ]);
+    }
+
+    /**
+     * D4 · Valida coerência entre `pessoa` e `documento` conforme regras
+     * legais brasileiras (CPF 11 dígitos p/ PF; CNPJ 14 alfanuméricos p/ PJ).
+     *
+     * Retorna string de erro amigável ou null se tudo coerente.
+     *
+     * Regras aplicadas:
+     *   1. pessoa=pf → `documento` obrigatório, deve ser CPF válido com DV
+     *   2. pessoa=pj → `documento` obrigatório, deve ser CNPJ válido com DV
+     *      (aceita formato alfanumérico por Resolução CGSIM 2026)
+     *   3. Bloqueia incoerência — CPF 11 dígitos em PJ ou CNPJ 14 em PF
+     *
+     * Em UPDATE, só dispara se `pessoa` ou `documento` MUDARAM.
+     */
+    protected function validateDomainCoherence(array $data, ?Partner $existing): ?string
+    {
+        $pessoa = $data['pessoa'] ?? null;
+        $docNovo = trim((string) ($data['documento'] ?? ''));
+
+        if (! in_array($pessoa, ['pf', 'pj'], true)) {
+            return null; // já validado pelo validator base
+        }
+
+        // Em update, só valida se pessoa ou documento mudaram — preserva legado.
+        if ($existing !== null) {
+            $pessoaMudou = $pessoa !== $existing->pessoa;
+            $docMudou = $docNovo !== (string) ($existing->documento ?? '');
+            if (! $pessoaMudou && ! $docMudou) {
+                return null;
+            }
+        }
+
+        // Documento obrigatório (em ambos os tipos).
+        if ($docNovo === '') {
+            return $pessoa === 'pf'
+                ? 'Pessoa física exige CPF. Preencha o campo Documento com um CPF válido (11 dígitos).'
+                : 'Pessoa jurídica exige CNPJ. Preencha o campo Documento com um CNPJ válido (14 dígitos, permite alfanumérico).';
+        }
+
+        // Normaliza — remove máscara (pontuação) para checar dígitos/alfa.
+        $digitsOnly = apenasDigitos($docNovo);
+        $alphaNum = apenasAlfaNum($docNovo);
+
+        // ── Regra PF ────────────────────────────────────────────────────────
+        if ($pessoa === 'pf') {
+            if (strlen($digitsOnly) !== 11) {
+                return 'Pessoa física exige CPF válido com 11 dígitos. '
+                    . "O documento informado tem " . strlen($digitsOnly) . ' dígito(s). '
+                    . 'Se digitou um CNPJ (14 dígitos), troque o tipo do parceiro para "Pessoa jurídica".';
+            }
+            if (! validarCpfStrict($docNovo)) {
+                return 'O CPF informado é inválido (dígitos verificadores não conferem). '
+                    . 'Verifique os números digitados e tente novamente.';
+            }
+
+            return null;
+        }
+
+        // ── Regra PJ ────────────────────────────────────────────────────────
+        // $pessoa === 'pj'
+        if (strlen($alphaNum) !== 14) {
+            return 'Pessoa jurídica exige CNPJ válido com 14 caracteres. '
+                . "O documento informado tem " . strlen($alphaNum) . ' caractere(s). '
+                . 'Se digitou um CPF (11 dígitos), troque o tipo do parceiro para "Pessoa física".';
+        }
+        if (! validarCnpjStrict($docNovo)) {
+            return 'O CNPJ informado é inválido (dígitos verificadores não conferem). '
+                . 'Verifique os números digitados. O sistema aceita o formato alfanumérico '
+                . 'conforme Resolução CGSIM 2026.';
+        }
+
+        return null;
     }
 }
