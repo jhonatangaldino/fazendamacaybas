@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Tenancy\Middleware\EnforceFarm;
 use App\Domain\Tenancy\Middleware\ResolveTenant;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocaleTimezone;
@@ -30,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            // R2.6: resolve app('farm_id') e guia o usuário quando há múltiplas
+            // fazendas no tenant. Aplicado SOMENTE no grupo admin — nunca em
+            // rotas públicas, login ou recuperação de senha.
+            'enforce.farm' => EnforceFarm::class,
         ]);
 
         // Usuário já logado tentando acessar /login: manda pro dashboard

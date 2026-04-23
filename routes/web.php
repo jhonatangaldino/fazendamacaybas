@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\Cms\CmsController;
 use App\Http\Controllers\Admin\Cms\MenuController;
 use App\Http\Controllers\Admin\Cms\SettingsController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\EmployeeController;
@@ -61,11 +62,19 @@ Route::middleware('auth')->group(function () {
 });
 
 // ===================== ÁREA ADMIN =====================
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+// enforce.farm (R2.6): resolve app('farm_id') ou redireciona ao seletor
+// quando o tenant tiver múltiplas fazendas. Rotas fazenda.select/switch
+// estão na whitelist interna do middleware.
+Route::middleware(['auth', 'enforce.farm'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', fn () => redirect()->route('admin.dashboard'));
 
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:dashboard.view')->name('dashboard');
+
+    // ------- FAZENDA (seleção e troca) -------
+    // Rotas whitelistadas pelo EnforceFarm — acessíveis mesmo sem farm ativa.
+    Route::get('fazenda/selecionar', [FarmSelectionController::class, 'select'])->name('fazenda.select');
+    Route::post('fazenda/trocar', [FarmSelectionController::class, 'switch'])->name('fazenda.switch');
 
     // Contador de uso dos itens da sidebar — alimenta a ordenação "mais usados no topo"
     Route::post('menu-usage', [MenuUsageController::class, 'bump'])->name('menu-usage.bump');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Farm;
 use App\Models\MenuUsage;
 use App\Models\Setting;
 use Illuminate\Http\Request;
@@ -54,6 +55,37 @@ class HandleInertiaRequests extends Middleware
                     ->pluck('total', 'menu_key')
                     ->toArray()
                 : [],
+            // R2.6 — Contexto de fazenda ativo.
+            // `currentFarm` é {id, nome} quando EnforceFarm resolveu (grupo admin autenticado).
+            // `availableFarms` é listado apenas se houver >1 — consumido pelo topbar para
+            // decidir se renderiza o badge/dropdown (regra UX: zero fricção com 1 fazenda).
+            // Ambos usam o cache de request `tenant_farms` populado pelo EnforceFarm,
+            // então não há query adicional por request.
+            'currentFarm' => function () use ($request) {
+                if (! app()->bound('farm_id')) {
+                    return null;
+                }
+                $farmId = (int) app('farm_id');
+                $farms = app()->bound('tenant_farms') ? app('tenant_farms') : collect();
+                $farm = $farms->firstWhere('id', $farmId);
+                if (! $farm) {
+                    return null;
+                }
+                return ['id' => (int) $farm->id, 'nome' => $farm->nome];
+            },
+            'availableFarms' => function () use ($request) {
+                if (! app()->bound('tenant_farms')) {
+                    return [];
+                }
+                $farms = app('tenant_farms');
+                if ($farms->count() <= 1) {
+                    return []; // topbar oculta com 1 fazenda
+                }
+                return $farms->map(fn ($f) => [
+                    'id' => (int) $f->id,
+                    'nome' => $f->nome,
+                ])->values()->all();
+            },
             'settings' => fn () => [
                 'logo' => Setting::getValue('site.logo'),
                 'favicon' => Setting::getValue('site.favicon'),

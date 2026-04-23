@@ -15,6 +15,20 @@ const siteNome = computed(() => page.props.settings?.nome || 'Macaybas');
 const menuUsage = computed(() => page.props.menuUsage || {});
 const menuUsageGlobal = computed(() => page.props.menuUsageGlobal || {});
 
+// R2.6 — contexto de fazenda.
+// `availableFarms` só é preenchido pelo backend quando há >1 fazenda no tenant.
+// Com 1 fazenda: [] → badge NÃO renderiza (regra UX: zero fricção).
+const currentFarm = computed(() => page.props.currentFarm || null);
+const availableFarms = computed(() => page.props.availableFarms || []);
+const showFarmBadge = computed(() => availableFarms.value.length > 1);
+const farmMenuOpen = ref(false);
+
+function switchFarm(farmId) {
+    farmMenuOpen.value = false;
+    if (currentFarm.value && currentFarm.value.id === farmId) return;
+    router.post(route('admin.fazenda.switch'), { farm_id: farmId });
+}
+
 /**
  * Score de uso: prioriza o uso pessoal (peso 10) sobre o global (peso 1).
  * Assim usuários sem histórico ainda veem a ordem "mais usados na fazenda";
@@ -224,6 +238,38 @@ const iconPath = {
                 </div>
 
                 <div class="flex items-center gap-3 relative">
+                    <!-- R2.6 — Badge de fazenda ativa (só aparece se houver >1 fazenda) -->
+                    <div v-if="showFarmBadge" class="relative">
+                        <button
+                            @click="farmMenuOpen = !farmMenuOpen"
+                            class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-macaybas-primary-50 text-macaybas-primary-800 hover:bg-macaybas-primary-100 text-sm font-medium"
+                            :title="currentFarm?.nome"
+                        >
+                            <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                            <span class="max-w-[140px] truncate hidden sm:inline">{{ currentFarm?.nome || 'Escolher fazenda' }}</span>
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+
+                        <div v-if="farmMenuOpen" @click.away="farmMenuOpen = false"
+                             class="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg ring-1 ring-slate-200 py-2 z-30">
+                            <div class="px-4 py-2 text-xs uppercase tracking-widest text-slate-500 font-semibold">Fazendas</div>
+                            <button
+                                v-for="farm in availableFarms"
+                                :key="farm.id"
+                                @click="switchFarm(farm.id)"
+                                class="w-full flex items-center justify-between text-left px-4 py-2 text-sm hover:bg-slate-50"
+                                :class="currentFarm?.id === farm.id ? 'text-macaybas-primary-800 font-semibold' : 'text-slate-700'"
+                            >
+                                <span class="truncate">{{ farm.nome }}</span>
+                                <svg v-if="currentFarm?.id === farm.id" class="h-4 w-4 text-macaybas-primary-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
                     <a href="/" target="_blank" class="hidden sm:flex items-center gap-2 text-sm text-slate-600 hover:text-macaybas-primary">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                         Ver site público
