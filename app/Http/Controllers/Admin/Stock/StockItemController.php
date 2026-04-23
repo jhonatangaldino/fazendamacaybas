@@ -15,6 +15,39 @@ use Inertia\Inertia;
 
 class StockItemController extends Controller
 {
+    /**
+     * ═════ D3 — Consolidação de Domínio · ESTOQUE ═════
+     *
+     * Regras condicionais ao `tipo` do item. Espelha o padrão aplicado em D2
+     * (Rebanho): matriz de regras em constants + método validateDomainCoherence
+     * chamado em store/update, com retrocompat para registros legados.
+     *
+     * RETROCOMPATIBILIDADE:
+     *   - Tipos NÃO listados nas matrizes (ferramenta, peca, material, combustivel)
+     *     passam sem validação extra — fallback permissivo.
+     *   - Em update, regras só aplicam a CAMPOS QUE MUDARAM (items cadastrados
+     *     antes destas regras continuam editáveis sem exigir retrabalho).
+     */
+
+    /** Tipos que exigem registro no Ministério da Saúde. */
+    private const TIPOS_EXIGEM_REGISTRO_MS = ['medicamento'];
+
+    /**
+     * Tipos que exigem `descricao` com contexto real de uso.
+     * Evita cadastros genéricos ("Ração", "Insumo") sem indicar público-alvo,
+     * composição ou finalidade — o que torna o estoque inútil na operação.
+     */
+    private const TIPOS_EXIGEM_DESCRICAO = ['racao', 'insumo'];
+
+    /** Mínimo de caracteres da descrição contextual. */
+    private const DESCRICAO_MIN_CHARS = 10;
+
+    /** Orientação específica por tipo (texto de ajuda no bloqueio). */
+    private const DICAS_DESCRICAO = [
+        'racao'  => "Ex.: 'Ração 20% proteína para bezerros em desmame' ou 'Ração peletizada para postura fase 2'.",
+        'insumo' => "Ex.: 'NPK 08-28-16 para plantio de milho' ou 'Calcário dolomítico para correção de solo'.",
+    ];
+
     public function index(Request $request)
     {
         $q = StockItem::with('category:id,nome')
@@ -68,6 +101,12 @@ class StockItemController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateItem($request);
+
+        // D3 · Coerência por tipo
+        if ($err = $this->validateDomainCoherence($data, null)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         StockItem::create($data);
 
         return redirect()->route('admin.estoque.itens.index')->with('success', 'Item cadastrado.');
@@ -84,6 +123,13 @@ class StockItemController extends Controller
     public function update(Request $request, StockItem $item)
     {
         $data = $this->validateItem($request, $item->id);
+
+        // D3 · Coerência também em update, respeitando legado:
+        // regras só aplicam a campos que MUDARAM.
+        if ($err = $this->validateDomainCoherence($data, $item)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         $item->update($data);
 
         return redirect()->route('admin.estoque.itens.index')->with('success', 'Item atualizado.');
@@ -207,5 +253,77 @@ class StockItemController extends Controller
             'registro_ms' => ['nullable', 'string', 'max:50'],
             'is_active' => ['boolean'],
         ]);
+    }
+
+    /**
+     * D3 · Valida coerência entre os dados do item e o tipo selecionado.
+     *
+     * Retorna string com mensagem amigável ou null se tudo coerente.
+     *
+     * Regras por tipo:
+     *   1. medicamento → registro_ms obrigatório (regulação sanitária)
+     *   2. racao       → descrição contextual obrigatória (evitar item genérico)
+     *   3. insumo      → descrição contextual obrigatória (composição/cultura)
+     *
+     * Em UPDATE ($existing != null), cada regra só dispara para o campo que
+     * MUDOU OU quando o TIPO mudou (virou medicamento/racao/insumo agora).
+     * Items legados não são penalizados retroativamente.
+     *
+     * NOTA sobre "controle de validade" para medicamentos: o schema atual
+     * não tem campo `data_validade` em stock_items (validade é por lote,
+     * deveria ficar no stock_movements de entrada). A validação de validade
+     * fica para D3.1 quando adicionarmos o campo; aqui nos limitamos ao
+     * registro_ms, que é inequívoco e tem coluna.
+     */
+    protected function validateDomainCoherence(array $data, ?StockItem $existing): ?string
+    {
+        $tipo = $data['tipo'] ?? null;
+        if (! $tipo) {
+            return null; // já validado pelo validator base (required)
+        }
+
+        $tipoMudou = $existing === null || $tipo !== $existing->tipo;
+
+        // ── R1. MEDICAMENTO exige registro_ms ──────────────────────────────
+        if (in_array($tipo, self::TIPOS_EXIGEM_REGISTRO_MS, true)) {
+            $regNovo = trim((string) ($data['registro_ms'] ?? ''));
+            $regAntigo = (string) ($existing->registro_ms ?? '');
+            $regMudou = $existing === null || $regNovo !== $regAntigo;
+
+            // Só bloqueia se:
+            //   - é cadastro novo (sempre valida) OU
+            //   - é update que mudou o tipo para medicamento OU
+            //   - é update que mexeu no próprio registro_ms
+            $deveValidar = $existing === null || $tipoMudou || $regMudou;
+
+            if ($deveValidar && $regNovo === '') {
+                return 'Medicamentos exigem registro no Ministério da Saúde. '
+                    . "Preencha o campo 'Registro MS' (ex.: MS 1.2345.6789) antes de salvar. "
+                    . 'Este número garante rastreabilidade sanitária obrigatória por lei.';
+            }
+        }
+
+        // ── R2/R3. RACAO e INSUMO exigem descrição contextual ──────────────
+        if (in_array($tipo, self::TIPOS_EXIGEM_DESCRICAO, true)) {
+            $descNova = trim((string) ($data['descricao'] ?? ''));
+            $descAntiga = trim((string) ($existing->descricao ?? ''));
+            $descMudou = $existing === null || $descNova !== $descAntiga;
+
+            $deveValidar = $existing === null || $tipoMudou || $descMudou;
+
+            if ($deveValidar && mb_strlen($descNova) < self::DESCRICAO_MIN_CHARS) {
+                $rotulo = $tipo === 'racao' ? 'Ração' : 'Insumo agrícola';
+                $motivo = $tipo === 'racao'
+                    ? 'indique para qual animal/fase ou finalidade se destina'
+                    : 'indique composição, finalidade ou cultura aplicável';
+                $dica = self::DICAS_DESCRICAO[$tipo] ?? '';
+
+                return "{$rotulo} exige descrição com contexto real ("
+                    . self::DESCRICAO_MIN_CHARS . ' caracteres no mínimo). Use o campo "Descrição" para '
+                    . $motivo . '. ' . $dica;
+            }
+        }
+
+        return null;
     }
 }
