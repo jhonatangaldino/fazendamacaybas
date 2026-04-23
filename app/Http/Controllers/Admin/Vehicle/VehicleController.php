@@ -258,17 +258,27 @@ class VehicleController extends Controller
         ]);
     }
 
-    public function maintenanceStore(Request $request)
+    /**
+     * FASE 2 · F2.4 — Integração cross-módulo:
+     *   Quando a order é status=concluida com valor_total>0, o
+     *   MaintenanceToExpenseService gera automaticamente uma
+     *   FinancialTransaction de despesa. Coexiste com o fluxo manual
+     *   opcional (checkbox `gerar_lancamento_financeiro`): o service
+     *   respeita `order->transaction_id` e não duplica se o fluxo
+     *   manual já criou uma FT.
+     */
+    public function maintenanceStore(Request $request, \App\Domain\Integration\Services\MaintenanceToExpenseService $maintExpense)
     {
         $data = $this->validateMaintenance($request);
         $generateTx = $request->boolean('gerar_lancamento_financeiro');
         $accountId = $request->input('account_id');
 
-        DB::transaction(function () use ($data, $generateTx, $accountId, $request) {
+        DB::transaction(function () use ($data, $generateTx, $accountId, $request, $maintExpense) {
             $data['valor_total'] = ($data['valor_pecas'] ?? 0) + ($data['valor_servico'] ?? 0);
             $data['created_by'] = $request->user()->id;
             $order = MaintenanceOrder::create($data);
 
+            // ── Fluxo manual antigo preservado (user marcou checkbox) ──
             if ($generateTx && $accountId && $data['valor_total'] > 0) {
                 $tx = FinancialTransaction::create([
                     'account_id' => $accountId,
@@ -283,16 +293,31 @@ class VehicleController extends Controller
                 ]);
                 $order->update(['transaction_id' => $tx->id]);
             }
+
+            // ── F2.4 · Integração automática ──
+            // Service respeita transaction_id já populado (não duplica
+            // se o fluxo manual acima gerou). Dispara se status=concluida
+            // + valor>0 + ainda sem FT associada.
+            $order->loadMissing('vehicle');
+            $maintExpense->generateForOrder($order);
         });
 
         return back()->with('success', 'Manutenção registrada.');
     }
 
-    public function maintenanceUpdate(Request $request, MaintenanceOrder $order)
+    public function maintenanceUpdate(Request $request, MaintenanceOrder $order, \App\Domain\Integration\Services\MaintenanceToExpenseService $maintExpense)
     {
         $data = $this->validateMaintenance($request);
         $data['valor_total'] = ($data['valor_pecas'] ?? 0) + ($data['valor_servico'] ?? 0);
-        $order->update($data);
+
+        // Envolve update em DB::transaction para atomicidade com a integração.
+        // Caso típico: manutenção muda de "em_andamento" para "concluida" em
+        // update; nesse momento o F2.4 deve disparar.
+        DB::transaction(function () use ($order, $data, $maintExpense) {
+            $order->update($data);
+            $order->loadMissing('vehicle');
+            $maintExpense->generateForOrder($order);
+        });
 
         return back()->with('success', 'Manutenção atualizada.');
     }
