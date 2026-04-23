@@ -2,6 +2,8 @@
 
 namespace App\Domain\Billing\Models;
 
+use App\Models\Cms\Menu as CmsMenu;
+use App\Models\Cms\Page as CmsPage;
 use App\Models\Farm;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -65,5 +67,17 @@ class Tenant extends Model
     public function farms(): HasMany
     {
         return $this->hasMany(Farm::class);
+    }
+
+    /* ───── CMS por cliente (CMS.A) ───── */
+
+    public function pages(): HasMany
+    {
+        return $this->hasMany(CmsPage::class, 'tenant_id');
+    }
+
+    public function menus(): HasMany
+    {
+        return $this->hasMany(CmsMenu::class, 'tenant_id');
     }
 }

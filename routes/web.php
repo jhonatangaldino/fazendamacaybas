@@ -5,6 +5,9 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
 use App\Http\Controllers\Admin\PendingPaymentController;
+use App\Http\Controllers\Master\Clientes\Cms\CmsController as ClientesCmsController;
+use App\Http\Controllers\Master\Clientes\Cms\MenuController as ClientesCmsMenuController;
+use App\Http\Controllers\Master\Clientes\Cms\SettingsController as ClientesCmsSettingsController;
 use App\Http\Controllers\Master\Cms\CmsController as MasterCmsController;
 use App\Http\Controllers\Master\Cms\MenuController as MasterCmsMenuController;
 use App\Http\Controllers\Master\Cms\SettingsController as MasterCmsSettingsController;
@@ -137,6 +140,36 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
     Route::put('cms/configuracoes', [MasterCmsSettingsController::class, 'update'])->name('cms.settings.update');
     Route::post('cms/configuracoes/upload', [MasterCmsSettingsController::class, 'uploadFile'])->name('cms.settings.upload');
     Route::post('cms/configuracoes/remover-arquivo', [MasterCmsSettingsController::class, 'removeFile'])->name('cms.settings.remove-file');
+
+    // CMS por cliente (CMS.A) — master edita o CMS/landing de UM cliente específico.
+    // Paralelo ao CMS legado (/master/cms/*), que continua funcionando para
+    // compatibilidade (base de dados com 1 cliente). Quando um 2º cliente for
+    // cadastrado, o fluxo correto é entrar por /master/clientes/{cliente}/cms.
+    Route::prefix('clientes/{cliente}')->name('clientes.')->group(function () {
+        // Páginas
+        Route::get('cms', [ClientesCmsController::class, 'index'])->name('cms.index');
+        Route::get('cms/pagina/{page}', [ClientesCmsController::class, 'edit'])->name('cms.edit');
+        Route::put('cms/pagina/{page}', [ClientesCmsController::class, 'updatePage'])->name('cms.update-page');
+        Route::put('cms/secao/{section}/rascunho', [ClientesCmsController::class, 'saveSectionDraft'])->name('cms.section.draft');
+        Route::post('cms/secao/{section}/publicar', [ClientesCmsController::class, 'publishSection'])->name('cms.section.publish');
+        Route::post('cms/secao/{section}/toggle', [ClientesCmsController::class, 'toggleActive'])->name('cms.section.toggle');
+        Route::post('cms/pagina/{page}/publicar-tudo', [ClientesCmsController::class, 'publishAll'])->name('cms.publish-all');
+        Route::post('cms/pagina/{page}/reordenar', [ClientesCmsController::class, 'reorderSections'])->name('cms.reorder');
+        Route::post('cms/upload-imagem', [ClientesCmsController::class, 'uploadImage'])->name('cms.upload-image');
+
+        // Menus
+        Route::get('cms/menus', [ClientesCmsMenuController::class, 'index'])->name('cms.menus.index');
+        Route::post('cms/menus/{menu}/items', [ClientesCmsMenuController::class, 'storeItem'])->name('cms.menus.items.store');
+        Route::put('cms/menus/items/{item}', [ClientesCmsMenuController::class, 'updateItem'])->name('cms.menus.items.update');
+        Route::delete('cms/menus/items/{item}', [ClientesCmsMenuController::class, 'destroyItem'])->name('cms.menus.items.destroy');
+        Route::post('cms/menus/{menu}/reordenar', [ClientesCmsMenuController::class, 'reorder'])->name('cms.menus.reorder');
+
+        // Configurações (settings per-cliente)
+        Route::get('cms/configuracoes', [ClientesCmsSettingsController::class, 'index'])->name('cms.settings');
+        Route::put('cms/configuracoes', [ClientesCmsSettingsController::class, 'update'])->name('cms.settings.update');
+        Route::post('cms/configuracoes/upload', [ClientesCmsSettingsController::class, 'uploadFile'])->name('cms.settings.upload');
+        Route::post('cms/configuracoes/remover-arquivo', [ClientesCmsSettingsController::class, 'removeFile'])->name('cms.settings.remove-file');
+    });
 
     // M4 — Fazendas do tenant (sempre aninhadas). scopeBindings() garante
     // que {farm} pertença a {tenant} via Tenant::farms() relation — 404 se

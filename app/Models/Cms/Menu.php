@@ -2,14 +2,17 @@
 
 namespace App\Models\Cms;
 
+use App\Models\Cms\Concerns\BelongsToClient;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Menu extends Model
 {
+    use BelongsToClient;
+
     protected $table = 'cms_menus';
 
-    protected $fillable = ['slug', 'nome', 'local', 'is_active'];
+    protected $fillable = ['tenant_id', 'slug', 'nome', 'local', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
 
