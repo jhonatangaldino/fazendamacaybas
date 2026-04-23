@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\Cms\SettingsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
+use App\Http\Controllers\Master\FarmController as MasterFarmController;
 use App\Http\Controllers\Master\MasterDashboardController;
 use App\Http\Controllers\Master\TenantController;
 use App\Http\Controllers\Admin\DocumentController;
@@ -78,6 +79,19 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
     Route::get('tenants/{tenant}/editar', [TenantController::class, 'edit'])->name('tenants.edit');
     Route::put('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
     Route::post('tenants/{tenant}/toggle', [TenantController::class, 'toggle'])->name('tenants.toggle');
+
+    // M4 — Fazendas do tenant (sempre aninhadas). scopeBindings() garante
+    // que {farm} pertença a {tenant} via Tenant::farms() relation — 404 se
+    // alguém tentar GET /master/tenants/1/fazendas/42/editar onde 42 é
+    // farm de outro tenant.
+    Route::prefix('tenants/{tenant}')->name('tenants.')->scopeBindings()->group(function () {
+        Route::get('fazendas', [MasterFarmController::class, 'index'])->name('farms.index');
+        Route::get('fazendas/nova', [MasterFarmController::class, 'create'])->name('farms.create');
+        Route::post('fazendas', [MasterFarmController::class, 'store'])->name('farms.store');
+        Route::get('fazendas/{farm}/editar', [MasterFarmController::class, 'edit'])->name('farms.edit');
+        Route::put('fazendas/{farm}', [MasterFarmController::class, 'update'])->name('farms.update');
+        Route::post('fazendas/{farm}/toggle', [MasterFarmController::class, 'toggle'])->name('farms.toggle');
+    });
 });
 
 // ===================== ÁREA ADMIN =====================
