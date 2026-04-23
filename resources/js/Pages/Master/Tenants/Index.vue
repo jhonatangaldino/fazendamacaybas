@@ -1,7 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
+import Icon from '@/Components/Icon.vue';
+import Alert from '@/Components/Alert.vue';
+import OverflowMenu from '@/Components/OverflowMenu.vue';
+import OverflowMenuItem from '@/Components/OverflowMenuItem.vue';
+import OverflowMenuDivider from '@/Components/OverflowMenuDivider.vue';
 import { useToast } from '@/composables/useToast.js';
 
 defineProps({
@@ -20,25 +25,9 @@ const createdVisible = ref(true); // permite fechar o card sem reload
 // criação. Guarda o texto a copiar e o nome do cliente que gerou.
 const deliveryDialog = ref({ open: false, tenant: null, message: '' });
 
-// Menu overflow por linha ("⋯"): guarda o id do tenant cujo menu está aberto.
-// Só um menu por vez — abrir outro fecha o anterior.
-const openMenuId = ref(null);
-function toggleMenu(id) {
-    openMenuId.value = openMenuId.value === id ? null : id;
-}
-function closeMenu() {
-    openMenuId.value = null;
-}
-
-// Fecha o menu ao clicar fora (event delegation no document).
-function handleDocumentClick(event) {
-    if (! openMenuId.value) return;
-    // Se o alvo está dentro de algum [data-tenant-menu], ignora.
-    if (event.target.closest('[data-tenant-menu]')) return;
-    closeMenu();
-}
-onMounted(() => document.addEventListener('click', handleDocumentClick));
-onBeforeUnmount(() => document.removeEventListener('click', handleDocumentClick));
+// Menu overflow é agora responsabilidade do componente <OverflowMenu/>,
+// que encapsula estado open/close + click-outside + esc. Uma instância
+// por linha, sem coordenação externa.
 
 function toggle(tenant) {
     const verbo = tenant.is_active ? 'desativar' : 'reativar';
@@ -101,78 +90,52 @@ async function copyDeliveryMessage() {
         <template #page-title>Clientes</template>
 
         <!-- Banner pós-criação: "Página pronta para uso" -->
-        <div
+        <Alert
             v-if="createdTenant && createdVisible"
-            class="mb-6 rounded-2xl bg-emerald-50 ring-2 ring-emerald-300 p-6"
+            variant="success"
+            title="Página pronta para uso"
+            dismissible
+            class="mb-6"
+            @dismiss="createdVisible = false"
         >
-            <div class="flex items-start gap-4">
-                <div class="h-12 w-12 rounded-full bg-emerald-500 text-white flex items-center justify-center flex-shrink-0">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="font-serif text-lg font-bold text-emerald-900">
-                        Página pronta para uso
-                    </h3>
-                    <p class="mt-1 text-sm text-emerald-800">
-                        O cliente <strong>{{ createdTenant.nome }}</strong> foi criado com landing padrão.
-                        Compartilhe o link abaixo para ele começar a usar.
-                    </p>
+            <p>
+                O cliente <strong>{{ createdTenant.nome }}</strong> foi criado com landing padrão.
+                Compartilhe o link abaixo para ele começar a usar.
+            </p>
 
-                    <div class="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white ring-1 ring-emerald-200 text-sm font-mono text-slate-800 max-w-full">
-                        <svg class="h-4 w-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-                        </svg>
-                        <span class="truncate">{{ createdTenant.landing_url }}</span>
-                    </div>
+            <div class="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white ring-1 ring-emerald-200 text-sm font-mono text-slate-800 max-w-full">
+                <Icon name="external-link" :size="16" class="text-slate-400" />
+                <span class="truncate">{{ createdTenant.landing_url }}</span>
+            </div>
 
-                    <div class="mt-4 flex flex-wrap items-center gap-2">
-                        <a
-                            :href="createdTenant.landing_url"
-                            target="_blank"
-                            rel="noopener"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
-                        >
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                            </svg>
-                            Abrir página
-                        </a>
-                        <button
-                            type="button"
-                            @click="openDeliveryDialog({ nome: createdTenant.nome, slug: createdTenant.slug, landing_url: createdTenant.landing_url }, createdTenant.delivery_message)"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white ring-1 ring-emerald-300 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
-                        >
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
-                            </svg>
-                            Mensagem de entrega
-                        </button>
-                        <Link
-                            :href="route('master.clientes.cms.settings', createdTenant.id)"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white ring-1 ring-emerald-300 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
-                        >
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                            Configurar landing
-                        </Link>
-                    </div>
-                </div>
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+                <a
+                    :href="createdTenant.landing_url"
+                    target="_blank"
+                    rel="noopener"
+                    v-tooltip="'Abrir em nova aba'"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+                >
+                    <Icon name="external-link" :size="16" />
+                    Abrir página
+                </a>
                 <button
                     type="button"
-                    @click="createdVisible = false"
-                    class="h-8 w-8 flex items-center justify-center rounded-full hover:bg-emerald-100 text-emerald-800 flex-shrink-0"
-                    aria-label="Fechar"
+                    @click="openDeliveryDialog({ nome: createdTenant.nome, slug: createdTenant.slug, landing_url: createdTenant.landing_url }, createdTenant.delivery_message)"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white ring-1 ring-emerald-300 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
                 >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+                    <Icon name="copy" :size="16" />
+                    Mensagem de entrega
                 </button>
+                <Link
+                    :href="route('master.clientes.cms.settings', createdTenant.id)"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white ring-1 ring-emerald-300 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
+                >
+                    <Icon name="cog" :size="16" />
+                    Configurar landing
+                </Link>
             </div>
-        </div>
+        </Alert>
 
         <!-- Cabeçalho da página -->
         <div class="flex items-start justify-between gap-4 mb-6">
@@ -269,100 +232,50 @@ async function copyDeliveryMessage() {
                                         :href="t.landing_url"
                                         target="_blank"
                                         rel="noopener"
-                                        :title="`Abrir ${t.landing_url}`"
+                                        v-tooltip="`Abrir ${t.landing_url}`"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:text-macaybas-primary"
                                     >
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                        </svg>
-                                        Ver página
+                                        <Icon name="external-link" :size="14" />
+                                        <span class="hidden sm:inline">Ver página</span>
                                     </a>
 
                                     <!-- Ação primária 2: CMS do cliente -->
                                     <Link
                                         :href="route('master.clientes.cms.index', t.id)"
-                                        :title="`Abrir CMS de ${t.nome}`"
+                                        v-tooltip="`Abrir CMS de ${t.nome}`"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white hover:bg-slate-800"
                                     >
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        CMS
+                                        <Icon name="globe" :size="14" />
+                                        <span class="hidden sm:inline">CMS</span>
                                     </Link>
 
                                     <!-- Menu secundário "⋯" com as demais ações -->
-                                    <div class="relative" data-tenant-menu>
-                                        <button
-                                            type="button"
-                                            @click="toggleMenu(t.id)"
-                                            :title="`Mais ações para ${t.nome}`"
-                                            class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+                                    <OverflowMenu :label="`Mais ações para ${t.nome}`">
+                                        <OverflowMenuItem icon="edit" :href="route('master.tenants.edit', t.id)">
+                                            Editar cadastro
+                                        </OverflowMenuItem>
+                                        <OverflowMenuItem icon="home" :href="route('master.tenants.farms.index', t.id)">
+                                            Fazendas
+                                        </OverflowMenuItem>
+                                        <OverflowMenuItem icon="invoice" :href="route('master.tenants.subscription.show', t.id)">
+                                            Assinatura
+                                        </OverflowMenuItem>
+                                        <OverflowMenuItem icon="copy" @click="openDeliveryDialog(t)">
+                                            Mensagem de entrega
+                                        </OverflowMenuItem>
+                                        <OverflowMenuItem icon="user" :disabled="! t.is_active" @click="impersonate(t)">
+                                            Impersonar
+                                        </OverflowMenuItem>
+                                        <OverflowMenuDivider />
+                                        <OverflowMenuItem
+                                            :icon="t.is_active ? 'power' : 'check-circle'"
+                                            :danger="t.is_active"
+                                            :success="! t.is_active"
+                                            @click="toggle(t)"
                                         >
-                                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                                                <circle cx="5" cy="12" r="2"/>
-                                                <circle cx="12" cy="12" r="2"/>
-                                                <circle cx="19" cy="12" r="2"/>
-                                            </svg>
-                                        </button>
-
-                                        <div
-                                            v-if="openMenuId === t.id"
-                                            class="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-lg ring-1 ring-slate-200 py-1 z-30 text-left"
-                                        >
-                                            <Link
-                                                :href="route('master.tenants.edit', t.id)"
-                                                class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                                                @click="closeMenu"
-                                            >
-                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                                Editar cadastro
-                                            </Link>
-                                            <Link
-                                                :href="route('master.tenants.farms.index', t.id)"
-                                                class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                                                @click="closeMenu"
-                                            >
-                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                                                Fazendas
-                                            </Link>
-                                            <Link
-                                                :href="route('master.tenants.subscription.show', t.id)"
-                                                class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                                                @click="closeMenu"
-                                            >
-                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                                                Assinatura
-                                            </Link>
-                                            <button
-                                                type="button"
-                                                @click="() => { closeMenu(); openDeliveryDialog(t); }"
-                                                class="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                                            >
-                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-                                                Mensagem de entrega
-                                            </button>
-                                            <button
-                                                type="button"
-                                                @click="() => { closeMenu(); impersonate(t); }"
-                                                :disabled="! t.is_active"
-                                                class="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-700"
-                                            >
-                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                                Impersonar
-                                            </button>
-                                            <div class="border-t border-slate-100 my-1"></div>
-                                            <button
-                                                type="button"
-                                                @click="() => { closeMenu(); toggle(t); }"
-                                                class="w-full text-left flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50"
-                                                :class="t.is_active ? 'text-red-600' : 'text-emerald-700'"
-                                            >
-                                                <svg v-if="t.is_active" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                                                <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                {{ t.is_active ? 'Desativar cliente' : 'Reativar cliente' }}
-                                            </button>
-                                        </div>
-                                    </div>
+                                            {{ t.is_active ? 'Desativar cliente' : 'Reativar cliente' }}
+                                        </OverflowMenuItem>
+                                    </OverflowMenu>
                                 </div>
                             </td>
                         </tr>

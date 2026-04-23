@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import ClientCmsHeader from '@/Components/ClientCmsHeader.vue';
+import Icon from '@/Components/Icon.vue';
 import SectionEditor from './SectionEditor.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
 
@@ -71,10 +72,16 @@ function toggleActive(section) {
                 :href="route('master.clientes.cms.index', cliente.id)"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white ring-1 ring-slate-200 text-sm text-slate-700 hover:bg-slate-50"
             >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <Icon name="chevron-left" :size="16" />
                 Voltar às páginas
             </Link>
-            <button @click="publishAll" :disabled="!hasDrafts" class="btn-primary ml-auto">
+            <button
+                @click="publishAll"
+                :disabled="!hasDrafts"
+                v-tooltip="hasDrafts ? 'Publicar todas as seções em rascunho' : 'Nada para publicar no momento'"
+                class="btn-primary ml-auto inline-flex items-center gap-1.5"
+            >
+                <Icon name="bolt" :size="16" />
                 Publicar alterações
             </button>
         </div>

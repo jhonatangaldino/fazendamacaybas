@@ -3,6 +3,8 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import ClientCmsHeader from '@/Components/ClientCmsHeader.vue';
+import Icon from '@/Components/Icon.vue';
+import Alert from '@/Components/Alert.vue';
 import InputMasked from '@/Components/InputMasked.vue';
 import { useLoading } from '@/composables/useLoading.js';
 import { useConfirm } from '@/composables/useConfirm.js';
@@ -385,16 +387,16 @@ onUnmounted(() => {
         <div class="flex flex-wrap items-center gap-2 mb-6">
             <Link :href="route('master.clientes.cms.index', cliente.id)"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white ring-1 ring-slate-200 text-sm text-slate-700 hover:bg-slate-50">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <Icon name="document" :size="16" />
                 Páginas
             </Link>
             <Link :href="route('master.clientes.cms.menus.index', cliente.id)"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white ring-1 ring-slate-200 text-sm text-slate-700 hover:bg-slate-50">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                <Icon name="menu" :size="16" />
                 Menus
             </Link>
             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm font-medium">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <Icon name="cog" :size="16" />
                 Configurações
             </span>
         </div>
@@ -477,24 +479,14 @@ onUnmounted(() => {
             <!-- Alerta discreto quando o onboarding já foi fechado mas
                  ainda falta algo essencial. Intencionalmente SÓ visível
                  depois do onboarding — evita redundância no primeiro acesso. -->
-            <div
+            <Alert
                 v-if="! showOnboarding && completude.faltando > 0"
-                class="mt-3 rounded-xl bg-amber-50 ring-1 ring-amber-200 p-4 flex items-start gap-3"
+                variant="warning"
+                :title="`Você ainda não preencheu ${completude.faltando === 1 ? '1 dado essencial' : completude.faltando + ' dados essenciais'} que aparece${completude.faltando === 1 ? '' : 'm'} na sua página.`"
+                class="mt-3"
             >
-                <div class="h-8 w-8 rounded-full bg-amber-400 text-white flex items-center justify-center flex-shrink-0">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-                <div class="flex-1 min-w-0 text-sm text-amber-900">
-                    <p class="font-semibold">
-                        Você ainda não preencheu {{ completude.faltando === 1 ? '1 dado essencial' : `${completude.faltando} dados essenciais` }} que aparece{{ completude.faltando === 1 ? '' : 'm' }} na sua página.
-                    </p>
-                    <p class="mt-0.5 text-amber-800">
-                        Complete os itens da lista acima para deixar sua página com a sua cara.
-                    </p>
-                </div>
-            </div>
+                Complete os itens da lista acima para deixar sua página com a sua cara.
+            </Alert>
         </div>
 
         <!-- ================== ONBOARDING (aparece só no 1º acesso) ================== -->
@@ -574,21 +566,13 @@ onUnmounted(() => {
                 </div>
                 <div class="card-body space-y-4">
                     <!-- Fallback visual do mapa: todos os 5 campos vazios -->
-                    <div v-if="key === 'localizacao' && mapaVazio"
-                         class="rounded-lg bg-slate-50 ring-1 ring-slate-200 px-4 py-3 text-sm text-slate-700">
-                        <div class="flex items-start gap-2">
-                            <svg class="h-5 w-5 text-slate-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                            <div>
-                                <p class="font-medium">Nenhum dado de mapa configurado ainda.</p>
-                                <p class="mt-0.5 text-slate-600">
-                                    Adicione um endereço (ou coordenadas, ou um embed do Google Maps) nos campos abaixo para exibir o mapa na sua página.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    <Alert
+                        v-if="key === 'localizacao' && mapaVazio"
+                        variant="info"
+                        title="Adicione um endereço para exibir o mapa"
+                    >
+                        Preencha um endereço (ou latitude/longitude, ou um embed do Google Maps) nos campos abaixo para que o mapa apareça na sua página.
+                    </Alert>
 
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div v-for="s in group" :key="s.key"
@@ -606,7 +590,11 @@ onUnmounted(() => {
                                     <img :src="cacheBusted(s.value)"
                                          class="h-20 rounded-lg ring-1 ring-slate-200 object-contain bg-slate-50 px-3 py-1">
                                     <button type="button" @click="removeImage(s)"
-                                            class="text-sm text-red-600 hover:underline">Remover</button>
+                                            v-tooltip="'Remover esta imagem'"
+                                            class="inline-flex items-center gap-1.5 text-sm text-red-600 hover:underline">
+                                        <Icon name="trash" :size="14" />
+                                        Remover
+                                    </button>
                                 </div>
                                 <input type="file"
                                        :disabled="uploadLoading[s.key]"

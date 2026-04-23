@@ -6,6 +6,7 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from 'ziggy-js';
 import { vMaska } from 'maska/vue';
+import tooltip from './directives/tooltip.js';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
 import utc from 'dayjs/plugin/utc';
@@ -27,6 +28,7 @@ createInertiaApp({
             .use(plugin)
             .use(ZiggyVue)
             .directive('maska', vMaska)
+            .directive('tooltip', tooltip)
             .mount(el);
     },
     progress: { color: '#16a34a', showSpinner: true },
