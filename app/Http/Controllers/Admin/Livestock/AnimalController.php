@@ -16,6 +16,50 @@ use Inertia\Inertia;
 
 class AnimalController extends Controller
 {
+    /**
+     * ═════ D2 — Consolidação de Domínio · REBANHO ═════
+     *
+     * Matrizes de regras por `animal_species.profile`. Centralizam o que cada
+     * perfil aceita, permitindo que store/update apliquem validação de
+     * coerência sem espalhar if/else ad-hoc.
+     *
+     * RETROCOMPATIBILIDADE:
+     *   - Profiles NÃO listados aqui passam sem validação extra (fallback permissivo).
+     *   - Em update, regras só aplicam se o campo em questão MUDOU (evita
+     *     quebrar registros legados que usam categorias antigas tipo "misto"
+     *     em perfis onde ela não consta da matriz nova).
+     */
+
+    /** Categorias aceitas por profile. Lista vazia = perfil NÃO aceita categoria. */
+    private const CATEGORIAS_POR_PROFILE = [
+        'ruminante_corte'  => ['corte', 'reproducao', 'misto'],
+        'ruminante_leite'  => ['leite', 'reproducao', 'misto'],
+        'ruminante_lan'    => ['corte', 'reproducao', 'misto'],
+        'equino'           => ['trabalho', 'esporte', 'reproducao'],
+        'suino'            => ['corte', 'reproducao'],
+        'ave_postura'      => ['postura'],
+        'ave_corte'        => ['corte'],
+        'aquicultura_lote' => [],
+        'apicultura'       => [],
+        'pet'              => ['companhia', 'servico', 'pet'],
+    ];
+
+    /** Profiles cujo manejo é por lote — exigem `lot_id`. */
+    private const PROFILES_EXIGEM_LOTE = [
+        'ave_postura', 'ave_corte', 'aquicultura_lote', 'apicultura',
+    ];
+
+    /** Profiles que exigem `data_nascimento` (manejo individual com ciclo etário). */
+    private const PROFILES_EXIGEM_DATA_NASC = [
+        'ruminante_corte', 'ruminante_leite', 'ruminante_lan',
+        'equino', 'suino', 'pet',
+    ];
+
+    /** Profiles que exigem `nome` (animais identificados por nome, não número). */
+    private const PROFILES_EXIGEM_NOME = [
+        'pet',
+    ];
+
     public function index(Request $request)
     {
         $q = Animal::with(['species:id,nome,gestao,profile,allowed_events', 'breed:id,nome', 'lot:id,nome', 'farm:id,nome'])
@@ -72,6 +116,12 @@ class AnimalController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateAnimal($request);
+
+        // D2 · Coerência por profile — bloqueio semântico antes de gravar.
+        if ($err = $this->validateDomainCoherence($data, null)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         Animal::create($data);
 
         return redirect()->route('admin.rebanho.animais.index')->with('success', 'Animal cadastrado.');
@@ -85,6 +135,13 @@ class AnimalController extends Controller
     public function update(Request $request, Animal $animal)
     {
         $data = $this->validateAnimal($request, $animal->id);
+
+        // D2 · Coerência por profile também em update — mas respeita legado:
+        // regras só aplicam a CAMPOS QUE MUDARAM (ver validateDomainCoherence).
+        if ($err = $this->validateDomainCoherence($data, $animal)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         $animal->update($data);
 
         return redirect()->route('admin.rebanho.animais.index')->with('success', 'Animal atualizado.');
@@ -131,9 +188,105 @@ class AnimalController extends Controller
             'valor_aquisicao' => ['nullable', 'numeric', 'min:0'],
             'status' => ['required', 'in:ativo,vendido,morto,abatido,transferido'],
             'observacoes' => ['nullable', 'string'],
-            'categoria' => ['nullable', 'in:leite,corte,reproducao,misto,pet,servico'],
+            // Enum ampliado (D2) — perfis ave_postura/ave_corte/equino exigem
+            // categorias que o enum antigo não contemplava. A rule por profile
+            // em validateDomainCoherence filtra quais valores são aceitos para
+            // cada espécie; este enum só define o universo sintático.
+            'categoria' => ['nullable', 'in:leite,corte,reproducao,misto,pet,servico,trabalho,esporte,postura,companhia'],
             'numero_registro' => ['nullable', 'string', 'max:50'],
         ]);
+    }
+
+    /**
+     * D2 · Valida coerência entre os dados do animal e o perfil da espécie.
+     *
+     * Retorna a string de erro amigável para `back()->with('error', ...)` ou
+     * `null` se tudo estiver coerente.
+     *
+     * Regras aplicadas:
+     *   1. Categoria deve estar na lista CATEGORIAS_POR_PROFILE do perfil.
+     *      Perfil com lista vazia → categoria deve ser nula (aquicultura,
+     *      apicultura).
+     *   2. Perfis em PROFILES_EXIGEM_LOTE requerem `lot_id` informado.
+     *   3. Perfis em PROFILES_EXIGEM_DATA_NASC requerem `data_nascimento`.
+     *   4. Perfis em PROFILES_EXIGEM_NOME requerem `nome`.
+     *
+     * Em UPDATE ($existing != null), as regras só disparam para os campos que
+     * MUDARAM. Isso preserva registros legados cadastrados antes destas regras
+     * — reeditar um bovino com categoria "misto" antiga continua salvando sem
+     * exigir que o usuário troque só porque a matriz mudou. Regra: quem não
+     * mexeu, não paga.
+     */
+    protected function validateDomainCoherence(array $data, ?Animal $existing): ?string
+    {
+        $species = AnimalSpecies::find($data['species_id'] ?? null);
+        if (! $species) {
+            return null; // já validado pelo 'exists' do validator base
+        }
+
+        $profile = $species->profile;
+        if (! $profile) {
+            return null; // retrocompat: espécie sem profile cadastrado → deixa passar
+        }
+
+        $nomeEsp = $species->nome ?? 'esta espécie';
+
+        // ── 1. CATEGORIA coerente com profile ──────────────────────────────
+        $categoriaAtual = $data['categoria'] ?? null;
+        $categoriaMudou = $existing === null || $categoriaAtual !== $existing->categoria;
+
+        if ($categoriaMudou && array_key_exists($profile, self::CATEGORIAS_POR_PROFILE)) {
+            $permitidas = self::CATEGORIAS_POR_PROFILE[$profile];
+
+            // Perfil com lista vazia → não aceita categoria alguma
+            if (empty($permitidas)) {
+                if (! empty($categoriaAtual)) {
+                    return "A espécie selecionada ({$nomeEsp}) não aceita categoria leite/corte. "
+                        . 'Animais de aquicultura/apicultura são manejados em lote, sem categoria individual. '
+                        . 'Deixe o campo categoria em branco.';
+                }
+            } elseif (! empty($categoriaAtual) && ! in_array($categoriaAtual, $permitidas, true)) {
+                return "A espécie selecionada ({$nomeEsp}) não permite categoria '{$categoriaAtual}'. "
+                    . 'Categorias válidas para esta espécie: ' . implode(', ', $permitidas) . '.';
+            }
+        }
+
+        // ── 2. LOTE obrigatório (aves, aquicultura, apicultura) ────────────
+        $lotAtual = $data['lot_id'] ?? null;
+        $lotMudou = $existing === null || (int) $lotAtual !== (int) $existing->lot_id;
+
+        if ($lotMudou && in_array($profile, self::PROFILES_EXIGEM_LOTE, true) && empty($lotAtual)) {
+            $exemplos = [
+                'ave_postura'      => 'Aves de postura',
+                'ave_corte'        => 'Aves de corte',
+                'aquicultura_lote' => 'Animais de aquicultura',
+                'apicultura'       => 'Apiários',
+            ];
+            $rotulo = $exemplos[$profile] ?? $nomeEsp;
+
+            return "{$rotulo} devem ser cadastrados em lote. Selecione um lote no formulário.";
+        }
+
+        // ── 3. DATA DE NASCIMENTO obrigatória ──────────────────────────────
+        $dnAtual = $data['data_nascimento'] ?? null;
+        $dnMudou = $existing === null || $dnAtual !== $existing->data_nascimento?->format('Y-m-d');
+
+        if ($dnMudou && in_array($profile, self::PROFILES_EXIGEM_DATA_NASC, true) && empty($dnAtual)) {
+            return "Data de nascimento é obrigatória para {$nomeEsp}. "
+                . 'O ciclo etário (desmame, cobertura, abate, etc.) é calculado a partir dela.';
+        }
+
+        // ── 4. NOME obrigatório (pets) ─────────────────────────────────────
+        $nomeAtual = $data['nome'] ?? null;
+        $nomeAnimal = $existing?->nome;
+        $nomeMudou = $existing === null || $nomeAtual !== $nomeAnimal;
+
+        if ($nomeMudou && in_array($profile, self::PROFILES_EXIGEM_NOME, true) && empty($nomeAtual)) {
+            return "Animais do tipo {$nomeEsp} exigem o campo Nome. "
+                . 'Diferente de animais de produção, pets são identificados pelo nome, não só pelo número.';
+        }
+
+        return null; // tudo coerente
     }
 
     /**
