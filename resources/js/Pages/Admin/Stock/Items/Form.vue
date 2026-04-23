@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -37,16 +37,157 @@ const form = useForm({
     is_active: props.item?.is_active ?? true,
 });
 
+// ═════════════════════════════════════════════════════════════════════
+// F3 · UX anti-erro orientada por domínio — STOCK ITEM
+//
+// Espelha a matriz D3 (StockItemController::validateDomainCoherence):
+//
+//   medicamento → registro_ms OBRIGATÓRIO (rastreabilidade sanitária)
+//   racao       → descrição contextual ≥ 10 chars (evitar item genérico)
+//   insumo      → descrição contextual ≥ 10 chars (composição/cultura)
+//   ferramenta  → campos simples, sem regulação
+//   combustivel → unidade default litro, sem validade/registro
+//   peca        → marca/modelo relevantes
+//   material    → livre
+//
+// O backend D3 permanece como 2ª camada (nunca confiar só em JS).
+// ═════════════════════════════════════════════════════════════════════
+
+/** Espelho de TIPOS_EXIGEM_REGISTRO_MS. */
+const TIPOS_EXIGEM_REGISTRO_MS = ['medicamento'];
+
+/** Espelho de TIPOS_EXIGEM_DESCRICAO + DESCRICAO_MIN_CHARS. */
+const TIPOS_EXIGEM_DESCRICAO = ['racao', 'insumo'];
+const DESCRICAO_MIN_CHARS = 10;
+
+/** Espelho de DICAS_DESCRICAO (mesmo texto do controller, para consistência). */
+const DICAS_DESCRICAO = {
+    racao: "Ex.: 'Ração 20% proteína para bezerros em desmame' ou 'Ração peletizada para postura fase 2'.",
+    insumo: "Ex.: 'NPK 08-28-16 para plantio de milho' ou 'Calcário dolomítico para correção de solo'.",
+};
+
+/** Unidade default por tipo (UX: menos cliques). Sobrescreve apenas em cadastro novo. */
+const UNIDADE_DEFAULT_POR_TIPO = {
+    racao: 'sc',          // saca
+    insumo: 'sc',
+    medicamento: 'ml',
+    combustivel: 'l',
+    ferramenta: 'un',
+    peca: 'un',
+    material: 'un',
+};
+
+/** Rótulo legível do tipo (usado em mensagens). */
+const TIPO_LABEL = {
+    insumo: 'Insumo agrícola',
+    medicamento: 'Medicamento veterinário',
+    racao: 'Ração',
+    ferramenta: 'Ferramenta',
+    peca: 'Peça / componente',
+    combustivel: 'Combustível',
+    material: 'Material diverso',
+};
+
+/** Placeholder contextual da descrição por tipo. */
+const PLACEHOLDER_DESCRICAO = {
+    racao: 'Ração 20% proteína para bezerros em desmame',
+    insumo: 'NPK 08-28-16 para plantio de milho',
+    medicamento: 'Antibiótico injetável de amplo espectro',
+    combustivel: 'Diesel S10 — uso em máquinas agrícolas',
+    ferramenta: 'Enxada reforçada 3 libras, cabo longo',
+    peca: 'Filtro de óleo Trator John Deere 5078E',
+    material: 'Arame farpado zincado 500m',
+};
+
+/** Placeholder contextual do nome por tipo. */
+const PLACEHOLDER_NOME = {
+    racao: 'Ex.: Ração Bezerro Inicial 20%',
+    insumo: 'Ex.: NPK 08-28-16',
+    medicamento: 'Ex.: Oxitetraciclina 20% LA',
+    combustivel: 'Ex.: Diesel S10',
+    ferramenta: 'Ex.: Enxada 3lb cabo longo',
+    peca: 'Ex.: Filtro de óleo JD 5078E',
+    material: 'Ex.: Arame farpado 500m',
+};
+
+const showRegistroMs = computed(() => TIPOS_EXIGEM_REGISTRO_MS.includes(form.tipo));
+const requiresRegistroMs = computed(() => showRegistroMs.value);
+const requiresDescricao = computed(() => TIPOS_EXIGEM_DESCRICAO.includes(form.tipo));
+const descricaoLength = computed(() => (form.descricao ?? '').trim().length);
+const descricaoOk = computed(() =>
+    !requiresDescricao.value || descricaoLength.value >= DESCRICAO_MIN_CHARS,
+);
+
+const tipoLabel = computed(() => TIPO_LABEL[form.tipo] ?? form.tipo);
+const placeholderNome = computed(() => PLACEHOLDER_NOME[form.tipo] ?? '');
+const placeholderDescricao = computed(() => PLACEHOLDER_DESCRICAO[form.tipo] ?? '');
+
+/** Card azul de dica contextual por tipo. */
+const dicaTipo = computed(() => {
+    switch (form.tipo) {
+        case 'medicamento':
+            return {
+                titulo: 'Medicamento veterinário',
+                texto: 'Registro no MAPA/MS é obrigatório por lei para rastreabilidade sanitária. A unidade pode ser ml, dose ou un conforme a apresentação.',
+            };
+        case 'racao':
+            return {
+                titulo: 'Ração',
+                texto: 'Evite cadastros genéricos tipo "Ração". Na descrição, informe para qual animal/fase se destina e a formulação (% proteína, peletizada, farelada, etc.).',
+            };
+        case 'insumo':
+            return {
+                titulo: 'Insumo agrícola',
+                texto: 'Na descrição, informe composição (ex.: NPK 08-28-16), finalidade (plantio, cobertura, correção) e cultura. Isso permite rastrear o custo por safra.',
+            };
+        case 'combustivel':
+            return {
+                titulo: 'Combustível',
+                texto: 'Unidade padrão: litros. Sem registro MS nem validade no cadastro — o controle é por lote de abastecimento na movimentação.',
+            };
+        case 'ferramenta':
+            return {
+                titulo: 'Ferramenta',
+                texto: 'Ferramentas são bens reutilizáveis. Marca e modelo ajudam em reposição e manutenção futura.',
+            };
+        case 'peca':
+            return {
+                titulo: 'Peça / componente',
+                texto: 'Na descrição, informe modelo/veículo compatível (ex.: "Filtro de óleo Trator JD 5078E"). Essencial para manutenção preventiva.',
+            };
+        default:
+            return null;
+    }
+});
+
+// ── Reset de campos incompatíveis ao trocar tipo ───────────────────
+watch(
+    () => form.tipo,
+    (novo, antigo) => {
+        if (novo === antigo) return;
+
+        // Unidade default: só sobrescreve em cadastro novo e se usuário não mexeu
+        if (!isEdit && form.unidade === (UNIDADE_DEFAULT_POR_TIPO[antigo] ?? 'un')) {
+            form.unidade = UNIDADE_DEFAULT_POR_TIPO[novo] ?? 'un';
+        }
+
+        // registro_ms só faz sentido para medicamento — limpa ao sair
+        if (!TIPOS_EXIGEM_REGISTRO_MS.includes(novo)) {
+            form.registro_ms = '';
+        }
+    },
+);
+
 const showScanner = ref(false);
 const lookupLoading = ref(false);
-const produtoExistente = ref(null); // produto já cadastrado encontrado no lookup local
-const sugestaoPublica = ref(null);  // { source, nome, marca, imagem_url, ... } sugestão externa
-const ultimaTentativa = ref(null);  // { code, diagnostico, attempts } para debug quando nada é encontrado
+const produtoExistente = ref(null);
+const sugestaoPublica = ref(null);
+const ultimaTentativa = ref(null);
 
 async function onBarcodeDetected(code) {
     showScanner.value = false;
     form.codigo_barras = code;
-    codigoVerificado.value = true; // foi lido via câmera → verificado
+    codigoVerificado.value = true;
     lookupLoading.value = true;
     sugestaoPublica.value = null;
     ultimaTentativa.value = null;
@@ -58,7 +199,6 @@ async function onBarcodeDetected(code) {
         });
         const data = await resp.json();
 
-        // 1) Local
         if (data.found && data.item) {
             if (!isEdit) {
                 produtoExistente.value = data.item;
@@ -69,10 +209,8 @@ async function onBarcodeDetected(code) {
             return;
         }
 
-        // 2) Sugestão pública
         if (data.suggestion) {
             const s = data.suggestion;
-            // Normaliza shape novo (ProductResult): usa campo imagem_url OU imagem do fallback antigo
             sugestaoPublica.value = {
                 source: s.source,
                 nome: s.nome,
@@ -88,7 +226,6 @@ async function onBarcodeDetected(code) {
             return;
         }
 
-        // 3) Nada encontrado — guarda diagnóstico pro usuário inspecionar
         ultimaTentativa.value = {
             code,
             diagnostico: data.diagnostico || null,
@@ -111,7 +248,6 @@ async function onBarcodeDetected(code) {
 }
 
 function irParaMovimentacao() {
-    // Redireciona pra tela de movimentos com o item pré-selecionado
     window.location.href = produtoExistente.value.movement_url;
 }
 function irParaEdicao() {
@@ -123,7 +259,7 @@ function submit() {
     else form.post(route('admin.estoque.itens.store'));
 }
 
-const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3'];
+const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3', 'dose'];
 </script>
 
 <template>
@@ -136,22 +272,45 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
         </PageHeader>
 
         <form @submit.prevent="submit" class="space-y-6 max-w-3xl">
+            <!-- Dica contextual por tipo (F3 — UX guiada) -->
+            <div
+                v-if="dicaTipo"
+                class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900"
+            >
+                <div class="font-medium">{{ dicaTipo.titulo }}</div>
+                <div class="mt-1 text-blue-800">{{ dicaTipo.texto }}</div>
+            </div>
+
             <div class="card">
                 <div class="card-header"><h2 class="card-title">Identificação</h2></div>
                 <div class="card-body grid gap-4 sm:grid-cols-2">
+                    <!-- Tipo sempre primeiro: dirige toda a UX abaixo -->
+                    <div>
+                        <InputLabel value="Tipo" />
+                        <select v-model="form.tipo" class="form-select" required>
+                            <option value="insumo">Insumo agrícola</option>
+                            <option value="medicamento">Medicamento veterinário</option>
+                            <option value="racao">Ração</option>
+                            <option value="ferramenta">Ferramenta</option>
+                            <option value="peca">Peça / componente</option>
+                            <option value="combustivel">Combustível</option>
+                            <option value="material">Material diverso</option>
+                        </select>
+                        <p class="text-xs text-slate-400 mt-1">Define os campos obrigatórios e o perfil de uso do item.</p>
+                    </div>
                     <div>
                         <InputLabel value="Código interno" />
                         <input v-model="form.codigo" required class="form-input" placeholder="Ex: RAC-001">
                         <InputError :message="form.errors.codigo" />
                     </div>
-                    <div>
+
+                    <div class="sm:col-span-2">
                         <InputLabel value="Código de barras (EAN/UPC)" />
                         <div class="flex gap-2">
                             <div class="relative flex-1">
                                 <input v-model="form.codigo_barras" class="form-input w-full font-mono"
                                        :class="codigoVerificado ? 'pl-9 bg-emerald-50 border-emerald-300' : ''"
                                        placeholder="Ex: 7891234567890">
-                                <!-- Selo de verificação quando veio via scanner -->
                                 <svg v-if="codigoVerificado" class="absolute left-2.5 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                                 </svg>
@@ -173,7 +332,6 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                             <svg class="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
                             Consultando bases públicas...
                         </p>
-                        <!-- Alerta simples e limpo quando nada foi encontrado -->
                         <div v-if="ultimaTentativa && !sugestaoPublica"
                              class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900 flex items-start gap-2">
                             <svg class="h-5 w-5 flex-shrink-0 mt-0.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -185,7 +343,6 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                             </div>
                         </div>
 
-                        <!-- Cartão de sugestão externa (Open Food Facts / UPCItemDB) -->
                         <div v-if="sugestaoPublica" class="mt-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-3">
                             <img v-if="sugestaoPublica.imagem_url" :src="sugestaoPublica.imagem_url"
                                  class="h-14 w-14 rounded object-contain bg-white ring-1 ring-emerald-200 flex-shrink-0">
@@ -200,21 +357,10 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                             <button type="button" @click="sugestaoPublica = null" class="text-emerald-600 hover:text-emerald-900 flex-shrink-0" aria-label="Fechar">&times;</button>
                         </div>
                     </div>
-                    <div>
-                        <InputLabel value="Tipo" />
-                        <select v-model="form.tipo" class="form-select" required>
-                            <option value="insumo">Insumo agrícola</option>
-                            <option value="medicamento">Medicamento veterinário</option>
-                            <option value="racao">Ração</option>
-                            <option value="ferramenta">Ferramenta</option>
-                            <option value="peca">Peça / componente</option>
-                            <option value="combustivel">Combustível</option>
-                            <option value="material">Material diverso</option>
-                        </select>
-                    </div>
+
                     <div class="sm:col-span-2">
                         <InputLabel value="Nome" />
-                        <input v-model="form.nome" required class="form-input">
+                        <input v-model="form.nome" required class="form-input" :placeholder="placeholderNome">
                         <InputError :message="form.errors.nome" />
                     </div>
                     <div>
@@ -228,9 +374,35 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                         <InputLabel value="Marca" />
                         <input v-model="form.marca" class="form-input">
                     </div>
+
+                    <!-- Descrição contextual: obrigatória para racao/insumo, opcional para outros -->
                     <div class="sm:col-span-2">
-                        <InputLabel value="Descrição" />
-                        <textarea v-model="form.descricao" rows="2" class="form-textarea"></textarea>
+                        <div class="flex items-end justify-between">
+                            <InputLabel :value="requiresDescricao ? 'Descrição (obrigatória)' : 'Descrição'" />
+                            <span
+                                v-if="requiresDescricao"
+                                class="text-xs font-mono"
+                                :class="descricaoOk ? 'text-emerald-600' : 'text-amber-600'"
+                            >
+                                {{ descricaoLength }}/{{ DESCRICAO_MIN_CHARS }}
+                            </span>
+                        </div>
+                        <textarea
+                            v-model="form.descricao"
+                            rows="2"
+                            class="form-textarea"
+                            :class="requiresDescricao && !descricaoOk && descricaoLength > 0 ? 'border-amber-300 focus:ring-amber-500' : ''"
+                            :required="requiresDescricao"
+                            :placeholder="placeholderDescricao"
+                            :minlength="requiresDescricao ? DESCRICAO_MIN_CHARS : undefined"
+                        ></textarea>
+                        <p
+                            v-if="requiresDescricao"
+                            class="text-xs mt-1"
+                            :class="descricaoOk ? 'text-slate-400' : 'text-amber-700'"
+                        >
+                            {{ DICAS_DESCRICAO[form.tipo] }}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -243,6 +415,7 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                         <select v-model="form.unidade" class="form-select" required>
                             <option v-for="u in unidades" :key="u" :value="u">{{ u }}</option>
                         </select>
+                        <p v-if="form.tipo === 'combustivel'" class="text-xs text-slate-400 mt-1">Padrão: litro.</p>
                     </div>
                     <div>
                         <InputLabel value="Estoque mínimo" />
@@ -255,10 +428,21 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
                     <div>
                         <InputLabel value="Custo médio (R$/un)" />
                         <InputMoney v-model="form.custo_medio" />
+                        <p class="text-xs text-slate-400 mt-1">Recalculado automaticamente em cada entrada.</p>
                     </div>
-                    <div v-if="form.tipo === 'medicamento'" class="sm:col-span-2">
-                        <InputLabel value="Registro no MAPA/MS" />
-                        <input v-model="form.registro_ms" class="form-input">
+
+                    <!-- Registro MS: só para medicamento (D3 regra R1) -->
+                    <div v-if="showRegistroMs" class="sm:col-span-2">
+                        <InputLabel :value="requiresRegistroMs ? 'Registro no MAPA/MS (obrigatório)' : 'Registro no MAPA/MS'" />
+                        <input
+                            v-model="form.registro_ms"
+                            class="form-input"
+                            :required="requiresRegistroMs"
+                            placeholder="Ex.: MS 1.2345.6789"
+                        >
+                        <p class="text-xs text-slate-400 mt-1">
+                            Rastreabilidade sanitária obrigatória por lei para medicamentos veterinários.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -274,7 +458,13 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3']
 
             <div class="flex justify-end gap-2">
                 <Link :href="route('admin.estoque.itens.index')" class="btn-outline">Cancelar</Link>
-                <button type="submit" class="btn-primary" :disabled="form.processing">Salvar</button>
+                <button
+                    type="submit"
+                    class="btn-primary"
+                    :disabled="form.processing || (requiresDescricao && !descricaoOk) || (requiresRegistroMs && !form.registro_ms)"
+                >
+                    Salvar
+                </button>
             </div>
         </form>
 
