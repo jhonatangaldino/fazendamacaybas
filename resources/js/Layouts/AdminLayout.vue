@@ -90,35 +90,35 @@ const menu = computed(() => [
     {
         section: 'Principal',
         items: [
-            { label: 'Dashboard', route: 'admin.dashboard', icon: 'dashboard', perm: 'dashboard.view' },
+            { label: 'Dashboard', route: 'admin.dashboard', icon: 'dashboard', perm: 'operational.dashboard.view' },
         ],
     },
     {
         section: 'Operação',
         items: [
-            { label: 'Financeiro', route: 'admin.financeiro.index', icon: 'cash', perm: 'financeiro.view' },
-            { label: 'Rebanho', route: 'admin.rebanho.index', icon: 'cow', perm: 'rebanho.view' },
-            { label: 'Agrícola', route: 'admin.agricola.index', icon: 'wheat', perm: 'agricola.view' },
-            { label: 'Estoque', route: 'admin.estoque.index', icon: 'box', perm: 'estoque.view' },
-            { label: 'Máquinas', route: 'admin.maquinas.index', icon: 'truck', perm: 'maquinas.view' },
-            { label: 'Funcionários', route: 'admin.funcionarios.index', icon: 'users', perm: 'funcionarios.view' },
-            { label: 'Tarefas', route: 'admin.tarefas.index', icon: 'check-square', perm: 'funcionarios.tarefas.view' },
-            { label: 'Documentos', route: 'admin.documentos.index', icon: 'folder', perm: 'documentos.view' },
-            { label: 'Parceiros', route: 'admin.parceiros.index', icon: 'handshake', perm: 'parceiros.view' },
+            { label: 'Financeiro', route: 'admin.financeiro.index', icon: 'cash', perm: 'operational.financeiro.view' },
+            { label: 'Rebanho', route: 'admin.rebanho.index', icon: 'cow', perm: 'operational.rebanho.view' },
+            { label: 'Agrícola', route: 'admin.agricola.index', icon: 'wheat', perm: 'operational.agricola.view' },
+            { label: 'Estoque', route: 'admin.estoque.index', icon: 'box', perm: 'operational.estoque.view' },
+            { label: 'Máquinas', route: 'admin.maquinas.index', icon: 'truck', perm: 'operational.maquinas.view' },
+            { label: 'Funcionários', route: 'admin.funcionarios.index', icon: 'users', perm: 'operational.funcionarios.view' },
+            { label: 'Tarefas', route: 'admin.tarefas.index', icon: 'check-square', perm: 'operational.funcionarios.tarefas.view' },
+            { label: 'Documentos', route: 'admin.documentos.index', icon: 'folder', perm: 'operational.documentos.view' },
+            { label: 'Parceiros', route: 'admin.parceiros.index', icon: 'handshake', perm: 'operational.parceiros.view' },
         ],
     },
     {
         section: 'Relatórios',
         items: [
-            { label: 'Relatórios', route: 'admin.relatorios.index', icon: 'chart', perm: 'relatorios.view' },
+            { label: 'Relatórios', route: 'admin.relatorios.index', icon: 'chart', perm: 'operational.relatorios.view' },
         ],
     },
     // Seção "Site" removida em M7 — CMS migrou para /master/cms (área plataforma).
     {
         section: 'Administração',
         items: [
-            { label: 'Usuários', route: 'admin.users.index', icon: 'user-cog', perm: 'users.view' },
-            { label: 'Perfis e permissões', route: 'admin.roles.index', icon: 'shield', perm: 'roles.view' },
+            { label: 'Usuários', route: 'admin.users.index', icon: 'user-cog', perm: 'operational.usuarios.view' },
+            { label: 'Perfis e permissões', route: 'admin.roles.index', icon: 'shield', perm: 'platform.roles.view' },
         ],
     },
 ]);

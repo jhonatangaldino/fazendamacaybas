@@ -9,6 +9,7 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Psr\Log\LoggerInterface;
@@ -40,6 +41,50 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->configureMailNotifications();
+        $this->configureImpersonationGate();
+    }
+
+    /**
+     * M8.B — Gate::before especial para master durante impersonação.
+     *
+     * Durante impersonação ativa, o master (user.tenant_id NULL) precisa
+     * operar o tenant impersonado. Mas no modelo M8, master tem apenas
+     * `platform.*` no banco — nunca ganhou `operational.*`. Sem este Gate,
+     * rotas que exigem `permission:operational.rebanho.view` bloqueariam
+     * Jhonatan impersonando.
+     *
+     * SOLUÇÃO (opção c do desenho M8):
+     *   Gate::before intercepta TODO check de permission/ability.
+     *   Se for master COM session('impersonation') ativa para ele → libera.
+     *   Senão → retorna null e deixa Spatie decidir normalmente.
+     *
+     * Propriedades:
+     *   - Só ativa quando impersonação existe E pertence a este master (defesa
+     *     anti-hijack, mesmo pattern do ResolveTenant branch 2)
+     *   - Master PURO (sem impersonação) NÃO recebe super-poderes — só as
+     *     permissions que ele realmente tem (platform.*)
+     *   - Tenant user NUNCA é afetado (user.tenant_id !== null → return null)
+     *   - Retornar null não decide nada; Spatie continua o fluxo normal
+     */
+    protected function configureImpersonationGate(): void
+    {
+        Gate::before(function ($user, $ability) {
+            // Tenant user ou unauthenticated: lógica normal
+            if ($user === null || $user->tenant_id !== null) {
+                return null;
+            }
+
+            // Master: só libera tudo se estiver em impersonação ATIVA dele próprio
+            $imp = session('impersonation');
+            if (is_array($imp)
+                && isset($imp['impersonator_user_id'])
+                && (int) $imp['impersonator_user_id'] === (int) $user->id) {
+                return true;
+            }
+
+            // Master puro: sem super-poderes — Spatie verifica platform.* normalmente
+            return null;
+        });
     }
 
     /**

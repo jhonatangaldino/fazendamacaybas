@@ -243,7 +243,7 @@ class UserController extends Controller
         if ($actor->id === $target->id) return true;
         if ($actor->hasRole('admin_master')) return true;
         if ($actor->hasRole('dono_fazenda')) return true;
-        if ($actor->can('users.update')) return true;
+        if ($actor->can('operational.usuarios.update')) return true;
 
         return false;
     }
