@@ -36,7 +36,10 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('password.change');
         }
 
-        return redirect()->intended(route('admin.dashboard'));
+        // M0 — destino delegado ao User::homeUrl()
+        //   MASTER (tenant_id NULL)  → master.dashboard (fallback admin.dashboard até M1)
+        //   TENANT USER              → admin.dashboard
+        return redirect()->intended($user->homeUrl());
     }
 
     /**

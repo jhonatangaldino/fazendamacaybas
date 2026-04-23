@@ -8,6 +8,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -37,8 +38,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'enforce.farm' => EnforceFarm::class,
         ]);
 
-        // Usuário já logado tentando acessar /login: manda pro dashboard
-        $middleware->redirectUsersTo('/admin/dashboard');
+        // M0 — Usuário já logado tentando acessar rota guest (ex.: /login):
+        // decide destino baseado no tipo de user via User::homeUrl().
+        //   MASTER (tenant_id NULL) → master.dashboard (fallback admin.dashboard até M1)
+        //   TENANT USER             → admin.dashboard
+        // Coerente com AuthenticatedSessionController::store(). Fallback para
+        // /admin/dashboard se, por algum motivo defensivo, não houver user no request.
+        $middleware->redirectUsersTo(function (Request $request) {
+            return $request->user()?->homeUrl() ?? '/admin/dashboard';
+        });
         $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions) {

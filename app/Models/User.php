@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Route;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
@@ -88,5 +89,28 @@ class User extends Authenticatable
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * URL de destino após login e quando o user logado acessa rota guest.
+     *
+     * M0 — regra de roteamento por tipo de usuário:
+     *   - MASTER (tenant_id NULL) → /master/dashboard (área da plataforma)
+     *   - TENANT USER             → /admin/dashboard (área operacional)
+     *
+     * FALLBACK DEFENSIVO:
+     *   A rota `master.dashboard` só será criada em M1. Enquanto ela não existir,
+     *   `Route::has('master.dashboard')` retorna false e o master é direcionado ao
+     *   fallback operacional — exatamente o comportamento atual pré-M0. Zero
+     *   regressão. Quando M1 entrar, a transição acontece automaticamente sem
+     *   alteração neste método.
+     */
+    public function homeUrl(): string
+    {
+        if ($this->tenant_id === null && Route::has('master.dashboard')) {
+            return route('master.dashboard');
+        }
+
+        return route('admin.dashboard');
     }
 }
