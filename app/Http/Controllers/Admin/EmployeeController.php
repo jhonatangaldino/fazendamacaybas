@@ -30,9 +30,43 @@ class EmployeeController extends Controller
         ]);
     }
 
+    /**
+     * ═════ D9 — Consolidação de Domínio · FUNCIONÁRIOS ═════
+     *
+     * Regras por tipo de vínculo de trabalho (clt/pj/diarista/safrista).
+     *
+     * DESAFIO DE SCHEMA:
+     *   `employees` NÃO tem coluna `tipo_contrato`, nem `cnpj`, nem
+     *   colunas específicas para período de safrista. Mas:
+     *     - `cpf` é VARCHAR(14) — acomoda CNPJ tecnicamente (14 chars)
+     *     - `data_admissao` / `data_demissao` (nullable) cobrem período
+     *
+     * ESTRATÉGIA:
+     *   - `tipo_contrato` é aceito NO VALIDATOR (enum clt/pj/diarista/safrista)
+     *     mas NÃO é persistido — schema não tem a coluna, valor é extraído
+     *     e usado apenas para validação.
+     *   - PJ usa o campo `cpf` para armazenar CNPJ (mesmo padrão de
+     *     `partners.documento`).
+     *   - Safrista: período = data_admissao + data_demissao ambas preenchidas.
+     *
+     * RETROCOMPAT:
+     *   - UI atual NÃO envia `tipo_contrato` → valor null → regra não dispara.
+     *     Todos os funcionários legados e novos sem `tipo_contrato` passam.
+     *   - Quando UI futura (D9.1) enviar `tipo_contrato`, regra aplica.
+     */
+
     public function store(Request $request)
     {
         $data = $this->validateEmployee($request);
+
+        // D9: extrai tipo_contrato (não persistido — schema não tem coluna)
+        $tipoContrato = $data['tipo_contrato'] ?? null;
+        unset($data['tipo_contrato']);
+
+        if ($err = $this->validateDomainCoherence($data, $tipoContrato, null)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         Employee::create($data);
 
         return back()->with('success', 'Funcionário cadastrado.');
@@ -41,6 +75,14 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee)
     {
         $data = $this->validateEmployee($request, $employee->id);
+
+        $tipoContrato = $data['tipo_contrato'] ?? null;
+        unset($data['tipo_contrato']);
+
+        if ($err = $this->validateDomainCoherence($data, $tipoContrato, $employee)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         $employee->update($data);
 
         return back()->with('success', 'Funcionário atualizado.');
@@ -114,6 +156,113 @@ class EmployeeController extends Controller
             'estado' => ['nullable', 'string', 'size:2'],
             'observacoes' => ['nullable', 'string'],
             'is_active' => ['boolean'],
+            // D9: aceito como nullable — UI atual não envia; quando
+            // a UI expor o tipo de contrato, o valor é extraído em store/
+            // update (via unset) e usado em validateDomainCoherence.
+            // NÃO é persistido — schema não tem coluna tipo_contrato.
+            'tipo_contrato' => ['nullable', 'string', Rule::in(['clt', 'pj', 'diarista', 'safrista'])],
         ]);
+    }
+
+    /**
+     * D9 · Valida coerência entre `tipo_contrato` (informado pelo caller)
+     * e os campos `cpf`, `data_admissao`, `data_demissao`.
+     *
+     * Regras:
+     *   - clt       → cpf (CPF válido 11d) + data_admissao
+     *   - pj        → cpf (com CNPJ válido 14c; aceita alfanumérico CGSIM 2026)
+     *   - diarista  → cpf (CPF válido 11d); data_admissao opcional
+     *   - safrista  → cpf (CPF válido 11d) + data_admissao + data_demissao
+     *
+     * Retrocompat:
+     *   - Se `tipo_contrato` NÃO é informado → retorna null (passa).
+     *     UI atual nunca envia o campo, então zero funcionários são
+     *     afetados enquanto a UI não for evoluída.
+     *   - Em UPDATE, regra só dispara se `tipo_contrato` foi informado
+     *     no payload. Se UI não envia, update passa sem checagem extra.
+     */
+    protected function validateDomainCoherence(array $data, ?string $tipoContrato, ?Employee $existing): ?string
+    {
+        if (! $tipoContrato) {
+            return null; // retrocompat: sem tipo → sem regra
+        }
+
+        $doc = trim((string) ($data['cpf'] ?? ''));
+        $adm = $data['data_admissao'] ?? null;
+        $dem = $data['data_demissao'] ?? null;
+
+        switch ($tipoContrato) {
+            case 'clt':
+                if ($doc === '') {
+                    return 'Funcionários CLT exigem CPF. Preencha o campo "CPF" com um CPF válido (11 dígitos). '
+                        . 'CLT é vínculo formal de trabalho — sem CPF não é possível emitir holerite, INSS, FGTS etc.';
+                }
+                if (! validarCpfStrict($doc)) {
+                    return 'O CPF informado é inválido (dígitos verificadores não conferem). '
+                        . 'Funcionários CLT exigem CPF válido — verifique os números digitados. '
+                        . 'Se esta pessoa é prestador pessoa jurídica, troque o tipo de contrato para "PJ".';
+                }
+                if (! $adm) {
+                    return 'Funcionários CLT exigem data de admissão. Preencha "Data de admissão" — '
+                        . 'esse marco é obrigatório para CLT (contagem de tempo de serviço, férias, 13º, etc.).';
+                }
+
+                return null;
+
+            case 'pj':
+                // Para PJ, o campo "cpf" armazena o CNPJ (schema não tem coluna
+                // cnpj dedicada — mesma estratégia de partners.documento).
+                if ($doc === '') {
+                    return 'Prestadores PJ exigem CNPJ. Preencha o campo "CPF" (usado também para CNPJ, 14 caracteres) '
+                        . 'com um CNPJ válido. PJ não é vínculo CLT — é prestação de serviço via pessoa jurídica.';
+                }
+                if (strlen(apenasAlfaNum($doc)) !== 14) {
+                    return 'Prestadores PJ exigem CNPJ válido com 14 caracteres. O documento informado tem '
+                        . strlen(apenasAlfaNum($doc)) . ' caractere(s). '
+                        . 'Se digitou um CPF (11 dígitos), troque o tipo de contrato para "CLT", "Diarista" ou "Safrista".';
+                }
+                if (! validarCnpjStrict($doc)) {
+                    return 'O CNPJ informado é inválido (dígitos verificadores não conferem). '
+                        . 'O sistema aceita formato alfanumérico conforme Resolução CGSIM 2026.';
+                }
+
+                return null;
+
+            case 'diarista':
+                if ($doc === '') {
+                    return 'Diaristas exigem CPF. Preencha o campo "CPF" com um CPF válido (11 dígitos). '
+                        . 'Mesmo sem vínculo contínuo, o CPF é necessário para emitir recibo e declarar pagamento.';
+                }
+                if (! validarCpfStrict($doc)) {
+                    return 'O CPF informado é inválido (dígitos verificadores não conferem). '
+                        . 'Diaristas são pessoas físicas — exigem CPF válido. '
+                        . 'Se é prestador PJ, troque o tipo para "PJ".';
+                }
+
+                return null;
+
+            case 'safrista':
+                if ($doc === '') {
+                    return 'Safristas exigem CPF. Preencha o campo "CPF" com um CPF válido (11 dígitos).';
+                }
+                if (! validarCpfStrict($doc)) {
+                    return 'O CPF informado é inválido (dígitos verificadores não conferem). '
+                        . 'Safristas são pessoas físicas — exigem CPF válido.';
+                }
+                if (! $adm || ! $dem) {
+                    $faltando = [];
+                    if (! $adm) $faltando[] = 'data de início (admissão)';
+                    if (! $dem) $faltando[] = 'data de fim (desligamento)';
+
+                    return 'Safristas exigem período completo (início e fim da safra). Falta preencher: '
+                        . implode(' e ', $faltando) . '. '
+                        . 'Safra é contrato por tempo determinado — ambas as datas são obrigatórias. '
+                        . 'Se o contrato é indeterminado, troque o tipo para "CLT".';
+                }
+
+                return null;
+        }
+
+        return null; // tipo fora do enum já foi bloqueado pelo validator base
     }
 }
