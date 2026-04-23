@@ -31,6 +31,8 @@ class Tenant extends Model
         'documento',
         'email',
         'telefone',
+        'cidade',
+        'estado',
         'plan_id',
         'status',
         'trial_ends_at',

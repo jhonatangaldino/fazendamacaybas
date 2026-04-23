@@ -119,6 +119,10 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'info' => fn () => $request->session()->get('info'),
                 'warning' => fn () => $request->session()->get('warning'),
+                // Payload estruturado emitido por TenantController@store para
+                // a tela Master/Tenants/Index renderizar o card "Página pronta
+                // para uso" após criação de cliente. Um-shot via session flash.
+                'created_tenant' => fn () => $request->session()->get('created_tenant'),
             ],
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),

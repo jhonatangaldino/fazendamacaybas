@@ -7,6 +7,7 @@ use App\Domain\Cms\Services\LandingScaffoldService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -43,12 +44,35 @@ class TenantController extends Controller
             ->orderBy('nome')
             ->get(['id', 'nome', 'slug', 'is_active', 'created_at', 'updated_at']);
 
+        // Status "pronto para uso" por tenant: tem mapa (qualquer dos 4 campos
+        // landing.map.*) OU site.descricao configurado como OVERRIDE do
+        // cliente (não global herdado). Fallback global não conta — a ideia
+        // é diferenciar clientes que o master ainda precisa configurar.
+        $readyKeys = [
+            'landing.map.endereco',
+            'landing.map.latitude',
+            'landing.map.longitude',
+            'landing.map.google_embed',
+            'site.descricao',
+        ];
+        $readyTenantIds = DB::table('settings')
+            ->whereIn('key', $readyKeys)
+            ->whereNotNull('tenant_id')
+            ->whereNotNull('value')
+            ->where('value', '!=', '')
+            ->pluck('tenant_id')
+            ->unique()
+            ->flip()
+            ->toArray();
+
         return Inertia::render('Master/Tenants/Index', [
             'tenants' => $tenants->map(fn ($t) => [
                 'id' => $t->id,
                 'nome' => $t->nome,
                 'slug' => $t->slug,
                 'is_active' => (bool) $t->is_active,
+                'is_ready' => isset($readyTenantIds[$t->id]),
+                'landing_url' => url('/c/' . $t->slug),
                 'created_at' => $t->created_at?->format('d/m/Y H:i'),
                 'updated_at' => $t->updated_at?->format('d/m/Y H:i'),
             ])->values(),
@@ -71,12 +95,15 @@ class TenantController extends Controller
      * O scaffold cria 1 página "home" com 6 seções + 2 menus (header/footer)
      * já pertencentes ao cliente recém-criado. Idempotente — rodar 2x no
      * mesmo cliente é no-op (útil para re-provisionamento manual).
+     *
+     * Flash `created_tenant` leva URL + mensagem pronta de entrega para a
+     * Index renderizar o card "Página pronta para uso".
      */
     public function store(Request $request, LandingScaffoldService $scaffold): RedirectResponse
     {
         $validated = $this->validatePayload($request);
 
-        // Slug: se veio vazio (validado required, mas defensivo), gera de nome
+        // Slug: defensivo — Str::slug normaliza caso cliente envie acentos
         $validated['slug'] = Str::slug($validated['slug']);
 
         // Default active=true se não informado; respeitamos o check explícito.
@@ -93,7 +120,13 @@ class TenantController extends Controller
 
         return redirect()
             ->route('master.tenants.index')
-            ->with('success', 'Cliente "'.$tenant->nome.'" criado com landing padrão.');
+            ->with('created_tenant', [
+                'id' => $tenant->id,
+                'nome' => $tenant->nome,
+                'slug' => $tenant->slug,
+                'landing_url' => url('/c/' . $tenant->slug),
+                'delivery_message' => $this->buildDeliveryMessage($tenant),
+            ]);
     }
 
     /**
@@ -106,6 +139,10 @@ class TenantController extends Controller
                 'id' => $tenant->id,
                 'nome' => $tenant->nome,
                 'slug' => $tenant->slug,
+                'email' => $tenant->email,
+                'telefone' => $tenant->telefone,
+                'cidade' => $tenant->cidade,
+                'estado' => $tenant->estado,
                 'is_active' => (bool) $tenant->is_active,
             ],
         ]);
@@ -163,12 +200,32 @@ class TenantController extends Controller
                 'alpha_dash', // a-z0-9_- (Str::slug normaliza acentos depois)
                 Rule::unique('tenants', 'slug')->ignore($tenant?->id),
             ],
+            'email' => ['nullable', 'email', 'max:150'],
+            'telefone' => ['nullable', 'string', 'max:20'],
+            'cidade' => ['nullable', 'string', 'max:100'],
+            'estado' => ['nullable', 'string', 'size:2'],
             'is_active' => ['sometimes', 'boolean'],
         ], [
-            'nome.required' => 'Informe o nome do tenant.',
+            'nome.required' => 'Informe o nome do cliente.',
             'slug.required' => 'Informe o slug.',
             'slug.alpha_dash' => 'Slug aceita apenas letras, números, hífen e underline.',
-            'slug.unique' => 'Já existe um tenant com esse slug.',
+            'slug.unique' => 'Já existe um cliente com esse slug.',
+            'email.email' => 'E-mail inválido.',
+            'estado.size' => 'UF deve ter 2 letras (ex.: MG).',
         ]);
+    }
+
+    /**
+     * Texto padrão de entrega para o master copiar/colar ao comunicar
+     * o cliente de que a página dele está no ar. Formato simples, sem
+     * branding específico — o master ajusta manualmente se quiser.
+     */
+    private function buildDeliveryMessage(Tenant $tenant): string
+    {
+        $url = url('/c/' . $tenant->slug);
+
+        return "Olá! Sua página já está disponível em:\n"
+            . $url . "\n"
+            . "Você pode editar acessando o painel.";
     }
 }
