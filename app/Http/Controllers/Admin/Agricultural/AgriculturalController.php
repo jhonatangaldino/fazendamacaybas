@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Agricultural;
 
 use App\Domain\Integration\Services\FieldApplicationToStockMovementService;
+use App\Domain\Integration\Services\HarvestToRevenueService;
 use App\Http\Controllers\Controller;
 use App\Models\Agricultural\Crop;
 use App\Models\Agricultural\Field;
@@ -295,7 +296,15 @@ class AgriculturalController extends Controller
         ]);
     }
 
-    public function harvestStore(Request $request)
+    /**
+     * FASE 2 · F2.5 — Integração cross-módulo:
+     *   Quando a colheita é registrada com valor_total > 0, o
+     *   HarvestToRevenueService gera automaticamente uma
+     *   FinancialTransaction (tipo=receita). Tudo em DB::transaction —
+     *   atomicidade entre criação da colheita, update do planting para
+     *   "colhido" e geração da receita.
+     */
+    public function harvestStore(Request $request, HarvestToRevenueService $harvestRevenue)
     {
         $data = $request->validate([
             'planting_id' => ['required', 'exists:plantings,id'],
@@ -306,11 +315,21 @@ class AgriculturalController extends Controller
             'observacoes' => ['nullable', 'string'],
         ]);
 
-        $planting = Planting::with('field')->findOrFail($data['planting_id']);
+        $planting = Planting::with(['field', 'crop'])->findOrFail($data['planting_id']);
         $data['produtividade_por_ha'] = $data['quantidade_colhida'] / max(0.0001, (float) $planting->area_plantada_ha);
+        // Propaga tenant/farm do field para a Harvest (coerência com a origem).
+        $data['tenant_id'] = $data['tenant_id'] ?? $planting->field?->tenant_id;
+        $data['farm_id'] = $data['farm_id'] ?? $planting->field?->farm_id;
 
-        Harvest::create($data);
-        $planting->update(['status' => 'colhido']);
+        // Atomicidade: harvest + update planting + integração
+        DB::transaction(function () use ($data, $planting, $harvestRevenue) {
+            $harvest = Harvest::create($data);
+            $planting->update(['status' => 'colhido']);
+
+            // F2.5: service gera receita se quantidade > 0 e valor_total > 0
+            $harvest->setRelation('planting', $planting);
+            $harvestRevenue->generateForHarvest($harvest);
+        });
 
         return back()->with('success', 'Colheita registrada.');
     }
