@@ -168,6 +168,9 @@ function doDelete() {
         <template #page-title>Rebanho</template>
         <PageHeader title="Animais" subtitle="Cadastro individual com histórico incremental de pesagens, vacinas e eventos">
             <template #actions>
+                <Link :href="route('admin.fluxos.venda-animal')" class="btn-outline" title="Fluxo guiado em 5 passos — ideal para vendas individuais sem procurar pelo animal">
+                    💰 Vender animal
+                </Link>
                 <Link :href="route('admin.rebanho.animais.create')" class="btn-primary">Novo animal</Link>
             </template>
         </PageHeader>

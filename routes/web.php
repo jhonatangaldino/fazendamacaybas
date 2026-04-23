@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\Livestock\LivestockIndexController;
 use App\Http\Controllers\Admin\PartnerController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SaleWizardController;
 use App\Http\Controllers\Admin\Stock\StockItemController;
 use App\Http\Controllers\Admin\Stock\StockMovementController;
 use App\Http\Controllers\Admin\Stock\WarehouseController;
@@ -283,6 +284,13 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
         Route::post('rebanho/animais/{animal}/eventos', [AnimalController::class, 'storeEvent'])->middleware('permission:operational.rebanho.eventos.create')->name('rebanho.animais.eventos.store');
         Route::post('rebanho/animais/vender-lote', [AnimalController::class, 'sellBatch'])->middleware('permission:operational.rebanho.animais.update')->name('rebanho.animais.vender-lote');
         Route::delete('rebanho/animais/{animal}/eventos/{event}', [AnimalController::class, 'destroyEvent'])->middleware('permission:operational.rebanho.eventos.delete')->name('rebanho.animais.eventos.destroy');
+
+        // F4 · Fluxo guiado (wizard) — Venda de animal
+        // Renderiza a SPA do wizard. O submit usa a rota existente
+        // `rebanho.animais.eventos.store` (zero duplicação de lógica).
+        Route::get('fluxos/venda-animal', [SaleWizardController::class, 'create'])
+            ->middleware('permission:operational.rebanho.eventos.create')
+            ->name('fluxos.venda-animal');
     });
 
     // ------- AGRÍCOLA -------
