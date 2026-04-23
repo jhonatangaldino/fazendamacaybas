@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Stock;
 
+use App\Domain\Integration\Services\StockPurchaseToExpenseService;
 use App\Http\Controllers\Controller;
 use App\Models\Partner;
 use App\Models\Stock\StockItem;
@@ -33,7 +34,14 @@ class StockMovementController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    /**
+     * FASE 2 · F2.2 — Integração cross-módulo:
+     *   Quando o movimento é tipo=entrada com valor_total>0, gera
+     *   automaticamente uma FinancialTransaction (tipo=despesa) via
+     *   StockPurchaseToExpenseService. Tudo dentro da DB::transaction
+     *   existente — atomicidade garantida com o recálculo de custo médio.
+     */
+    public function store(Request $request, StockPurchaseToExpenseService $purchase)
     {
         $data = $request->validate([
             'item_id' => ['required', 'exists:stock_items,id'],
@@ -51,7 +59,7 @@ class StockMovementController extends Controller
         $data['valor_total'] = ($data['valor_unitario'] ?? 0) * $data['quantidade'];
         $data['created_by'] = $request->user()->id;
 
-        DB::transaction(function () use ($data) {
+        DB::transaction(function () use ($data, $purchase) {
             $m = StockMovement::create($data);
 
             // Atualiza custo médio ponderado se for entrada com valor
@@ -74,6 +82,13 @@ class StockMovementController extends Controller
                     $item->update(['custo_medio' => round($custoMedioNovo, 4)]);
                 }
             }
+
+            // ── F2.2 · Integração Compra → Despesa Financeira ─────────
+            // Service decide se gera (tipo=entrada + valor_total>0 + conta
+            // ativa) e é idempotente (numero_documento=STOCK_MOVEMENT:<id>).
+            // Retorna null silenciosamente quando não se aplica.
+            $m->loadMissing('item');
+            $purchase->generateForMovement($m);
         });
 
         return back()->with('success', 'Movimentação registrada.');
