@@ -207,7 +207,7 @@ jobs:
 
           # ── 8. Teste de autenticação ───────────────────────────────────
           echo "### Teste de conexão SSH" >> "$SUMMARY"
-          if ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" \
+          if ssh -v -i ~/.ssh/id_deploy -p "$SSH_PORT" \
                  -o BatchMode=yes \
                  -o ConnectTimeout=15 \
                  "$SSH_USER@$SSH_HOST" 'echo "REMOTE_OK"; id; pwd; php -v 2>&1 | head -1' > /tmp/ssh.out 2> /tmp/ssh.err; then
@@ -218,12 +218,35 @@ jobs:
             cat /tmp/ssh.out
           else
             log_err "SSH falhou ao autenticar em ${SSH_USER}@${SSH_HOST}"
-            echo "### Stderr do ssh" >> "$SUMMARY"
+            log_err "Chave privada é VÁLIDA (passou no parse), mas a pública correspondente provavelmente não está em ~/.ssh/authorized_keys do servidor."
+            echo "### Stderr do ssh (verbose)" >> "$SUMMARY"
             echo '```' >> "$SUMMARY"
-            cat /tmp/ssh.err >> "$SUMMARY"
+            tail -n 40 /tmp/ssh.err >> "$SUMMARY"
             echo '```' >> "$SUMMARY"
-            echo "--- stderr ---"
-            cat /tmp/ssh.err
+            echo "--- stderr (ultimas 40 linhas do ssh -v) ---"
+            tail -n 40 /tmp/ssh.err
+
+            # Imprime a chave pública derivada da privada — NÃO é secret,
+            # o GitHub não mascara. Usuário cola isso em authorized_keys do
+            # servidor (Hostinger → SSH Access → SSH Keys → Add new) e o
+            # próximo deploy autentica.
+            echo "### ⇨ Ação necessária: instalar esta chave pública no servidor" >> "$SUMMARY"
+            echo '' >> "$SUMMARY"
+            echo 'No Hostinger (hPanel → Advanced → SSH Access → SSH Keys → Add new key), cole:' >> "$SUMMARY"
+            echo '```' >> "$SUMMARY"
+            ssh-keygen -y -f ~/.ssh/id_deploy >> "$SUMMARY"
+            echo '```' >> "$SUMMARY"
+            echo '' >> "$SUMMARY"
+            echo "Fingerprint correspondente: $(ssh-keygen -l -f ~/.ssh/id_deploy)" >> "$SUMMARY"
+
+            echo ""
+            echo "=============================================================="
+            echo "  ACAO NECESSARIA — instale esta chave publica no Hostinger:"
+            echo "=============================================================="
+            ssh-keygen -y -f ~/.ssh/id_deploy
+            echo "=============================================================="
+            echo "  Fingerprint: $(ssh-keygen -l -f ~/.ssh/id_deploy)"
+            echo "=============================================================="
             exit 1
           fi
 
