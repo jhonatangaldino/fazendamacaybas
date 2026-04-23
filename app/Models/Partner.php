@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Domain\Billing\Models\Tenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Partner extends Model
@@ -13,6 +15,7 @@ class Partner extends Model
         'tipo', 'pessoa', 'nome', 'nome_fantasia', 'documento', 'inscricao_estadual',
         'email', 'telefone', 'celular', 'cep', 'endereco', 'numero', 'complemento',
         'bairro', 'cidade', 'estado', 'observacoes', 'is_active',
+        'tenant_id',
     ];
 
     protected $casts = ['is_active' => 'boolean'];
@@ -25,5 +28,10 @@ class Partner extends Model
     public function scopeClientes($q)
     {
         return $q->whereIn('tipo', ['cliente', 'ambos']);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

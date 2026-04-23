@@ -2,6 +2,7 @@
 
 namespace App\Models\Agricultural;
 
+use App\Domain\Billing\Models\Tenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,6 +11,7 @@ class FieldApplication extends Model
     protected $fillable = [
         'field_id', 'planting_id', 'data_aplicacao', 'tipo', 'produto',
         'quantidade', 'unidade', 'valor_total', 'responsavel', 'observacoes',
+        'tenant_id', 'farm_id',
     ];
 
     protected $casts = [
@@ -26,5 +28,10 @@ class FieldApplication extends Model
     public function planting(): BelongsTo
     {
         return $this->belongsTo(Planting::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

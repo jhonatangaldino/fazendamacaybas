@@ -2,6 +2,7 @@
 
 namespace App\Models\Document;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ class Document extends Model
         'category_id', 'titulo', 'descricao', 'path', 'nome_arquivo', 'mime_type', 'size',
         'data_documento', 'data_vencimento', 'related_type', 'related_id',
         'is_confidential', 'tags', 'created_by',
+        'tenant_id', 'farm_id',
     ];
 
     protected $casts = [
@@ -38,6 +40,11 @@ class Document extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function url(): string

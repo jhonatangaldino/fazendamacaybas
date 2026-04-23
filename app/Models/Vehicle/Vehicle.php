@@ -2,6 +2,7 @@
 
 namespace App\Models\Vehicle;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Farm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ class Vehicle extends Model
         'placa', 'renavam', 'chassi', 'cor', 'combustivel',
         'medidor', 'medidor_atual', 'valor_aquisicao', 'data_aquisicao',
         'is_active', 'observacoes',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -34,5 +36,10 @@ class Vehicle extends Model
     public function maintenances(): HasMany
     {
         return $this->hasMany(MaintenanceOrder::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

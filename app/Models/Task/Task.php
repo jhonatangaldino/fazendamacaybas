@@ -2,6 +2,7 @@
 
 namespace App\Models\Task;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Employee;
 use App\Models\Farm;
 use App\Models\User;
@@ -20,6 +21,7 @@ class Task extends Model
         'farm_id', 'titulo', 'descricao', 'prioridade', 'status',
         'data_inicio', 'data_vencimento', 'concluida_em', 'modulo',
         'related_type', 'related_id', 'created_by',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -57,5 +59,10 @@ class Task extends Model
     public function checklists(): HasMany
     {
         return $this->hasMany(Checklist::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

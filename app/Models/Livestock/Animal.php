@@ -2,6 +2,7 @@
 
 namespace App\Models\Livestock;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Farm;
 use App\Models\Partner;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,7 @@ class Animal extends Model
         'peso_nascimento', 'peso_atual', 'origem', 'partner_id',
         'data_aquisicao', 'valor_aquisicao', 'status', 'data_saida',
         'categoria', 'observacoes', 'photo_path',
+        'tenant_id',
     ];
 
     public function photoUrl(): ?string
@@ -82,6 +84,11 @@ class Animal extends Model
     public function events(): HasMany
     {
         return $this->hasMany(AnimalEvent::class, 'animal_id');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function scopeAtivos($q)

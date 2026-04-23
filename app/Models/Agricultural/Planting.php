@@ -2,6 +2,7 @@
 
 namespace App\Models\Agricultural;
 
+use App\Domain\Billing\Models\Tenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,6 +15,7 @@ class Planting extends Model
     protected $fillable = [
         'field_id', 'crop_id', 'season_id', 'data_plantio', 'previsao_colheita',
         'area_plantada_ha', 'custo_previsto', 'custo_real', 'status', 'observacoes',
+        'tenant_id', 'farm_id',
     ];
 
     protected $casts = [
@@ -42,5 +44,10 @@ class Planting extends Model
     public function harvests(): HasMany
     {
         return $this->hasMany(Harvest::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

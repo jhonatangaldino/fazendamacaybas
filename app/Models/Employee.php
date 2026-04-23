@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Billing\Models\Tenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -14,6 +15,7 @@ class Employee extends Model
         'user_id', 'farm_id', 'nome', 'cpf', 'rg', 'data_nascimento', 'telefone', 'celular',
         'email', 'setor', 'funcao', 'salario', 'data_admissao', 'data_demissao',
         'cep', 'endereco', 'numero', 'bairro', 'cidade', 'estado', 'observacoes', 'is_active',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -32,5 +34,10 @@ class Employee extends Model
     public function farm(): BelongsTo
     {
         return $this->belongsTo(Farm::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

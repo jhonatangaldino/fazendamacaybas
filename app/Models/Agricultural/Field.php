@@ -2,6 +2,7 @@
 
 namespace App\Models\Agricultural;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Farm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,7 @@ class Field extends Model
     protected $fillable = [
         'farm_id', 'codigo', 'nome', 'area_ha', 'tipo_solo', 'descricao',
         'localizacao', 'latitude', 'longitude', 'is_active',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -37,5 +39,10 @@ class Field extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(FieldApplication::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

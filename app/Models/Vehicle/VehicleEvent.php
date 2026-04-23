@@ -2,6 +2,7 @@
 
 namespace App\Models\Vehicle;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Partner;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ class VehicleEvent extends Model
         'litros', 'preco_litro', 'valor_total', 'combustivel', 'posto',
         'severidade', 'titulo',
         'responsavel', 'partner_id', 'observacoes', 'created_by',
+        'tenant_id', 'farm_id',
     ];
 
     protected $casts = [
@@ -39,5 +41,10 @@ class VehicleEvent extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

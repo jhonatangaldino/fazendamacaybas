@@ -2,6 +2,7 @@
 
 namespace App\Models\Vehicle;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Financial\FinancialTransaction;
 use App\Models\Partner;
 use App\Models\User;
@@ -14,6 +15,7 @@ class MaintenanceOrder extends Model
         'vehicle_id', 'partner_id', 'tipo', 'descricao', 'data_prevista', 'data_realizada',
         'medidor', 'valor_pecas', 'valor_servico', 'valor_total', 'status',
         'transaction_id', 'observacoes', 'created_by',
+        'tenant_id', 'farm_id',
     ];
 
     protected $casts = [
@@ -43,5 +45,10 @@ class MaintenanceOrder extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

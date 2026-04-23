@@ -2,6 +2,7 @@
 
 namespace App\Models\Stock;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,7 @@ class StockItem extends Model
     protected $fillable = [
         'category_id', 'codigo', 'codigo_barras', 'nome', 'descricao', 'unidade', 'marca',
         'estoque_minimo', 'estoque_maximo', 'custo_medio', 'tipo', 'registro_ms', 'is_active',
+        'tenant_id', 'farm_id',
     ];
 
     protected $casts = [
@@ -32,6 +34,11 @@ class StockItem extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(StockMovement::class, 'item_id');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function saldoAtual(?int $warehouseId = null): float

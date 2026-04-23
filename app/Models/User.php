@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Domain\Billing\Models\Tenant;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -27,6 +29,7 @@ class User extends Authenticatable
         'must_change_password',
         'is_active',
         'avatar_path',
+        'tenant_id',
     ];
 
     protected $hidden = [
@@ -70,5 +73,10 @@ class User extends Authenticatable
         }
 
         return asset('storage/'.$this->avatar_path);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

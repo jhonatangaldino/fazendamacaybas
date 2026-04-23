@@ -2,6 +2,7 @@
 
 namespace App\Models\Financial;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Category;
 use App\Models\CostCenter;
 use App\Models\Partner;
@@ -21,6 +22,7 @@ class FinancialTransaction extends Model
         'account_id', 'category_id', 'cost_center_id', 'partner_id', 'recurrence_id',
         'tipo', 'descricao', 'observacoes', 'valor', 'data_vencimento', 'data_pagamento',
         'status', 'forma_pagamento', 'numero_documento', 'created_by',
+        'tenant_id', 'farm_id',
     ];
 
     protected $casts = [
@@ -65,6 +67,11 @@ class FinancialTransaction extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(FinancialTransactionAttachment::class, 'transaction_id');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function scopeReceitas($q)

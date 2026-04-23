@@ -2,6 +2,7 @@
 
 namespace App\Models\Livestock;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Farm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ class AnimalLot extends Model
 {
     protected $table = 'animal_lots';
 
-    protected $fillable = ['farm_id', 'codigo', 'nome', 'descricao', 'finalidade', 'is_active'];
+    protected $fillable = ['farm_id', 'codigo', 'nome', 'descricao', 'finalidade', 'is_active', 'tenant_id'];
 
     protected $casts = ['is_active' => 'boolean'];
 
@@ -23,5 +24,10 @@ class AnimalLot extends Model
     public function animals(): HasMany
     {
         return $this->hasMany(Animal::class, 'lot_id');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }
