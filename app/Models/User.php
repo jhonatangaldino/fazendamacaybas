@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     use HasFactory, HasRoles, LogsActivity, Notifiable, SoftDeletes;
+    use BelongsToTenant;
 
     protected $guard_name = 'web';
 

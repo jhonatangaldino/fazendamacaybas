@@ -3,6 +3,7 @@
 namespace App\Models\Vehicle;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\Financial\FinancialTransaction;
 use App\Models\Partner;
 use App\Models\User;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MaintenanceOrder extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'vehicle_id', 'partner_id', 'tipo', 'descricao', 'data_prevista', 'data_realizada',
         'medidor', 'valor_pecas', 'valor_servico', 'valor_total', 'status',

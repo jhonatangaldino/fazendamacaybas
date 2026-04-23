@@ -3,6 +3,7 @@
 namespace App\Models\Agricultural;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\Farm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Field extends Model
 {
     use SoftDeletes;
+    use BelongsToTenant;
 
     protected $fillable = [
         'farm_id', 'codigo', 'nome', 'area_ha', 'tipo_solo', 'descricao',

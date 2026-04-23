@@ -3,11 +3,14 @@
 namespace App\Models\Agricultural;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FieldApplication extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'field_id', 'planting_id', 'data_aplicacao', 'tipo', 'produto',
         'quantidade', 'unidade', 'valor_total', 'responsavel', 'observacoes',

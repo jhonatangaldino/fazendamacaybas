@@ -3,11 +3,14 @@
 namespace App\Models\Agricultural;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Season extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = ['nome', 'data_inicio', 'data_fim', 'is_active', 'tenant_id'];
 
     protected $casts = [

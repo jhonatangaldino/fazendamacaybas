@@ -3,11 +3,14 @@
 namespace App\Models\Agricultural;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Harvest extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'planting_id', 'data_colheita', 'quantidade_colhida', 'unidade',
         'produtividade_por_ha', 'valor_total', 'observacoes',

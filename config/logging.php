@@ -56,6 +56,16 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        // Canal dedicado ao detector de tenancy (R1.5).
+        // Escreve em storage/logs/tenancy-detector.log separado do laravel.log.
+        'tenancy' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/tenancy-detector.log'),
+            'level' => env('TENANCY_LOG_LEVEL', 'warning'),
+            'days' => env('TENANCY_LOG_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

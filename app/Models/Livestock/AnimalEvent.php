@@ -3,6 +3,7 @@
 namespace App\Models\Livestock;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\Partner;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AnimalEvent extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'animal_events';
 
     protected $fillable = [

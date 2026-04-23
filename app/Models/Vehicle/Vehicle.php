@@ -3,6 +3,7 @@
 namespace App\Models\Vehicle;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\Farm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Vehicle extends Model
 {
     use SoftDeletes;
+    use BelongsToTenant;
 
     protected $fillable = [
         'farm_id', 'tipo', 'nome', 'marca', 'modelo', 'ano_fabricacao', 'ano_modelo',

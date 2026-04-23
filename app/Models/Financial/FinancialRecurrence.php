@@ -3,12 +3,15 @@
 namespace App\Models\Financial;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FinancialRecurrence extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'account_id', 'category_id', 'partner_id', 'tipo', 'descricao', 'valor',
         'periodicidade', 'dia_vencimento', 'data_inicio', 'data_fim', 'parcelas_geradas', 'is_active',

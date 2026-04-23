@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Partner extends Model
 {
     use SoftDeletes;
+    use BelongsToTenant;
 
     protected $fillable = [
         'tipo', 'pessoa', 'nome', 'nome_fantasia', 'documento', 'inscricao_estadual',

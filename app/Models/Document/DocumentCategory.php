@@ -3,12 +3,15 @@
 namespace App\Models\Document;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DocumentCategory extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = ['nome', 'slug', 'cor', 'icon', 'is_active', 'tenant_id'];
 
     protected $casts = ['is_active' => 'boolean'];

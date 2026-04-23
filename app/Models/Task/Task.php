@@ -3,6 +3,7 @@
 namespace App\Models\Task;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\Employee;
 use App\Models\Farm;
 use App\Models\User;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Task extends Model
 {
     use SoftDeletes;
+    use BelongsToTenant;
 
     protected $fillable = [
         'farm_id', 'titulo', 'descricao', 'prioridade', 'status',

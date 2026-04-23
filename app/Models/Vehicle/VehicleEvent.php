@@ -3,6 +3,7 @@
 namespace App\Models\Vehicle;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\Partner;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VehicleEvent extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'vehicle_events';
 
     protected $fillable = [

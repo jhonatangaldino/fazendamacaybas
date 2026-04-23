@@ -3,6 +3,7 @@
 namespace App\Models\Stock;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\Financial\FinancialTransaction;
 use App\Models\Partner;
 use App\Models\User;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockMovement extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'item_id', 'warehouse_id', 'partner_id', 'tipo', 'motivo',
         'data', 'quantidade', 'valor_unitario', 'valor_total',

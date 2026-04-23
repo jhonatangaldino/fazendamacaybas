@@ -3,6 +3,7 @@
 namespace App\Models\Livestock;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\Farm;
 use App\Models\Partner;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class Animal extends Model
 {
     use LogsActivity, SoftDeletes;
+    use BelongsToTenant;
 
     protected $fillable = [
         'farm_id', 'species_id', 'breed_id', 'lot_id', 'mae_id', 'pai_id',

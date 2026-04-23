@@ -3,6 +3,7 @@
 namespace App\Models\Livestock;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\Farm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AnimalLot extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'animal_lots';
 
     protected $fillable = ['farm_id', 'codigo', 'nome', 'descricao', 'finalidade', 'is_active', 'tenant_id'];
