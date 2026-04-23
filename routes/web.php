@@ -173,6 +173,8 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
         Route::put('cms/configuracoes', [ClientesCmsSettingsController::class, 'update'])->name('cms.settings.update');
         Route::post('cms/configuracoes/upload', [ClientesCmsSettingsController::class, 'uploadFile'])->name('cms.settings.upload');
         Route::post('cms/configuracoes/remover-arquivo', [ClientesCmsSettingsController::class, 'removeFile'])->name('cms.settings.remove-file');
+        // Onboarding (UX V1): marca o tour de primeiro acesso como concluído
+        Route::post('cms/configuracoes/onboarding-completo', [ClientesCmsSettingsController::class, 'completeOnboarding'])->name('cms.settings.onboarding-complete');
     });
 
     // M4 — Fazendas do tenant (sempre aninhadas). scopeBindings() garante

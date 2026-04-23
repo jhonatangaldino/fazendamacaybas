@@ -65,15 +65,26 @@ class SettingsController extends Controller
             }
         }
 
+        // Flag de onboarding do cliente (guardada no próprio sistema de
+        // Settings via chave `cms.onboarding.completed`, override por cliente).
+        // Não aparece como setting editável porque `cms.*` não está em
+        // CLIENT_PREFIXES — lido aqui direto para a UI.
+        $onboardingCompleted = (bool) Setting::where('tenant_id', $cliente->id)
+            ->where('key', 'cms.onboarding.completed')
+            ->value('value');
+
         return Inertia::render('Master/Clientes/Cms/Settings', [
             'cliente' => [
                 'id' => $cliente->id,
                 'nome' => $cliente->nome,
+                'slug' => $cliente->slug,
+                'landing_url' => url('/c/' . $cliente->slug),
             ],
             'settings' => $effective
                 ->sortBy([['group', 'asc'], ['order_column', 'asc']])
                 ->values()
                 ->groupBy('group'),
+            'onboarding_completed' => $onboardingCompleted,
         ]);
     }
 
@@ -94,7 +105,29 @@ class SettingsController extends Controller
             Setting::forgetMemory($item['key'], $cliente->id);
         }
 
-        return back()->with('success', 'Configurações do cliente atualizadas.');
+        return back()->with('success', 'Alterações publicadas com sucesso.');
+    }
+
+    /**
+     * Marca o onboarding do cliente como concluído.
+     *
+     * Guardado no próprio sistema de Settings (override por cliente) em
+     * `cms.onboarding.completed` com type=bool. Leitura em `index()` via
+     * Setting::where(...)->value('value') interpreta o "1" como truthy.
+     *
+     * Idempotente — rodar 2× apenas atualiza o timestamp.
+     */
+    public function completeOnboarding(Tenant $cliente)
+    {
+        Setting::setValue(
+            key: 'cms.onboarding.completed',
+            value: true,
+            type: 'bool',
+            group: 'cms',
+            tenantId: $cliente->id,
+        );
+
+        return back();
     }
 
     public function uploadFile(Request $request, Tenant $cliente): JsonResponse
