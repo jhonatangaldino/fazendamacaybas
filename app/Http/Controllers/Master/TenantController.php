@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Master;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Cms\Services\LandingScaffoldService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,9 +66,13 @@ class TenantController extends Controller
     }
 
     /**
-     * Persiste um novo tenant.
+     * Persiste um novo tenant + scaffold da landing padrão.
+     *
+     * O scaffold cria 1 página "home" com 6 seções + 2 menus (header/footer)
+     * já pertencentes ao cliente recém-criado. Idempotente — rodar 2x no
+     * mesmo cliente é no-op (útil para re-provisionamento manual).
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, LandingScaffoldService $scaffold): RedirectResponse
     {
         $validated = $this->validatePayload($request);
 
@@ -82,9 +87,13 @@ class TenantController extends Controller
 
         $tenant = Tenant::create($validated);
 
+        // Scaffold imediato — cliente novo já tem landing funcional em
+        // /c/{slug} sem exigir intervenção manual no CMS.
+        $scaffold->scaffold($tenant);
+
         return redirect()
             ->route('master.tenants.index')
-            ->with('success', 'Tenant "'.$tenant->nome.'" criado.');
+            ->with('success', 'Cliente "'.$tenant->nome.'" criado com landing padrão.');
     }
 
     /**

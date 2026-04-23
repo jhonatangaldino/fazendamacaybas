@@ -1,11 +1,17 @@
 @php
-    // Endereço e contatos vêm da ÚNICA fonte: Configurações do site → Contato.
-    // O bloco "Onde estamos" controla apenas título e subtítulo.
-    $endereco = \App\Models\Setting::getValue('contato.endereco', 'Itabirito, Minas Gerais');
+    // Contatos: ÚNICA fonte = Configurações → Contato (fallback tenant → global).
+    // Mapa: resolvido por App\Domain\Cms\Support\MapResolver e injetado pelo
+    // SiteController em $map. null = bloco do mapa oculto.
+    // $data controla apenas título/subtítulo do bloco.
+    $mapa = $map ?? null;
+    $nomeLocal = $mapa['nome_local'] ?? null;
+    $enderecoLegenda = $nomeLocal ?: \App\Models\Setting::getValue('contato.endereco', '');
     $email = \App\Models\Setting::getValue('contato.email');
     $telefone = \App\Models\Setting::getValue('contato.telefone');
-    $enderecoEnc = urlencode($endereco);
-    $mapaSrc = "https://maps.google.com/maps?q={$enderecoEnc}&z=13&hl=pt-BR&output=embed";
+
+    // Quando o mapa está disponível, layout em 2 colunas (card + iframe).
+    // Quando está null, card de contato ocupa a largura toda.
+    $gridCols = $mapa ? 'lg:grid-cols-[1fr,1.2fr]' : 'lg:grid-cols-1';
 @endphp
 <section id="fale-conosco" class="section-site bg-white">
     <div class="container-site">
@@ -16,22 +22,24 @@
             @endif
         </div>
 
-        <div class="grid lg:grid-cols-[1fr,1.2fr] gap-8 items-stretch">
+        <div class="grid {{ $gridCols }} gap-8 items-stretch">
             <div class="space-y-4">
                 <div class="card">
                     <div class="card-body space-y-4">
-                        <div class="flex items-start gap-3">
-                            <div class="h-10 w-10 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center flex-shrink-0">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
+                        @if($enderecoLegenda)
+                            <div class="flex items-start gap-3">
+                                <div class="h-10 w-10 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center flex-shrink-0">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Localização</div>
+                                    <div class="text-slate-900 font-medium">{{ $enderecoLegenda }}</div>
+                                </div>
                             </div>
-                            <div>
-                                <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Localização</div>
-                                <div class="text-slate-900 font-medium">{{ $endereco }}</div>
-                            </div>
-                        </div>
+                        @endif
 
                         @if($email)
                             <div class="flex items-start gap-3">
@@ -61,16 +69,18 @@
 
             </div>
 
-            <div class="rounded-2xl overflow-hidden ring-1 ring-slate-200 shadow-sm min-h-[420px]">
-                <iframe
-                    src="{{ $mapaSrc }}"
-                    class="w-full h-full min-h-[420px] border-0"
-                    loading="lazy"
-                    referrerpolicy="no-referrer-when-downgrade"
-                    allowfullscreen
-                    title="Localização — {{ $endereco }}">
-                </iframe>
-            </div>
+            @if($mapa)
+                <div class="rounded-2xl overflow-hidden ring-1 ring-slate-200 shadow-sm min-h-[420px]">
+                    <iframe
+                        src="{{ $mapa['iframe_src'] }}"
+                        class="w-full h-full min-h-[420px] border-0"
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                        allowfullscreen
+                        title="Localização{{ $nomeLocal ? ' — ' . $nomeLocal : '' }}">
+                    </iframe>
+                </div>
+            @endif
         </div>
     </div>
 </section>

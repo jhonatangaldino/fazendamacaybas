@@ -106,6 +106,7 @@ const groupLabels = {
     social: 'Redes sociais',
     tema: 'Tema / cores',
     seo: 'SEO',
+    localizacao: 'Mapa / Localização',
 };
 
 function fieldKind(s) {

@@ -3,15 +3,33 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Billing\Models\Tenant;
+use App\Domain\Cms\Support\MapResolver;
 use App\Models\Cms\Page;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 
 class SiteController extends Controller
 {
+    /**
+     * Cliente default da landing pública quando não há slug na URL ("/").
+     * Sempre o tenant fundador (Macaybas) — preservado desde R1.3.
+     */
+    private const DEFAULT_TENANT_ID = 1;
+
     public function home()
     {
+        // Garante que `app('tenant_id')` está bindado para TODA leitura
+        // downstream desta request — SiteController, partials de header/footer
+        // e helpers do Setting/MapResolver passam a enxergar o tenant certo.
+        // Em "/" não há bind prévio → usa o tenant default (Macaybas).
+        // Em "/c/{slug}" o bind já foi feito em homeByCliente().
+        if (! app()->bound('tenant_id')) {
+            app()->instance('tenant_id', self::DEFAULT_TENANT_ID);
+        }
+        $tenantId = (int) app('tenant_id');
+
         $page = Page::with(['activeSections' => fn ($q) => $q->orderBy('order_column')])
+            ->where('tenant_id', $tenantId)
             ->where('slug', 'home')
             ->where('is_published', true)
             ->firstOrFail();
@@ -28,6 +46,9 @@ class SiteController extends Controller
                 'keywords' => $page->meta_keywords,
                 'og_image' => $page->og_image_path ? asset('storage/'.$page->og_image_path) : null,
             ],
+            // Resolver do mapa encapsula a prioridade:
+            // embed > lat/lng > endereço > null (oculta bloco).
+            'map' => MapResolver::resolve(),
         ]);
     }
 

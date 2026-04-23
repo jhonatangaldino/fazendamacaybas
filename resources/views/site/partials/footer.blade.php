@@ -1,5 +1,10 @@
 @php
-    $footerMenu = \App\Models\Cms\Menu::with('rootItems')->where('slug', 'footer-institucional')->first();
+    // Filtra o menu pelo tenant ativo (mesma lógica do header).
+    $tenantId = app()->bound('tenant_id') ? (int) app('tenant_id') : 1;
+    $footerMenu = \App\Models\Cms\Menu::with('rootItems')
+        ->where('tenant_id', $tenantId)
+        ->where('slug', 'footer-institucional')
+        ->first();
     $ano = now()->year;
     $siteNome = \App\Models\Setting::getValue('site.nome', 'Fazenda Macaybas');
     $email = \App\Models\Setting::getValue('contato.email');

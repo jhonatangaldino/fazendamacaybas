@@ -1,5 +1,9 @@
 @php
+    // Filtra o menu pelo tenant ativo — SiteController binda `app('tenant_id')`
+    // antes de renderizar (tenant 1 por default em "/", override em "/c/{slug}").
+    $tenantId = app()->bound('tenant_id') ? (int) app('tenant_id') : 1;
     $headerMenu = \App\Models\Cms\Menu::with('rootItems.children')
+        ->where('tenant_id', $tenantId)
         ->where('slug', 'header-principal')
         ->where('is_active', true)
         ->first();
