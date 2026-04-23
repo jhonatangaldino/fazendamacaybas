@@ -57,7 +57,10 @@ const menu = [
     { label: 'Clientes', route: 'master.tenants.index', phase: null, icon: 'building' },
     { label: 'Planos', route: 'master.planos.index', phase: null, icon: 'card' },
     { label: 'Cobranças', route: 'master.cobrancas.index', phase: null, icon: 'invoice' },
-    { label: 'CMS (Landing)', route: 'master.cms.index', phase: null, icon: 'globe' },
+    // "CMS (Landing)" foi removido da sidebar: o CMS é per-cliente e se
+    // acessa via Clientes → ícone "CMS" em cada linha. A rota legada
+    // `master.cms.index` permanece viva (compatibilidade), só não aparece
+    // mais como item de menu para evitar confusão com CMS global.
     { label: 'Configurações', route: null, phase: 'M8', icon: 'cog' },
 ];
 </script>

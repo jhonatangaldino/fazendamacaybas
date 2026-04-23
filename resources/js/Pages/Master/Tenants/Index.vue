@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import { useToast } from '@/composables/useToast.js';
@@ -19,6 +19,26 @@ const createdVisible = ref(true); // permite fechar o card sem reload
 // Dialog "Mensagem de entrega" — usado por botão em cada linha + pelo card de
 // criação. Guarda o texto a copiar e o nome do cliente que gerou.
 const deliveryDialog = ref({ open: false, tenant: null, message: '' });
+
+// Menu overflow por linha ("⋯"): guarda o id do tenant cujo menu está aberto.
+// Só um menu por vez — abrir outro fecha o anterior.
+const openMenuId = ref(null);
+function toggleMenu(id) {
+    openMenuId.value = openMenuId.value === id ? null : id;
+}
+function closeMenu() {
+    openMenuId.value = null;
+}
+
+// Fecha o menu ao clicar fora (event delegation no document).
+function handleDocumentClick(event) {
+    if (! openMenuId.value) return;
+    // Se o alvo está dentro de algum [data-tenant-menu], ignora.
+    if (event.target.closest('[data-tenant-menu]')) return;
+    closeMenu();
+}
+onMounted(() => document.addEventListener('click', handleDocumentClick));
+onBeforeUnmount(() => document.removeEventListener('click', handleDocumentClick));
 
 function toggle(tenant) {
     const verbo = tenant.is_active ? 'desativar' : 'reativar';
@@ -243,89 +263,106 @@ async function copyDeliveryMessage() {
                             </td>
                             <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ t.created_at }}</td>
                             <td class="px-4 py-3 text-right">
-                                <div class="inline-flex items-center gap-1">
-                                    <!-- Ver página: abre /c/{slug} -->
+                                <div class="inline-flex items-center gap-2">
+                                    <!-- Ação primária 1: Ver página pública -->
                                     <a
                                         :href="t.landing_url"
                                         target="_blank"
                                         rel="noopener"
-                                        :title="`Abrir landing pública em ${t.landing_url}`"
-                                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-macaybas-primary"
+                                        :title="`Abrir ${t.landing_url}`"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:text-macaybas-primary"
                                     >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                                         </svg>
+                                        Ver página
                                     </a>
 
-                                    <!-- Mensagem de entrega -->
-                                    <button
-                                        type="button"
-                                        @click="openDeliveryDialog(t)"
-                                        title="Copiar mensagem de entrega para enviar ao cliente"
-                                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-macaybas-primary"
-                                    >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                                        </svg>
-                                    </button>
-
-                                    <!-- Impersonar -->
-                                    <button
-                                        @click="impersonate(t)"
-                                        :disabled="! t.is_active"
-                                        :title="t.is_active ? 'Entrar no sistema deste cliente' : 'Cliente inativo — ative para entrar'"
-                                        class="p-2 rounded-md hover:bg-amber-50 text-slate-600 hover:text-amber-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-600"
-                                    >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                        </svg>
-                                    </button>
-
-                                    <!-- Fazendas -->
-                                    <Link
-                                        :href="route('master.tenants.farms.index', t.id)"
-                                        title="Fazendas"
-                                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
-                                    >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                                    </Link>
-
-                                    <!-- Assinatura -->
-                                    <Link
-                                        :href="route('master.tenants.subscription.show', t.id)"
-                                        title="Assinatura e cobranças"
-                                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
-                                    >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                                    </Link>
-
-                                    <!-- CMS do cliente -->
+                                    <!-- Ação primária 2: CMS do cliente -->
                                     <Link
                                         :href="route('master.clientes.cms.index', t.id)"
-                                        title="CMS / Landing deste cliente"
-                                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+                                        :title="`Abrir CMS de ${t.nome}`"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white hover:bg-slate-800"
                                     >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        CMS
                                     </Link>
 
-                                    <!-- Ativar/desativar -->
-                                    <button
-                                        @click="toggle(t)"
-                                        :title="t.is_active ? 'Desativar' : 'Reativar'"
-                                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
-                                    >
-                                        <svg v-if="t.is_active" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                                        <svg v-else class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    </button>
+                                    <!-- Menu secundário "⋯" com as demais ações -->
+                                    <div class="relative" data-tenant-menu>
+                                        <button
+                                            type="button"
+                                            @click="toggleMenu(t.id)"
+                                            :title="`Mais ações para ${t.nome}`"
+                                            class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+                                        >
+                                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                                                <circle cx="5" cy="12" r="2"/>
+                                                <circle cx="12" cy="12" r="2"/>
+                                                <circle cx="19" cy="12" r="2"/>
+                                            </svg>
+                                        </button>
 
-                                    <!-- Editar -->
-                                    <Link
-                                        :href="route('master.tenants.edit', t.id)"
-                                        title="Editar"
-                                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
-                                    >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                    </Link>
+                                        <div
+                                            v-if="openMenuId === t.id"
+                                            class="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-lg ring-1 ring-slate-200 py-1 z-30 text-left"
+                                        >
+                                            <Link
+                                                :href="route('master.tenants.edit', t.id)"
+                                                class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                                                @click="closeMenu"
+                                            >
+                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                Editar cadastro
+                                            </Link>
+                                            <Link
+                                                :href="route('master.tenants.farms.index', t.id)"
+                                                class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                                                @click="closeMenu"
+                                            >
+                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                                                Fazendas
+                                            </Link>
+                                            <Link
+                                                :href="route('master.tenants.subscription.show', t.id)"
+                                                class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                                                @click="closeMenu"
+                                            >
+                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                                Assinatura
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                @click="() => { closeMenu(); openDeliveryDialog(t); }"
+                                                class="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                                            >
+                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                                Mensagem de entrega
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="() => { closeMenu(); impersonate(t); }"
+                                                :disabled="! t.is_active"
+                                                class="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-700"
+                                            >
+                                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                                Impersonar
+                                            </button>
+                                            <div class="border-t border-slate-100 my-1"></div>
+                                            <button
+                                                type="button"
+                                                @click="() => { closeMenu(); toggle(t); }"
+                                                class="w-full text-left flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50"
+                                                :class="t.is_active ? 'text-red-600' : 'text-emerald-700'"
+                                            >
+                                                <svg v-if="t.is_active" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                                <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                {{ t.is_active ? 'Desativar cliente' : 'Reativar cliente' }}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                         </tr>

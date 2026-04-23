@@ -31,7 +31,12 @@ class MenuController extends Controller
 
     private function presentClient(Tenant $cliente): array
     {
-        return ['id' => $cliente->id, 'nome' => $cliente->nome];
+        return [
+            'id' => $cliente->id,
+            'nome' => $cliente->nome,
+            'slug' => $cliente->slug,
+            'landing_url' => url('/c/' . $cliente->slug),
+        ];
     }
 
     private function ensureMenuBelongs(Tenant $cliente, Menu $menu): void

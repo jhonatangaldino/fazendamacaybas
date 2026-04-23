@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
-import PageHeader from '@/Components/PageHeader.vue';
+import ClientCmsHeader from '@/Components/ClientCmsHeader.vue';
 import SectionEditor from './SectionEditor.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
 
@@ -59,19 +59,25 @@ function toggleActive(section) {
 </script>
 
 <template>
-    <Head :title="`Editar página — ${page.titulo} · ${cliente.nome}`" />
+    <Head :title="`CMS — Cliente: ${cliente.nome} · ${page.titulo}`" />
     <MasterLayout>
-        <template #page-title>CMS · {{ cliente.nome }} · {{ page.titulo }}</template>
+        <template #page-title>CMS — {{ cliente.nome }}</template>
 
-        <PageHeader :title="page.titulo" :subtitle="`Edite as seções desta página (cliente: ${cliente.nome})`">
-            <template #actions>
-                <Link :href="route('master.clientes.cms.index', cliente.id)" class="btn-outline">Voltar</Link>
-                <a :href="`/${page.slug === 'home' ? '' : page.slug}`" target="_blank" class="btn-outline">Ver site</a>
-                <button @click="publishAll" :disabled="!hasDrafts" class="btn-primary">
-                    Publicar alterações
-                </button>
-            </template>
-        </PageHeader>
+        <ClientCmsHeader :cliente="cliente" :section="`Página: ${page.titulo}`" />
+
+        <!-- Ações da página (dentro do escopo deste cliente) -->
+        <div class="flex flex-wrap items-center gap-2 mb-6">
+            <Link
+                :href="route('master.clientes.cms.index', cliente.id)"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white ring-1 ring-slate-200 text-sm text-slate-700 hover:bg-slate-50"
+            >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                Voltar às páginas
+            </Link>
+            <button @click="publishAll" :disabled="!hasDrafts" class="btn-primary ml-auto">
+                Publicar alterações
+            </button>
+        </div>
 
         <div class="grid gap-6 lg:grid-cols-[300px,1fr]">
             <!-- Sidebar de seções -->

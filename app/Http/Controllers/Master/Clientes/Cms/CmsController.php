@@ -44,6 +44,8 @@ class CmsController extends Controller
         return [
             'id' => $cliente->id,
             'nome' => $cliente->nome,
+            'slug' => $cliente->slug,
+            'landing_url' => url('/c/' . $cliente->slug),
         ];
     }
 
