@@ -51,9 +51,42 @@ class FinancialTransactionController extends Controller
         ]);
     }
 
+    /**
+     * ═════ D6 — Consolidação de Domínio · FINANCEIRO ═════
+     *
+     * Garante coerência contábil entre o `tipo` do lançamento
+     * (receita | despesa | transferencia) e o `category_id` escolhido.
+     * Categorias são tipificadas em `categories.tipo` com valores
+     * `financeiro_receita` e `financeiro_despesa` (seedados pelo
+     * CategorySeeder). Transferências entre contas são permitidas sem
+     * categoria (fora do escopo contábil de receita/despesa).
+     *
+     * RETROCOMPAT:
+     *   - Em UPDATE, regra só dispara quando `tipo` OU `category_id`
+     *     mudou. Lançamentos legados com categoria incoerente continuam
+     *     editáveis sem forçar retrabalho enquanto o usuário não mexer
+     *     nos campos afetados.
+     *   - `category_id` continua nullable no validator base — a regra
+     *     só valida se a categoria FOI informada.
+     */
+
+    /** Mapa: tipo de transação → tipo de categoria esperado em `categories.tipo`. */
+    private const CATEGORIA_ESPERADA_POR_TIPO_TRANSACAO = [
+        'receita' => 'financeiro_receita',
+        'despesa' => 'financeiro_despesa',
+        // 'transferencia' intencionalmente fora — não se enquadra no
+        // plano de contas receita/despesa.
+    ];
+
     public function store(Request $request)
     {
         $data = $this->validateTransaction($request);
+
+        // D6 · Coerência tipo × categoria
+        if ($err = $this->validateDomainCoherence($data, null)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         $data['created_by'] = $request->user()->id;
         FinancialTransaction::create($data);
 
@@ -75,6 +108,12 @@ class FinancialTransactionController extends Controller
     public function update(Request $request, FinancialTransaction $transacao)
     {
         $data = $this->validateTransaction($request);
+
+        // D6 · Coerência também em update — só aplica se tipo ou category_id mudou
+        if ($err = $this->validateDomainCoherence($data, $transacao)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         $transacao->update($data);
 
         return redirect()->route('admin.financeiro.transacoes.index')->with('success', 'Lançamento atualizado.');
@@ -120,5 +159,68 @@ class FinancialTransactionController extends Controller
             'forma_pagamento' => ['nullable', 'string', 'max:30'],
             'numero_documento' => ['nullable', 'string', 'max:50'],
         ]);
+    }
+
+    /**
+     * D6 · Coerência contábil: o `tipo` do lançamento dita o tipo da
+     * categoria aceita.
+     *
+     * Regras:
+     *   - receita → category.tipo deve ser `financeiro_receita`
+     *   - despesa → category.tipo deve ser `financeiro_despesa`
+     *   - transferencia → sem regra (fora do plano contábil receita/despesa)
+     *
+     * Só valida quando `category_id` é informada (o validator base mantém
+     * `nullable`). Em update, a regra só dispara se `tipo` ou
+     * `category_id` mudaram — lançamentos legados com categoria incoerente
+     * continuam editáveis sem forçar correção retroativa.
+     */
+    protected function validateDomainCoherence(array $data, ?FinancialTransaction $existing): ?string
+    {
+        $tipo = $data['tipo'] ?? null;
+        $catId = $data['category_id'] ?? null;
+
+        // Só receita/despesa têm regra. Transferência e tipos inesperados passam.
+        if (! array_key_exists($tipo, self::CATEGORIA_ESPERADA_POR_TIPO_TRANSACAO)) {
+            return null;
+        }
+
+        // Retrocompat em update: se nem tipo nem categoria mudaram, nada a validar.
+        if ($existing !== null) {
+            $tipoMudou = $tipo !== $existing->tipo;
+            $catMudou = (int) $catId !== (int) $existing->category_id;
+            if (! $tipoMudou && ! $catMudou) {
+                return null;
+            }
+        }
+
+        // Sem categoria informada → passa (categoria continua nullable por design).
+        // O brief foca em COERÊNCIA quando a categoria existe, não em forçar seleção.
+        if (! $catId) {
+            return null;
+        }
+
+        $category = Category::find($catId);
+        if (! $category) {
+            return null; // validator base já trata via 'exists'
+        }
+
+        $esperado = self::CATEGORIA_ESPERADA_POR_TIPO_TRANSACAO[$tipo];
+        if ($category->tipo === $esperado) {
+            return null; // coerente
+        }
+
+        // Mensagem prescritiva: explica qual categoria foi usada e o que fazer.
+        $tipoHuman = $tipo === 'receita' ? 'Receitas' : 'Despesas';
+        $catTipoHuman = match ($category->tipo) {
+            'financeiro_receita' => 'receitas',
+            'financeiro_despesa' => 'despesas',
+            default => $category->tipo,
+        };
+
+        return "{$tipoHuman} devem utilizar categorias de " . ($tipo === 'receita' ? 'receita' : 'despesa') . '. '
+            . "A categoria informada ('" . $category->nome . "') pertence a {$catTipoHuman}. "
+            . 'Abra a lista de categorias e escolha uma compatível com o tipo do lançamento. '
+            . 'Se o lançamento está classificado errado, troque o tipo (receita ↔ despesa) em vez de forçar a categoria.';
     }
 }
