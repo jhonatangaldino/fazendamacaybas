@@ -8,10 +8,27 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * @deprecated Após M8.C (2024-02-03), este seeder usa nomenclatura LEGADA
+ *             (sem prefixos platform./operational.). Permissions criadas
+ *             aqui SERÃO REMOVIDAS pela migration M8.C no próximo migrate.
+ *
+ * NÃO RODAR EM PRODUÇÃO. Mantido apenas como referência histórica e para
+ * reversão emergencial em ambiente de dev zerado (users=0).
+ *
+ * Próximo passo (fase M8.D — futura): reescrever este seeder usando
+ * platform.* + operational.* para permitir bootstrap de ambientes zerados
+ * com a nomenclatura nova. Até lá, sistema zerado deve ser populado via
+ * seeder manual + migrations M8.A/C.
+ *
+ * Em deploys de produção, o deploy.sh só roda `db:seed --force` se
+ * `users.count() === 0` — o que não acontece em produção. Seguro enquanto
+ * isso for verdade.
+ */
 class RoleAndPermissionSeeder extends Seeder
 {
     /**
-     * Perfis + permissões iniciais.
+     * Perfis + permissões iniciais (nomenclatura LEGADA pré-M8).
      *
      * Perfis:
      *  - admin_master       → acesso total (você)
