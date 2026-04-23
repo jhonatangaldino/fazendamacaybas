@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Cms;
+namespace App\Http\Controllers\Master\Cms;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
+/**
+ * SettingsController — M7 (migrado de Admin\Cms → Master\Cms)
+ *
+ * Configurações globais da landing (logo, favicon, cores, textos do site).
+ * Platform-level. Lógica 1:1 com a versão antiga.
+ */
 class SettingsController extends Controller
 {
     public function index()
@@ -17,7 +23,7 @@ class SettingsController extends Controller
         $settings = Setting::orderBy('group')->orderBy('order_column')->get()
             ->groupBy('group');
 
-        return Inertia::render('Admin/Cms/Settings', [
+        return Inertia::render('Master/Cms/Settings', [
             'settings' => $settings,
         ]);
     }
@@ -49,7 +55,7 @@ class SettingsController extends Controller
             'file' => [
                 'required',
                 'file',
-                'max:5120', // 5MB
+                'max:5120',
                 'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon',
             ],
             'key' => ['required', 'string', 'exists:settings,key'],
@@ -91,9 +97,6 @@ class SettingsController extends Controller
         ]);
     }
 
-    /**
-     * Remove uma imagem do setting.
-     */
     public function removeFile(Request $request): JsonResponse
     {
         $data = $request->validate([

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Cms;
+namespace App\Http\Controllers\Master\Cms;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cms\Page;
@@ -9,13 +9,25 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
+/**
+ * CmsController — M7
+ *
+ * CMS da landing page institucional. MIGRADO de App\Http\Controllers\Admin\Cms
+ * para a área master porque o site público é platform-level (promove o SaaS
+ * como produto, não é de nenhum tenant).
+ *
+ * Lógica 1:1 com a versão antiga — apenas namespace, nomes de rota
+ * (Inertia::render) e registro de rotas mudaram.
+ *
+ * NÃO consulta tenant_id nem farm_id — o CMS é global por design.
+ */
 class CmsController extends Controller
 {
     public function index()
     {
         $pages = Page::withCount('sections')->orderBy('titulo')->get();
 
-        return Inertia::render('Admin/Cms/Index', [
+        return Inertia::render('Master/Cms/Index', [
             'pages' => $pages,
         ]);
     }
@@ -24,7 +36,7 @@ class CmsController extends Controller
     {
         $page->load(['sections' => fn ($q) => $q->orderBy('order_column')]);
 
-        return Inertia::render('Admin/Cms/Editor', [
+        return Inertia::render('Master/Cms/Editor', [
             'page' => [
                 'id' => $page->id,
                 'slug' => $page->slug,

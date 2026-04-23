@@ -57,7 +57,7 @@ const menu = [
     { label: 'Tenants', route: 'master.tenants.index', phase: null, icon: 'building' },
     { label: 'Planos', route: 'master.planos.index', phase: null, icon: 'card' },
     { label: 'Cobranças', route: 'master.cobrancas.index', phase: null, icon: 'invoice' },
-    { label: 'CMS (Landing)', route: null, phase: 'M7', icon: 'globe' },
+    { label: 'CMS (Landing)', route: 'master.cms.index', phase: null, icon: 'globe' },
     { label: 'Configurações', route: null, phase: 'M8', icon: 'cog' },
 ];
 </script>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import MasterLayout from '@/Layouts/MasterLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import InputMasked from '@/Components/InputMasked.vue';
 import { useLoading } from '@/composables/useLoading.js';
@@ -25,7 +25,7 @@ function save() {
             payload.push({ key: s.key, value: s.value });
         }
     }
-    router.put(route('admin.cms.settings.update'), { settings: payload }, { preserveScroll: true });
+    router.put(route('master.cms.settings.update'), { settings: payload }, { preserveScroll: true });
 }
 
 async function uploadImage(event, s) {
@@ -41,7 +41,7 @@ async function uploadImage(event, s) {
 
     loading.start('Enviando ' + (s.label || 'arquivo').toLowerCase() + '...');
     try {
-        const res = await fetch(route('admin.cms.settings.upload'), {
+        const res = await fetch(route('master.cms.settings.upload'), {
             method: 'POST',
             body: fd,
             headers: {
@@ -81,7 +81,7 @@ async function removeImage(s) {
     fd.append('key', s.key);
 
     try {
-        const res = await fetch(route('admin.cms.settings.remove-file'), {
+        const res = await fetch(route('master.cms.settings.remove-file'), {
             method: 'POST',
             body: fd,
             headers: {
@@ -122,7 +122,7 @@ function cacheBusted(path) {
 
 <template>
     <Head title="Configurações do site" />
-    <AdminLayout>
+    <MasterLayout>
         <template #page-title>Configurações do site</template>
 
         <PageHeader title="Configurações" subtitle="Logo, cores, contatos, redes sociais e SEO — esses dados alimentam a landing page" />
@@ -174,5 +174,5 @@ function cacheBusted(path) {
                 <button @click="save" class="btn-primary">Salvar configurações</button>
             </div>
         </div>
-    </AdminLayout>
+    </MasterLayout>
 </template>

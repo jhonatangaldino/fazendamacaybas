@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import MasterLayout from '@/Layouts/MasterLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 
 defineProps({ pages: Array });
@@ -8,7 +8,7 @@ defineProps({ pages: Array });
 
 <template>
     <Head title="CMS da Landing Page" />
-    <AdminLayout>
+    <MasterLayout>
         <template #page-title>CMS — Landing Page</template>
 
         <PageHeader
@@ -22,7 +22,7 @@ defineProps({ pages: Array });
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Link v-for="p in pages" :key="p.id"
-                  :href="route('admin.cms.edit', p.id)"
+                  :href="route('master.cms.edit', p.id)"
                   class="card hover:ring-macaybas-primary transition">
                 <div class="card-body">
                     <div class="flex items-start justify-between mb-3">
@@ -38,5 +38,5 @@ defineProps({ pages: Array });
                 </div>
             </Link>
         </div>
-    </AdminLayout>
+    </MasterLayout>
 </template>

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Cms;
+namespace App\Http\Controllers\Master\Cms;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cms\Menu;
@@ -8,12 +8,21 @@ use App\Models\Cms\MenuItem;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
+/**
+ * MenuController — M7 (migrado de Admin\Cms → Master\Cms)
+ *
+ * Gerencia os menus públicos da landing (cabeçalho, rodapé). Platform-level.
+ * Lógica 1:1 com a versão antiga.
+ */
 class MenuController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Admin/Cms/Menus/Index', [
-            'menus' => Menu::with(['items' => fn ($q) => $q->orderBy('order_column')])->orderBy('local')->orderBy('nome')->get(),
+        return Inertia::render('Master/Cms/Menus/Index', [
+            'menus' => Menu::with(['items' => fn ($q) => $q->orderBy('order_column')])
+                ->orderBy('local')
+                ->orderBy('nome')
+                ->get(),
         ]);
     }
 

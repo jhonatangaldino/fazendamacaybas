@@ -98,7 +98,7 @@ function toggleActive() { emit('toggle-active', local.value); }
 function autoSaveDraft() {
     autoSaveStatus.value = 'saving';
     router.put(
-        route('admin.cms.section.draft', local.value.id),
+        route('master.cms.section.draft', local.value.id),
         {
             draft_data: local.value.draft_data,
             nome: local.value.nome,
@@ -131,7 +131,7 @@ async function uploadTo(event, cb) {
     autoSaveStatus.value = 'saving';
     loading.start('Enviando imagem...');
     try {
-        const res = await fetch(route('admin.cms.upload-image'), {
+        const res = await fetch(route('master.cms.upload-image'), {
             method: 'POST',
             body: fd,
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },

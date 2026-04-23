@@ -113,14 +113,7 @@ const menu = computed(() => [
             { label: 'Relatórios', route: 'admin.relatorios.index', icon: 'chart', perm: 'relatorios.view' },
         ],
     },
-    {
-        section: 'Site',
-        items: [
-            { label: 'CMS — Landing', route: 'admin.cms.index', icon: 'globe', perm: 'cms.view' },
-            { label: 'Menus', route: 'admin.cms.menus.index', icon: 'menu', perm: 'cms.menus.view' },
-            { label: 'Configurações do site', route: 'admin.cms.settings', icon: 'cog', perm: 'cms.settings.view' },
-        ],
-    },
+    // Seção "Site" removida em M7 — CMS migrou para /master/cms (área plataforma).
     {
         section: 'Administração',
         items: [

@@ -1,12 +1,12 @@
 <?php
 
 use App\Http\Controllers\Admin\Agricultural\AgriculturalController;
-use App\Http\Controllers\Admin\Cms\CmsController;
-use App\Http\Controllers\Admin\Cms\MenuController;
-use App\Http\Controllers\Admin\Cms\SettingsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
+use App\Http\Controllers\Master\Cms\CmsController as MasterCmsController;
+use App\Http\Controllers\Master\Cms\MenuController as MasterCmsMenuController;
+use App\Http\Controllers\Master\Cms\SettingsController as MasterCmsSettingsController;
 use App\Http\Controllers\Master\FarmController as MasterFarmController;
 use App\Http\Controllers\Master\ImpersonationController;
 use App\Http\Controllers\Master\InvoiceController;
@@ -111,6 +111,31 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
     Route::post('tenants/{tenant}/assinatura/cancelar', [SubscriptionController::class, 'cancel'])->name('tenants.subscription.cancel');
     Route::post('tenants/{tenant}/cobrancas', [InvoiceController::class, 'store'])->name('tenants.invoices.store');
 
+    // M7 — CMS da landing pública (migrado de /admin/cms em M7).
+    // Platform-level: sem tenant_id/farm_id. Guardado apenas por enforce.master
+    // (nunca mais precisa de role:admin_master + permission:cms.* do legado,
+    // pois o grupo já garante acesso exclusivo ao master).
+    Route::get('cms', [MasterCmsController::class, 'index'])->name('cms.index');
+    Route::get('cms/pagina/{page}', [MasterCmsController::class, 'edit'])->name('cms.edit');
+    Route::put('cms/pagina/{page}', [MasterCmsController::class, 'updatePage'])->name('cms.update-page');
+    Route::put('cms/secao/{section}/rascunho', [MasterCmsController::class, 'saveSectionDraft'])->name('cms.section.draft');
+    Route::post('cms/secao/{section}/publicar', [MasterCmsController::class, 'publishSection'])->name('cms.section.publish');
+    Route::post('cms/secao/{section}/toggle', [MasterCmsController::class, 'toggleActive'])->name('cms.section.toggle');
+    Route::post('cms/pagina/{page}/publicar-tudo', [MasterCmsController::class, 'publishAll'])->name('cms.publish-all');
+    Route::post('cms/pagina/{page}/reordenar', [MasterCmsController::class, 'reorderSections'])->name('cms.reorder');
+    Route::post('cms/upload-imagem', [MasterCmsController::class, 'uploadImage'])->name('cms.upload-image');
+
+    Route::get('cms/menus', [MasterCmsMenuController::class, 'index'])->name('cms.menus.index');
+    Route::post('cms/menus/{menu}/items', [MasterCmsMenuController::class, 'storeItem'])->name('cms.menus.items.store');
+    Route::put('cms/menus/items/{item}', [MasterCmsMenuController::class, 'updateItem'])->name('cms.menus.items.update');
+    Route::delete('cms/menus/items/{item}', [MasterCmsMenuController::class, 'destroyItem'])->name('cms.menus.items.destroy');
+    Route::post('cms/menus/{menu}/reordenar', [MasterCmsMenuController::class, 'reorder'])->name('cms.menus.reorder');
+
+    Route::get('cms/configuracoes', [MasterCmsSettingsController::class, 'index'])->name('cms.settings');
+    Route::put('cms/configuracoes', [MasterCmsSettingsController::class, 'update'])->name('cms.settings.update');
+    Route::post('cms/configuracoes/upload', [MasterCmsSettingsController::class, 'uploadFile'])->name('cms.settings.upload');
+    Route::post('cms/configuracoes/remover-arquivo', [MasterCmsSettingsController::class, 'removeFile'])->name('cms.settings.remove-file');
+
     // M4 — Fazendas do tenant (sempre aninhadas). scopeBindings() garante
     // que {farm} pertença a {tenant} via Tenant::farms() relation — 404 se
     // alguém tentar GET /master/tenants/1/fazendas/42/editar onde 42 é
@@ -167,29 +192,7 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.farm'])->prefix('admin')
         Route::delete('perfis/{role}', [RoleController::class, 'destroy'])->middleware('permission:roles.delete')->name('roles.destroy');
     });
 
-    // ------- CMS (exclusivo Admin Master: ninguém além do master mexe no site público) -------
-    Route::middleware(['role:admin_master', 'permission:cms.view'])->group(function () {
-        Route::get('cms', [CmsController::class, 'index'])->name('cms.index');
-        Route::get('cms/pagina/{page}', [CmsController::class, 'edit'])->name('cms.edit');
-        Route::put('cms/pagina/{page}', [CmsController::class, 'updatePage'])->middleware('permission:cms.pages.update')->name('cms.update-page');
-        Route::put('cms/secao/{section}/rascunho', [CmsController::class, 'saveSectionDraft'])->middleware('permission:cms.update')->name('cms.section.draft');
-        Route::post('cms/secao/{section}/publicar', [CmsController::class, 'publishSection'])->middleware('permission:cms.publish')->name('cms.section.publish');
-        Route::post('cms/secao/{section}/toggle', [CmsController::class, 'toggleActive'])->middleware('permission:cms.update')->name('cms.section.toggle');
-        Route::post('cms/pagina/{page}/publicar-tudo', [CmsController::class, 'publishAll'])->middleware('permission:cms.publish')->name('cms.publish-all');
-        Route::post('cms/pagina/{page}/reordenar', [CmsController::class, 'reorderSections'])->middleware('permission:cms.update')->name('cms.reorder');
-        Route::post('cms/upload-imagem', [CmsController::class, 'uploadImage'])->middleware('permission:cms.update')->name('cms.upload-image');
-
-        Route::get('cms/menus', [MenuController::class, 'index'])->middleware('permission:cms.menus.view')->name('cms.menus.index');
-        Route::post('cms/menus/{menu}/items', [MenuController::class, 'storeItem'])->middleware('permission:cms.menus.create')->name('cms.menus.items.store');
-        Route::put('cms/menus/items/{item}', [MenuController::class, 'updateItem'])->middleware('permission:cms.menus.update')->name('cms.menus.items.update');
-        Route::delete('cms/menus/items/{item}', [MenuController::class, 'destroyItem'])->middleware('permission:cms.menus.delete')->name('cms.menus.items.destroy');
-        Route::post('cms/menus/{menu}/reordenar', [MenuController::class, 'reorder'])->middleware('permission:cms.menus.update')->name('cms.menus.reorder');
-
-        Route::get('cms/configuracoes', [SettingsController::class, 'index'])->middleware('permission:cms.settings.view')->name('cms.settings');
-        Route::put('cms/configuracoes', [SettingsController::class, 'update'])->middleware('permission:cms.settings.update')->name('cms.settings.update');
-        Route::post('cms/configuracoes/upload', [SettingsController::class, 'uploadFile'])->middleware('permission:cms.settings.update')->name('cms.settings.upload');
-        Route::post('cms/configuracoes/remover-arquivo', [SettingsController::class, 'removeFile'])->middleware('permission:cms.settings.update')->name('cms.settings.remove-file');
-    });
+    // CMS migrado para /master/cms em M7 (é platform-level, não tenant-level).
 
     // ------- PARCEIROS -------
     Route::middleware('permission:parceiros.view')->group(function () {

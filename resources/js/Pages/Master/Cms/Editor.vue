@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+import MasterLayout from '@/Layouts/MasterLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import SectionEditor from './SectionEditor.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
@@ -26,11 +26,11 @@ const meta = useForm({
 });
 
 function saveMeta() {
-    meta.put(route('admin.cms.update-page', props.page.id), { preserveScroll: true });
+    meta.put(route('master.cms.update-page', props.page.id), { preserveScroll: true });
 }
 
 function saveSection(section) {
-    router.put(route('admin.cms.section.draft', section.id), {
+    router.put(route('master.cms.section.draft', section.id), {
         draft_data: section.draft_data,
         nome: section.nome,
         is_active: section.is_active,
@@ -38,7 +38,7 @@ function saveSection(section) {
 }
 
 function publishSection(section) {
-    router.post(route('admin.cms.section.publish', section.id), {}, { preserveScroll: true });
+    router.post(route('master.cms.section.publish', section.id), {}, { preserveScroll: true });
 }
 
 async function publishAll() {
@@ -49,22 +49,22 @@ async function publishAll() {
         variant: 'primary',
         icon: 'question',
     });
-    if (ok) router.post(route('admin.cms.publish-all', props.page.id));
+    if (ok) router.post(route('master.cms.publish-all', props.page.id));
 }
 
 function toggleActive(section) {
-    router.post(route('admin.cms.section.toggle', section.id), {}, { preserveScroll: true });
+    router.post(route('master.cms.section.toggle', section.id), {}, { preserveScroll: true });
 }
 </script>
 
 <template>
     <Head :title="`Editar página — ${page.titulo}`" />
-    <AdminLayout>
+    <MasterLayout>
         <template #page-title>CMS — {{ page.titulo }}</template>
 
         <PageHeader :title="page.titulo" subtitle="Edite as seções desta página">
             <template #actions>
-                <Link :href="route('admin.cms.index')" class="btn-outline">Voltar</Link>
+                <Link :href="route('master.cms.index')" class="btn-outline">Voltar</Link>
                 <a :href="`/${page.slug === 'home' ? '' : page.slug}`" target="_blank" class="btn-outline">Ver site</a>
                 <button @click="publishAll" :disabled="!hasDrafts" class="btn-primary">
                     Publicar alterações
@@ -132,5 +132,5 @@ function toggleActive(section) {
                 </div>
             </div>
         </div>
-    </AdminLayout>
+    </MasterLayout>
 </template>
