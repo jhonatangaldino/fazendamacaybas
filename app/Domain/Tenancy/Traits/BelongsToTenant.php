@@ -51,10 +51,10 @@ trait BelongsToTenant
      * Responsabilidades acumuladas:
      *   R1.5  — Detector-only em retrieved/creating/updating (logs warning)
      *   R2.3  — Enforcement no creating (sobrescreve tenant_id com container)
-     *   R2.4  — Global scope de leitura via BelongsToTenantScope (NOVO)
+     *   R2.4  — Global scope de leitura via BelongsToTenantScope
+     *   R2.5  — Enforcement no updating (reverte tenant_id alterado) (NOVO)
      *
      * Reservas futuras:
-     *   R2.5  — Enforcement no updating (prevenir mover registro entre tenants)
      *   R2.6+ — Middleware EnforceFarm/Subscription
      */
     public static function bootBelongsToTenant(): void
@@ -80,9 +80,14 @@ trait BelongsToTenant
         });
 
         static::updating(function (Model $model) {
+            // Detector observa PRIMEIRO — preserva visibilidade da tentativa
+            // de alteração no log de tenancy antes do enforcement silenciar.
             if (static::tenancyDetectorIsActive()) {
                 static::tenancyDetectorObserve($model, 'updating');
             }
+
+            // R2.5 — ENFORCEMENT no updating (reverte tenant_id alterado)
+            static::enforceTenantOnUpdating($model);
         });
     }
 
@@ -112,6 +117,58 @@ trait BelongsToTenant
         }
 
         // Sobrescreve sempre — qualquer valor injetado via request é descartado
+        $model->tenant_id = (int) $containerTenant;
+    }
+
+    /**
+     * R2.5 — Enforcement de tenant_id no update.
+     *
+     * Impede que registros sejam movidos entre tenants via update. Se o
+     * container tem tenant_id resolvido E o campo tenant_id está sujo
+     * (foi alterado nesta transação), restaura o valor para o do container —
+     * descartando silenciosamente a tentativa de reassociação.
+     *
+     * Defesa em profundidade:
+     *   - O global scope R2.4 já bloqueia carregar registros de outro tenant,
+     *     mas não impede que código em rota legítima (withoutGlobalScope,
+     *     mass-assignment, atribuição explícita) altere tenant_id de um
+     *     registro do próprio tenant para outro valor.
+     *   - Este enforcement fecha essa brecha.
+     *
+     * Quando NÃO intervém:
+     *   - CLI (container normalmente não tem tenant_id bound)
+     *   - Master global (tenant_id do container = null)
+     *   - Rotas públicas (container não bound)
+     *   - Updates que NÃO mexem em tenant_id (isDirty('tenant_id') = false)
+     *
+     * Visibilidade:
+     *   A tentativa é capturada pelo detector (que roda ANTES deste método),
+     *   gerando log `updating_cross_tenant` com `container_tenant_id`,
+     *   `model_tenant_id` (valor tentado) e contexto da request.
+     *
+     * Esta função nunca lança exceção — é defensiva por design, coerente
+     * com enforceTenantOnCreating (R2.3).
+     */
+    protected static function enforceTenantOnUpdating(Model $model): void
+    {
+        if (! app()->bound('tenant_id')) {
+            return;
+        }
+
+        $containerTenant = app('tenant_id');
+
+        if ($containerTenant === null) {
+            return;
+        }
+
+        // Só intervém se tenant_id está sujo (foi alterado neste update).
+        // Updates normais (sem mexer em tenant_id) passam direto — sem overhead
+        // e sem efeito colateral.
+        if (! $model->isDirty('tenant_id')) {
+            return;
+        }
+
+        // Restaura para o tenant do container — descarta a alteração.
         $model->tenant_id = (int) $containerTenant;
     }
 
