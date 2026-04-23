@@ -9,7 +9,10 @@ use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
 use App\Http\Controllers\Master\FarmController as MasterFarmController;
 use App\Http\Controllers\Master\ImpersonationController;
+use App\Http\Controllers\Master\InvoiceController;
 use App\Http\Controllers\Master\MasterDashboardController;
+use App\Http\Controllers\Master\PlanController;
+use App\Http\Controllers\Master\SubscriptionController;
 use App\Http\Controllers\Master\TenantController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\EmployeeController;
@@ -88,6 +91,25 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
         ->name('tenants.impersonate');
     Route::post('impersonation/sair', [ImpersonationController::class, 'exit'])
         ->name('impersonation.exit');
+
+    // M6 — Planos (catálogo global da plataforma)
+    Route::get('planos', [PlanController::class, 'index'])->name('planos.index');
+    Route::get('planos/novo', [PlanController::class, 'create'])->name('planos.create');
+    Route::post('planos', [PlanController::class, 'store'])->name('planos.store');
+    Route::get('planos/{plan}/editar', [PlanController::class, 'edit'])->name('planos.edit');
+    Route::put('planos/{plan}', [PlanController::class, 'update'])->name('planos.update');
+    Route::post('planos/{plan}/toggle', [PlanController::class, 'toggle'])->name('planos.toggle');
+
+    // M6 — Cobranças (listagem global + ações de status)
+    Route::get('cobrancas', [InvoiceController::class, 'index'])->name('cobrancas.index');
+    Route::post('cobrancas/{invoice}/marcar-paga', [InvoiceController::class, 'markPaid'])->name('cobrancas.mark-paid');
+    Route::post('cobrancas/{invoice}/marcar-pendente', [InvoiceController::class, 'markPending'])->name('cobrancas.mark-pending');
+
+    // M6 — Assinatura + cobranças POR tenant
+    Route::get('tenants/{tenant}/assinatura', [SubscriptionController::class, 'show'])->name('tenants.subscription.show');
+    Route::put('tenants/{tenant}/assinatura', [SubscriptionController::class, 'update'])->name('tenants.subscription.update');
+    Route::post('tenants/{tenant}/assinatura/cancelar', [SubscriptionController::class, 'cancel'])->name('tenants.subscription.cancel');
+    Route::post('tenants/{tenant}/cobrancas', [InvoiceController::class, 'store'])->name('tenants.invoices.store');
 
     // M4 — Fazendas do tenant (sempre aninhadas). scopeBindings() garante
     // que {farm} pertença a {tenant} via Tenant::farms() relation — 404 se

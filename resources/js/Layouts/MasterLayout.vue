@@ -55,9 +55,8 @@ function logout() {
 const menu = [
     { label: 'Dashboard', route: 'master.dashboard', phase: null, icon: 'dashboard' },
     { label: 'Tenants', route: 'master.tenants.index', phase: null, icon: 'building' },
-    { label: 'Fazendas', route: null, phase: 'M4', icon: 'farm' },
-    { label: 'Planos', route: null, phase: 'M6', icon: 'card' },
-    { label: 'Cobranças', route: null, phase: 'M6', icon: 'invoice' },
+    { label: 'Planos', route: 'master.planos.index', phase: null, icon: 'card' },
+    { label: 'Cobranças', route: 'master.cobrancas.index', phase: null, icon: 'invoice' },
     { label: 'CMS (Landing)', route: null, phase: 'M7', icon: 'globe' },
     { label: 'Configurações', route: null, phase: 'M8', icon: 'cog' },
 ];
