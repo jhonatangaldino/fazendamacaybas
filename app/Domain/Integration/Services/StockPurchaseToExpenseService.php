@@ -60,12 +60,19 @@ class StockPurchaseToExpenseService
      * Mapeia tipo de item de estoque (enum) → slug da categoria de
      * despesa correspondente no CategorySeeder. Tipos fora do mapa
      * ficam sem categoria (null) — D6 aceita despesa sem categoria.
+     *
+     * Slugs conferidos contra CategorySeeder (financeiro_despesa):
+     *   alimentacao-animal, medicamentos-veterinarios, combustivel,
+     *   ferramentas, ... (ver seeder para lista completa).
      */
     private const CATEGORIA_POR_TIPO_ITEM = [
-        'medicamento' => 'medicamentos',
+        'medicamento' => 'medicamentos-veterinarios',
         'racao'       => 'alimentacao-animal',
         'combustivel' => 'combustivel',
-        // insumo, ferramenta, peca, material → null (sem categoria padrão)
+        'ferramenta'  => 'ferramentas',
+        // insumo, peca, material → null (genéricos demais; operador pode
+        // ajustar manualmente para adubo/defensivo/material-construcao
+        // conforme o caso real)
     ];
 
     /**
