@@ -44,6 +44,10 @@ use Inertia\Inertia;
 
 // ===================== SITE PÚBLICO =====================
 Route::get('/', [SiteController::class, 'home'])->name('site.home');
+// Landing pública por cliente — resolve Tenant pelo slug (404 automático via
+// route-model-binding). O controller faz o bind de app('tenant_id') apenas
+// para a vida útil desta request. Nenhum filtro novo de CMS nesta fase.
+Route::get('/c/{cliente:slug}', [SiteController::class, 'homeByCliente'])->name('site.home.cliente');
 Route::get('/health', [SiteController::class, 'health'])->name('site.health');
 
 // ===================== AUTENTICAÇÃO =====================

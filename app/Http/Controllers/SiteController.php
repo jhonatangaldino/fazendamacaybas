@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Billing\Models\Tenant;
 use App\Models\Cms\Page;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +29,29 @@ class SiteController extends Controller
                 'og_image' => $page->og_image_path ? asset('storage/'.$page->og_image_path) : null,
             ],
         ]);
+    }
+
+    /**
+     * Landing pública por cliente: GET /c/{slug}.
+     *
+     * O Laravel resolve o Tenant pelo slug via route-model-binding
+     * (`{cliente:slug}`) — slug inexistente → 404 automático.
+     *
+     * Bindar `app('tenant_id')` antes de delegar para home() garante que
+     * toda leitura downstream sensível a tenant (ex.: Setting::getValue() com
+     * fallback tenant → global) opere no contexto deste cliente. O bind vive
+     * apenas na vida útil da request pública: em FPM o container morre com
+     * a request; não contamina outros handlers.
+     *
+     * Esta fase (FASE 2) só estabelece o roteamento e o contexto. A filtragem
+     * do CMS (Page/Section/Menu) por tenant_id é assunto de fase futura e
+     * NÃO é feita aqui — o método home() é reaproveitado exatamente como está.
+     */
+    public function homeByCliente(Tenant $cliente)
+    {
+        app()->instance('tenant_id', (int) $cliente->id);
+
+        return $this->home();
     }
 
     public function health(): JsonResponse
