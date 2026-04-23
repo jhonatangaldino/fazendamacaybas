@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\Agricultural\AgriculturalController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
+use App\Http\Controllers\Admin\PendingPaymentController;
 use App\Http\Controllers\Master\Cms\CmsController as MasterCmsController;
 use App\Http\Controllers\Master\Cms\MenuController as MasterCmsMenuController;
 use App\Http\Controllers\Master\Cms\SettingsController as MasterCmsSettingsController;
@@ -152,14 +153,25 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
 });
 
 // ===================== ÁREA ADMIN =====================
-// Stack: auth → tenant.user.only → enforce.farm → permission:*
+// Stack: auth → tenant.user.only → enforce.subscription → enforce.farm → permission:*
 // - tenant.user.only (M1): master puro é redirecionado para /master/dashboard
 //   ANTES de qualquer query de farm. Economiza round-trip e garante separação.
+// - enforce.subscription (billing): bloqueia tenant overdue, redireciona
+//   para admin.pagamento-pendente. Master (mesmo impersonando) não é afetado.
+//   Ordem IMPORTANTE: antes do enforce.farm — se está bloqueado, nem
+//   faz sentido resolver farm.
 // - enforce.farm (R2.6): resolve app('farm_id') ou redireciona ao seletor
 //   quando o tenant tiver múltiplas fazendas. Rotas fazenda.select/switch
 //   estão na whitelist interna do middleware.
-Route::middleware(['auth', 'tenant.user.only', 'enforce.farm'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.farm'])
+    ->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', fn () => redirect()->route('admin.dashboard'));
+
+    // Tela "acesso bloqueado por inadimplência" — whitelisted no enforce.subscription.
+    // Única rota /admin acessível para tenant com subscription overdue.
+    // Exibe PIX copia-e-cola das invoices em aberto do próprio tenant.
+    Route::get('pagamento-pendente', [PendingPaymentController::class, 'show'])
+        ->name('pagamento-pendente');
 
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:operational.dashboard.view')->name('dashboard');

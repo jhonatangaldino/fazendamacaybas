@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Billing\Middleware\EnforceSubscriptionStatus;
 use App\Domain\Platform\Middleware\EnforceMaster;
 use App\Domain\Tenancy\Middleware\EnforceFarm;
 use App\Domain\Tenancy\Middleware\EnsureTenantUser;
@@ -44,6 +45,10 @@ return Application::configure(basePath: dirname(__DIR__))
             // M1: guarda estrita do grupo /master/* — exige user.tenant_id
             // NULL + role admin_master. Qualquer outro caso = 403.
             'enforce.master' => EnforceMaster::class,
+            // Billing: bloqueia tenant com subscription overdue em /admin/*
+            // exceto a rota de pagamento (admin.pagamento-pendente). Master
+            // nunca é bloqueado, mesmo impersonando.
+            'enforce.subscription' => EnforceSubscriptionStatus::class,
         ]);
 
         // M0 — Usuário já logado tentando acessar rota guest (ex.: /login):
