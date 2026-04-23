@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Domain\Billing\Models\Tenant;
-use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,10 +13,19 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * IMPORTANTE: este model NÃO usa o trait BelongsToTenant.
+ *
+ * Motivo: o trait dispara no evento `retrieved` uma chamada a `auth()->check()`.
+ * Laravel Auth, por sua vez, faz `User::find()` para resolver o usuário atual —
+ * o que re-dispara `retrieved`, criando recursão infinita e stack overflow.
+ *
+ * O isolamento de User por tenant será tratado pelo middleware na R2, não via
+ * event hook. Mantemos `tenant_id` no fillable + relation `tenant()` apenas.
+ */
 class User extends Authenticatable
 {
     use HasFactory, HasRoles, LogsActivity, Notifiable, SoftDeletes;
-    use BelongsToTenant;
 
     protected $guard_name = 'web';
 
