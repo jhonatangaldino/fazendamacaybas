@@ -57,11 +57,10 @@ class MapResolver
             ];
         }
 
-        // 3) Endereço textual (com fallback legacy para contato.endereco —
-        // preserva a landing atual da Macaybas enquanto o cliente não migra
-        // para os campos novos)
-        $endereco = self::str(Setting::getValue('landing.map.endereco'))
-            ?: self::str(Setting::getValue('contato.endereco'));
+        // 3) Endereço textual — SOMENTE landing.map.endereco, respeitando
+        //    a prioridade do brief. O tenant 1 (Macaybas) recebe esse valor
+        //    via migration de backfill (2024_02_05_000003).
+        $endereco = self::str(Setting::getValue('landing.map.endereco'));
         if ($endereco !== '') {
             $enc = urlencode($endereco);
 
