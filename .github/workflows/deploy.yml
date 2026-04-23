@@ -98,60 +98,134 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          set -euo pipefail
+          # Sem `set -e`: usamos error handling manual para garantir que
+          # CADA mensagem de diagnóstico aparece no log antes de qualquer exit.
+          # Resultado: se algo falhar, o log + GITHUB_STEP_SUMMARY mostra
+          # exatamente o quê, em vez do genérico "Process completed with exit code 1".
 
-          # ── 1. Sanity check dos secrets ───────────────────────────────
+          SUMMARY="$GITHUB_STEP_SUMMARY"
+          echo "## Diagnóstico Setup SSH key" >> "$SUMMARY"
+
+          log_err() {
+            echo "::error::$1"
+            echo "- ❌ $1" >> "$SUMMARY"
+          }
+          log_ok() {
+            echo "✅ $1"
+            echo "- ✅ $1" >> "$SUMMARY"
+          }
+
+          # ── 1. Presença de cada secret (tamanho, não o valor) ─────────
+          # GitHub mascara secrets em stdout, mas ${#VAR} (comprimento)
+          # não é mascarado — serve para detectar secret vazia.
+          echo "### Checagem de secrets" >> "$SUMMARY"
+          FAIL=0
           for var in SSH_PRIVATE_KEY SSH_HOST SSH_PORT SSH_USER; do
-            if [ -z "${!var:-}" ]; then
-              echo "::error::Secret $var está vazia ou ausente. Configure em Settings → Secrets and variables → Actions."
-              exit 1
+            val="$(printenv "$var" || true)"
+            len="${#val}"
+            if [ "$len" -eq 0 ]; then
+              log_err "Secret $var está VAZIA ou AUSENTE (len=0). Configure em Settings → Secrets and variables → Actions."
+              FAIL=1
+            else
+              log_ok "$var presente (len=$len)"
             fi
           done
-          echo "✅ Secrets presentes (host=$SSH_HOST port=$SSH_PORT user=$SSH_USER)"
+          if [ "$FAIL" -eq 1 ]; then
+            echo "::error::Abortando: secret(s) ausente(s). Veja resumo do job."
+            exit 1
+          fi
 
-          # ── 2. Prepara diretório com permissão correta ────────────────
+          # ── 2. Prepara diretório ──────────────────────────────────────
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-          # ── 3. Grava chave usando printf via env var ──────────────────
-          # printf '%s\n' "$VAR" preserva o conteúdo literal da env var
-          # sem interpretar backslash, $ ou crases. Só então chmod 600.
+          # ── 3. Grava chave via printf + env var (preserva bytes) ─────
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          KEY_BYTES=$(wc -c < ~/.ssh/id_deploy)
+          KEY_LINES=$(wc -l < ~/.ssh/id_deploy)
+          echo "Chave escrita: $KEY_BYTES bytes, $KEY_LINES linhas" >> "$SUMMARY"
 
-          # ── 4. Normaliza CRLF se a secret foi colada do Windows ───────
+          # ── 4. Normaliza CRLF se a secret veio do Windows ────────────
           if grep -q $'\r' ~/.ssh/id_deploy; then
             echo "::warning::SSH_PRIVATE_KEY contém CRLF — convertendo para LF"
+            echo "- ⚠️ CRLF detectado e convertido" >> "$SUMMARY"
             sed -i 's/\r$//' ~/.ssh/id_deploy
           fi
 
           chmod 600 ~/.ssh/id_deploy
 
-          # ── 5. Valida que é uma chave SSH parseável ───────────────────
-          if ! ssh-keygen -y -f ~/.ssh/id_deploy > /dev/null 2>&1; then
-            echo "::error::SSH_PRIVATE_KEY não é uma chave SSH válida."
-            echo "Total de linhas: $(wc -l < ~/.ssh/id_deploy)"
-            echo "Primeira linha (deve ser -----BEGIN ... PRIVATE KEY-----):"
-            head -n 1 ~/.ssh/id_deploy
-            echo "Última linha (deve ser -----END ... PRIVATE KEY-----):"
-            tail -n 1 ~/.ssh/id_deploy
+          # ── 5. Cabeçalho/rodapé da chave (conteúdo mascarado pelo GH) ─
+          FIRST_LINE="$(head -n 1 ~/.ssh/id_deploy)"
+          LAST_LINE="$(tail -n 1 ~/.ssh/id_deploy)"
+          echo "### Cabeçalho/rodapé da chave" >> "$SUMMARY"
+          echo "- Primeira linha: \`$FIRST_LINE\`" >> "$SUMMARY"
+          echo "- Última linha: \`$LAST_LINE\`" >> "$SUMMARY"
+
+          case "$FIRST_LINE" in
+            "-----BEGIN OPENSSH PRIVATE KEY-----"|"-----BEGIN RSA PRIVATE KEY-----"|"-----BEGIN EC PRIVATE KEY-----"|"-----BEGIN PRIVATE KEY-----"|"-----BEGIN DSA PRIVATE KEY-----")
+              log_ok "Cabeçalho da chave reconhecido"
+              ;;
+            *)
+              log_err "Primeira linha não é cabeçalho PEM esperado. Primeira linha literal: [$FIRST_LINE]"
+              log_err "Cabeçalhos aceitos: BEGIN OPENSSH/RSA/EC/DSA/PRIVATE KEY."
+              exit 1
+              ;;
+          esac
+
+          # ── 6. Valida parse com ssh-keygen ────────────────────────────
+          if ! ssh-keygen -y -f ~/.ssh/id_deploy > /tmp/pub.out 2> /tmp/keygen.err; then
+            log_err "ssh-keygen falhou ao parsear a chave privada."
+            echo "### Stderr do ssh-keygen" >> "$SUMMARY"
+            echo '```' >> "$SUMMARY"
+            cat /tmp/keygen.err >> "$SUMMARY"
+            echo '```' >> "$SUMMARY"
+            cat /tmp/keygen.err
             echo ""
-            echo "Dica: regere a secret copiando o arquivo inteiro de chave privada"
-            echo "(inclusive as linhas BEGIN/END) e cole no GitHub sem editar."
+            echo "Dica: regere o secret copiando o arquivo inteiro da chave privada"
+            echo "(incluindo BEGIN/END) sem editar — preferir ed25519 ou RSA sem passphrase."
             exit 1
           fi
-          echo "✅ Chave SSH válida: $(ssh-keygen -l -f ~/.ssh/id_deploy)"
+          log_ok "Chave SSH parseável: $(ssh-keygen -l -f ~/.ssh/id_deploy)"
 
-          # ── 6. Coleta host key (SEM 2>/dev/null — queremos ver erros) ─
-          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          # ── 7. Host reachable + keyscan ───────────────────────────────
+          echo "### Conectividade" >> "$SUMMARY"
+          if ! nc -z -w 10 "$SSH_HOST" "$SSH_PORT" 2>/dev/null; then
+            log_err "TCP ${SSH_HOST}:${SSH_PORT} não respondeu em 10s. Host pode estar offline, porta errada, ou IP mudou."
+            exit 1
+          fi
+          log_ok "TCP ${SSH_HOST}:${SSH_PORT} OK"
+
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/tmp/keyscan.err
+          KEYSCAN_LINES=$(wc -l < ~/.ssh/known_hosts)
+          if [ "$KEYSCAN_LINES" -eq 0 ]; then
+            log_err "ssh-keyscan não retornou chave do host."
+            cat /tmp/keyscan.err >> "$SUMMARY"
+            exit 1
+          fi
           chmod 644 ~/.ssh/known_hosts
-          echo "✅ Host $SSH_HOST:$SSH_PORT adicionado a known_hosts"
+          log_ok "ssh-keyscan adicionou $KEYSCAN_LINES entries a known_hosts"
 
-          # ── 7. Teste de conexão — falha aqui antes do rsync ───────────
-          echo "▶ Testando conexão SSH..."
-          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" \
-              -o BatchMode=yes \
-              -o ConnectTimeout=15 \
-              "$SSH_USER@$SSH_HOST" 'echo "✅ SSH conectou"; id; pwd; php -v 2>&1 | head -1'
+          # ── 8. Teste de autenticação ───────────────────────────────────
+          echo "### Teste de conexão SSH" >> "$SUMMARY"
+          if ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" \
+                 -o BatchMode=yes \
+                 -o ConnectTimeout=15 \
+                 "$SSH_USER@$SSH_HOST" 'echo "REMOTE_OK"; id; pwd; php -v 2>&1 | head -1' > /tmp/ssh.out 2> /tmp/ssh.err; then
+            log_ok "SSH autenticou em ${SSH_USER}@${SSH_HOST}"
+            echo '```' >> "$SUMMARY"
+            cat /tmp/ssh.out >> "$SUMMARY"
+            echo '```' >> "$SUMMARY"
+            cat /tmp/ssh.out
+          else
+            log_err "SSH falhou ao autenticar em ${SSH_USER}@${SSH_HOST}"
+            echo "### Stderr do ssh" >> "$SUMMARY"
+            echo '```' >> "$SUMMARY"
+            cat /tmp/ssh.err >> "$SUMMARY"
+            echo '```' >> "$SUMMARY"
+            echo "--- stderr ---"
+            cat /tmp/ssh.err
+            exit 1
+          fi
 
       - name: Upload release via rsync
         env:
