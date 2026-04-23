@@ -100,7 +100,14 @@ class FieldApplicationToStockMovementService
             return null;
         }
 
+        // tenant_id: fallback via field associado (FieldApplication pode não
+        // ter o trait BelongsToTenant ou o campo tenant_id pode vir nulo em
+        // alguns fluxos — Field sempre tem).
         $tenantId = $app->tenant_id;
+        if (! $tenantId && $app->field_id) {
+            $tenantId = \App\Models\Agricultural\Field::whereKey($app->field_id)->value('tenant_id');
+        }
+
         $item = StockItem::query()
             ->when($tenantId, fn ($q) => $q->where(function ($w) use ($tenantId) {
                 $w->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
@@ -180,7 +187,9 @@ class FieldApplicationToStockMovementService
                 . "Tipo: {$tipoHuman}. Produto: {$item->nome}.",
             'created_by' => $app->created_by ?? null,
             'tenant_id' => $tenantId,
-            'farm_id' => $item->farm_id,
+            // farm_id: prefere o do item; fallback para o do field da aplicação
+            'farm_id' => $item->farm_id
+                ?? \App\Models\Agricultural\Field::whereKey($app->field_id)->value('farm_id'),
         ]);
     }
 }
