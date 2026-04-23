@@ -236,7 +236,7 @@ class AnimalController extends Controller
             'tipo.required' => 'Informe o tipo de evento.',
         ]);
 
-        // Regras por tipo
+        // ── Regras por TIPO de evento (campos obrigatórios condicionais) ──
         if ($data['tipo'] === 'pesagem' && empty($data['peso'])) {
             return back()->with('error', 'Pesagem exige o valor do peso.');
         }
@@ -245,6 +245,33 @@ class AnimalController extends Controller
         }
         if ($data['tipo'] === 'medicacao' && empty($data['medicamento'])) {
             return back()->with('error', 'Medicação exige o nome do medicamento.');
+        }
+
+        // ── Regra de DOMÍNIO: evento precisa ser permitido pelo perfil da espécie ──
+        //
+        // Cada AnimalSpecies traz `allowed_events` (JSON) com a lista de tipos de
+        // evento pertinentes ao manejo daquele perfil. Ex.:
+        //   - bovino_corte: pesagem, vacinacao, medicacao, reproducao, venda…
+        //   - peixe/aquicultura_lote: biometria_amostral, qualidade_agua,
+        //     alimentacao, mortalidade, venda — SEM pesagem individual nem
+        //     vacinação tradicional
+        //   - ave_postura: postura_diaria, mortalidade, alimentacao, venda —
+        //     SEM pesagem individual
+        //
+        // Sem esta validação o sistema aceitava "pesagem de peixe" e "vacinação
+        // em postura" — legais tecnicamente, sem sentido no domínio. A bloqueio
+        // server-side (antes do form filtrar UI na próxima iteração) garante
+        // integridade dos dados.
+        //
+        // Retrocompat: species sem `allowed_events` (coluna nova ou seed vazio)
+        // passa sem validação — não quebra dados existentes nem tenants que
+        // ainda não rodaram o seed atualizado.
+        $allowed = $animal->species?->allowed_events;
+        if (is_array($allowed) && count($allowed) > 0 && ! in_array($data['tipo'], $allowed, true)) {
+            return back()->with('error',
+                "O evento \"{$data['tipo']}\" não é aplicável a " . ($animal->species->nome ?? 'esta espécie') . '. '
+                . 'Tipos válidos para esta espécie: ' . implode(', ', $allowed) . '.'
+            );
         }
 
         $event = $animal->events()->create([
