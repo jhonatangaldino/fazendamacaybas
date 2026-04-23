@@ -10,6 +10,7 @@ use App\Models\Agricultural\Harvest;
 use App\Models\Agricultural\Planting;
 use App\Models\Agricultural\Season;
 use App\Models\Farm;
+use App\Models\Stock\StockItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -192,9 +193,46 @@ class AgriculturalController extends Controller
         ]);
     }
 
+    /**
+     * ═════ D7 — Consolidação de Domínio · AGRÍCOLA ═════
+     *
+     * Aplica regras de domínio em Planting e FieldApplication seguindo o
+     * padrão já consolidado em D1-D6.
+     *
+     * DESAFIO DE SCHEMA: o brief propõe classificar crops por tipo
+     * (grão/pastagem/hortifruti/outros), mas a tabela `crops` NÃO tem
+     * coluna `tipo`. Como o brief proíbe alteração de schema, uso
+     * `crops.ciclo_dias` (já existente, nullable) como PROXY:
+     *
+     *   - ciclo_dias > 0   → cultura com ciclo definido (grão/hortifruti)
+     *                        → planting exige `previsao_colheita`
+     *   - ciclo_dias NULL  → cultura perene/pastagem
+     *                        → planting NÃO exige previsão de colheita
+     *
+     * Para FieldApplication, não existe FK `stock_item_id`. Valido por
+     * match case-insensitive de `produto` com `stock_items.nome`. Isto
+     * garante rastreabilidade sem alterar schema — o operador deve
+     * cadastrar o insumo no estoque antes de registrar a aplicação.
+     */
+
+    /**
+     * Tipos de aplicação que exigem que o produto esteja cadastrado no
+     * estoque. Mapeamento brief → schema:
+     *   - fertilizante → adubacao
+     *   - corretivo    → calagem
+     *   - defensivo (herbicida/fungicida/inseticida) → SEM exigência
+     */
+    private const TIPOS_APLICACAO_EXIGEM_ESTOQUE = ['adubacao', 'calagem'];
+
     public function plantingStore(Request $request)
     {
         $data = $this->validatePlanting($request);
+
+        // D7 · Coerência do ciclo da cultura
+        if ($err = $this->validatePlantingCoherence($data, null)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         Planting::create($data);
 
         return back()->with('success', 'Plantio registrado.');
@@ -203,6 +241,13 @@ class AgriculturalController extends Controller
     public function plantingUpdate(Request $request, Planting $planting)
     {
         $data = $this->validatePlanting($request);
+
+        // D7 · Coerência também em update (retrocompat: só valida se
+        // crop_id ou previsao_colheita mudou).
+        if ($err = $this->validatePlantingCoherence($data, $planting)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         $planting->update($data);
 
         return back()->with('success', 'Plantio atualizado.');
@@ -307,6 +352,12 @@ class AgriculturalController extends Controller
             'responsavel' => ['nullable', 'string', 'max:100'],
             'observacoes' => ['nullable', 'string'],
         ]);
+
+        // D7 · Coerência — fertilizante/corretivo exigem produto no estoque
+        if ($err = $this->validateApplicationCoherence($data)) {
+            return back()->withInput()->with('error', $err);
+        }
+
         FieldApplication::create($data);
 
         return back()->with('success', 'Aplicação registrada.');
@@ -317,5 +368,99 @@ class AgriculturalController extends Controller
         $application->delete();
 
         return back()->with('success', 'Aplicação excluída.');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // D7 · Métodos de coerência de domínio (seguem padrão D1-D6)
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Valida coerência do plantio com o ciclo da cultura.
+     *
+     * Se a cultura tem `ciclo_dias > 0` (proxy para grão/hortifruti), o
+     * plantio DEVE ter `previsao_colheita` para permitir acompanhamento
+     * do ciclo. Culturas perenes/pastagem (ciclo_dias NULL) passam sem
+     * regra.
+     *
+     * Retrocompat: em update, só dispara se `crop_id` ou `previsao_colheita`
+     * mudou.
+     */
+    protected function validatePlantingCoherence(array $data, ?Planting $existing): ?string
+    {
+        $cropId = $data['crop_id'] ?? null;
+        if (! $cropId) {
+            return null;
+        }
+
+        $crop = Crop::find($cropId);
+        if (! $crop) {
+            return null; // validator base já trata via 'exists'
+        }
+
+        $temCiclo = ! empty($crop->ciclo_dias) && (int) $crop->ciclo_dias > 0;
+        if (! $temCiclo) {
+            return null; // pastagem / cultura perene — sem exigência
+        }
+
+        $previsao = trim((string) ($data['previsao_colheita'] ?? ''));
+
+        // Retrocompat em update: só valida se crop ou previsão mudaram
+        if ($existing !== null) {
+            $cropMudou = (int) $cropId !== (int) $existing->crop_id;
+            $prevMudou = $previsao !== ($existing->previsao_colheita?->format('Y-m-d') ?? '');
+            if (! $cropMudou && ! $prevMudou) {
+                return null;
+            }
+        }
+
+        if ($previsao === '') {
+            return "Culturas de ciclo definido (como {$crop->nome}, ciclo {$crop->ciclo_dias} dias) exigem previsão de colheita. "
+                . "Preencha o campo 'Previsão de colheita' para acompanhar o ciclo produtivo. "
+                . 'Pastagens e culturas perenes (sem ciclo_dias cadastrado na Cultura) não têm essa exigência — '
+                . 'se esta cultura é pastagem, ajuste o cadastro de Cultura deixando ciclo_dias em branco.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Valida coerência da aplicação — fertilizante e corretivo exigem
+     * que o `produto` esteja cadastrado em Estoque → Itens (match
+     * case-insensitive por nome).
+     *
+     * Rastreabilidade: sem essa regra, aplicações viravam texto livre
+     * sem vínculo com o consumo real de insumos. Forçar o match com
+     * stock_items.nome garante que todo uso de adubo/cal é precedido
+     * do cadastro do insumo, viabilizando custos reais da safra.
+     *
+     * Defensivos (herbicida, fungicida, inseticida) e irrigação passam
+     * sem regra — brief expressamente exige só fertilizante/corretivo.
+     */
+    protected function validateApplicationCoherence(array $data): ?string
+    {
+        $tipo = $data['tipo'] ?? null;
+        if (! in_array($tipo, self::TIPOS_APLICACAO_EXIGEM_ESTOQUE, true)) {
+            return null; // defensivo/irrigação/outros — sem exigência
+        }
+
+        $produto = trim((string) ($data['produto'] ?? ''));
+        if ($produto === '') {
+            return null; // já validado pelo validator base (required)
+        }
+
+        $existe = StockItem::where('is_active', true)
+            ->whereRaw('LOWER(nome) = ?', [mb_strtolower($produto)])
+            ->exists();
+
+        if ($existe) {
+            return null; // produto confere com item ativo no estoque
+        }
+
+        $rotulo = $tipo === 'adubacao' ? 'Adubação (fertilizante)' : 'Calagem (corretivo)';
+
+        return "{$rotulo} exige que o produto esteja cadastrado em Estoque → Itens. "
+            . "Não encontrei '{$produto}' entre os itens ativos do estoque. "
+            . 'Cadastre o insumo primeiro em "Estoque" (tipo=insumo, com descrição contextual) e depois registre a aplicação com o mesmo nome. '
+            . 'Este vínculo garante rastreabilidade do consumo e sincronização com o custo real da safra.';
     }
 }
