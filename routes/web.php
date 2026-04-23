@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\Cms\SettingsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
+use App\Http\Controllers\Master\MasterDashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\Financial\FinancialIndexController;
@@ -61,11 +62,23 @@ Route::middleware('auth')->group(function () {
     })->name('me.avatar.remove');
 });
 
+// ===================== ÁREA MASTER (M1) =====================
+// Grupo /master/* — administração da plataforma SaaS.
+// Middleware enforce.master exige: user autenticado, tenant_id NULL,
+// role `admin_master`. Qualquer outro caso = 403 (sem redirect,
+// para evitar loops com o tenant.user.only do grupo admin).
+Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')->group(function () {
+    Route::get('dashboard', [MasterDashboardController::class, 'index'])->name('dashboard');
+});
+
 // ===================== ÁREA ADMIN =====================
-// enforce.farm (R2.6): resolve app('farm_id') ou redireciona ao seletor
-// quando o tenant tiver múltiplas fazendas. Rotas fazenda.select/switch
-// estão na whitelist interna do middleware.
-Route::middleware(['auth', 'enforce.farm'])->prefix('admin')->name('admin.')->group(function () {
+// Stack: auth → tenant.user.only → enforce.farm → permission:*
+// - tenant.user.only (M1): master puro é redirecionado para /master/dashboard
+//   ANTES de qualquer query de farm. Economiza round-trip e garante separação.
+// - enforce.farm (R2.6): resolve app('farm_id') ou redireciona ao seletor
+//   quando o tenant tiver múltiplas fazendas. Rotas fazenda.select/switch
+//   estão na whitelist interna do middleware.
+Route::middleware(['auth', 'tenant.user.only', 'enforce.farm'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', fn () => redirect()->route('admin.dashboard'));
 
     Route::get('dashboard', [DashboardController::class, 'index'])

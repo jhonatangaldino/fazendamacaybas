@@ -1,6 +1,8 @@
 <?php
 
+use App\Domain\Platform\Middleware\EnforceMaster;
 use App\Domain\Tenancy\Middleware\EnforceFarm;
+use App\Domain\Tenancy\Middleware\EnsureTenantUser;
 use App\Domain\Tenancy\Middleware\ResolveTenant;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocaleTimezone;
@@ -36,6 +38,12 @@ return Application::configure(basePath: dirname(__DIR__))
             // fazendas no tenant. Aplicado SOMENTE no grupo admin — nunca em
             // rotas públicas, login ou recuperação de senha.
             'enforce.farm' => EnforceFarm::class,
+            // M1: guarda suave do grupo /admin/* — redireciona master puro
+            // para /master/dashboard antes que o enforce.farm seja consultado.
+            'tenant.user.only' => EnsureTenantUser::class,
+            // M1: guarda estrita do grupo /master/* — exige user.tenant_id
+            // NULL + role admin_master. Qualquer outro caso = 403.
+            'enforce.master' => EnforceMaster::class,
         ]);
 
         // M0 — Usuário já logado tentando acessar rota guest (ex.: /login):
