@@ -3,16 +3,59 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Agricultural\Field;
+use App\Models\Agricultural\Planting;
 use App\Models\Employee;
+use App\Models\Financial\FinancialTransaction;
+use App\Models\Livestock\Animal;
+use App\Models\Partner;
+use App\Models\Stock\StockItem;
 use App\Models\Task\Checklist;
 use App\Models\Task\ChecklistItem;
 use App\Models\Task\Task;
 use App\Models\Task\TaskAssignment;
+use App\Models\Vehicle\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class TaskController extends Controller
 {
+    /**
+     * ═════ F3 · UX anti-erro — TAREFAS ═════
+     *
+     * Schema já tinha `nullableMorphs('related')` desde a migration inicial,
+     * mas o validator NÃO expunha related_type/related_id. Resultado: a UI
+     * não conseguia gravar vínculo polimórfico, e toda tarefa nascia "órfã".
+     *
+     * Esta refatoração adiciona:
+     *   1. Whitelist de related_type no validator (espelho do padrão D8).
+     *   2. Persistência dos campos em store/update.
+     *   3. Exposição de `linkables` no payload Inertia (mesmo padrão usado
+     *      em Documents, Financial e Animais).
+     *
+     * RETROCOMPAT:
+     *   - related_type/related_id continuam NULLABLE — tarefas legadas sem
+     *     vínculo continuam funcionando.
+     *   - A regra "toda tarefa DEVE ter vínculo + responsável" fica na UI
+     *     (F3). Backend permanece permissivo para não quebrar automações
+     *     ou APIs externas atuais.
+     */
+
+    /**
+     * Modelos aceitos como vínculo polimórfico de tarefa.
+     * FQCN idêntico ao que o Eloquent persiste em `related_type`.
+     */
+    private const RELATED_TYPES_WHITELIST = [
+        'App\\Models\\Partner',
+        'App\\Models\\Livestock\\Animal',
+        'App\\Models\\Vehicle\\Vehicle',
+        'App\\Models\\Financial\\FinancialTransaction',
+        'App\\Models\\Agricultural\\Planting',
+        'App\\Models\\Agricultural\\Field',
+        'App\\Models\\Stock\\StockItem',
+    ];
+
     public function index(Request $request)
     {
         $q = Task::with(['assignees:id,nome', 'checklists.items'])
@@ -34,6 +77,9 @@ class TaskController extends Controller
                 'data_inicio' => $t->data_inicio,
                 'data_vencimento' => $t->data_vencimento,
                 'concluida_em' => $t->concluida_em,
+                // F3: expor vínculo para UI pré-preencher ao editar
+                'related_type' => $t->related_type,
+                'related_id' => $t->related_id,
                 'assignees' => $t->assignees->map(fn ($a) => ['id' => $a->id, 'nome' => $a->nome]),
                 'checklists' => $t->checklists->map(fn ($c) => [
                     'id' => $c->id,
@@ -45,6 +91,37 @@ class TaskController extends Controller
             ]),
             'filters' => $request->only(['status', 'prioridade', 'modulo', 'employee_id']),
             'employees' => Employee::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
+
+            // F3 · Entidades linkáveis para vínculo polimórfico.
+            // Mesmo padrão de Documents: carregar listas moderadas.
+            // Transactions limitadas a 200 mais recentes (o típico é
+            // vincular tarefa a lançamento recente — ex.: "cobrar este
+            // boleto", "conciliar esta NF").
+            'linkables' => [
+                'partners' => Partner::where('is_active', true)
+                    ->orderBy('nome')
+                    ->get(['id', 'nome', 'pessoa']),
+                'animals' => Animal::where('status', 'ativo')
+                    ->orderBy('identificacao')
+                    ->get(['id', 'identificacao', 'nome']),
+                'vehicles' => Vehicle::where('is_active', true)
+                    ->orderBy('nome')
+                    ->get(['id', 'nome', 'tipo', 'placa']),
+                'plantings' => Planting::with(['field:id,nome', 'crop:id,nome'])
+                    ->orderByDesc('data_plantio')
+                    ->limit(500)
+                    ->get(['id', 'field_id', 'crop_id', 'data_plantio', 'status']),
+                'fields' => Field::where('is_active', true)
+                    ->orderBy('nome')
+                    ->get(['id', 'nome']),
+                'transactions' => FinancialTransaction::orderByDesc('data_vencimento')
+                    ->limit(200)
+                    ->get(['id', 'descricao', 'valor', 'tipo', 'data_vencimento', 'status']),
+                'stock_items' => StockItem::where('is_active', true)
+                    ->orderBy('nome')
+                    ->limit(500)
+                    ->get(['id', 'nome', 'codigo', 'tipo']),
+            ],
         ]);
     }
 
@@ -130,6 +207,12 @@ class TaskController extends Controller
             'data_vencimento' => ['nullable', 'date'],
             'modulo' => ['nullable', 'string', 'max:30'],
             'farm_id' => ['nullable', 'exists:farms,id'],
+
+            // F3: vínculo polimórfico (nullable para retrocompat — tarefas
+            // legadas/automações continuam válidas sem vínculo. A exigência
+            // é imposta na UI).
+            'related_type' => ['nullable', 'string', 'max:191', Rule::in(self::RELATED_TYPES_WHITELIST)],
+            'related_id' => ['nullable', 'integer'],
         ]);
     }
 }
