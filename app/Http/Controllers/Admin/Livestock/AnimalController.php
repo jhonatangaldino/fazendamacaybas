@@ -425,10 +425,20 @@ class AnimalController extends Controller
         // integridade dos dados.
         //
         // Retrocompat: species sem `allowed_events` (coluna nova ou seed vazio)
-        // passa sem validação — não quebra dados existentes nem tenants que
+        // passa sem validação — não quedoesn't dados existentes nem tenants que
         // ainda não rodaram o seed atualizado.
+        //
+        // EVENTOS UNIVERSAIS (ciclo de vida): venda, compra, mortalidade,
+        // nascimento e observação são permitidos para QUALQUER espécie,
+        // independentemente de estarem listados em `allowed_events`. Todos
+        // os animais podem ser vendidos/mortos/observados — o seeder de
+        // allowed_events filtra apenas eventos de manejo ESPECÍFICO do
+        // perfil (ex.: ordenha só para leiteiro, postura só para ave).
         $allowed = $animal->species?->allowed_events;
-        if (is_array($allowed) && count($allowed) > 0 && ! in_array($data['tipo'], $allowed, true)) {
+        $eventosUniversais = ['venda', 'compra', 'mortalidade', 'nascimento', 'observacao'];
+        $isUniversal = in_array($data['tipo'], $eventosUniversais, true);
+
+        if (! $isUniversal && is_array($allowed) && count($allowed) > 0 && ! in_array($data['tipo'], $allowed, true)) {
             return back()->with('error',
                 "O evento \"{$data['tipo']}\" não é aplicável a " . ($animal->species->nome ?? 'esta espécie') . '. '
                 . 'Tipos válidos para esta espécie: ' . implode(', ', $allowed) . '.'
