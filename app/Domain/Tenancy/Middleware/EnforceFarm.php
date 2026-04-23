@@ -69,8 +69,45 @@ class EnforceFarm
             return $next($request);
         }
 
-        // Master global opera platform-wide; não exige contexto de fazenda.
-        // Mantemos `app('farm_id')` NÃO bindado — quem consumir decide fallback.
+        // M5.1 — Master impersonando: binda app('farm_id') com a primeira
+        // fazenda ativa do tenant impersonado, SEM persistir em user.current_farm_id
+        // (master nunca deve ter esse campo preenchido).
+        //
+        // Condições estritas — TODAS precisam ser verdadeiras:
+        //   1. user.tenant_id NULL (é master)
+        //   2. session('impersonation') existe
+        //   3. impersonator_user_id da session bate com este user (anti-hijack)
+        //   4. app('tenant_id') já bindado (ResolveTenant confirmou impersonação)
+        //
+        // Se qualquer check falhar, o fluxo continua para a salvaguarda original
+        // (master puro bypassa; tenant user segue para auto-select).
+        $imp = $request->session()->get('impersonation');
+        $isImpersonating = $user->tenant_id === null
+            && is_array($imp)
+            && isset($imp['impersonator_user_id'])
+            && (int) $imp['impersonator_user_id'] === (int) $user->id
+            && app()->bound('tenant_id');
+
+        if ($isImpersonating) {
+            // Query explícita conforme brief — redundante com BelongsToTenantScope
+            // mas deixa o intento claro e é imune a mudanças futuras no scope.
+            $farm = Farm::query()
+                ->where('tenant_id', app('tenant_id'))
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->first(['id']);
+
+            if ($farm) {
+                app()->instance('farm_id', (int) $farm->id);
+            }
+            // Se tenant não tem farm ativa: app('farm_id') fica não-bindado,
+            // consumidores downstream decidem fallback. Sem crash, sem persist.
+
+            return $next($request);
+        }
+
+        // Master global puro (não impersonando) opera platform-wide; não exige
+        // contexto de fazenda. Mantemos `app('farm_id')` NÃO bindado.
         if ($user->tenant_id === null) {
             return $next($request);
         }
