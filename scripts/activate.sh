@@ -30,6 +30,14 @@ tar -xzf "${ARTIFACT}" -C "${RELEASE_DIR}"
 
 cd "${RELEASE_DIR}"
 
+# Se o tarball foi gerado sem vendor/ (caso do deploy-local.sh, que roda
+# npm build local mas não tem composer), instala aqui no servidor. O
+# pipeline GitHub Actions já embutia vendor/; neste caso o bloco vira no-op.
+if [ ! -d vendor ] || [ -z "$(ls -A vendor 2>/dev/null)" ]; then
+    echo "==> vendor/ ausente — rodando composer install no servidor"
+    composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
+fi
+
 echo "==> Linkando .env compartilhado"
 rm -f .env
 ln -sf "${SHARED_DIR}/.env" .env

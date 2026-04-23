@@ -1,9 +1,23 @@
 name: Deploy to Hostinger
 
+# Desabilitado: GitHub Actions atingiu o limite mensal de minutos (plano
+# gratuito). Deploy automatico ficou temporariamente fora. Publicacao eh
+# feita via `scripts/deploy-local.sh` rodando no PC do mantenedor com a
+# chave `deploy-local` ja cadastrada no Hostinger.
+#
+# Para reativar: restaurar os gatilhos abaixo quando o billing voltar.
+#
+# on:
+#   push:
+#     branches: [main]
+#   workflow_dispatch:
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite "sim" para rodar manualmente (consome minutos)'
+        required: true
+        default: 'nao'
 
 concurrency:
   group: production-deploy
