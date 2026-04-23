@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Farm;
 use App\Models\Livestock\Animal;
 use App\Models\Livestock\AnimalBreed;
+use App\Domain\Integration\Services\AnimalSaleToRevenueService;
 use App\Models\Livestock\AnimalEvent;
 use App\Models\Livestock\AnimalLot;
 use App\Models\Livestock\AnimalSpecies;
 use App\Models\Partner;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -367,8 +369,14 @@ class AnimalController extends Controller
     /**
      * Registra um evento no animal (pesagem, vacinação, medicação, reprodução, etc.).
      * Valor e partner opcionais — quando informados, alimentam o ecossistema financeiro.
+     *
+     * FASE 2 · Integração cross-módulo:
+     *   Quando tipo=venda com valor>0, gera automaticamente uma
+     *   FinancialTransaction (tipo=receita) via AnimalSaleToRevenueService.
+     *   Todo o fluxo (criação do evento + updates do animal + integração)
+     *   roda em DB::transaction — atomicidade garantida.
      */
-    public function storeEvent(Request $request, Animal $animal)
+    public function storeEvent(Request $request, Animal $animal, AnimalSaleToRevenueService $sale)
     {
         $data = $request->validate([
             'tipo' => ['required', 'in:pesagem,vacinacao,medicacao,vermifugacao,reproducao,movimentacao,observacao,ordenha,tosquia,ferrageamento,castracao,postura_diaria,biometria_amostral,qualidade_agua,alimentacao,mortalidade,venda,compra,secagem'],
@@ -427,30 +435,45 @@ class AnimalController extends Controller
             );
         }
 
-        $event = $animal->events()->create([
-            ...$data,
-            'lot_id' => $animal->lot_id,
-            'created_by' => $request->user()?->id,
-        ]);
+        // Atomicidade: evento + updates derivados + integração rodam juntos.
+        // Se qualquer etapa falhar (FK violation, erro no service), rollback
+        // de tudo — nunca deixa estado inconsistente entre Livestock e Financeiro.
+        $event = DB::transaction(function () use ($animal, $data, $request, $sale) {
+            $event = $animal->events()->create([
+                ...$data,
+                'lot_id' => $animal->lot_id,
+                'created_by' => $request->user()?->id,
+            ]);
 
-        // Pesagem atualiza o peso_atual (cache desnormalizado no Animal)
-        if ($data['tipo'] === 'pesagem') {
-            $animal->update(['peso_atual' => $data['peso']]);
-        }
+            // Pesagem atualiza o peso_atual (cache desnormalizado no Animal)
+            if ($data['tipo'] === 'pesagem') {
+                $animal->update(['peso_atual' => $data['peso']]);
+            }
 
-        // Movimentação altera lote atual
-        if ($data['tipo'] === 'movimentacao' && ! empty($data['lot_destino_id'])) {
-            $animal->update(['lot_id' => $data['lot_destino_id']]);
-        }
+            // Movimentação altera lote atual
+            if ($data['tipo'] === 'movimentacao' && ! empty($data['lot_destino_id'])) {
+                $animal->update(['lot_id' => $data['lot_destino_id']]);
+            }
 
-        // Venda muda status do animal e registra saída
-        if ($data['tipo'] === 'venda') {
-            $animal->update(['status' => 'vendido', 'data_saida' => $data['data']]);
-        }
-        // Mortalidade/abate encerram o ciclo do animal
-        if ($data['tipo'] === 'mortalidade') {
-            $animal->update(['status' => 'morto', 'data_saida' => $data['data']]);
-        }
+            // Venda muda status do animal e registra saída
+            if ($data['tipo'] === 'venda') {
+                $animal->update(['status' => 'vendido', 'data_saida' => $data['data']]);
+            }
+            // Mortalidade/abate encerram o ciclo do animal
+            if ($data['tipo'] === 'mortalidade') {
+                $animal->update(['status' => 'morto', 'data_saida' => $data['data']]);
+            }
+
+            // ── FASE 2 · Integração Venda → Receita Financeira ─────────
+            // Service decide se gera (tipo=venda + valor>0 + conta ativa)
+            // e é idempotente (numero_documento=ANIMAL_EVENT:<id>).
+            // Retorna null silenciosamente quando a integração não se
+            // aplica — não interrompe o fluxo do evento.
+            $event->loadMissing('animal');
+            $sale->generateForEvent($event);
+
+            return $event;
+        });
 
         return back()->with('success', match ($data['tipo']) {
             'pesagem' => 'Pesagem registrada.',
