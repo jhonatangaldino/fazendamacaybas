@@ -19,7 +19,7 @@ use Inertia\Inertia;
  *   - Settings globais (tenant_id NULL) — como referência visual; ao salvar,
  *     viram overrides do cliente automaticamente.
  *
- * Settings com prefixo platform.*/billing.* NÃO são expostos aqui — são
+ * Settings com prefixo platform ou billing NÃO são expostos aqui — são
  * da plataforma, não do cliente.
  *
  * Gravação: updateOrCreate com `(tenant_id, key)` aproveitando o unique
