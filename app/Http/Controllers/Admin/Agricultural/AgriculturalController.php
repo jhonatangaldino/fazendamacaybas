@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Agricultural;
 
+use App\Domain\Integration\Services\FieldApplicationToStockMovementService;
 use App\Http\Controllers\Controller;
 use App\Models\Agricultural\Crop;
 use App\Models\Agricultural\Field;
@@ -338,7 +339,14 @@ class AgriculturalController extends Controller
         ]);
     }
 
-    public function applicationStore(Request $request)
+    /**
+     * FASE 2 · F2.3 — Integração cross-módulo:
+     *   Quando a aplicação é tipo=adubacao ou calagem (fertilizante/corretivo),
+     *   o FieldApplicationToStockMovementService dá baixa automática no estoque
+     *   do insumo (resolvido por nome do produto). Tudo em DB::transaction —
+     *   atomicidade entre criação da aplicação e movimento de saída.
+     */
+    public function applicationStore(Request $request, FieldApplicationToStockMovementService $stockBaixa)
     {
         $data = $request->validate([
             'field_id' => ['required', 'exists:fields,id'],
@@ -358,7 +366,14 @@ class AgriculturalController extends Controller
             return back()->withInput()->with('error', $err);
         }
 
-        FieldApplication::create($data);
+        // Atomicidade: aplicação + baixa de estoque (quando aplicável)
+        // rodam na mesma transação. Se a baixa falhar (improvável pois D7
+        // já validou produto), a aplicação é revertida.
+        DB::transaction(function () use ($data, $stockBaixa) {
+            $app = FieldApplication::create($data);
+            // F2.3: service decide se gera (só adubacao/calagem geram baixa)
+            $stockBaixa->generateForApplication($app);
+        });
 
         return back()->with('success', 'Aplicação registrada.');
     }
