@@ -17,11 +17,13 @@ const props = defineProps({
     linkables: { type: Object, required: true },
 });
 
+// `singular` usado na label dinâmica "Qual {singular}?" — evita gramática
+// estranha como "Qual rebanho?" (quando na verdade queremos "Qual animal?").
 const MODULOS = [
-    { id: 'rebanho',   nome: 'Rebanho',      icon: '🐄', linkType: 'App\\Models\\Livestock\\Animal',  lista: 'animais',   label: (x) => `${x.identificacao}${x.nome ? ' · ' + x.nome : ''}` },
-    { id: 'maquinas',  nome: 'Máquinas',     icon: '🔧', linkType: 'App\\Models\\Vehicle\\Vehicle',   lista: 'veiculos',  label: (x) => x.nome },
-    { id: 'financeiro',nome: 'Financeiro',   icon: '💰', linkType: 'App\\Models\\Partner',             lista: 'parceiros', label: (x) => x.nome },
-    { id: 'geral',     nome: 'Geral',         icon: '📋', linkType: 'App\\Models\\Partner',             lista: 'parceiros', label: (x) => x.nome },
+    { id: 'rebanho',   nome: 'Rebanho',    singular: 'animal',    icon: '🐄', linkType: 'App\\Models\\Livestock\\Animal',  lista: 'animais',   label: (x) => `${x.identificacao}${x.nome ? ' · ' + x.nome : ''}` },
+    { id: 'maquinas',  nome: 'Máquinas',   singular: 'máquina',   icon: '🔧', linkType: 'App\\Models\\Vehicle\\Vehicle',   lista: 'veiculos',  label: (x) => x.nome },
+    { id: 'financeiro',nome: 'Financeiro', singular: 'parceiro',  icon: '💰', linkType: 'App\\Models\\Partner',             lista: 'parceiros', label: (x) => x.nome },
+    { id: 'geral',     nome: 'Geral',      singular: 'parceiro',  icon: '📋', linkType: 'App\\Models\\Partner',             lista: 'parceiros', label: (x) => x.nome },
 ];
 
 const PRIORIDADES = [
@@ -130,7 +132,7 @@ function reiniciar() {
                 <h2 class="text-2xl font-semibold text-slate-900">O que é pra fazer?</h2>
 
                 <div>
-                    <InputLabel value="Resumo da tarefa" />
+                    <InputLabel value="O que precisa ser feito?" />
                     <input v-model="form.titulo" type="text" maxlength="200"
                            placeholder="Ex: Capinar pasto 2, Trocar óleo do trator"
                            class="form-input text-lg py-3">
@@ -139,7 +141,7 @@ function reiniciar() {
                 <div>
                     <InputLabel value="Detalhes (opcional)" />
                     <textarea v-model="form.descricao" rows="3"
-                              placeholder="Instruções adicionais, ferramentas, cuidados"
+                              placeholder="Detalhes extras: como fazer, ferramentas, cuidados"
                               class="form-input"></textarea>
                 </div>
 
@@ -154,7 +156,7 @@ function reiniciar() {
             <div class="card-body space-y-5">
                 <h2 class="text-2xl font-semibold text-slate-900">Sobre o quê é essa tarefa?</h2>
                 <p class="text-sm text-slate-600">
-                    Vincular ajuda a rastrear histórico. Toda tarefa precisa de uma entidade (animal, máquina, parceiro).
+                    Toda tarefa precisa ser sobre alguma coisa da fazenda — um animal, uma máquina, ou um parceiro. Isso ajuda a achar a tarefa depois.
                 </p>
 
                 <div>
@@ -171,13 +173,13 @@ function reiniciar() {
                 </div>
 
                 <div v-if="moduloAtual">
-                    <InputLabel :value="`Qual ${moduloAtual.nome.toLowerCase()}?`" />
+                    <InputLabel :value="`Qual ${moduloAtual.singular}?`" />
                     <select v-model="form.related_id" class="form-select text-base py-3">
-                        <option :value="null">Escolha…</option>
+                        <option :value="null">— Escolha —</option>
                         <option v-for="x in listaVinculos" :key="x.id" :value="x.id">{{ moduloAtual.label(x) }}</option>
                     </select>
                     <p v-if="listaVinculos.length === 0" class="text-sm text-amber-700 mt-1">
-                        Nenhum item cadastrado nessa área.
+                        Nenhum {{ moduloAtual.singular }} cadastrado ainda.
                     </p>
                 </div>
 
@@ -194,7 +196,7 @@ function reiniciar() {
                 <h2 class="text-2xl font-semibold text-slate-900">Quem faz e quando?</h2>
 
                 <div>
-                    <InputLabel value="Responsáveis (quem executa)" />
+                    <InputLabel value="Quem vai fazer?" />
                     <div class="grid gap-2 sm:grid-cols-2">
                         <button v-for="f in funcionarios" :key="f.id" type="button"
                                 @click="toggleAssignee(f.id)"
@@ -236,12 +238,17 @@ function reiniciar() {
         <!-- PASSO 4 -->
         <div v-if="passo === 4" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                <div>
+                    <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                    <p class="text-base text-slate-600 mt-2">
+                        Antes de criar a tarefa, dê uma olhada. Se precisar mudar algo, clique em <strong>Trocar</strong> ao lado.
+                    </p>
+                </div>
 
                 <div class="space-y-3">
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-xs uppercase tracking-wider text-slate-500">Tarefa</div>
+                            <div class="text-xs uppercase tracking-wider text-slate-500">A tarefa</div>
                             <div class="font-semibold text-slate-900 mt-1">{{ form.titulo }}</div>
                             <div v-if="form.descricao" class="text-sm text-slate-600 mt-1">{{ form.descricao }}</div>
                         </div>
@@ -249,19 +256,21 @@ function reiniciar() {
                     </div>
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-xs uppercase tracking-wider text-slate-500">Sobre</div>
+                            <div class="text-xs uppercase tracking-wider text-slate-500">Sobre o quê</div>
                             <div class="font-medium text-slate-900 mt-1">{{ moduloAtual?.icon }} {{ moduloAtual?.nome }}<span v-if="vinculoSelecionado"> · {{ moduloAtual.label(vinculoSelecionado) }}</span></div>
                         </div>
                         <button @click="irPara(2)" class="text-sm text-macaybas-primary hover:underline flex-shrink-0">Trocar</button>
                     </div>
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-xs uppercase tracking-wider text-slate-500">Quem e quando</div>
+                            <div class="text-xs uppercase tracking-wider text-slate-500">Quem faz e quando</div>
                             <div class="text-slate-900 mt-1">
                                 {{ funcionarios.filter(f => form.assignees.includes(f.id)).map(f => f.nome).join(', ') }}
-                                <span class="text-slate-500 text-sm">· prioridade {{ form.prioridade }}</span>
                             </div>
-                            <div v-if="form.data_vencimento" class="text-sm text-slate-500">Vence em {{ dataBR(form.data_vencimento) }}</div>
+                            <div class="text-sm text-slate-500 mt-0.5">
+                                Prioridade: <strong>{{ PRIORIDADES.find(p => p.id === form.prioridade)?.emoji }} {{ PRIORIDADES.find(p => p.id === form.prioridade)?.nome }}</strong>
+                            </div>
+                            <div v-if="form.data_vencimento" class="text-sm text-slate-500 mt-0.5">Para ser feito até {{ dataBR(form.data_vencimento) }}</div>
                         </div>
                         <button @click="irPara(3)" class="text-sm text-macaybas-primary hover:underline flex-shrink-0">Trocar</button>
                     </div>
@@ -270,7 +279,7 @@ function reiniciar() {
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
                     <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
-                        {{ form.processing ? 'Salvando…' : 'Confirmar e criar ✓' }}
+                        {{ form.processing ? 'Salvando…' : 'Criar tarefa' }}
                     </button>
                 </div>
             </div>

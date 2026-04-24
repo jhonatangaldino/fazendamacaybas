@@ -26,13 +26,20 @@ const props = defineProps({
     lotes: { type: Array, required: true },
 });
 
-// Metadados por tipo — tudo que muda entre os 6 cards
+// Metadados por tipo — tudo que muda entre os 6 cards.
+// Cada tipo tem:
+//   passo1Titulo — verbo específico ("vai vacinar", "vai medicar")
+//   tituloAcao — texto curto pra título do sucesso ("Vacinação registrada")
+//   perguntaQuando — label dinâmica humanizada ("Quando você vacinou?")
 const TIPOS = {
     vacinacao: {
         titulo: 'Aplicar vacina no animal',
         emoji: '💉',
+        passo1Titulo: 'Qual animal você quer vacinar?',
         passo2Titulo: 'Qual vacina?',
-        sucessoMsg: (d) => `Vacinação registrada para ${d._animal.identificacao}.`,
+        perguntaQuando: 'Quando você vacinou?',
+        tituloSucesso: 'Vacinação registrada!',
+        sucessoMsg: (d) => `Você vacinou o animal ${d._animal.identificacao}.`,
         impactos: ['Vacinação entrou no histórico do animal', 'Calendário sanitário atualizado'],
         campos: ['vacina', 'dose_opcional', 'data', 'observacoes'],
         camposObrigatorios: ['vacina'],
@@ -40,8 +47,11 @@ const TIPOS = {
     medicacao: {
         titulo: 'Aplicar medicamento',
         emoji: '💊',
+        passo1Titulo: 'Qual animal vai receber o medicamento?',
         passo2Titulo: 'Qual medicamento?',
-        sucessoMsg: (d) => `Tratamento registrado para ${d._animal.identificacao}.`,
+        perguntaQuando: 'Quando você medicou?',
+        tituloSucesso: 'Tratamento registrado.',
+        sucessoMsg: (d) => `Tratamento anotado no histórico de ${d._animal.identificacao}.`,
         impactos: ['Tratamento entrou no histórico do animal', 'Se houver carência, será rastreada'],
         campos: ['medicamento', 'dose_opcional', 'data', 'observacoes'],
         camposObrigatorios: ['medicamento'],
@@ -49,8 +59,11 @@ const TIPOS = {
     vermifugacao: {
         titulo: 'Aplicar vermífugo',
         emoji: '🧴',
+        passo1Titulo: 'Qual animal você quer vermifugar?',
         passo2Titulo: 'Qual vermífugo?',
-        sucessoMsg: (d) => `Vermifugação registrada para ${d._animal.identificacao}.`,
+        perguntaQuando: 'Quando você aplicou?',
+        tituloSucesso: 'Vermifugação registrada!',
+        sucessoMsg: (d) => `Vermifugação de ${d._animal.identificacao} anotada.`,
         impactos: ['Vermifugação entrou no histórico', 'Próxima vermifugação será programada'],
         campos: ['medicamento', 'dose_opcional', 'data', 'observacoes'],
         camposObrigatorios: ['medicamento'],
@@ -58,8 +71,11 @@ const TIPOS = {
     movimentacao: {
         titulo: 'Mover animal de lote',
         emoji: '🐄',
+        passo1Titulo: 'Qual animal você quer mover?',
         passo2Titulo: 'Pra qual lote vai?',
-        sucessoMsg: (d) => `${d._animal.identificacao} movido para ${d._loteNome}.`,
+        perguntaQuando: 'Quando foi a mudança?',
+        tituloSucesso: 'Animal movido!',
+        sucessoMsg: (d) => `${d._animal.identificacao} agora está no lote ${d._loteNome}.`,
         impactos: ['Animal agora pertence ao novo lote', 'Movimentação entrou no histórico'],
         campos: ['lot_destino_id', 'data', 'observacoes'],
         camposObrigatorios: ['lot_destino_id'],
@@ -67,8 +83,11 @@ const TIPOS = {
     mortalidade: {
         titulo: 'Registrar morte do animal',
         emoji: '⚰️',
+        passo1Titulo: 'Qual animal morreu?',
         passo2Titulo: 'Como foi?',
-        sucessoMsg: (d) => `Morte de ${d._animal.identificacao} registrada.`,
+        perguntaQuando: 'Quando aconteceu?',
+        tituloSucesso: 'Morte do animal registrada.',
+        sucessoMsg: (d) => `${d._animal.identificacao} foi baixado do rebanho ativo.`,
         impactos: ['Animal saiu do rebanho ativo', 'Baixa por mortalidade no relatório'],
         campos: ['causa', 'data', 'observacoes'],
         camposObrigatorios: [],
@@ -76,8 +95,11 @@ const TIPOS = {
     observacao: {
         titulo: 'Registrar observação do animal',
         emoji: '📝',
+        passo1Titulo: 'Sobre qual animal você quer anotar?',
         passo2Titulo: 'O que aconteceu?',
-        sucessoMsg: (d) => `Observação registrada para ${d._animal.identificacao}.`,
+        perguntaQuando: 'Quando?',
+        tituloSucesso: 'Observação registrada.',
+        sucessoMsg: (d) => `Anotação salva no histórico de ${d._animal.identificacao}.`,
         impactos: ['Observação entrou no histórico do animal'],
         campos: ['data', 'observacoes'],
         camposObrigatorios: ['observacoes'],
@@ -205,7 +227,8 @@ function reiniciar() {
         <!-- PASSO 1 · O animal -->
         <div v-if="passo === 1" class="card max-w-5xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">Qual animal?</h2>
+                <h2 class="text-2xl font-semibold text-slate-900">{{ meta.passo1Titulo }}</h2>
+                <p class="text-base text-slate-600">Toque em um animal para escolher.</p>
                 <p v-if="animais.length === 0" class="text-sm text-amber-700">
                     Nenhum animal disponível. Cadastre um antes.
                 </p>
@@ -261,15 +284,15 @@ function reiniciar() {
 
                 <!-- Campo: vacina -->
                 <div v-if="mostraCampo('vacina')">
-                    <InputLabel value="Qual vacina foi aplicada?" />
+                    <InputLabel value="Nome da vacina" />
                     <input v-model="form.vacina" type="text" maxlength="150"
-                           placeholder="Ex: Aftosa, Brucelose, Clostridiose"
+                           placeholder="Ex: Aftosa, Brucelose, Raiva"
                            class="form-input text-base py-3">
                 </div>
 
                 <!-- Campo: medicamento -->
                 <div v-if="mostraCampo('medicamento')">
-                    <InputLabel :value="tipoAtivo === 'vermifugacao' ? 'Qual vermífugo?' : 'Qual medicamento?'" />
+                    <InputLabel :value="tipoAtivo === 'vermifugacao' ? 'Nome do vermífugo' : 'Nome do medicamento'" />
                     <input v-model="form.medicamento" type="text" maxlength="150"
                            :placeholder="tipoAtivo === 'vermifugacao' ? 'Ex: Ivermectina, Albendazol' : 'Ex: Antibiótico, Anti-inflamatório'"
                            class="form-input text-base py-3">
@@ -277,7 +300,7 @@ function reiniciar() {
 
                 <!-- Dose (opcional) -->
                 <div v-if="mostraCampo('dose_opcional')">
-                    <InputLabel value="Dose aplicada (opcional)" />
+                    <InputLabel value="Dose (opcional)" />
                     <input v-model="form.dose" type="text" maxlength="50"
                            placeholder="Ex: 5 mL, 1 cápsula, 2 comprimidos"
                            class="form-input text-base py-3">
@@ -305,7 +328,7 @@ function reiniciar() {
 
                 <!-- Data -->
                 <div v-if="mostraCampo('data')">
-                    <InputLabel value="Quando foi?" />
+                    <InputLabel :value="meta.perguntaQuando" />
                     <InputDate v-model="form.data_evento" :max="hojeBR()" />
                 </div>
 
@@ -327,7 +350,12 @@ function reiniciar() {
         <!-- PASSO 3 · Conferência -->
         <div v-if="passo === 3" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                <div>
+                    <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                    <p class="text-base text-slate-600 mt-2">
+                        Antes de salvar, dê uma olhada. Se precisar mudar algo, clique em <strong>Trocar</strong> ao lado.
+                    </p>
+                </div>
 
                 <div class="space-y-3">
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
@@ -358,7 +386,7 @@ function reiniciar() {
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
                     <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
-                        {{ form.processing ? 'Salvando…' : 'Confirmar e salvar ✓' }}
+                        {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
             </div>
@@ -367,8 +395,8 @@ function reiniciar() {
         <!-- PASSO 4 · Sucesso -->
         <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto">
             <div class="card-body text-center space-y-5 py-8">
-                <div class="text-6xl">🎉</div>
-                <h2 class="text-2xl font-semibold text-slate-900">{{ meta.titulo }} — concluído!</h2>
+                <div class="text-6xl">{{ meta.emoji }}</div>
+                <h2 class="text-2xl font-semibold text-slate-900">{{ meta.tituloSucesso }}</h2>
                 <p class="text-base text-slate-600">{{ meta.sucessoMsg(sucesso) }}</p>
 
                 <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-left">

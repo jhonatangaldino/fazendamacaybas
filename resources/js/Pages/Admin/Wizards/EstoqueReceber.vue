@@ -117,9 +117,9 @@ function reiniciar() {
                 <h2 class="text-2xl font-semibold text-slate-900">O que chegou?</h2>
 
                 <div>
-                    <InputLabel value="Produto" />
+                    <InputLabel value="Qual produto chegou?" />
                     <select v-model="form.item_id" class="form-select text-base py-3">
-                        <option :value="null">Escolha o produto…</option>
+                        <option :value="null">— Escolha o produto —</option>
                         <option v-for="i in itens" :key="i.id" :value="i.id">{{ i.nome }} ({{ i.unidade }})</option>
                     </select>
                 </div>
@@ -139,7 +139,7 @@ function reiniciar() {
 
         <div v-if="passo === 2" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">Detalhes da entrada</h2>
+                <h2 class="text-2xl font-semibold text-slate-900">Quanto chegou e quem trouxe?</h2>
                 <p class="text-base text-slate-600">Produto: <strong>{{ itemAtual?.nome }}</strong></p>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -149,7 +149,7 @@ function reiniciar() {
                                class="form-input text-xl py-3 font-mono">
                     </div>
                     <div>
-                        <InputLabel value="Valor unitário (opcional)" />
+                        <InputLabel value="Preço por unidade (opcional)" />
                         <InputMoney v-model="form.valor_unitario" class="form-input py-3" />
                     </div>
                 </div>
@@ -161,20 +161,20 @@ function reiniciar() {
                 <div>
                     <InputLabel value="Quem entregou? (opcional)" />
                     <select v-model="form.partner_id" class="form-select text-base py-3">
-                        <option :value="null">Não informar</option>
+                        <option :value="null">— Não informar —</option>
                         <option v-for="f in fornecedores" :key="f.id" :value="f.id">{{ f.nome }}</option>
                     </select>
                 </div>
 
                 <div>
-                    <InputLabel value="Número da nota (opcional)" />
+                    <InputLabel value="Número da nota ou recibo (opcional)" />
                     <input v-model="form.numero_documento" type="text" maxlength="50"
-                           placeholder="NF-e, recibo"
+                           placeholder="Ex: 123456"
                            class="form-input">
                 </div>
 
                 <div>
-                    <InputLabel value="Data" />
+                    <InputLabel value="Quando chegou?" />
                     <InputDate v-model="form.data" :max="hojeBR()" />
                 </div>
 
@@ -187,12 +187,17 @@ function reiniciar() {
 
         <div v-if="passo === 3" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">Confere?</h2>
+                <div>
+                    <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                    <p class="text-base text-slate-600 mt-2">
+                        Antes de salvar, dê uma olhada. Se precisar mudar algo, clique em <strong>Trocar</strong> ao lado da informação.
+                    </p>
+                </div>
 
                 <div class="space-y-3">
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-xs uppercase tracking-wider text-slate-500">Produto + armazém</div>
+                            <div class="text-xs uppercase tracking-wider text-slate-500">O que e onde</div>
                             <div class="font-semibold mt-1">{{ itemAtual?.nome }}</div>
                             <div class="text-sm text-slate-500">Guardado em: {{ armazemAtual?.nome }}</div>
                         </div>
@@ -200,10 +205,10 @@ function reiniciar() {
                     </div>
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-xs uppercase tracking-wider text-slate-500">Quantidade</div>
+                            <div class="text-xs uppercase tracking-wider text-slate-500">Quanto chegou</div>
                             <div class="text-2xl font-bold mt-1">{{ form.quantidade }} {{ itemAtual?.unidade }}</div>
-                            <div v-if="valorTotal > 0" class="text-sm text-slate-600 mt-1">{{ brl(valorTotal) }} total</div>
-                            <div v-if="fornecedorAtual" class="text-sm text-slate-500 mt-0.5">De: {{ fornecedorAtual.nome }}</div>
+                            <div v-if="valorTotal > 0" class="text-sm text-slate-600 mt-1">Total: {{ brl(valorTotal) }}</div>
+                            <div v-if="fornecedorAtual" class="text-sm text-slate-500 mt-0.5">Entregue por: {{ fornecedorAtual.nome }}</div>
                         </div>
                         <button @click="irPara(2)" class="text-sm text-macaybas-primary hover:underline">Trocar</button>
                     </div>
@@ -212,7 +217,7 @@ function reiniciar() {
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
                     <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
-                        {{ form.processing ? 'Salvando…' : 'Confirmar ✓' }}
+                        {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
             </div>
