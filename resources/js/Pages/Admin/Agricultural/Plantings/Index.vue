@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -31,6 +31,14 @@ const form = useForm({
 });
 
 function novo() { form.reset(); form.status = 'em_andamento'; form.data_plantio = hojeBR(); editing.value = 'new'; }
+
+// Hub v3 — auto-abrir form quando vier do Hub com `?novo=1`
+onMounted(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('novo') === '1') {
+        novo();
+    }
+});
 function editar(p) { Object.keys(form.data()).forEach(k => form[k] = p[k] ?? form[k]); editing.value = p.id; }
 function filtrar() { router.get(route('admin.agricola.plantios.index'), filtros, { preserveState: true, replace: true }); }
 

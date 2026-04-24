@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -26,7 +26,20 @@ const form = useForm({
     observacoes: '', gerar_lancamento_financeiro: false, account_id: null,
 });
 
-function novo() { form.reset(); form.tipo = 'preventiva'; form.status = 'agendada'; editing.value = 'new'; }
+function novo(tipoPreSelecionado = 'preventiva') {
+    form.reset();
+    form.tipo = ['preventiva', 'corretiva', 'revisao'].includes(tipoPreSelecionado) ? tipoPreSelecionado : 'preventiva';
+    form.status = 'agendada';
+    editing.value = 'new';
+}
+
+// Hub v3 — auto-abrir form com `?novo=1&tipo=corretiva|preventiva|revisao`
+onMounted(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('novo') === '1') {
+        novo(qs.get('tipo') || 'preventiva');
+    }
+});
 function editar(o) {
     Object.keys(form.data()).forEach(k => form[k] = o[k] ?? form[k]);
     form.gerar_lancamento_financeiro = false;

@@ -68,6 +68,30 @@ function abrirEvento(tipo = 'pesagem') {
     novoEvento.value = true;
 }
 
+// Hub v3 — quando o usuário chega via Hub (ex: card "Registrar peso"),
+// a URL vem com `?acao=pesar`. Auto-abrimos o modal de evento com o tipo correto.
+// Mapeamento ação → tipo de evento (tipos aceitos pelo backend em
+// AnimalController::storeEvent validator):
+const MAPA_ACAO_HUB = {
+    pesar:       'pesagem',
+    vacinar:     'vacinacao',
+    medicar:     'medicacao',
+    vermifugar:  'vermifugacao',
+    observar:    'observacao',
+    mover:       'movimentacao',
+    morte:       'mortalidade',
+    ordenha:     'ordenha',
+    alimentar:   'alimentacao',
+};
+
+onMounted(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const acao = qs.get('acao');
+    if (acao && MAPA_ACAO_HUB[acao]) {
+        abrirEvento(MAPA_ACAO_HUB[acao]);
+    }
+});
+
 function salvarEvento() {
     eventForm
         .transform((d) => {

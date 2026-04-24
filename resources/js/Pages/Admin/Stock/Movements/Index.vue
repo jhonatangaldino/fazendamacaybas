@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -33,6 +33,23 @@ const form = useForm({
     valor_unitario: '',
     numero_documento: '',
     observacoes: '',
+});
+
+// Hub v3 — auto-abrir form quando vier do Hub com `?novo=1` + pré-selecionar tipo/motivo.
+// Exemplo: /admin/estoque/movimentos?novo=1&tipo=entrada&motivo=compra
+onMounted(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('novo') === '1') {
+        const tipo = qs.get('tipo');
+        const motivo = qs.get('motivo');
+        if (tipo && ['entrada', 'saida', 'ajuste', 'transferencia'].includes(tipo)) {
+            form.tipo = tipo;
+        }
+        if (motivo) {
+            form.motivo = motivo;
+        }
+        showForm.value = true;
+    }
 });
 
 function filtrar() {

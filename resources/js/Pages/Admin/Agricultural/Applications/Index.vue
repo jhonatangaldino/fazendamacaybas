@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -31,6 +31,19 @@ function salvar() {
         onSuccess: () => { showForm.value = false; form.reset(); form.tipo = 'adubacao'; form.unidade = 'kg'; form.data_aplicacao = hojeBR(); },
     });
 }
+// Hub v3 — auto-abrir form ao chegar pelo Hub com `?novo=1` + pré-selecionar tipo.
+// Tipos aceitos: adubacao, herbicida, fungicida, inseticida, calagem, irrigacao, outros
+onMounted(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('novo') === '1') {
+        const tipo = qs.get('tipo');
+        if (tipo && ['adubacao', 'herbicida', 'fungicida', 'inseticida', 'calagem', 'irrigacao', 'outros'].includes(tipo)) {
+            form.tipo = tipo;
+        }
+        showForm.value = true;
+    }
+});
+
 function filtrar() { router.get(route('admin.agricola.aplicacoes.index'), filtros, { preserveState: true, replace: true }); }
 function doDelete() {
     router.delete(route('admin.agricola.aplicacoes.destroy', confirmDelete.value.id), {

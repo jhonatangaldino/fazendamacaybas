@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed, watch } from 'vue';
+import { reactive, ref, computed, watch, onMounted } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -36,6 +36,14 @@ const form = useForm({
 
 const categoryForm = useForm({ nome: '', cor: '#64748b', icon: 'file' });
 const showCategoryForm = ref(false);
+
+// Hub v3 — auto-abrir upload ao chegar pelo Hub com `?novo=1`
+onMounted(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('novo') === '1') {
+        showUpload.value = true;
+    }
+});
 
 // ═════════════════════════════════════════════════════════════════════
 // F3 · UX anti-erro orientada por domínio — DOCUMENTOS

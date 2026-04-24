@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -162,6 +162,60 @@ function confirmarVenda() {
     });
 }
 
+// ═════════════════════════════════════════════════════════════════════
+// Hub v3 — Ação contextual vinda do Hub
+//
+// Quando o usuário clica em "Registrar peso do animal" no Hub, ele chega
+// aqui com `?acao=pesar`. Mostramos um banner explicando o contexto e
+// convidando o usuário a escolher o animal. Ao clicar na linha (Link pro
+// Show), propagamos `?acao=X` — o Show lê e abre o modal com o tipo certo.
+//
+// Também ativamos o modal de evento rápido com o tipo já pré-preenchido
+// quando o usuário clica diretamente no ícone de ação da linha.
+// ═════════════════════════════════════════════════════════════════════
+const acaoContextual = ref(null); // null | 'pesar' | 'vacinar' | 'medicar' | 'vermifugar' | 'observar' | 'mover' | 'morte'
+
+const MAPA_ACAO_TIPO = {
+    pesar:       'pesagem',
+    vacinar:     'vacinacao',
+    medicar:     'medicacao',
+    vermifugar:  'vermifugacao',
+    observar:    'observacao',
+    mover:       'movimentacao',
+    morte:       'mortalidade',
+};
+
+const ACAO_META = {
+    pesar:       { titulo: 'Registrar peso',            instrucao: 'Clique no animal que você quer pesar.',    emoji: '⚖️' },
+    vacinar:     { titulo: 'Aplicar vacina',            instrucao: 'Clique no animal que você quer vacinar.',  emoji: '💉' },
+    medicar:     { titulo: 'Aplicar medicamento',       instrucao: 'Clique no animal que vai receber o medicamento.', emoji: '💊' },
+    vermifugar:  { titulo: 'Aplicar vermífugo',         instrucao: 'Clique no animal que você quer vermifugar.', emoji: '🧴' },
+    observar:    { titulo: 'Registrar observação',      instrucao: 'Clique no animal sobre o qual você quer anotar.', emoji: '📝' },
+    mover:       { titulo: 'Mover animal de lote',      instrucao: 'Clique no animal que vai mudar de lote.', emoji: '🐄' },
+    morte:       { titulo: 'Registrar morte do animal', instrucao: 'Clique no animal que morreu.',            emoji: '⚰️' },
+};
+
+onMounted(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const acao = qs.get('acao');
+    if (acao && MAPA_ACAO_TIPO[acao]) {
+        acaoContextual.value = acao;
+    }
+});
+
+/** Gera href pro Show propagando `?acao=X` quando em modo contextual. */
+function hrefShow(id) {
+    const base = route('admin.rebanho.animais.show', id);
+    return acaoContextual.value ? `${base}?acao=${acaoContextual.value}` : base;
+}
+
+/** Abre evento rápido respeitando a ação contextual (quando aplicável). */
+function abrirEventoContextualOuPadrao(row) {
+    if (acaoContextual.value && MAPA_ACAO_TIPO[acaoContextual.value]) {
+        abrirEventoRapido(row, MAPA_ACAO_TIPO[acaoContextual.value]);
+    }
+}
+
 // Excluir (continua individual)
 const confirmDelete = ref(null);
 function doDelete() {
@@ -183,6 +237,19 @@ function doDelete() {
                 <Link :href="route('admin.rebanho.animais.create')" class="btn-primary">Novo animal</Link>
             </template>
         </PageHeader>
+
+        <!-- Hub v3 · Banner contextual quando usuário chega de um card de ação -->
+        <div v-if="acaoContextual && ACAO_META[acaoContextual]"
+             class="mb-4 p-4 rounded-xl bg-macaybas-primary-50 border-l-4 border-macaybas-primary-500 flex items-start gap-3">
+            <span class="text-3xl flex-shrink-0" aria-hidden="true">{{ ACAO_META[acaoContextual].emoji }}</span>
+            <div class="flex-1 min-w-0">
+                <div class="font-semibold text-macaybas-primary-900">{{ ACAO_META[acaoContextual].titulo }}</div>
+                <div class="text-sm text-macaybas-primary-800 mt-0.5">{{ ACAO_META[acaoContextual].instrucao }}</div>
+            </div>
+            <Link :href="route('admin.rebanho.animais.index')" class="text-sm text-macaybas-primary-800 hover:underline flex-shrink-0">
+                Cancelar
+            </Link>
+        </div>
 
         <!-- F4.2 · Filtros colapsáveis em mobile (busca sempre visível) -->
         <MobileFilters cols="sm:grid-cols-4">
@@ -276,8 +343,14 @@ function doDelete() {
                             <img v-if="row.photo_url" :src="row.photo_url" class="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200">
                             <div v-else class="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xs">—</div>
                         </td>
-                        <td class="font-medium">{{ row.identificacao }}</td>
-                        <td>{{ row.nome || '—' }}</td>
+                        <td class="font-medium">
+                            <Link v-if="acaoContextual" :href="hrefShow(row.id)" class="text-macaybas-primary-800 hover:underline">{{ row.identificacao }}</Link>
+                            <template v-else>{{ row.identificacao }}</template>
+                        </td>
+                        <td>
+                            <Link v-if="acaoContextual && row.nome" :href="hrefShow(row.id)" class="text-macaybas-primary-800 hover:underline">{{ row.nome }}</Link>
+                            <template v-else>{{ row.nome || '—' }}</template>
+                        </td>
                         <td>
                             <span v-if="row.categoria" :class="categoriaBadge(row.categoria)">{{ categoriaLabel(row.categoria) }}</span>
                             <span v-else class="text-slate-400">—</span>
@@ -291,7 +364,7 @@ function doDelete() {
                             <div class="flex gap-1 justify-end">
                                 <ActionIcon v-for="ac in acoesDoAnimal(row)" :key="ac.key"
                                             :type="ac.icon" :title="ac.title" @click="abrirEventoRapido(row, ac.key)" />
-                                <Link :href="route('admin.rebanho.animais.show', row.id)" class="inline-flex">
+                                <Link :href="hrefShow(row.id)" class="inline-flex">
                                     <ActionIcon type="history" title="Histórico completo" />
                                 </Link>
                                 <Link :href="route('admin.rebanho.animais.edit', row.id)" class="inline-flex">
@@ -315,7 +388,15 @@ function doDelete() {
                            :disabled="row.status !== 'ativo'"
                            class="mt-1 rounded border-slate-300 disabled:opacity-30">
                     <img v-if="row.photo_url" :src="row.photo_url" class="h-12 w-12 rounded-lg object-cover ring-1 ring-slate-200 flex-shrink-0">
-                    <div class="flex-1 min-w-0">
+                    <Link v-if="acaoContextual" :href="hrefShow(row.id)" class="flex-1 min-w-0 block">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="font-semibold text-slate-900 truncate text-macaybas-primary-800">{{ row.identificacao }}<span v-if="row.nome" class="font-normal text-slate-500"> · {{ row.nome }}</span></div>
+                            <span :class="statusBadge(row.status)" class="flex-shrink-0">{{ row.status }}</span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-0.5">{{ row.species?.nome }} · {{ row.sexo }}<span v-if="row.lot"> · lote {{ row.lot.nome }}</span></div>
+                        <div v-if="row.peso_atual" class="text-xs text-slate-600 mt-1">{{ Number(row.peso_atual).toLocaleString('pt-BR', {minimumFractionDigits: 1}) }} kg</div>
+                    </Link>
+                    <div v-else class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2">
                             <div class="font-semibold text-slate-900 truncate">{{ row.identificacao }}<span v-if="row.nome" class="font-normal text-slate-500"> · {{ row.nome }}</span></div>
                             <span :class="statusBadge(row.status)" class="flex-shrink-0">{{ row.status }}</span>
@@ -327,7 +408,7 @@ function doDelete() {
                 <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2 justify-end">
                     <ActionIcon v-for="ac in acoesDoAnimal(row)" :key="ac.key"
                                 :type="ac.icon" :title="ac.title" @click="abrirEventoRapido(row, ac.key)" />
-                    <Link :href="route('admin.rebanho.animais.show', row.id)" class="inline-flex">
+                    <Link :href="hrefShow(row.id)" class="inline-flex">
                         <ActionIcon type="history" title="Histórico" />
                     </Link>
                     <Link :href="route('admin.rebanho.animais.edit', row.id)" class="inline-flex">

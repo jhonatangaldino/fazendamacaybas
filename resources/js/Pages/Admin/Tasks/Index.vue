@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch, onMounted } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -213,6 +213,14 @@ function novo() {
     form.related_type = ''; form.related_id = null;
     editing.value = 'new';
 }
+
+// Hub v3 — auto-abrir form ao chegar pelo Hub com `?novo=1`
+onMounted(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('novo') === '1') {
+        novo();
+    }
+});
 
 function editar(t) {
     form.titulo = t.titulo; form.descricao = t.descricao ?? '';

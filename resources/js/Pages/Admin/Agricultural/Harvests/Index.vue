@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -30,6 +30,14 @@ function salvar() {
         onSuccess: () => { showForm.value = false; form.reset(); form.unidade = 'kg'; form.data_colheita = hojeBR(); },
     });
 }
+// Hub v3 — auto-abrir form ao chegar pelo Hub com `?novo=1`
+onMounted(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('novo') === '1') {
+        showForm.value = true;
+    }
+});
+
 function filtrar() { router.get(route('admin.agricola.colheitas.index'), filtros, { preserveState: true, replace: true }); }
 function doDelete() {
     router.delete(route('admin.agricola.colheitas.destroy', confirmDelete.value.id), {
