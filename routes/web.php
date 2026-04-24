@@ -346,6 +346,25 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
         Route::post('rebanho/animais/vender-lote', [AnimalController::class, 'sellBatch'])->middleware('permission:operational.rebanho.animais.update')->name('rebanho.animais.vender-lote');
         Route::delete('rebanho/animais/{animal}/eventos/{event}', [AnimalController::class, 'destroyEvent'])->middleware('permission:operational.rebanho.eventos.delete')->name('rebanho.animais.eventos.destroy');
 
+        // ──── Correção de domínio · Lotes (grupo) e Locais (pasto/piquete) ────
+        // Antes o sistema misturava os dois conceitos em `animal_lots` e nem
+        // tinha CRUD. Agora são separados e cada um tem sua própria tela.
+        Route::get('rebanho/lotes', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'index'])->name('rebanho.lotes.index');
+        Route::get('rebanho/lotes/novo', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'create'])->name('rebanho.lotes.create');
+        Route::post('rebanho/lotes', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'store'])->name('rebanho.lotes.store');
+        Route::get('rebanho/lotes/{lote}/editar', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'edit'])->name('rebanho.lotes.edit');
+        Route::put('rebanho/lotes/{lote}', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'update'])->name('rebanho.lotes.update');
+        Route::delete('rebanho/lotes/{lote}', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'destroy'])->name('rebanho.lotes.destroy');
+        Route::post('rebanho/lotes/{lote}/toggle', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'toggle'])->name('rebanho.lotes.toggle');
+
+        Route::get('rebanho/locais', [\App\Http\Controllers\Admin\Livestock\AnimalLocationController::class, 'index'])->name('rebanho.locais.index');
+        Route::get('rebanho/locais/novo', [\App\Http\Controllers\Admin\Livestock\AnimalLocationController::class, 'create'])->name('rebanho.locais.create');
+        Route::post('rebanho/locais', [\App\Http\Controllers\Admin\Livestock\AnimalLocationController::class, 'store'])->name('rebanho.locais.store');
+        Route::get('rebanho/locais/{local}/editar', [\App\Http\Controllers\Admin\Livestock\AnimalLocationController::class, 'edit'])->name('rebanho.locais.edit');
+        Route::put('rebanho/locais/{local}', [\App\Http\Controllers\Admin\Livestock\AnimalLocationController::class, 'update'])->name('rebanho.locais.update');
+        Route::delete('rebanho/locais/{local}', [\App\Http\Controllers\Admin\Livestock\AnimalLocationController::class, 'destroy'])->name('rebanho.locais.destroy');
+        Route::post('rebanho/locais/{local}/toggle', [\App\Http\Controllers\Admin\Livestock\AnimalLocationController::class, 'toggle'])->name('rebanho.locais.toggle');
+
         // F4 · Fluxo guiado (wizard) — Venda de animal
         // Renderiza a SPA do wizard. O submit usa a rota existente
         // `rebanho.animais.eventos.store` (zero duplicação de lógica).

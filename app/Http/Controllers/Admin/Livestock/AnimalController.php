@@ -383,7 +383,7 @@ class AnimalController extends Controller
     public function storeEvent(Request $request, Animal $animal, AnimalSaleToRevenueService $sale)
     {
         $data = $request->validate([
-            'tipo' => ['required', 'in:pesagem,vacinacao,medicacao,vermifugacao,reproducao,movimentacao,observacao,ordenha,tosquia,ferrageamento,castracao,postura_diaria,biometria_amostral,qualidade_agua,alimentacao,mortalidade,venda,compra,secagem'],
+            'tipo' => ['required', 'in:pesagem,vacinacao,medicacao,vermifugacao,reproducao,movimentacao,movimentacao_local,observacao,ordenha,tosquia,ferrageamento,castracao,postura_diaria,biometria_amostral,qualidade_agua,alimentacao,mortalidade,venda,compra,secagem'],
             'data' => ['required', 'date', 'before_or_equal:today'],
             'peso' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
             'vacina' => ['nullable', 'string', 'max:120'],
@@ -395,6 +395,8 @@ class AnimalController extends Controller
             'partner_id' => ['nullable', 'exists:partners,id'],
             'lot_origem_id' => ['nullable', 'exists:animal_lots,id'],
             'lot_destino_id' => ['nullable', 'exists:animal_lots,id'],
+            'location_origem_id' => ['nullable', 'exists:animal_locations,id'],
+            'location_destino_id' => ['nullable', 'exists:animal_locations,id'],
             'observacoes' => ['nullable', 'string'],
         ], [
             'data.before_or_equal' => 'A data do evento não pode ser futura.',
@@ -464,9 +466,13 @@ class AnimalController extends Controller
                 $animal->update(['peso_atual' => $data['peso']]);
             }
 
-            // Movimentação altera lote atual
+            // Movimentação de LOTE (grupo) altera lote atual
             if ($data['tipo'] === 'movimentacao' && ! empty($data['lot_destino_id'])) {
                 $animal->update(['lot_id' => $data['lot_destino_id']]);
+            }
+            // Movimentação de LOCAL (pasto/piquete) altera posição física
+            if ($data['tipo'] === 'movimentacao_local' && ! empty($data['location_destino_id'])) {
+                $animal->update(['location_id' => $data['location_destino_id']]);
             }
 
             // Venda muda status do animal e registra saída
@@ -495,7 +501,8 @@ class AnimalController extends Controller
             'medicacao' => 'Medicação registrada.',
             'vermifugacao' => 'Vermifugação registrada.',
             'reproducao' => 'Evento reprodutivo registrado.',
-            'movimentacao' => 'Movimentação registrada.',
+            'movimentacao' => 'Mudança de lote registrada.',
+            'movimentacao_local' => 'Mudança de pasto registrada.',
             'ordenha' => 'Ordenha registrada.',
             'postura_diaria' => 'Postura registrada.',
             'biometria_amostral' => 'Biometria registrada.',

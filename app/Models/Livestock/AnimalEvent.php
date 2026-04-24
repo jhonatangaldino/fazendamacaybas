@@ -18,7 +18,9 @@ class AnimalEvent extends Model
     protected $fillable = [
         'animal_id', 'lot_id', 'tipo', 'data', 'peso', 'vacina', 'medicamento',
         'dose', 'via_aplicacao', 'responsavel', 'valor', 'partner_id',
-        'lot_origem_id', 'lot_destino_id', 'observacoes', 'created_by',
+        'lot_origem_id', 'lot_destino_id',
+        'location_origem_id', 'location_destino_id',
+        'observacoes', 'created_by',
         'tenant_id', 'farm_id',
     ];
 
@@ -47,6 +49,16 @@ class AnimalEvent extends Model
     public function lotDestino(): BelongsTo
     {
         return $this->belongsTo(AnimalLot::class, 'lot_destino_id');
+    }
+
+    public function locationOrigem(): BelongsTo
+    {
+        return $this->belongsTo(AnimalLocation::class, 'location_origem_id');
+    }
+
+    public function locationDestino(): BelongsTo
+    {
+        return $this->belongsTo(AnimalLocation::class, 'location_destino_id');
     }
 
     public function partner(): BelongsTo

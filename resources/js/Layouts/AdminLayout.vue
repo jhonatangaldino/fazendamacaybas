@@ -106,6 +106,8 @@ const menu = computed(() => [
         items: [
             { label: 'Financeiro', route: 'admin.financeiro.index', icon: 'cash', perm: 'operational.financeiro.view' },
             { label: 'Rebanho', route: 'admin.rebanho.index', icon: 'cow', perm: 'operational.rebanho.view' },
+            { label: '↳ Lotes', route: 'admin.rebanho.lotes.index', icon: 'cow', perm: 'operational.rebanho.view' },
+            { label: '↳ Locais (pastos)', route: 'admin.rebanho.locais.index', icon: 'cow', perm: 'operational.rebanho.view' },
             { label: 'Agrícola', route: 'admin.agricola.index', icon: 'wheat', perm: 'operational.agricola.view' },
             { label: 'Estoque', route: 'admin.estoque.index', icon: 'box', perm: 'operational.estoque.view' },
             { label: 'Máquinas', route: 'admin.maquinas.index', icon: 'truck', perm: 'operational.maquinas.view' },

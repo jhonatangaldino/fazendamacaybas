@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Wizards;
 
 use App\Http\Controllers\Controller;
 use App\Models\Livestock\Animal;
+use App\Models\Livestock\AnimalLocation;
 use App\Models\Livestock\AnimalLot;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,9 +28,11 @@ use Inertia\Response;
 class EventoRebanhoWizardController extends Controller
 {
     // Tipos que o wizard sabe tratar (subset dos aceitos pelo backend).
+    // `movimentacao` = muda de LOTE (grupo); `movimentacao_local` = muda de PASTO (local físico).
     private const TIPOS_ACEITOS = [
         'vacinacao', 'medicacao', 'vermifugacao',
-        'movimentacao', 'mortalidade', 'observacao',
+        'movimentacao', 'movimentacao_local',
+        'mortalidade', 'observacao',
     ];
 
     public function create(Request $request): Response
@@ -62,7 +65,8 @@ class EventoRebanhoWizardController extends Controller
         return Inertia::render('Admin/Wizards/EventoRebanho', [
             'tipoInicial' => $tipo,
             'animais' => $animais,
-            'lotes' => AnimalLot::orderBy('nome')->get(['id', 'nome']),
+            'lotes' => AnimalLot::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
+            'locais' => AnimalLocation::ativos()->orderBy('tipo')->orderBy('nome')->get(['id', 'nome', 'tipo']),
         ]);
     }
 }

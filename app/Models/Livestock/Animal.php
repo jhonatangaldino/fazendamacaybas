@@ -19,7 +19,8 @@ class Animal extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'farm_id', 'species_id', 'breed_id', 'lot_id', 'mae_id', 'pai_id',
+        'farm_id', 'species_id', 'breed_id', 'lot_id', 'location_id',
+        'mae_id', 'pai_id',
         'identificacao', 'nome', 'numero_registro', 'sexo', 'data_nascimento',
         'peso_nascimento', 'peso_atual', 'origem', 'partner_id',
         'data_aquisicao', 'valor_aquisicao', 'status', 'data_saida',
@@ -44,7 +45,7 @@ class Animal extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['identificacao', 'nome', 'status', 'lot_id', 'peso_atual'])
+            ->logOnly(['identificacao', 'nome', 'status', 'lot_id', 'location_id', 'peso_atual'])
             ->logOnlyDirty();
     }
 
@@ -66,6 +67,16 @@ class Animal extends Model
     public function lot(): BelongsTo
     {
         return $this->belongsTo(AnimalLot::class, 'lot_id');
+    }
+
+    /**
+     * Localização física atual do animal (pasto, piquete, curral, etc).
+     * Distinto do lote (grupo lógico). Um mesmo lote pode mudar de local
+     * (rotação de pasto) sem mudar de identidade.
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(AnimalLocation::class, 'location_id');
     }
 
     public function mae(): BelongsTo

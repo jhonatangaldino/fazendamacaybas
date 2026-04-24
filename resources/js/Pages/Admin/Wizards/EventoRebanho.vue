@@ -24,6 +24,7 @@ const props = defineProps({
     tipoInicial: { type: String, required: true },
     animais: { type: Array, required: true },
     lotes: { type: Array, required: true },
+    locais: { type: Array, default: () => [] },
 });
 
 // Metadados por tipo — tudo que muda entre os 6 cards.
@@ -71,14 +72,26 @@ const TIPOS = {
     movimentacao: {
         titulo: 'Mover animal de lote',
         emoji: '🐄',
-        passo1Titulo: 'Qual animal você quer mover?',
+        passo1Titulo: 'Qual animal você quer mover de lote?',
         passo2Titulo: 'Pra qual lote vai?',
         perguntaQuando: 'Quando foi a mudança?',
-        tituloSucesso: 'Animal movido!',
-        sucessoMsg: (d) => `${d._animal.identificacao} agora está no lote ${d._loteNome}.`,
-        impactos: ['Animal agora pertence ao novo lote', 'Movimentação entrou no histórico'],
+        tituloSucesso: 'Animal movido de lote!',
+        sucessoMsg: (d) => `${d._animal.identificacao} agora faz parte do lote ${d._loteNome}.`,
+        impactos: ['Animal agora pertence ao novo lote (grupo)', 'Movimentação entrou no histórico'],
         campos: ['lot_destino_id', 'data', 'observacoes'],
         camposObrigatorios: ['lot_destino_id'],
+    },
+    movimentacao_local: {
+        titulo: 'Mover animal de pasto',
+        emoji: '📍',
+        passo1Titulo: 'Qual animal você quer mudar de pasto?',
+        passo2Titulo: 'Pra qual pasto vai?',
+        perguntaQuando: 'Quando foi a mudança?',
+        tituloSucesso: 'Animal mudou de pasto!',
+        sucessoMsg: (d) => `${d._animal.identificacao} agora está em ${d._localNome}.`,
+        impactos: ['Animal agora está no novo local (pasto/piquete/curral)', 'Mudança entrou no histórico · o lote (grupo) continua o mesmo'],
+        campos: ['location_destino_id', 'data', 'observacoes'],
+        camposObrigatorios: ['location_destino_id'],
     },
     mortalidade: {
         titulo: 'Registrar morte do animal',
@@ -130,6 +143,7 @@ const form = useForm({
     via_aplicacao: '',
     responsavel: '',
     lot_destino_id: null,
+    location_destino_id: null,
     causa: '',       // usado pra mortalidade; o backend lê via observacoes
     observacoes: '',
 });
@@ -172,6 +186,10 @@ function voltar() { if (passo.value > 1) passo.value--; }
 function irPara(n) { passo.value = n; }
 
 const loteNome = computed(() => props.lotes.find(l => l.id === form.lot_destino_id)?.nome ?? null);
+const localNome = computed(() => {
+    const loc = props.locais.find(l => l.id === form.location_destino_id);
+    return loc ? loc.nome : null;
+});
 
 function confirmar() {
     // Para mortalidade com "causa", anexa na observacoes (backend não tem campo causa dedicado)
@@ -189,6 +207,7 @@ function confirmar() {
             onSuccess: () => {
                 sucesso.value = {
                     _animal: selecionado.value,
+                    _localNome: localNome.value,
                     _loteNome: loteNome.value,
                     tipo: tipoAtivo.value,
                 };
@@ -306,15 +325,29 @@ function reiniciar() {
                            class="form-input text-base py-3">
                 </div>
 
-                <!-- Lote destino -->
+                <!-- Lote destino (grupo) -->
                 <div v-if="mostraCampo('lot_destino_id')">
                     <InputLabel value="Para qual lote vai?" />
                     <select v-model="form.lot_destino_id" class="form-select text-base py-3">
-                        <option :value="null">Escolha o lote…</option>
+                        <option :value="null">— Escolha o lote —</option>
                         <option v-for="l in lotes" :key="l.id" :value="l.id">{{ l.nome }}</option>
                     </select>
                     <p v-if="lotes.length === 0" class="text-sm text-amber-700 mt-1">
-                        Nenhum lote cadastrado. Cadastre lotes em Rebanho → Lotes.
+                        Nenhum lote cadastrado ainda. <a :href="route('admin.rebanho.lotes.create')" class="underline">Cadastrar lote</a>.
+                    </p>
+                </div>
+
+                <!-- Local destino (posição física) -->
+                <div v-if="mostraCampo('location_destino_id')">
+                    <InputLabel value="Para qual pasto vai?" />
+                    <select v-model="form.location_destino_id" class="form-select text-base py-3">
+                        <option :value="null">— Escolha o pasto —</option>
+                        <option v-for="l in locais" :key="l.id" :value="l.id">
+                            {{ l.nome }} <span v-if="l.tipo !== 'pasto'">({{ l.tipo }})</span>
+                        </option>
+                    </select>
+                    <p v-if="locais.length === 0" class="text-sm text-amber-700 mt-1">
+                        Nenhum pasto ou local cadastrado ainda. <a :href="route('admin.rebanho.locais.create')" class="underline">Cadastrar local</a>.
                     </p>
                 </div>
 
@@ -372,7 +405,8 @@ function reiniciar() {
                             <div class="font-semibold text-slate-900 mt-1">
                                 <span v-if="form.vacina">{{ form.vacina }}</span>
                                 <span v-else-if="form.medicamento">{{ form.medicamento }}</span>
-                                <span v-else-if="loteNome">Mover para {{ loteNome }}</span>
+                                <span v-else-if="loteNome">Mover para lote {{ loteNome }}</span>
+                                <span v-else-if="localNome">Mover para {{ localNome }}</span>
                                 <span v-else-if="form.causa">Causa: {{ form.causa }}</span>
                                 <span v-else-if="form.observacoes">{{ form.observacoes }}</span>
                             </div>
