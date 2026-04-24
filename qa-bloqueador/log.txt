@@ -1,0 +1,57 @@
+[00:44:07] ═══ VIEWPORT DESKTOP ═══
+[00:44:07] 1. Navegar para /login
+[00:44:11] 2. Preencher credenciais e entrar
+[00:44:11]   PAGE.ERROR: e.includes is not a function
+[00:44:12]    URL após login: https://fazendamacaybas.com.br/admin/dashboard
+[00:44:12] 3. Clicar em "Rebanho" no menu
+[00:44:12]    Link "Rebanho" no menu visível: true
+[00:44:12]   PAGE.ERROR: e.includes is not a function
+[00:44:12]   NETWORK FAIL 419: https://fazendamacaybas.com.br/admin/menu-usage
+[00:44:12]   CONSOLE.ERROR: Failed to load resource: the server responded with a status of 419 ()
+[00:44:13]    URL: https://fazendamacaybas.com.br/admin/rebanho/animais
+[00:44:13]    Animais visíveis na página: nenhum brinco detectado
+[00:44:13] 4. Procurar e clicar no primeiro animal para abrir detalhe
+[00:44:13]    Links diretos para animal: 1
+[00:44:13]    Clicando em link: https://fazendamacaybas.com.br/admin/rebanho/animais/2
+[00:44:14]    URL detalhe: https://fazendamacaybas.com.br/admin/rebanho/animais/2
+[00:44:14] 5. Procurar botão "Pesagem" ou "Registrar evento" na tela do animal
+[00:44:14]    Texto "Pesagem" presente: false
+[00:44:14]    Texto "evento" presente: true
+[00:44:14]    Texto "Histórico" presente: true
+[00:44:14]    Total de botões/links interativos na tela: 9
+[00:44:14]       [1] "QQA Dono"
+[00:44:14]       [2] "← Voltar"
+[00:44:14]       [3] "Editar cadastro"
+[00:44:14]       [4] "+ Novo evento"
+[00:44:14]       [5] "3"
+[00:44:14]       [6] "Enviar foto"
+[00:44:14]       [7] "📋 Linha do tempo"
+[00:44:14]       [8] "📈 Evolução de peso"
+[00:44:14]    Encontrado seletor: button:has-text("Novo evento")
+[00:44:14]   CONSOLE.ERROR: TypeError: f.data is not a function
+    at Fw.gs.immediate (https://fazendamacaybas.com.br/build/assets/app-DbWzd795.js:
+[00:44:14]    Clicado com sucesso
+[00:44:14] 7. Tentar POST direto no endpoint de evento (usando CSRF da página)
+[00:44:14]    animalId detectado: 2
+[00:44:14]   NETWORK FAIL 422: https://fazendamacaybas.com.br/admin/rebanho/animais/2/eventos
+[00:44:14]   CONSOLE.ERROR: Failed to load resource: the server responded with a status of 422 ()
+[00:44:14]    POST pesagem: status=422
+[00:44:14]    Response URL: https://fazendamacaybas.com.br/admin/rebanho/animais/2/eventos
+[00:44:14] ═══ VIEWPORT MOBILE ═══
+[00:44:14] 1. Navegar para /login
+[00:44:15] 2. Preencher credenciais e entrar
+[00:44:15]   PAGE.ERROR: e.includes is not a function
+[00:44:16]    URL após login: https://fazendamacaybas.com.br/admin/dashboard
+[00:44:16] 3. Clicar em "Rebanho" no menu
+[00:44:16]    Link "Rebanho" no menu visível: true
+[00:44:16]   PAGE.ERROR: e.includes is not a function
+[00:44:16]   NETWORK FAIL 419: https://fazendamacaybas.com.br/admin/menu-usage
+[00:44:16]   CONSOLE.ERROR: Failed to load resource: the server responded with a status of 419 ()
+[00:44:17]    URL: https://fazendamacaybas.com.br/admin/rebanho/animais
+[00:44:17]    Animais visíveis na página: nenhum brinco detectado
+[00:44:17] 4. Procurar e clicar no primeiro animal para abrir detalhe
+[00:44:17]    Links diretos para animal: 1
+[00:44:17]    Clicando em link: https://fazendamacaybas.com.br/admin/rebanho/animais/2
+[00:44:47]   ❌ EXCEÇÃO no teste: locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('a[href*="/rebanho/animais/"]:not([href*="/novo"]):not([href*="/editar"]):not([href$="/rebanho/animais"])').first()[22m

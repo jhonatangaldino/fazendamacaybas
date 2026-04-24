@@ -76,8 +76,9 @@ const todosSelecionados = computed(() => {
 // =========================================================================
 const eventoRapido = ref(null);
 const eventoTipo = ref('pesagem');
+// ⚠ `data` colide com método .data() do useForm — usar data_evento + transform
 const eventoForm = useForm({
-    tipo: 'pesagem', data: '', peso: '', vacina: '', medicamento: '',
+    tipo: 'pesagem', data_evento: '', peso: '', vacina: '', medicamento: '',
     dose: '', via_aplicacao: '', observacoes: '',
 });
 
@@ -86,21 +87,24 @@ function abrirEventoRapido(row, tipo = 'pesagem') {
     eventoTipo.value = tipo;
     eventoForm.reset();
     eventoForm.tipo = tipo;
-    eventoForm.data = new Date().toISOString().slice(0, 10);
+    eventoForm.data_evento = new Date().toISOString().slice(0, 10);
 }
 function confirmarEventoRapido() {
-    eventoForm.post(route('admin.rebanho.animais.eventos.store', eventoRapido.value.id), {
-        preserveScroll: true, only: ['animals', 'flash'],
-        onSuccess: () => { eventoRapido.value = null; eventoForm.reset(); },
-    });
+    eventoForm
+        .transform((d) => { const { data_evento, ...r } = d; return { ...r, data: data_evento }; })
+        .post(route('admin.rebanho.animais.eventos.store', eventoRapido.value.id), {
+            preserveScroll: true, only: ['animals', 'flash'],
+            onSuccess: () => { eventoRapido.value = null; eventoForm.reset(); },
+        });
 }
 
 // =========================================================================
 // Venda em lote contextual (arroba/kg/unidade/cabeça)
 // =========================================================================
 const vendaAberta = ref(false);
+// ⚠ `data` colide com método .data() do useForm — usar data_venda + transform
 const vendaForm = useForm({
-    animal_ids: [], data: '', partner_id: null, observacoes: '',
+    animal_ids: [], data_venda: '', partner_id: null, observacoes: '',
     unidade: 'cabeca', quantidade: '', peso_medio: '', valor_unitario: '',
 });
 const vendaCfg = computed(() => {
@@ -113,7 +117,7 @@ function abrirVenda() {
     if (!selecionadosAtivos.value.length || misturouEspecies.value) return;
     vendaForm.reset();
     vendaForm.animal_ids = selecionadosAtivos.value.map(a => a.id);
-    vendaForm.data = new Date().toISOString().slice(0, 10);
+    vendaForm.data_venda = new Date().toISOString().slice(0, 10);
     vendaForm.unidade = vendaCfg.value?.unidadePadrao || 'cabeca';
     vendaAberta.value = true;
 }
@@ -144,11 +148,15 @@ const pesoTotalKg = computed(() => {
 const valorPorCabeca = computed(() => nCabecas.value ? totalVenda.value / nCabecas.value : 0);
 
 function confirmarVenda() {
-    vendaForm.transform((d) => ({
-        ...d,
-        quantidade: quantidadeCalculada.value,
-        valor_total: totalVenda.value,
-    })).post(route('admin.rebanho.animais.vender-lote'), {
+    vendaForm.transform((d) => {
+        const { data_venda, ...rest } = d;
+        return {
+            ...rest,
+            data: data_venda,                       // backend espera 'data'
+            quantidade: quantidadeCalculada.value,
+            valor_total: totalVenda.value,
+        };
+    }).post(route('admin.rebanho.animais.vender-lote'), {
         preserveScroll: true, only: ['animals', 'flash'],
         onSuccess: () => { vendaAberta.value = false; limparSelecao(); vendaForm.reset(); },
     });
@@ -348,7 +356,7 @@ function doDelete() {
                     <div class="space-y-3">
                         <div>
                             <InputLabel :value="`Data *`" />
-                            <InputDate v-model="eventoForm.data" :max="new Date().toISOString().slice(0,10)" required />
+                            <InputDate v-model="eventoForm.data_evento" :max="new Date().toISOString().slice(0,10)" required />
                         </div>
                         <div v-if="eventoTipo === 'pesagem' || eventoTipo === 'biometria_amostral'">
                             <InputLabel :value="eventoTipo === 'biometria_amostral' ? 'Peso médio do lote (kg) *' : 'Peso (kg) *'" />
@@ -400,7 +408,7 @@ function doDelete() {
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div>
                             <InputLabel value="Data da venda *" />
-                            <InputDate v-model="vendaForm.data" :max="new Date().toISOString().slice(0,10)" required />
+                            <InputDate v-model="vendaForm.data_venda" :max="new Date().toISOString().slice(0,10)" required />
                         </div>
                         <div>
                             <InputLabel value="Comprador" />

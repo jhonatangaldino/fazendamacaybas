@@ -1,0 +1,533 @@
+{
+  "matrix": [
+    {
+      "modulo": "Landing",
+      "funcionalidade": "Abertura da página",
+      "perfil": "público",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-landing.png · mobile-landing.png",
+      "detalhe": "OK"
+    },
+    {
+      "modulo": "Landing",
+      "funcionalidade": "Hero renderiza",
+      "perfil": "público",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Landing",
+      "funcionalidade": "Rodapé acessível via scroll",
+      "perfil": "público",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-landing-footer.png · mobile-landing-footer.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Master",
+      "funcionalidade": "Login admin_master",
+      "perfil": "master",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-master-login.png · mobile-master-login.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Master",
+      "funcionalidade": "Dashboard master renderiza",
+      "perfil": "master",
+      "desktop": "FAIL",
+      "mobile": "FAIL",
+      "evidencia": "desktop-master-dashboard.png · mobile-master-dashboard.png",
+      "detalhe": "component=Auth/Login"
+    },
+    {
+      "modulo": "Master",
+      "funcionalidade": "Listagem de clientes/tenants",
+      "perfil": "master",
+      "desktop": "OK",
+      "mobile": "FAIL",
+      "evidencia": "desktop-master-tenants.png · mobile-master-tenants.png",
+      "detalhe": "component=Auth/Login"
+    },
+    {
+      "modulo": "Master",
+      "funcionalidade": "CMS master (landing global)",
+      "perfil": "master",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-master-cms.png · mobile-master-cms.png",
+      "detalhe": "component=Master/Cms/Index"
+    },
+    {
+      "modulo": "Master",
+      "funcionalidade": "CMS por cliente específico",
+      "perfil": "master",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-master-cms-cliente.png · mobile-master-cms-cliente.png",
+      "detalhe": "component=Master/Clientes/Cms/Index"
+    },
+    {
+      "modulo": "Auth",
+      "funcionalidade": "Login dono_fazenda",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-op-login.png · mobile-op-login.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Dashboard",
+      "funcionalidade": "Abrir /admin",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-1-dashboard.png · mobile-1-dashboard.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Dashboard",
+      "funcionalidade": "Cards de KPI visíveis",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Rebanho",
+      "funcionalidade": "Abrir listagem",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-2-rebanho-lista.png · mobile-2-rebanho-lista.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Rebanho",
+      "funcionalidade": "Abrir form /novo",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-2-rebanho-novo.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Rebanho",
+      "funcionalidade": "Botão Salvar reage a dados",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "",
+      "detalhe": "disabled=false"
+    },
+    {
+      "modulo": "Estoque",
+      "funcionalidade": "Abrir listagem itens",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-3-estoque-lista.png · mobile-3-estoque-lista.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Estoque",
+      "funcionalidade": "Form \"Novo item\" preenchível",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Estoque",
+      "funcionalidade": "Abrir movimentos",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-4-estoque-movs.png · mobile-4-estoque-movs.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Parceiros",
+      "funcionalidade": "Abrir listagem",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-5-parceiros-lista.png · mobile-5-parceiros-lista.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Parceiros",
+      "funcionalidade": "CREATE · CNPJ DV válida live",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Parceiros",
+      "funcionalidade": "CREATE · Parceiro PJ aparece na listagem",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-5-parceiros-criado.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Parceiros",
+      "funcionalidade": "UPDATE · Edição refletida",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-5-parceiros-editado.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Parceiros",
+      "funcionalidade": "DELETE · Parceiro excluído",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-5-parceiros-excluido.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Financeiro",
+      "funcionalidade": "Abrir listagem transações",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-6-fin-lista.png · mobile-6-fin-lista.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Financeiro",
+      "funcionalidade": "KPIs (receitas/despesas/saldo) visíveis",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Financeiro",
+      "funcionalidade": "Form \"Novo lançamento\" abre",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-6-fin-form.png",
+      "detalhe": "component=Admin/Financial/Transactions/Form"
+    },
+    {
+      "modulo": "Financeiro",
+      "funcionalidade": "Form preenche descrição+valor",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Máquinas",
+      "funcionalidade": "Abrir listagem veículos",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-7-veiculos.png · mobile-7-veiculos.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Máquinas",
+      "funcionalidade": "F3 · Implemento esconde campo placa",
+      "perfil": "dono",
+      "desktop": "FAIL",
+      "mobile": "-",
+      "evidencia": "desktop-7-implemento.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Máquinas",
+      "funcionalidade": "Abrir manutenções",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-8-manutencoes.png · mobile-8-manutencoes.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Agrícola",
+      "funcionalidade": "Abrir dashboard",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-9-agricola.png · mobile-9-agricola.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Agrícola",
+      "funcionalidade": "Abrir talhões",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-9-talhoes.png · mobile-9-talhoes.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Agrícola",
+      "funcionalidade": "Abrir culturas",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-9-culturas.png · mobile-9-culturas.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Agrícola",
+      "funcionalidade": "Abrir plantios",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-9-plantios.png · mobile-9-plantios.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Agrícola",
+      "funcionalidade": "Abrir colheitas",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-9-colheitas.png · mobile-9-colheitas.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Agrícola",
+      "funcionalidade": "Abrir aplicações",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-9-aplicacoes.png · mobile-9-aplicacoes.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Documentos",
+      "funcionalidade": "Abrir listagem",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-10-docs.png · mobile-10-docs.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Documentos",
+      "funcionalidade": "Form upload aparece ao clicar",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-10-docs-form.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Funcionários",
+      "funcionalidade": "Abrir listagem",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-11-funcs.png · mobile-11-funcs.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Funcionários",
+      "funcionalidade": "Form aparece ao clicar",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-11-funcs-form.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Funcionários",
+      "funcionalidade": "F3 · Troca para PJ · label vira CNPJ",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-11-funcs-pj.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Tarefas",
+      "funcionalidade": "Abrir listagem",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-12-tarefas.png · mobile-12-tarefas.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Tarefas",
+      "funcionalidade": "Form \"Nova tarefa\" aparece",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-12-tarefas-form.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Tarefas",
+      "funcionalidade": "F3 · Módulo=rebanho muda tipos de vínculo",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-12-tarefas-rebanho.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Wizard F4.1",
+      "funcionalidade": "Abrir assistente",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-13-wizard-p1.png · mobile-13-wizard-p1.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Wizard F4.1",
+      "funcionalidade": "Stepper 5 passos visível",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Wizard F4.1",
+      "funcionalidade": "Título conversacional \"Qual animal\"",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Wizard F4.1",
+      "funcionalidade": "Clicar animal habilita Continuar",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Wizard F4.1",
+      "funcionalidade": "Passo 2 (Comprador) carrega",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-13-wizard-p2.png · mobile-13-wizard-p2.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Relatórios",
+      "funcionalidade": "Abrir página",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-14-relatorios.png · mobile-14-relatorios.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Usuários",
+      "funcionalidade": "Dono pode acessar /admin/usuarios",
+      "perfil": "dono",
+      "desktop": "OK",
+      "mobile": "OK",
+      "evidencia": "desktop-15-usuarios.png · mobile-15-usuarios.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Mobile UX",
+      "funcionalidade": "Hamburger abre sidebar",
+      "perfil": "dono",
+      "desktop": "-",
+      "mobile": "OK",
+      "evidencia": "mobile-16-sidebar.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Mobile UX",
+      "funcionalidade": "Clicar item do menu navega",
+      "perfil": "dono",
+      "desktop": "-",
+      "mobile": "OK",
+      "evidencia": "",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Perfis",
+      "funcionalidade": "Login funcionário",
+      "perfil": "funcionario",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-f-login.png",
+      "detalhe": ""
+    },
+    {
+      "modulo": "Perfis",
+      "funcionalidade": "Funcionário NÃO acessa /parceiros/novo",
+      "perfil": "funcionario",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-f-parceiros-bloqueado.png",
+      "detalhe": "url=https://fazendamacaybas.com.br/admin/parceiros/novo"
+    },
+    {
+      "modulo": "Perfis",
+      "funcionalidade": "Funcionário acessa tarefas",
+      "perfil": "funcionario",
+      "desktop": "OK",
+      "mobile": "-",
+      "evidencia": "desktop-f-tarefas.png",
+      "detalhe": ""
+    }
+  ],
+  "bugs": [
+    {
+      "sev": "BAIXO",
+      "id": "MASTER-CON",
+      "modulo": "Master",
+      "desc": "Console errors: e.includes is not a function; e.includes is not a function"
+    },
+    {
+      "sev": "BAIXO",
+      "id": "MASTER-CON",
+      "modulo": "Master",
+      "desc": "Console errors: e.includes is not a function"
+    },
+    {
+      "sev": "BAIXO",
+      "id": "CONSOLE-desktop",
+      "modulo": "Global",
+      "desc": "5 console errors: e.includes is not a function | e.includes is not a function | e.includes is not a function"
+    },
+    {
+      "sev": "BAIXO",
+      "id": "CONSOLE-mobile",
+      "modulo": "Global",
+      "desc": "2 console errors: e.includes is not a function | e.includes is not a function"
+    }
+  ],
+  "uxIssues": [],
+  "stats": {
+    "total": 55,
+    "desktopOK": 51,
+    "desktopFAIL": 2,
+    "mobileOK": 34,
+    "mobileFAIL": 2
+  }
+}

@@ -38,10 +38,16 @@ const idadeFormatada = computed(() => {
 const activeTab = ref('timeline'); // timeline | grafico | dados
 
 // Modal de novo evento
+//
+// ⚠ IMPORTANTE: useForm do Inertia tem método interno chamado .data() que
+// retorna o payload. NÃO podemos criar um campo chamado `data` porque ele
+// sobrescreve o método → `TypeError: this.data is not a function` no submit.
+// Renomeamos para `data_evento` e usamos transform() para enviar ao backend
+// com a chave esperada (`data`).
 const novoEvento = ref(false);
 const eventForm = useForm({
     tipo: 'pesagem',
-    data: new Date().toISOString().slice(0, 10),
+    data_evento: new Date().toISOString().slice(0, 10),
     peso: '',
     vacina: '',
     medicamento: '',
@@ -58,15 +64,21 @@ const eventForm = useForm({
 function abrirEvento(tipo = 'pesagem') {
     eventForm.reset();
     eventForm.tipo = tipo;
-    eventForm.data = new Date().toISOString().slice(0, 10);
+    eventForm.data_evento = new Date().toISOString().slice(0, 10);
     novoEvento.value = true;
 }
 
 function salvarEvento() {
-    eventForm.post(route('admin.rebanho.animais.eventos.store', props.animal.id), {
-        preserveScroll: true,
-        onSuccess: () => { novoEvento.value = false; eventForm.reset(); },
-    });
+    eventForm
+        .transform((d) => {
+            // Renomeia data_evento → data para o backend (que espera 'data')
+            const { data_evento, ...rest } = d;
+            return { ...rest, data: data_evento };
+        })
+        .post(route('admin.rebanho.animais.eventos.store', props.animal.id), {
+            preserveScroll: true,
+            onSuccess: () => { novoEvento.value = false; eventForm.reset(); },
+        });
 }
 
 function removerEvento(event) {
@@ -298,7 +310,7 @@ const eventoLabel = (tipo) => ({
                         </div>
                         <div>
                             <InputLabel value="Data *" />
-                            <InputDate v-model="eventForm.data" :max="new Date().toISOString().slice(0,10)" required />
+                            <InputDate v-model="eventForm.data_evento" :max="new Date().toISOString().slice(0,10)" required />
                             <p v-if="eventForm.errors.data" class="text-xs text-red-600 mt-1">{{ eventForm.errors.data }}</p>
                         </div>
 

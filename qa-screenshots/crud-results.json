@@ -1,0 +1,61 @@
+{
+  "pass": 11,
+  "fail": 0,
+  "results": [
+    {
+      "label": "Login OK",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "label": "Link \"Novo parceiro\" visível na listagem",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "label": "Navegou para /admin/parceiros/novo",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "label": "Validação CPF DV live mostra \"CPF válido\"",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "label": "Botão Salvar habilitado após form válido",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "label": "CREATE · Parceiro novo aparece na listagem (search)",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "label": "ID do parceiro criado capturado",
+      "ok": true,
+      "extra": "id=13"
+    },
+    {
+      "label": "Botão de editar visível na listagem",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "label": "Página de edição abre",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "label": "UPDATE · Nome editado refletido na listagem",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "label": "DELETE · Parceiro removido (search não encontra mais)",
+      "ok": true,
+      "extra": ""
+    }
+  ]
+}

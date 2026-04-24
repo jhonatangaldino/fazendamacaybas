@@ -1,0 +1,586 @@
+{
+  "started": "2026-04-24T00:15:45.753Z",
+  "modules": {
+    "Auth": {
+      "desktop": [
+        {
+          "field": "Login Admin + redirect /admin",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Login Admin + redirect /admin",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    "UX-Global": {
+      "desktop": [
+        {
+          "field": "Sidebar visível em desktop",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Botão primário presente",
+          "ok": false,
+          "detail": "count=0"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Hamburger visível em mobile",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Sidebar abre ao tocar hamburger",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Botão primário presente",
+          "ok": false,
+          "detail": "count=0"
+        }
+      ]
+    },
+    "Dashboard": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"Dashboard\" visível",
+          "ok": true,
+          "detail": "h1=\"Dashboard\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card, main"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"Dashboard\" visível",
+          "ok": true,
+          "detail": "h1=\"Dashboard\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card, main"
+        }
+      ]
+    },
+    "Rebanho": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"Animais\" visível",
+          "ok": false,
+          "detail": "h1=\"Rebanho\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card, [href*=\"animais/novo\"]"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"Animais\" visível",
+          "ok": false,
+          "detail": "h1=\"Rebanho\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card, [href*=\"animais/novo\"]"
+        }
+      ]
+    },
+    "Estoque": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"estoque\" visível",
+          "ok": true,
+          "detail": "h1=\"Estoque\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"estoque\" visível",
+          "ok": true,
+          "detail": "h1=\"Estoque\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Movimentações": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Estoque\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Estoque\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Parceiros": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"parceiro\" visível",
+          "ok": true,
+          "detail": "h1=\"Parceiros\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"parceiro\" visível",
+          "ok": true,
+          "detail": "h1=\"Parceiros\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Financeiro": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Financeiro\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Financeiro\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Máquinas": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Máquinas\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Máquinas\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Manutenções": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Máquinas\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Máquinas\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Agrícola": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Produção agrícola\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Produção agrícola\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Documentos": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"Documentos\" visível",
+          "ok": true,
+          "detail": "h1=\"Documentos\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"Documentos\" visível",
+          "ok": true,
+          "detail": "h1=\"Documentos\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Funcionários": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Funcionários\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"\" visível",
+          "ok": true,
+          "detail": "h1=\"Funcionários\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Tarefas": {
+      "desktop": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"Tarefas\" visível",
+          "ok": true,
+          "detail": "h1=\"Tarefas\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Página carrega sem erro 500",
+          "ok": true,
+          "detail": "OK"
+        },
+        {
+          "field": "Título \"Tarefas\" visível",
+          "ok": true,
+          "detail": "h1=\"Tarefas\""
+        },
+        {
+          "field": "Conteúdo principal renderiza",
+          "ok": true,
+          "detail": "selector=.card"
+        }
+      ]
+    },
+    "Wizard-F41": {
+      "desktop": [
+        {
+          "field": "Wizard carrega sem erro",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Stepper dos 5 passos visível",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Título conversacional (\"Qual animal\")",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Lista de animais OU mensagem de vazio",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Continuar habilita após selecionar animal",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "mobile": [
+        {
+          "field": "Wizard carrega sem erro",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Stepper dos 5 passos visível",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Título conversacional (\"Qual animal\")",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Lista de animais OU mensagem de vazio",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "Continuar habilita após selecionar animal",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    "Parceiros-CRUD": {
+      "desktop": [
+        {
+          "field": "1. Abrir /admin/parceiros",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "2. Botão \"Novo parceiro\" visível",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "3. Navegou para formulário",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "4. Campos preenchidos",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "field": "5. Botão Salvar habilitado com dados válidos",
+          "ok": true,
+          "detail": "habilitado"
+        },
+        {
+          "field": "6. Parceiro novo aparece na listagem",
+          "ok": false,
+          "detail": ""
+        }
+      ]
+    }
+  },
+  "bugs": [
+    {
+      "severity": "ALTO",
+      "id": "CRUD-001",
+      "desc": "Parceiro criado via UI não aparece imediatamente na listagem",
+      "module": "Parceiros-CRUD"
+    }
+  ],
+  "uxIssues": [],
+  "finished": "2026-04-24T00:16:43.992Z",
+  "totalPass": 90,
+  "totalFail": 5
+}

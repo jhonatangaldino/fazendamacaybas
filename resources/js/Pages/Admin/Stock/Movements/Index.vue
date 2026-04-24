@@ -21,13 +21,14 @@ const filtros = reactive({ ...props.filters });
 const showForm = ref(false);
 const confirmDelete = ref(null);
 
+// ⚠ `data` colide com método .data() do useForm — usar data_movimento + transform
 const form = useForm({
     item_id: '',
     warehouse_id: props.warehouses[0]?.id ?? '',
     partner_id: null,
     tipo: 'entrada',
     motivo: 'compra',
-    data: new Date().toISOString().slice(0, 10),
+    data_movimento: new Date().toISOString().slice(0, 10),
     quantidade: '',
     valor_unitario: '',
     numero_documento: '',
@@ -39,7 +40,11 @@ function filtrar() {
 }
 
 function save() {
-    form.post(route('admin.estoque.movimentos.store'), {
+    form.transform((d) => {
+        // Renomeia data_movimento → data para o backend (que espera 'data')
+        const { data_movimento, ...rest } = d;
+        return { ...rest, data: data_movimento };
+    }).post(route('admin.estoque.movimentos.store'), {
         preserveScroll: true,
         only: ['movements'],
         onSuccess: () => {
@@ -104,7 +109,7 @@ const tipoBadge = (t) => ({
                 </div>
                 <div>
                     <InputLabel value="Data" />
-                    <InputDate v-model="form.data" />
+                    <InputDate v-model="form.data_movimento" />
                 </div>
                 <div>
                     <InputLabel value="Armazém" />

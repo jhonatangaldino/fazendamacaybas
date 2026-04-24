@@ -43,9 +43,10 @@ const dataVenda = ref(new Date().toISOString().slice(0, 10));
 const valor = ref('');
 const observacoes = ref('');
 
+// ⚠ `data` colide com método .data() do useForm — usar data_venda + transform
 const form = useForm({
     tipo: 'venda',
-    data: '',
+    data_venda: '',
     valor: 0,
     partner_id: null,
     observacoes: '',
@@ -168,12 +169,16 @@ function confirmar() {
     if (!podeConfirmar.value) return;
 
     form.tipo = 'venda';
-    form.data = dataVenda.value;
+    form.data_venda = dataVenda.value;
     form.valor = valorNumerico.value;
     form.partner_id = compradorId.value;
     form.observacoes = observacoes.value;
 
-    form.post(route('admin.rebanho.animais.eventos.store', selecionado.value.id), {
+    form.transform((d) => {
+        // Renomeia data_venda → data para o backend (que espera 'data')
+        const { data_venda, ...rest } = d;
+        return { ...rest, data: data_venda };
+    }).post(route('admin.rebanho.animais.eventos.store', selecionado.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             // Snapshot para mostrar no passo 5 (os refs podem ser reiniciados)
