@@ -126,6 +126,13 @@ const ganhoSinal = computed(() => {
     return 'neutro';
 });
 
+const diasEntrePesagens = computed(() => {
+    if (totalPesagens.value < 2) return 0;
+    const first = primeiraPesagem.value, last = ultimaPesagem.value;
+    const dias = Math.round((new Date(last.data) - new Date(first.data)) / (1000 * 60 * 60 * 24));
+    return dias > 0 ? dias : 0;
+});
+
 // Dados do gráfico (usa pesagens já ordenadas)
 const chartData = computed(() => ({
     labels: pesagensOrdenadas.value.map(p => dataBR(p.data)),
@@ -232,54 +239,136 @@ const eventoLabel = (tipo) => ({
             </div>
         </div>
 
-        <!-- KPIs — ganho é MAIS RECENTE − MAIS ANTIGA (pode ser negativo se animal perdeu peso) -->
+        <!-- ═══ KPIs redesenhados para usuário leigo ═══
+             · Linguagem natural ("pesado 4 vezes", "De X até Y")
+             · Hierarquia visual forte (número grande, label pequeno, contexto em baixo)
+             · Cor semântica com fundo tonalizado (verde/vermelho/slate)
+             · Emoji como apoio cognitivo
+             · Alerta explicativo quando há perda ou pouca informação
+             · Mobile: cards empilham naturalmente, texto confortável -->
         <div class="grid gap-4 sm:grid-cols-3 mb-6">
+
+            <!-- CARD 1 · Pesagens registradas -->
             <div class="card p-5">
-                <div class="text-xs uppercase tracking-wider text-slate-500">Total de pesagens</div>
-                <div class="mt-1 text-xl font-bold text-slate-700">{{ totalPesagens }}</div>
-                <div v-if="totalPesagens < 2" class="text-xs text-slate-400 mt-1">
-                    Precisa de 2 pesagens para calcular ganho
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-xs uppercase tracking-wider font-semibold text-slate-500">
+                        Pesagens registradas
+                    </div>
+                    <div class="text-2xl leading-none" aria-hidden="true">⚖️</div>
+                </div>
+                <div class="text-3xl font-bold text-slate-900 leading-tight">
+                    {{ totalPesagens }}
+                    <span v-if="totalPesagens > 0" class="text-base font-medium text-slate-500">
+                        {{ totalPesagens === 1 ? 'vez' : 'vezes' }}
+                    </span>
+                </div>
+                <div v-if="totalPesagens >= 2" class="text-sm text-slate-600 mt-3 leading-relaxed">
+                    De <strong>{{ dataBR(primeiraPesagem.data) }}</strong>
+                    até <strong>{{ dataBR(ultimaPesagem.data) }}</strong>
+                </div>
+                <div v-else-if="totalPesagens === 1" class="text-sm text-amber-700 mt-3 leading-relaxed">
+                    Faça outra pesagem para o sistema calcular o ganho de peso.
+                </div>
+                <div v-else class="text-sm text-slate-500 mt-3 leading-relaxed">
+                    Clique em <strong>+ Novo evento</strong> para registrar a primeira pesagem.
                 </div>
             </div>
-            <div class="card p-5">
-                <div class="text-xs uppercase tracking-wider text-slate-500">
-                    {{ ganhoSinal === 'negativo' ? 'Perda total' : 'Ganho total' }}
+
+            <!-- CARD 2 · Ganho/Perda total com contexto forte -->
+            <div class="card p-5 relative overflow-hidden"
+                 :class="{
+                    'ring-2 ring-emerald-100': ganhoSinal === 'positivo',
+                    'ring-2 ring-red-100':     ganhoSinal === 'negativo',
+                 }">
+                <!-- Barra colorida lateral para reforço visual -->
+                <div v-if="ganhoSinal !== 'neutro'" class="absolute left-0 top-0 bottom-0 w-1"
+                     :class="ganhoSinal === 'positivo' ? 'bg-emerald-500' : 'bg-red-500'"></div>
+
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-xs uppercase tracking-wider font-semibold"
+                         :class="{
+                            'text-emerald-700': ganhoSinal === 'positivo',
+                            'text-red-700':     ganhoSinal === 'negativo',
+                            'text-slate-500':   ganhoSinal === 'neutro',
+                         }">
+                        {{ ganhoSinal === 'negativo' ? 'Perdeu peso' : ganhoSinal === 'positivo' ? 'Ganhou peso' : 'Ganho de peso' }}
+                    </div>
+                    <div class="text-2xl leading-none" aria-hidden="true">
+                        {{ ganhoSinal === 'positivo' ? '📈' : ganhoSinal === 'negativo' ? '📉' : '—' }}
+                    </div>
                 </div>
-                <div class="mt-1 text-xl font-bold"
+                <div class="text-3xl font-bold leading-tight"
                      :class="{
                         'text-emerald-700': ganhoSinal === 'positivo',
-                        'text-red-700': ganhoSinal === 'negativo',
-                        'text-slate-700': ganhoSinal === 'neutro',
+                        'text-red-700':     ganhoSinal === 'negativo',
+                        'text-slate-400':   ganhoSinal === 'neutro',
                      }">
-                    {{ ganhoTotal != null ? (ganhoTotal >= 0 ? '+' : '') + ganhoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' kg' : '—' }}
+                    <template v-if="ganhoTotal != null">
+                        {{ ganhoTotal >= 0 ? '+' : '' }}{{ ganhoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }}
+                        <span class="text-base font-medium">kg</span>
+                    </template>
+                    <template v-else>—</template>
                 </div>
-                <div v-if="ganhoTotal != null && primeiraPesagem && ultimaPesagem" class="text-xs text-slate-500 mt-1">
-                    {{ primeiraPesagem.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} kg
-                    ({{ dataBR(primeiraPesagem.data) }})
-                    →
-                    {{ ultimaPesagem.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} kg
-                    ({{ dataBR(ultimaPesagem.data) }})
+
+                <div v-if="ganhoTotal != null && primeiraPesagem && ultimaPesagem"
+                     class="text-sm text-slate-600 mt-3 leading-relaxed">
+                    De <strong>{{ primeiraPesagem.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} kg</strong>
+                    em {{ dataBR(primeiraPesagem.data) }}<br>
+                    para <strong>{{ ultimaPesagem.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} kg</strong>
+                    em {{ dataBR(ultimaPesagem.data) }}
                 </div>
-                <div v-if="ganhoSinal === 'negativo'" class="text-xs text-red-600 mt-1">
-                    ⚠ Animal perdeu peso entre a primeira e a última pesagem.
+                <div v-else-if="totalPesagens < 2" class="text-sm text-slate-400 mt-3">
+                    Disponível após a 2ª pesagem.
+                </div>
+
+                <!-- Alerta quando perdeu peso -->
+                <div v-if="ganhoSinal === 'negativo'"
+                     class="text-sm text-red-800 bg-red-50 rounded-md px-3 py-2 mt-3 leading-relaxed">
+                    <strong>Atenção:</strong> o animal está mais leve do que na primeira pesagem.
+                    Pode ser doença, falta de ração ou estresse — vale uma olhada de perto.
                 </div>
             </div>
+
+            <!-- CARD 3 · Média por dia -->
             <div class="card p-5">
-                <div class="text-xs uppercase tracking-wider text-slate-500">
-                    {{ ganhoSinal === 'negativo' ? 'Perda média diária' : 'Ganho médio diário (GMD)' }}
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-xs uppercase tracking-wider font-semibold text-slate-500">
+                        Média por dia
+                    </div>
+                    <div class="text-2xl leading-none" aria-hidden="true">📅</div>
                 </div>
-                <div class="mt-1 text-xl font-bold"
+                <div class="text-3xl font-bold leading-tight"
                      :class="{
                         'text-macaybas-primary': ganhoSinal === 'positivo',
-                        'text-red-700': ganhoSinal === 'negativo',
-                        'text-slate-700': ganhoSinal === 'neutro',
+                        'text-red-700':          ganhoSinal === 'negativo',
+                        'text-slate-400':        ganhoSinal === 'neutro',
                      }">
-                    {{ ganhoMedioDiario != null ? (ganhoMedioDiario >= 0 ? '+' : '') + ganhoMedioDiario.toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' kg/dia' : '—' }}
+                    <template v-if="ganhoMedioDiario != null">
+                        {{ ganhoMedioDiario >= 0 ? '+' : '' }}{{ ganhoMedioDiario.toLocaleString('pt-BR', { maximumFractionDigits: 3 }) }}
+                        <span class="text-base font-medium">kg</span>
+                    </template>
+                    <template v-else>—</template>
                 </div>
-                <div v-if="ganhoMedioDiario != null" class="text-xs text-slate-400 mt-1">
-                    Desde {{ dataBR(primeiraPesagem?.data) }}
+                <div v-if="ganhoMedioDiario != null" class="text-sm text-slate-600 mt-3 leading-relaxed">
+                    {{ ganhoSinal === 'negativo' ? 'Perdeu' : 'Ganhou' }}
+                    <strong>{{ Math.abs(ganhoMedioDiario).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) }} kg por dia</strong>,
+                    em média, durante <strong>{{ diasEntrePesagens }}</strong> dias.
+                </div>
+                <div v-else class="text-sm text-slate-400 mt-3">
+                    Disponível após a 2ª pesagem.
                 </div>
             </div>
+        </div>
+
+        <!-- Rodapé discreto explicando o cálculo (só quando há ganho/perda calculados) -->
+        <div v-if="ganhoTotal != null" class="text-xs text-slate-500 mb-6 -mt-4 flex items-start gap-1.5">
+            <svg class="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>
+                Os cálculos consideram a <strong>primeira</strong> e a <strong>última</strong> pesagem
+                ({{ totalPesagens }} no total). A média é simples: diferença dividida pelos dias entre elas.
+            </span>
         </div>
 
         <!-- Tabs -->
