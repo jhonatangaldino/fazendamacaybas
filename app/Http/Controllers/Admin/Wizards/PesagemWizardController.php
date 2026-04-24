@@ -24,9 +24,8 @@ class PesagemWizardController extends Controller
 {
     public function create(): Response
     {
-        // photo_url é ACCESSOR (virtual), não coluna — por isso fica fora do select().
-        // O Vue só precisa dos campos abaixo; accessors apareceriam automaticamente
-        // se o front os pedisse, mas listamos colunas reais pra economizar bytes.
+        // photo_url NÃO é accessor via convenção — é método `photoUrl()` no model.
+        // Por isso precisamos construir manualmente o payload pro Vue.
         $animais = Animal::ativos()
             ->with(['species:id,nome', 'breed:id,nome', 'lot:id,nome'])
             ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'breed_id', 'lot_id', 'peso_atual', 'data_nascimento', 'photo_path', 'updated_at')
@@ -34,7 +33,18 @@ class PesagemWizardController extends Controller
             ->orderBy('identificacao')
             ->limit(200)
             ->get()
-            ->append('photo_url'); // hydrate o accessor pra envio ao Inertia
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'identificacao' => $a->identificacao,
+                'nome' => $a->nome,
+                'sexo' => $a->sexo,
+                'peso_atual' => $a->peso_atual,
+                'data_nascimento' => $a->data_nascimento?->toDateString(),
+                'photo_url' => $a->photoUrl(),
+                'species' => $a->species ? ['id' => $a->species->id, 'nome' => $a->species->nome] : null,
+                'breed' => $a->breed ? ['id' => $a->breed->id, 'nome' => $a->breed->nome] : null,
+                'lot' => $a->lot ? ['id' => $a->lot->id, 'nome' => $a->lot->nome] : null,
+            ]);
 
         return Inertia::render('Admin/Wizards/Pesagem', [
             'animais' => $animais,
