@@ -111,6 +111,9 @@ class User extends Authenticatable
             return route('master.dashboard');
         }
 
-        return route('admin.dashboard');
+        // Tenant user → Hub "O que você quer fazer?" (porta de entrada oficial).
+        // O dashboard antigo continua acessível via sidebar e link no rodapé do hub,
+        // mas não é mais o destino padrão após login.
+        return route('admin.inicio');
     }
 }
