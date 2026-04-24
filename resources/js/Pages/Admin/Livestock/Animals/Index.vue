@@ -9,7 +9,7 @@ import MobileFilters from '@/Components/MobileFilters.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
-import { dataBR, brl } from '@/utils/format.js';
+import { dataBR, brl, hojeBR } from '@/utils/format.js';
 import { tableActionsFor, EVENT_CATALOG, vendaConfigFor } from '@/utils/animalProfile.js';
 
 const props = defineProps({ animals: Object, filters: Object, species: Array, lots: Array, categorias: Array, partners: Array });
@@ -87,7 +87,7 @@ function abrirEventoRapido(row, tipo = 'pesagem') {
     eventoTipo.value = tipo;
     eventoForm.reset();
     eventoForm.tipo = tipo;
-    eventoForm.data_evento = new Date().toISOString().slice(0, 10);
+    eventoForm.data_evento = hojeBR();
 }
 function confirmarEventoRapido() {
     eventoForm
@@ -117,7 +117,7 @@ function abrirVenda() {
     if (!selecionadosAtivos.value.length || misturouEspecies.value) return;
     vendaForm.reset();
     vendaForm.animal_ids = selecionadosAtivos.value.map(a => a.id);
-    vendaForm.data_venda = new Date().toISOString().slice(0, 10);
+    vendaForm.data_venda = hojeBR();
     vendaForm.unidade = vendaCfg.value?.unidadePadrao || 'cabeca';
     vendaAberta.value = true;
 }

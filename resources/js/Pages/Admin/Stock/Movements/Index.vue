@@ -10,7 +10,7 @@ import InputError from '@/Components/InputError.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
-import { brl, dataBR } from '@/utils/format.js';
+import { brl, dataBR, hojeBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
 const props = defineProps({ movements: Object, filters: Object, items: Array, warehouses: Array, partners: Array });
@@ -28,7 +28,7 @@ const form = useForm({
     partner_id: null,
     tipo: 'entrada',
     motivo: 'compra',
-    data_movimento: new Date().toISOString().slice(0, 10),
+    data_movimento: hojeBR(),
     quantidade: '',
     valor_unitario: '',
     numero_documento: '',

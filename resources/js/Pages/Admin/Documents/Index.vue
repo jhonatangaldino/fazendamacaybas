@@ -7,7 +7,7 @@ import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
-import { dataBR, brl } from '@/utils/format.js';
+import { dataBR, brl, hojeBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 import { useConfirm } from '@/composables/useConfirm.js';
 
@@ -279,7 +279,7 @@ function formatSize(b) {
     return kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.round(kb)} KB`;
 }
 
-const hoje = new Date().toISOString().slice(0, 10);
+const hoje = hojeBR();
 const isVencido = (d) => d && d < hoje;
 const isProxVenc = (d) => {
     if (!d) return false;

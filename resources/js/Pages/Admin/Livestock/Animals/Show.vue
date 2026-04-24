@@ -8,7 +8,7 @@ import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
-import { dataBR, brl } from '@/utils/format.js';
+import { dataBR, brl, hojeBR } from '@/utils/format.js';
 import {
     Chart as ChartJS, LineElement, PointElement, LinearScale, TimeScale,
     CategoryScale, Tooltip, Legend, Title, Filler,
@@ -47,7 +47,7 @@ const activeTab = ref('timeline'); // timeline | grafico | dados
 const novoEvento = ref(false);
 const eventForm = useForm({
     tipo: 'pesagem',
-    data_evento: new Date().toISOString().slice(0, 10),
+    data_evento: hojeBR(),
     peso: '',
     vacina: '',
     medicamento: '',
@@ -64,7 +64,7 @@ const eventForm = useForm({
 function abrirEvento(tipo = 'pesagem') {
     eventForm.reset();
     eventForm.tipo = tipo;
-    eventForm.data_evento = new Date().toISOString().slice(0, 10);
+    eventForm.data_evento = hojeBR();
     novoEvento.value = true;
 }
 

@@ -1,0 +1,54 @@
+[
+  {
+    "type": "resp",
+    "status": 200,
+    "url": "https://fazendamacaybas.com.br/login",
+    "body": "<!DOCTYPE html>\n<html lang=\"pt-BR\" class=\"h-full\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <meta name=\"csrf-token\" content=\"tZY8FXdvQfwC0VzH5JmPZgXv2AOHebNEQsXXKFUm\">\n                <link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\">\n        <link rel=\"apple-touch-icon\" href=\"/favicon.svg\">\n    \n    <title inertia>Fazenda Macaybas</title>\n\n    <link rel=\"preconnect\" href=\"https://fonts.bunny.net\">\n    <link href=\"https://fonts.bunny.net/css?family=inter:400,500,600,700&family=playfair-display:700,800&display=swap\" rel=\"stylesheet\" />\n\n    <script type=\"text/javascript\">const Ziggy={\"url\":\"https:\\/\\/fazendamacaybas.com.br\",\"port\":null,\"defaults\":{},\"routes\":{\"sanctum.csrf-cookie\":{\"uri\":\"sanctum\\/csrf-cookie\",\"methods\":[\"GET\",\"HEAD\"]},\"site.home\":{\"uri\":\"\\/\",\"methods\":[\"GET\",\"HEAD\"]},\"site.home.cliente\":{\"uri\":\"c\\/{cliente}\",\"methods\":[\"GET\",\"HEAD\"],\"parameters\":[\"cliente\"],\"bindings\":{\"cliente\":\"slug\"}},\"site.health\":{\"uri\":\"health\",\"methods\":[\"GET\",\"HEAD\"]},\"login\":{\"uri\":\"login\",\"methods\":[\"GET\",\"HEAD\"]},\"password.request\":{\"uri\":\"forgot-password\",\"methods\":[\"GET\",\"HEAD\"]},\"password.email\":{\"uri\":\"forgot-password\",\"methods\":[\"POST\"]},\"password.reset\":{\"uri\":\"reset-password\\/{token}\",\"methods\":[\"GET\",\"HEAD\"],\"parameters\":[\"token\"]},\"password.store\":{\"uri\":\"reset-password\",\"methods\":[\"POST\"]},\"logout\":{\"uri\":\"logout\",\"methods\":[\"POST\"]},\"password.change\":{\"uri\":\"alterar-senha\",\"methods\":[\"GET\",\"HEAD\"]},\"me.avatar.upload\":{\"uri\":\"meu-avatar\",\"methods\":[\"POST\"]},\"me.avatar.remove\":{\"uri\":\"meu-avatar\",\"methods\":[\"DELETE\"]},\"master.dashboard\":{\"uri\":\"master\\/dashboard\",\"methods\":[\"GET\",\"HEAD\"]},\"master.tenants.index\":{\"uri\":\"master\\/tenants\",\"methods\":[\"GET\",\"HEAD\"]},\"master.tenants.create\":{\"uri\":\"master\\/tenants\\/novo\",\"methods\":[\"GET\",\"HEAD\"]},\"master.tenants.store\":{\"uri\":\"master\\/tenants\",\"methods\":[\"POST\"]},\"master.tenants.edit\":{\"uri\":\"master\\/tenants\\/{tenant}\\/editar\",\"methods\":[\"G"
+  },
+  {
+    "type": "resp",
+    "status": 302,
+    "url": "https://fazendamacaybas.com.br/login",
+    "location": "https://fazendamacaybas.com.br/admin/dashboard",
+    "body": ""
+  },
+  {
+    "type": "resp",
+    "status": 200,
+    "url": "https://fazendamacaybas.com.br/admin/rebanho/animais/2",
+    "body": "<!DOCTYPE html>\n<html lang=\"pt-BR\" class=\"h-full\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <meta name=\"csrf-token\" content=\"PnU3VRG1yZOziAfjZnnMJ5dm2rxRcVk6fH2Q5FZH\">\n                <link rel=\"icon\" href=\"https://fazendamacaybas.com.br/storage/settings/faveico-20260422154555.ico?v=1776991966\">\n        <link rel=\"apple-touch-icon\" href=\"https://fazendamacaybas.com.br/storage/settings/faveico-20260422154555.ico\">\n    \n    <title inertia>Fazenda Macaybas</title>\n\n    <link rel=\"preconnect\" href=\"https://fonts.bunny.net\">\n    <link href=\"https://fonts.bunny.net/css?family=inter:400,500,600,700&family=playfair-display:700,800&display=swap\" rel=\"stylesheet\" />\n\n    <script type=\"text/javascript\">const Ziggy={\"url\":\"https:\\/\\/fazendamacaybas.com.br\",\"port\":null,\"defaults\":{},\"routes\":{\"sanctum.csrf-cookie\":{\"uri\":\"sanctum\\/csrf-cookie\",\"methods\":[\"GET\",\"HEAD\"]},\"site.home\":{\"uri\":\"\\/\",\"methods\":[\"GET\",\"HEAD\"]},\"site.home.cliente\":{\"uri\":\"c\\/{cliente}\",\"methods\":[\"GET\",\"HEAD\"],\"parameters\":[\"cliente\"],\"bindings\":{\"cliente\":\"slug\"}},\"site.health\":{\"uri\":\"health\",\"methods\":[\"GET\",\"HEAD\"]},\"login\":{\"uri\":\"login\",\"methods\":[\"GET\",\"HEAD\"]},\"password.request\":{\"uri\":\"forgot-password\",\"methods\":[\"GET\",\"HEAD\"]},\"password.email\":{\"uri\":\"forgot-password\",\"methods\":[\"POST\"]},\"password.reset\":{\"uri\":\"reset-password\\/{token}\",\"methods\":[\"GET\",\"HEAD\"],\"parameters\":[\"token\"]},\"password.store\":{\"uri\":\"reset-password\",\"methods\":[\"POST\"]},\"logout\":{\"uri\":\"logout\",\"methods\":[\"POST\"]},\"password.change\":{\"uri\":\"alterar-senha\",\"methods\":[\"GET\",\"HEAD\"]},\"me.avatar.upload\":{\"uri\":\"meu-avatar\",\"methods\":[\"POST\"]},\"me.avatar.remove\":{\"uri\":\"meu-avatar\",\"methods\":[\"DELETE\"]},\"master.dashboard\":{\"uri\":\"master\\/dashboard\",\"methods\":[\"GET\",\"HEAD\"]},\"master.tenants.index\":{\"uri\":\"master\\/tenants\",\"methods\":[\"GET\",\"HEAD\"]},\"master.tenants.create\":{\"uri\":\"master\\/tenants\\/novo\",\"methods\":[\"GET\",\"HEAD\"]},\"master.tenants.store\":{\"uri\":"
+  },
+  {
+    "type": "req",
+    "method": "POST",
+    "url": "https://fazendamacaybas.com.br/admin/rebanho/animais/2/eventos",
+    "postData": "{\"tipo\":\"pesagem\",\"peso\":450.5,\"vacina\":\"\",\"medicamento\":\"\",\"dose\":\"\",\"via_aplicacao\":\"\",\"responsavel\":\"\",\"valor\":\"\",\"partner_id\":null,\"lot_origem_id\":null,\"lot_destino_id\":null,\"observacoes\":\"\",\"data\":\"2026-04-24\"}",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "x-xsrf-token": "eyJpdiI6Im95cXcxVVh0UVdDbHE1SVFuNENnaEE9PSIsInZhbHVlIjoibllzTVZhTFRkYWZtTUQ5RUVJeW1xU21YQUIvM0NXWWRaM2Z3VzN0SmRFS0ZPVmlmZStidWFxdHg5RkhycjJkSDUwRVQrQSt1dmRGVUx5b3hrWGxDUHJTM2lXNUI3ZERZVlRPdldaVy82MkxZeTBIQ05pTk43cU8vNjB1Vm9hY0ciLCJtYWMiOiIyOTRlZjY1MzA1NWVjZGUwNzVmMTM5NTdiY2M0M2M4NWVhODA1NGM1ZDBhZTE0MTJhZTA3MTRiMzgzMzYzMDEzIiwidGFnIjoiIn0=",
+      "referer": "https://fazendamacaybas.com.br/admin/rebanho/animais/2",
+      "x-inertia-version": "8737688fb2226abe6bf69e7d23953f9b",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "x-inertia": "true",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "accept": "text/html, application/xhtml+xml",
+      "content-type": "application/json"
+    }
+  },
+  {
+    "type": "resp",
+    "status": 302,
+    "url": "https://fazendamacaybas.com.br/admin/rebanho/animais/2/eventos",
+    "location": "https://fazendamacaybas.com.br/admin/rebanho/animais/2",
+    "body": ""
+  },
+  {
+    "type": "resp",
+    "status": 200,
+    "url": "https://fazendamacaybas.com.br/admin/rebanho/animais/2",
+    "inertia": "true",
+    "body": "{\"component\":\"Admin\\/Livestock\\/Animals\\/Show\",\"props\":{\"errors\":{\"data\":\"A data do evento n\\u00e3o pode ser futura.\"},\"app\":{\"name\":\"Fazenda Macaybas\",\"locale\":\"pt_BR\",\"timezone\":\"America\\/Sao_Paulo\",\"url\":\"https:\\/\\/fazendamacaybas.com.br\"},\"auth\":{\"user\":{\"id\":8,\"name\":\"QA Dono\",\"email\":\"qa-dono@fazendamacaybas.local\",\"cargo\":null,\"avatar\":null,\"must_change_password\":false,\"roles\":[\"dono_fazenda\"],\"permissions\":[\"operational.agricola.aplicacoes.create\",\"operational.agricola.aplicacoes.delete\",\"operational.agricola.aplicacoes.update\",\"operational.agricola.aplicacoes.view\",\"operational.agricola.colheitas.create\",\"operational.agricola.colheitas.delete\",\"operational.agricola.colheitas.update\",\"operational.agricola.colheitas.view\",\"operational.agricola.create\",\"operational.agricola.delete\",\"operational.agricola.plantios.create\",\"operational.agricola.plantios.delete\",\"operational.agricola.plantios.update\",\"operational.agricola.plantios.view\",\"operational.agricola.talhoes.create\",\"operational.agricola.talhoes.delete\",\"operational.agricola.talhoes.update\",\"operational.agricola.talhoes.view\",\"operational.agricola.update\",\"operational.agricola.view\",\"operational.documentos.create\",\"operational.documentos.delete\",\"operational.documentos.update\",\"operational.documentos.view\",\"operational.estoque.armazens.create\",\"operational.estoque.armazens.delete\",\"operational.estoque.armazens.update\",\"operational.estoque.armazens.view\",\"operational.estoque.create\",\"operational.estoque.delete\",\"operational.estoque.itens.create\",\"operational.estoque.itens.delete\",\"operational.estoque.itens.update\",\"operational.estoque.itens.view\",\"operational.estoque.movimentos.create\",\"operational.estoque.movimentos.delete\",\"operational.estoque.movimentos.update\",\"operational.estoque.movimentos.view\",\"operational.estoque.update\",\"operational.estoque.view\",\"operational.financeiro.approve\",\"operational.financeiro.contas.create\",\"operational.financeiro.contas.delete\",\"operational.financeiro.contas.update\",\"op"
+  }
+]

@@ -7,6 +7,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
+import { hojeBR } from '@/utils/format.js';
 
 const props = defineProps({
     transaction: Object,
@@ -26,7 +27,7 @@ const form = useForm({
     descricao: props.transaction?.descricao ?? '',
     observacoes: props.transaction?.observacoes ?? '',
     valor: props.transaction?.valor ?? '',
-    data_vencimento: props.transaction?.data_vencimento ?? new Date().toISOString().slice(0, 10),
+    data_vencimento: props.transaction?.data_vencimento ?? hojeBR(),
     data_pagamento: props.transaction?.data_pagamento ?? '',
     status: props.transaction?.status ?? 'pendente',
     forma_pagamento: props.transaction?.forma_pagamento ?? '',
@@ -129,7 +130,7 @@ watch(
     () => form.status,
     (novo) => {
         if (novo === 'pago' && !form.data_pagamento) {
-            form.data_pagamento = new Date().toISOString().slice(0, 10);
+            form.data_pagamento = hojeBR();
         }
     },
 );

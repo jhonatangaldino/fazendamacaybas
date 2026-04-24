@@ -9,7 +9,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
-import { brl, dataBR } from '@/utils/format.js';
+import { brl, dataBR, hojeBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
 const props = defineProps({ plantings: Object, filters: Object, fields: Array, crops: Array, seasons: Array });
@@ -21,7 +21,7 @@ const confirmDelete = ref(null);
 
 const form = useForm({
     field_id: '', crop_id: '', season_id: null,
-    data_plantio: new Date().toISOString().slice(0, 10),
+    data_plantio: hojeBR(),
     previsao_colheita: '',
     area_plantada_ha: '',
     custo_previsto: '',
@@ -30,7 +30,7 @@ const form = useForm({
     observacoes: '',
 });
 
-function novo() { form.reset(); form.status = 'em_andamento'; form.data_plantio = new Date().toISOString().slice(0, 10); editing.value = 'new'; }
+function novo() { form.reset(); form.status = 'em_andamento'; form.data_plantio = hojeBR(); editing.value = 'new'; }
 function editar(p) { Object.keys(form.data()).forEach(k => form[k] = p[k] ?? form[k]); editing.value = p.id; }
 function filtrar() { router.get(route('admin.agricola.plantios.index'), filtros, { preserveState: true, replace: true }); }
 

@@ -1,5 +1,24 @@
 import dayjs from 'dayjs';
 
+/**
+ * Data de hoje no fuso de São Paulo (UTC-3), no formato ISO yyyy-mm-dd.
+ *
+ * ⚠ NÃO use `new Date().toISOString().slice(0, 10)` para data "hoje" —
+ * esse método usa UTC e, após 21h SP, retorna amanhã. O backend Laravel
+ * valida datas em `America/Sao_Paulo` e rejeita como "futura".
+ *
+ * Esta função respeita o fuso do usuário brasileiro, mesmo se o browser
+ * ou o host estiver em UTC.
+ */
+export function hojeBR() {
+    // Intl.DateTimeFormat com timeZone força o fuso
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+    });
+    return fmt.format(new Date()); // en-CA devolve 'yyyy-mm-dd'
+}
+
 export function brl(v) {
     if (v === null || v === undefined || v === '') return 'R$ 0,00';
     const n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'));

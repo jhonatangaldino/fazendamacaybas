@@ -9,7 +9,7 @@ import MobileFilters from '@/Components/MobileFilters.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
-import { brl, dataBR } from '@/utils/format.js';
+import { brl, dataBR, hojeBR } from '@/utils/format.js';
 import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -37,7 +37,7 @@ const payModal = ref(null);
 const payForm = useForm({ data_pagamento: '', forma_pagamento: 'pix' });
 function askPay(t) {
     payModal.value = t;
-    payForm.data_pagamento = new Date().toISOString().slice(0, 10);
+    payForm.data_pagamento = hojeBR();
     payForm.forma_pagamento = 'pix';
 }
 function confirmPay() {

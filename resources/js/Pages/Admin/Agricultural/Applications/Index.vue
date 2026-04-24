@@ -9,7 +9,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
-import { brl, dataBR } from '@/utils/format.js';
+import { brl, dataBR, hojeBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
 const props = defineProps({ applications: Object, filters: Object, fields: Array, plantings: Array });
@@ -20,7 +20,7 @@ const showForm = ref(false);
 const confirmDelete = ref(null);
 
 const form = useForm({
-    field_id: '', planting_id: null, data_aplicacao: new Date().toISOString().slice(0, 10),
+    field_id: '', planting_id: null, data_aplicacao: hojeBR(),
     tipo: 'adubacao', produto: '', quantidade: '', unidade: 'kg',
     valor_total: '', responsavel: '', observacoes: '',
 });
@@ -28,7 +28,7 @@ const form = useForm({
 function salvar() {
     form.post(route('admin.agricola.aplicacoes.store'), {
         preserveScroll: true, only: ['applications'],
-        onSuccess: () => { showForm.value = false; form.reset(); form.tipo = 'adubacao'; form.unidade = 'kg'; form.data_aplicacao = new Date().toISOString().slice(0, 10); },
+        onSuccess: () => { showForm.value = false; form.reset(); form.tipo = 'adubacao'; form.unidade = 'kg'; form.data_aplicacao = hojeBR(); },
     });
 }
 function filtrar() { router.get(route('admin.agricola.aplicacoes.index'), filtros, { preserveState: true, replace: true }); }

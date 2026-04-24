@@ -6,7 +6,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
-import { brl, dataBR } from '@/utils/format.js';
+import { brl, dataBR, hojeBR } from '@/utils/format.js';
 
 const props = defineProps({
     animais: Array,
@@ -39,7 +39,7 @@ const passo = ref(1);
 const busca = ref('');
 const selecionado = ref(null);
 const compradorId = ref(null);
-const dataVenda = ref(new Date().toISOString().slice(0, 10));
+const dataVenda = ref(hojeBR());
 const valor = ref('');
 const observacoes = ref('');
 
@@ -124,7 +124,7 @@ const valorNumerico = computed(() => {
 });
 const dataValida = computed(() => {
     if (!dataVenda.value) return false;
-    return dataVenda.value <= new Date().toISOString().slice(0, 10);
+    return dataVenda.value <= hojeBR();
 });
 const podeAvancar3 = computed(() => valorNumerico.value > 0 && dataValida.value);
 
@@ -154,7 +154,7 @@ function reiniciar() {
     busca.value = '';
     selecionado.value = null;
     compradorId.value = null;
-    dataVenda.value = new Date().toISOString().slice(0, 10);
+    dataVenda.value = hojeBR();
     valor.value = '';
     observacoes.value = '';
     form.clearErrors();
@@ -429,7 +429,7 @@ function confirmar() {
                     </div>
                     <div>
                         <InputLabel value="Dia da venda" class="text-base" />
-                        <InputDate v-model="dataVenda" :max="new Date().toISOString().slice(0, 10)" required />
+                        <InputDate v-model="dataVenda" :max="hojeBR()" required />
                         <p v-if="!dataValida && dataVenda" class="text-sm text-red-600 mt-1">
                             A data não pode ser depois de hoje.
                         </p>

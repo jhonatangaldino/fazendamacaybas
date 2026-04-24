@@ -9,7 +9,7 @@ import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMasked from '@/Components/InputMasked.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
-import { brl, dataBR, cpfMask, telefoneMask } from '@/utils/format.js';
+import { brl, dataBR, cpfMask, telefoneMask, hojeBR } from '@/utils/format.js';
 import { apenasDigitos, apenasAlfaNum, validarCpf, validarCnpj } from '@/utils/br-validators.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
@@ -250,7 +250,7 @@ function abrirDesligamento(row) {
     desligamento.value = row;
     desligForm.reset();
     desligForm.clearErrors();
-    desligForm.data_demissao = new Date().toISOString().slice(0, 10);
+    desligForm.data_demissao = hojeBR();
 }
 function confirmarDesligamento() {
     desligForm.delete(route('admin.funcionarios.destroy', desligamento.value.id), {

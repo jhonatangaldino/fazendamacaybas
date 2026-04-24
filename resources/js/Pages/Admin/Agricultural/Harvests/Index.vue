@@ -9,7 +9,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
-import { brl, dataBR } from '@/utils/format.js';
+import { brl, dataBR, hojeBR } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
 const props = defineProps({ harvests: Object, filters: Object, plantings: Array });
@@ -20,14 +20,14 @@ const showForm = ref(false);
 const confirmDelete = ref(null);
 
 const form = useForm({
-    planting_id: '', data_colheita: new Date().toISOString().slice(0, 10),
+    planting_id: '', data_colheita: hojeBR(),
     quantidade_colhida: '', unidade: 'kg', valor_total: '', observacoes: '',
 });
 
 function salvar() {
     form.post(route('admin.agricola.colheitas.store'), {
         preserveScroll: true, only: ['harvests'],
-        onSuccess: () => { showForm.value = false; form.reset(); form.unidade = 'kg'; form.data_colheita = new Date().toISOString().slice(0, 10); },
+        onSuccess: () => { showForm.value = false; form.reset(); form.unidade = 'kg'; form.data_colheita = hojeBR(); },
     });
 }
 function filtrar() { router.get(route('admin.agricola.colheitas.index'), filtros, { preserveState: true, replace: true }); }
