@@ -9,16 +9,18 @@ let removeStart, removeProgress, removeFinish, removeError, removeInvalid;
 
 function messageForMethod(method, url) {
     const m = (method || 'get').toLowerCase();
-    if (url?.includes('/concluir') || url?.includes('/complete')) return 'Concluindo...';
-    if (url?.includes('/reabrir') || url?.includes('/reopen')) return 'Reabrindo...';
-    if (url?.includes('/publicar') || url?.includes('/publish')) return 'Publicando...';
-    if (url?.includes('/toggle')) return 'Atualizando...';
-    if (url?.includes('/pagar') || url?.includes('/pay')) return 'Quitando...';
-    if (url?.includes('/resetar-senha') || url?.includes('/reset-password')) return 'Resetando senha...';
-    if (url?.includes('/login')) return 'Entrando...';
-    if (url?.includes('/logout')) return 'Saindo...';
-    if (url?.includes('/upload')) return 'Enviando arquivo...';
-    if (url?.includes('/rascunho') || url?.includes('/draft')) return 'Salvando rascunho...';
+    // Inertia pode passar URL object em vez de string — coerce defensivamente
+    const u = url == null ? '' : (typeof url === 'string' ? url : String(url));
+    if (u.includes('/concluir') || u.includes('/complete')) return 'Concluindo...';
+    if (u.includes('/reabrir') || u.includes('/reopen')) return 'Reabrindo...';
+    if (u.includes('/publicar') || u.includes('/publish')) return 'Publicando...';
+    if (u.includes('/toggle')) return 'Atualizando...';
+    if (u.includes('/pagar') || u.includes('/pay')) return 'Quitando...';
+    if (u.includes('/resetar-senha') || u.includes('/reset-password')) return 'Resetando senha...';
+    if (u.includes('/login')) return 'Entrando...';
+    if (u.includes('/logout')) return 'Saindo...';
+    if (u.includes('/upload')) return 'Enviando arquivo...';
+    if (u.includes('/rascunho') || u.includes('/draft')) return 'Salvando rascunho...';
     return {
         get: 'Carregando...',
         post: 'Salvando...',
