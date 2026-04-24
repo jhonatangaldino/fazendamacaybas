@@ -274,7 +274,13 @@ class VehicleController extends Controller
         $accountId = $request->input('account_id');
 
         DB::transaction(function () use ($data, $generateTx, $accountId, $request, $maintExpense) {
-            $data['valor_total'] = ($data['valor_pecas'] ?? 0) + ($data['valor_servico'] ?? 0);
+            // Schema `maintenance_orders.valor_pecas` e `valor_servico` são NOT NULL
+            // mas o validator aceita-os como nullable. Coerção para 0 antes do insert
+            // evita SQLSTATE[23000] quando o usuário não preenche esses campos
+            // (típico em manutenção feita no próprio galpão, sem peças).
+            $data['valor_pecas'] = $data['valor_pecas'] ?? 0;
+            $data['valor_servico'] = $data['valor_servico'] ?? 0;
+            $data['valor_total'] = $data['valor_pecas'] + $data['valor_servico'];
             $data['created_by'] = $request->user()->id;
             $order = MaintenanceOrder::create($data);
 
@@ -308,7 +314,10 @@ class VehicleController extends Controller
     public function maintenanceUpdate(Request $request, MaintenanceOrder $order, \App\Domain\Integration\Services\MaintenanceToExpenseService $maintExpense)
     {
         $data = $this->validateMaintenance($request);
-        $data['valor_total'] = ($data['valor_pecas'] ?? 0) + ($data['valor_servico'] ?? 0);
+        // Mesma defesa do store: schema é NOT NULL, validator aceita nullable.
+        $data['valor_pecas'] = $data['valor_pecas'] ?? 0;
+        $data['valor_servico'] = $data['valor_servico'] ?? 0;
+        $data['valor_total'] = $data['valor_pecas'] + $data['valor_servico'];
 
         // Envolve update em DB::transaction para atomicidade com a integração.
         // Caso típico: manutenção muda de "em_andamento" para "concluida" em
