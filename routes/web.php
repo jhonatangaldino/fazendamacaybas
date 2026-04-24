@@ -3,6 +3,11 @@
 use App\Http\Controllers\Admin\Agricultural\AgriculturalController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HubController;
+use App\Http\Controllers\Admin\Wizards\PesagemWizardController;
+use App\Http\Controllers\Admin\Wizards\DespesaWizardController;
+use App\Http\Controllers\Admin\Wizards\ReceitaWizardController;
+use App\Http\Controllers\Admin\Wizards\AplicacaoWizardController;
+use App\Http\Controllers\Admin\Wizards\ManutencaoWizardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
 use App\Http\Controllers\Admin\PendingPaymentController;
@@ -226,6 +231,24 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
 
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:operational.dashboard.view')->name('dashboard');
+
+    // ═════════════════════════════════════════════════════════════════════
+    // Fluxos guiados (wizards) — entrada oficial de cada operação do Hub.
+    // Cada controller só expõe dados; o submit reutiliza as rotas existentes
+    // (zero duplicação de lógica de negócio).
+    // ═════════════════════════════════════════════════════════════════════
+    Route::prefix('fluxos')->name('fluxos.')->group(function () {
+        Route::get('pesar-animal', [PesagemWizardController::class, 'create'])
+            ->middleware('permission:operational.rebanho.eventos.create')->name('pesar-animal');
+        Route::get('registrar-despesa', [DespesaWizardController::class, 'create'])
+            ->middleware('permission:operational.financeiro.transacoes.create')->name('registrar-despesa');
+        Route::get('registrar-receita', [ReceitaWizardController::class, 'create'])
+            ->middleware('permission:operational.financeiro.transacoes.create')->name('registrar-receita');
+        Route::get('aplicar-produto', [AplicacaoWizardController::class, 'create'])
+            ->middleware('permission:operational.agricola.aplicacoes.create')->name('aplicar-produto');
+        Route::get('arrumar-maquina', [ManutencaoWizardController::class, 'create'])
+            ->middleware('permission:operational.maquinas.manutencoes.create')->name('arrumar-maquina');
+    });
 
     // ------- FAZENDA (seleção e troca) -------
     // Rotas whitelistadas pelo EnforceFarm — acessíveis mesmo sem farm ativa.
