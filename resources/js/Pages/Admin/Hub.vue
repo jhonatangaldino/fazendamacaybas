@@ -4,21 +4,34 @@
  *
  * Porta de entrada do sistema. Substitui o dashboard como tela inicial.
  *
- * Design rules:
- * - Linguagem do fazendeiro, não do sistema ("Pesar um bicho", não "Registrar pesagem").
+ * Design:
+ * - Labels em tom equilibrado: verbo claro + substantivo neutro.
+ *   Nem coloquial ("Morreu bicho") nem técnico ("Registrar evento de
+ *   mortalidade"). Padrão: "Registrar morte do animal".
  * - Agrupamento por FREQUÊNCIA (todo dia / essa semana / safra / ocasional),
- *   NUNCA por módulo. O fazendeiro não pensa "agora vou no módulo financeiro".
- * - Cards grandes (touch-friendly, ≥140px altura), emoji grande pra reconhecimento
- *   imediato sem leitura.
- * - Mobile first: 2 colunas em tela pequena, 3-4 no desktop.
- * - Filtragem por permissão no front: card que o usuário não pode usar não aparece.
- * - Estado vazio amigável se o usuário não tiver nenhuma permissão.
+ *   nunca por módulo. O fazendeiro não pensa "agora vou no módulo financeiro".
+ * - Cards grandes (≥150px), emoji proeminente, mobile-first (2 colunas).
+ * - Filtragem por permissão no front.
  *
- * Integração com os wizards:
- * - Hoje só "Vender boi" tem wizard real (admin.fluxos.venda-animal). Os outros
- *   linkam pras telas de módulo existentes. Conforme wizards forem sendo criados,
- *   as `rota` + `query` dos cards trocam pelos novos fluxos guiados (1 linha por card).
- * - Cards com fluxo guiado recebem `destaque: true` → badge "Passo a passo".
+ * Seção "Você usa mais":
+ * - Aparece no topo quando o usuário tem histórico de uso.
+ * - Alimentada pelo mesmo MenuUsage da sidebar, com prefixo `hub:<id>` pra
+ *   não colidir. Snapshot congelado às 3h (comando `menu:snapshot`), igual
+ *   à sidebar — a ordem NÃO muda durante o uso, evitando confusão.
+ * - Primeiro dia de uso: seção invisível. A partir do segundo: top 4
+ *   ações aparecem no topo, organizados por mais clicados.
+ * - Os mesmos cards continuam aparecendo nos grupos originais, de propósito:
+ *   o usuário encontra onde "sempre esteve" (consistência) e ainda ganha
+ *   atalho no topo (velocidade).
+ *
+ * Tracking:
+ * - Ao clicar em qualquer card, dispara fire-and-forget no endpoint
+ *   `admin.menu-usage.bump` com key `hub:<id>`. Não bloqueia navegação.
+ *
+ * Integração com wizards:
+ * - Hoje só "Vender animal" tem wizard real (admin.fluxos.venda-animal,
+ *   marcado com `destaque: true`). Os outros linkam pras telas de módulo
+ *   existentes; conforme wizards forem criados, só a `rota` do card muda.
  */
 import { computed } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
@@ -27,6 +40,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 const page = usePage();
 const user = computed(() => page.props.auth?.user ?? null);
 const perms = computed(() => page.props.auth?.user?.permissions ?? []);
+const menuUsage = computed(() => page.props.menuUsage ?? {});
 
 function can(permission) {
     const p = perms.value;
@@ -34,7 +48,6 @@ function can(permission) {
     return p.includes(permission);
 }
 
-// Cumprimento pelo horário — toque humano, não texto de sistema
 const cumprimento = computed(() => {
     const h = new Date().getHours();
     if (h < 12) return 'Bom dia';
@@ -48,15 +61,15 @@ const primeiroNome = computed(() => {
 });
 
 /**
- * Catálogo das 27 operações reais organizadas em 4 grupos de frequência.
- * Cada item tem:
- *   nome      — fala de fazendeiro (sem jargão técnico)
- *   desc      — uma linha explicando o que acontece
- *   emoji     — reconhecimento visual imediato
- *   rota      — nome da rota Laravel (atualmente aponta pra tela de módulo)
- *   query     — opcional: querystring que pré-seleciona filtro/tipo na tela destino
- *   perm      — permissão necessária (usada pra filtrar no front)
- *   destaque  — true se já existe wizard guiado pronto
+ * Catálogo das 27 operações. Cada item tem:
+ *   id        — slug único (usado como key de tracking: `hub:<id>`)
+ *   nome      — ação em tom equilibrado (verbo + substantivo neutro)
+ *   desc      — 3-6 palavras complementando
+ *   emoji     — reconhecimento visual
+ *   rota      — nome da rota Laravel
+ *   query     — opcional: pré-filtro/pré-seleção na tela destino
+ *   perm      — permissão requerida (filtra no front)
+ *   destaque  — true quando já existe wizard guiado
  */
 const grupos = [
     {
@@ -66,45 +79,45 @@ const grupos = [
         emoji: '🌅',
         tom: 'primary',
         itens: [
-            { nome: 'Pesar um bicho',                  desc: 'Anotar o peso do animal',          emoji: '⚖️',  rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
-            { nome: 'Anotei uma despesa',              desc: 'Dinheiro que saiu',                emoji: '💸',  rota: 'admin.financeiro.transacoes.create', query: { tipo: 'despesa' }, perm: 'operational.financeiro.transacoes.create' },
-            { nome: 'Chegou mercadoria',               desc: 'Entrou produto — lançar nota',     emoji: '📦',  rota: 'admin.estoque.movimentos.index',  perm: 'operational.estoque.movimentos.create' },
-            { nome: 'Paguei uma conta',                desc: 'Baixar conta aberta',              emoji: '💳',  rota: 'admin.financeiro.transacoes.index', query: { status: 'pendente', tipo: 'despesa' }, perm: 'operational.financeiro.transacoes.update' },
-            { nome: 'Recebi dinheiro',                 desc: 'Entrou dinheiro no caixa',         emoji: '💰',  rota: 'admin.financeiro.transacoes.create', query: { tipo: 'receita' }, perm: 'operational.financeiro.transacoes.create' },
-            { nome: 'Mandar alguém fazer serviço',     desc: 'Distribuir tarefa pro peão',       emoji: '📋',  rota: 'admin.tarefas.index',             perm: 'operational.funcionarios.tarefas.create' },
-            { nome: 'Terminei o serviço',              desc: 'Marcar tarefa como feita',         emoji: '✅',  rota: 'admin.tarefas.index',             query: { status: 'pendente' }, perm: 'operational.funcionarios.tarefas.update' },
-            { nome: 'Usei do estoque',                 desc: 'Saída de material do galpão',      emoji: '📤',  rota: 'admin.estoque.movimentos.index',  perm: 'operational.estoque.movimentos.create' },
+            { id: 'pesar-animal',         nome: 'Registrar peso do animal',   desc: 'Anotar o peso atual',              emoji: '⚖️', rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
+            { id: 'registrar-despesa',    nome: 'Registrar despesa',          desc: 'Dinheiro que saiu',                emoji: '💸', rota: 'admin.financeiro.transacoes.create', query: { tipo: 'despesa' }, perm: 'operational.financeiro.transacoes.create' },
+            { id: 'receber-mercadoria',   nome: 'Receber mercadoria',         desc: 'Entrada + nota fiscal',            emoji: '📦', rota: 'admin.estoque.movimentos.index',  perm: 'operational.estoque.movimentos.create' },
+            { id: 'pagar-conta',          nome: 'Pagar conta',                desc: 'Baixa em conta a pagar',           emoji: '💳', rota: 'admin.financeiro.transacoes.index', query: { status: 'pendente', tipo: 'despesa' }, perm: 'operational.financeiro.transacoes.update' },
+            { id: 'receber-pagamento',    nome: 'Receber pagamento',          desc: 'Entrada de dinheiro no caixa',     emoji: '💰', rota: 'admin.financeiro.transacoes.create', query: { tipo: 'receita' }, perm: 'operational.financeiro.transacoes.create' },
+            { id: 'criar-tarefa',         nome: 'Criar tarefa',               desc: 'Passar um serviço ao funcionário', emoji: '📋', rota: 'admin.tarefas.index',             perm: 'operational.funcionarios.tarefas.create' },
+            { id: 'concluir-tarefa',      nome: 'Concluir tarefa',            desc: 'Marcar tarefa como feita',         emoji: '✅', rota: 'admin.tarefas.index',             query: { status: 'pendente' }, perm: 'operational.funcionarios.tarefas.update' },
+            { id: 'saida-estoque',        nome: 'Registrar saída de estoque', desc: 'Baixa de material utilizado',      emoji: '📤', rota: 'admin.estoque.movimentos.index',  perm: 'operational.estoque.movimentos.create' },
         ],
     },
     {
         id: 'semana',
         titulo: 'Essa semana',
-        subtitulo: 'Coisas do manejo e da roça',
+        subtitulo: 'Manejo do rebanho e da lavoura',
         emoji: '📅',
         tom: 'sky',
         itens: [
-            { nome: 'Vacinar o gado',          desc: 'Registrar vacinação',              emoji: '💉',  rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
-            { nome: 'Dar remédio pro bicho',   desc: 'Registrar medicação',              emoji: '💊',  rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
-            { nome: 'Vermifugar',              desc: 'Aplicar vermífugo no gado',        emoji: '🧴',  rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
-            { nome: 'Passar veneno na roça',   desc: 'Herbicida, fungicida, inseticida', emoji: '🌿',  rota: 'admin.agricola.aplicacoes.index', perm: 'operational.agricola.aplicacoes.create' },
-            { nome: 'Adubar a roça',           desc: 'Aplicar adubo no talhão',          emoji: '🌱',  rota: 'admin.agricola.aplicacoes.index', perm: 'operational.agricola.aplicacoes.create' },
-            { nome: 'Arrumar máquina',         desc: 'Manutenção de trator, caminhão',   emoji: '🔧',  rota: 'admin.maquinas.manutencoes.index', perm: 'operational.maquinas.manutencoes.create' },
-            { nome: 'Mudar bicho de pasto',    desc: 'Trocar animal de lote',            emoji: '🐄',  rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
-            { nome: 'Anotar coisa do bicho',   desc: 'Cio, observação, cobertura',       emoji: '📝',  rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
+            { id: 'vacinar-animal',       nome: 'Aplicar vacina no animal',   desc: 'Registrar vacinação',              emoji: '💉', rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
+            { id: 'medicar-animal',       nome: 'Aplicar medicamento',        desc: 'Tratamento do animal',             emoji: '💊', rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
+            { id: 'vermifugar-animal',    nome: 'Aplicar vermífugo',          desc: 'Vermifugação do rebanho',          emoji: '🧴', rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
+            { id: 'aplicar-defensivo',    nome: 'Aplicar produto na plantação', desc: 'Herbicida, fungicida, inseticida', emoji: '🌿', rota: 'admin.agricola.aplicacoes.index', perm: 'operational.agricola.aplicacoes.create' },
+            { id: 'aplicar-adubo',        nome: 'Aplicar adubo na plantação', desc: 'Adubação de talhão',               emoji: '🌱', rota: 'admin.agricola.aplicacoes.index', perm: 'operational.agricola.aplicacoes.create' },
+            { id: 'manutencao-maquina',   nome: 'Arrumar máquina',            desc: 'Trator, caminhão, implemento',     emoji: '🔧', rota: 'admin.maquinas.manutencoes.index', perm: 'operational.maquinas.manutencoes.create' },
+            { id: 'mover-lote',           nome: 'Mover animal de lote',       desc: 'Trocar animal entre lotes',        emoji: '🐄', rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
+            { id: 'observar-animal',      nome: 'Registrar observação do animal', desc: 'Cio, cobertura, anotação',     emoji: '📝', rota: 'admin.rebanho.animais.index',    perm: 'operational.rebanho.eventos.create' },
         ],
     },
     {
         id: 'safra',
         titulo: 'Época da safra',
-        subtitulo: 'Plantar, colher, vender',
+        subtitulo: 'Plantio, colheita e comercialização',
         emoji: '🌾',
         tom: 'amber',
         itens: [
-            { nome: 'Plantar',           desc: 'Começar um plantio',                emoji: '🌾',  rota: 'admin.agricola.plantios.index',   perm: 'operational.agricola.plantios.create' },
-            { nome: 'Colher',            desc: 'Registrar colheita',                emoji: '🌽',  rota: 'admin.agricola.colheitas.index',  perm: 'operational.agricola.colheitas.create' },
-            { nome: 'Vender boi',        desc: 'Passo a passo guiado',              emoji: '🐂',  rota: 'admin.fluxos.venda-animal',       perm: 'operational.rebanho.eventos.create', destaque: true },
-            { nome: 'Comprar boi',       desc: 'Registrar compra de animal',        emoji: '🛒',  rota: 'admin.rebanho.animais.index',     perm: 'operational.rebanho.eventos.create' },
-            { nome: 'Conferir o paiol',  desc: 'Ajuste de estoque',                 emoji: '🔢',  rota: 'admin.estoque.movimentos.index',  perm: 'operational.estoque.movimentos.create' },
+            { id: 'registrar-plantio',    nome: 'Registrar plantio',          desc: 'Iniciar um plantio',               emoji: '🌾', rota: 'admin.agricola.plantios.index',   perm: 'operational.agricola.plantios.create' },
+            { id: 'registrar-colheita',   nome: 'Registrar colheita',         desc: 'Fechamento da safra',              emoji: '🌽', rota: 'admin.agricola.colheitas.index',  perm: 'operational.agricola.colheitas.create' },
+            { id: 'vender-animal',        nome: 'Vender animal',              desc: 'Passo a passo guiado',             emoji: '🐂', rota: 'admin.fluxos.venda-animal',       perm: 'operational.rebanho.eventos.create', destaque: true },
+            { id: 'comprar-animal',       nome: 'Comprar animal',             desc: 'Registrar compra de animal',       emoji: '🛒', rota: 'admin.rebanho.animais.index',     perm: 'operational.rebanho.eventos.create' },
+            { id: 'ajustar-estoque',      nome: 'Ajustar estoque',            desc: 'Corrigir saldo do armazém',        emoji: '🔢', rota: 'admin.estoque.movimentos.index',  perm: 'operational.estoque.movimentos.create' },
         ],
     },
     {
@@ -114,16 +127,17 @@ const grupos = [
         emoji: '🏥',
         tom: 'slate',
         itens: [
-            { nome: 'Morreu bicho',          desc: 'Registrar mortalidade',        emoji: '⚰️',  rota: 'admin.rebanho.animais.index',  perm: 'operational.rebanho.eventos.create' },
-            { nome: 'Nasceu bicho',          desc: 'Cadastrar cria nova',          emoji: '🐣',  rota: 'admin.rebanho.animais.create', perm: 'operational.rebanho.animais.create' },
-            { nome: 'Contratei peão',        desc: 'Cadastrar funcionário',        emoji: '👷',  rota: 'admin.funcionarios.index',     perm: 'operational.funcionarios.cadastro.create' },
-            { nome: 'Mandei peão embora',    desc: 'Desligar funcionário',         emoji: '👋',  rota: 'admin.funcionarios.index',     perm: 'operational.funcionarios.cadastro.update' },
-            { nome: 'Guardar papelada',      desc: 'Arquivar documento',           emoji: '📄',  rota: 'admin.documentos.index',       perm: 'operational.documentos.create' },
-            { nome: 'Cadastrar bicho novo',  desc: 'Sem ser compra (pedigree)',    emoji: '🐾',  rota: 'admin.rebanho.animais.create', perm: 'operational.rebanho.animais.create' },
+            { id: 'registrar-morte',      nome: 'Registrar morte do animal',  desc: 'Baixa por mortalidade',            emoji: '⚰️', rota: 'admin.rebanho.animais.index',  perm: 'operational.rebanho.eventos.create' },
+            { id: 'registrar-nascimento', nome: 'Registrar nascimento',       desc: 'Cria nova no rebanho',             emoji: '🐣', rota: 'admin.rebanho.animais.create', perm: 'operational.rebanho.animais.create' },
+            { id: 'cadastrar-funcionario',nome: 'Cadastrar funcionário',      desc: 'Novo colaborador na fazenda',      emoji: '👷', rota: 'admin.funcionarios.index',     perm: 'operational.funcionarios.cadastro.create' },
+            { id: 'desligar-funcionario', nome: 'Desligar funcionário',       desc: 'Encerrar vínculo com o funcionário', emoji: '👋', rota: 'admin.funcionarios.index', perm: 'operational.funcionarios.cadastro.update' },
+            { id: 'anexar-documento',     nome: 'Anexar documento',           desc: 'GTA, licença, receita, contrato',  emoji: '📄', rota: 'admin.documentos.index',       perm: 'operational.documentos.create' },
+            { id: 'cadastrar-animal',     nome: 'Cadastrar animal',           desc: 'Por doação, pedigree, importação', emoji: '🐾', rota: 'admin.rebanho.animais.create', perm: 'operational.rebanho.animais.create' },
         ],
     },
 ];
 
+// Filtragem por permissão, preservando estrutura dos grupos
 const gruposVisiveis = computed(() =>
     grupos
         .map((g) => ({ ...g, itens: g.itens.filter((i) => !i.perm || can(i.perm)) }))
@@ -133,14 +147,52 @@ const gruposVisiveis = computed(() =>
 const semAcoes = computed(() => gruposVisiveis.value.length === 0);
 
 /**
- * Monta URL final. Se o item tiver `query`, anexa como ?chave=valor (escapado).
- * Uso Inertia `<Link>` com href absoluto porque route() não aceita query nativo.
+ * Top 4 ações mais usadas (score > 0). Score vem do snapshot diário,
+ * então só aparece depois do primeiro `menu:snapshot` rodar. Antes disso
+ * a seção fica invisível (comportamento correto — nada a ranquear).
  */
+const maisUsados = computed(() => {
+    const flat = [];
+    gruposVisiveis.value.forEach((g) => {
+        g.itens.forEach((i) => {
+            const score = Number(menuUsage.value[`hub:${i.id}`] ?? 0);
+            if (score > 0) {
+                flat.push({ ...i, grupoTom: g.tom, score });
+            }
+        });
+    });
+    flat.sort((a, b) => b.score - a.score);
+    return flat.slice(0, 4);
+});
+
 function hrefPara(item) {
     const base = route(item.rota);
     if (!item.query) return base;
     const qs = new URLSearchParams(item.query).toString();
     return base + (base.includes('?') ? '&' : '?') + qs;
+}
+
+/**
+ * Fire-and-forget: registra clique no endpoint existente. Não uso Inertia
+ * pra evitar re-render/reload — só um POST puro que o backend incrementa.
+ * Na próxima visita ao Hub, o ranking estará atualizado (após o snapshot).
+ */
+function registrarUso(id) {
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        fetch(route('admin.menu-usage.bump'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf || '',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ key: `hub:${id}` }),
+            keepalive: true,
+        }).catch(() => {});
+    } catch (_) { /* noop */ }
 }
 
 const temDashboard = computed(() => can('operational.dashboard.view'));
@@ -151,7 +203,7 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
     <AdminLayout>
         <template #page-title>Início</template>
 
-        <!-- Saudação humana, não "bem-vindo ao sistema" -->
+        <!-- Saudação -->
         <div class="mb-8 sm:mb-10">
             <h1 class="text-2xl sm:text-3xl font-serif font-bold text-slate-900">
                 {{ cumprimento }}<template v-if="primeiroNome">, {{ primeiroNome }}</template>!
@@ -161,16 +213,51 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
             </p>
         </div>
 
-        <!-- Estado vazio: usuário sem nenhuma permissão operacional -->
+        <!-- Estado vazio -->
         <div v-if="semAcoes" class="card p-8 text-center">
             <div class="text-5xl mb-3" aria-hidden="true">🤔</div>
             <div class="font-semibold text-slate-900 mb-1">
                 Seu perfil ainda não tem ações liberadas
             </div>
             <div class="text-sm text-slate-500">
-                Peça pro administrador do sistema liberar as funções que você precisa usar.
+                Peça para o administrador do sistema liberar as funções que você precisa usar.
             </div>
         </div>
+
+        <!-- Seção "Você usa mais" (só aparece se houver histórico) -->
+        <section v-if="maisUsados.length > 0" class="mb-8 sm:mb-10">
+            <div class="flex items-center gap-3 mb-3 sm:mb-4">
+                <span class="text-2xl sm:text-3xl" aria-hidden="true">⭐</span>
+                <div>
+                    <h2 class="text-lg sm:text-xl font-semibold text-slate-900 leading-tight">
+                        Você usa mais
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-500">
+                        Atalho para as ações que você mais fez nos últimos dias
+                    </p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                <Link
+                    v-for="item in maisUsados"
+                    :key="`fav-${item.id}`"
+                    :href="hrefPara(item)"
+                    @click="registrarUso(item.id)"
+                    class="hub-card hub-card--favorito"
+                    :class="[
+                        `hub-card--${item.grupoTom}`,
+                        item.destaque ? 'hub-card--destaque' : '',
+                    ]"
+                >
+                    <span class="hub-card__emoji" aria-hidden="true">{{ item.emoji }}</span>
+                    <span class="hub-card__nome">{{ item.nome }}</span>
+                    <span class="hub-card__desc">{{ item.desc }}</span>
+                    <span v-if="item.destaque" class="hub-card__badge">
+                        Passo a passo
+                    </span>
+                </Link>
+            </div>
+        </section>
 
         <!-- Grupos por frequência -->
         <section
@@ -191,8 +278,9 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 <Link
                     v-for="item in grupo.itens"
-                    :key="item.nome"
+                    :key="item.id"
                     :href="hrefPara(item)"
+                    @click="registrarUso(item.id)"
                     class="hub-card"
                     :class="[
                         `hub-card--${grupo.tom}`,
@@ -226,10 +314,6 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
 </template>
 
 <style scoped>
-/*
- * Não uso @apply em style scoped (segurança: scoped pode bagunçar camadas).
- * CSS puro, com variáveis que casam com as cores Tailwind do projeto.
- */
 .hub-card {
     display: flex;
     flex-direction: column;
@@ -237,7 +321,7 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
     min-height: 150px;
     padding: 16px;
     background: #ffffff;
-    border: 1px solid rgb(226 232 240); /* slate-200 */
+    border: 1px solid rgb(226 232 240);
     border-top-width: 4px;
     border-radius: 14px;
     text-decoration: none;
@@ -257,7 +341,7 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
 .hub-card:focus-visible {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-    border-color: rgb(203 213 225); /* slate-300 */
+    border-color: rgb(203 213 225);
     outline: none;
 }
 
@@ -280,7 +364,7 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
 
 .hub-card__nome {
     font-weight: 600;
-    color: rgb(15 23 42); /* slate-900 */
+    color: rgb(15 23 42);
     font-size: 15px;
     line-height: 1.25;
 }
@@ -294,7 +378,7 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
 .hub-card__desc {
     font-size: 12px;
     line-height: 1.35;
-    color: rgb(100 116 139); /* slate-500 */
+    color: rgb(100 116 139);
     margin-top: 4px;
     flex: 1;
 }
@@ -314,24 +398,29 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    background: rgb(236 253 245); /* macaybas-primary-50 equivalent */
-    color: rgb(6 78 59);          /* macaybas-primary-900 equivalent */
+    background: rgb(236 253 245);
+    color: rgb(6 78 59);
     border-radius: 6px;
 }
 
-/* Tom por grupo — só muda a faixa de topo */
-.hub-card--primary { border-top-color: rgb(21 128 61); }   /* macaybas-primary */
-.hub-card--sky     { border-top-color: rgb(14 165 233); }  /* sky-500 */
-.hub-card--amber   { border-top-color: rgb(245 158 11); }  /* amber-500 */
-.hub-card--slate   { border-top-color: rgb(100 116 139); } /* slate-500 */
+/* Tom por grupo — faixa superior */
+.hub-card--primary { border-top-color: rgb(21 128 61); }
+.hub-card--sky     { border-top-color: rgb(14 165 233); }
+.hub-card--amber   { border-top-color: rgb(245 158 11); }
+.hub-card--slate   { border-top-color: rgb(100 116 139); }
 
-.hub-card--primary:hover { border-color: rgb(167 243 208); } /* emerald-200 */
-.hub-card--sky:hover     { border-color: rgb(186 230 253); } /* sky-200 */
-.hub-card--amber:hover   { border-color: rgb(253 230 138); } /* amber-200 */
-.hub-card--slate:hover   { border-color: rgb(203 213 225); } /* slate-300 */
+.hub-card--primary:hover { border-color: rgb(167 243 208); }
+.hub-card--sky:hover     { border-color: rgb(186 230 253); }
+.hub-card--amber:hover   { border-color: rgb(253 230 138); }
+.hub-card--slate:hover   { border-color: rgb(203 213 225); }
 
-/* Destaque pro card com wizard pronto (Vender boi) */
 .hub-card--destaque {
     box-shadow: 0 0 0 2px rgb(21 128 61 / 0.15), 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+/* Cartão na seção "Você usa mais" — sutil ring amarelo/âmbar pra marcar
+   como atalho, sem competir com o destaque do wizard guiado */
+.hub-card--favorito {
+    background: linear-gradient(180deg, rgb(254 252 232) 0%, #ffffff 35%);
 }
 </style>
