@@ -133,14 +133,14 @@ function reiniciar() {
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">O que você pagou?</h2>
                     <p class="text-base text-slate-600 mt-2">
-                        Escreva uma descrição curta. Por exemplo: "Combustível — bomba do sítio", "Ração dos bezerros", "Salário do Zé".
+                        Descreva o gasto de forma curta. Exemplos: "Combustível", "Ração dos bezerros", "Salário do Zé".
                     </p>
                 </div>
 
                 <div>
-                    <InputLabel value="Descrição do pagamento" />
+                    <InputLabel value="Descrição" />
                     <input v-model="form.descricao" type="text" maxlength="255"
-                           placeholder="Ex: Combustível diesel na Posto da Esquina"
+                           placeholder="Ex: Combustível no posto"
                            class="form-input text-lg py-3">
                     <p v-if="form.errors.descricao" class="text-sm text-red-700 mt-1">{{ form.errors.descricao }}</p>
                 </div>
@@ -148,16 +148,16 @@ function reiniciar() {
                 <div>
                     <InputLabel value="Tipo de gasto (opcional)" />
                     <select v-model="form.category_id" class="form-select text-base py-3">
-                        <option :value="null">Escolha depois</option>
+                        <option :value="null">— Sem tipo —</option>
                         <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nome }}</option>
                     </select>
-                    <p class="text-xs text-slate-500 mt-1">Ajuda a agrupar no relatório de despesas.</p>
+                    <p class="text-xs text-slate-500 mt-1">Ajuda a ver, no fim do mês, onde está saindo mais dinheiro.</p>
                 </div>
 
                 <div>
                     <InputLabel value="Para quem você pagou? (opcional)" />
                     <select v-model="form.partner_id" class="form-select text-base py-3">
-                        <option :value="null">Não informar</option>
+                        <option :value="null">— Não informar —</option>
                         <option v-for="p in fornecedores" :key="p.id" :value="p.id">{{ p.nome }}</option>
                     </select>
                 </div>
@@ -174,7 +174,7 @@ function reiniciar() {
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">Quanto foi?</h2>
                     <p class="text-base text-slate-600 mt-2">
-                        Valor da despesa e quando ela vence ou foi paga.
+                        Informe o valor e quando o pagamento acontece.
                     </p>
                 </div>
 
@@ -203,13 +203,13 @@ function reiniciar() {
                 </div>
 
                 <div>
-                    <InputLabel :value="form.status === 'pago' ? 'Quando foi pago?' : 'Quando vence?'" />
+                    <InputLabel :value="form.status === 'pago' ? 'Quando foi pago?' : 'Até quando precisa pagar?'" />
                     <InputDate v-model="form.data_vencimento" />
                     <p v-if="form.errors.data_vencimento" class="text-sm text-red-700 mt-1">{{ form.errors.data_vencimento }}</p>
                 </div>
 
                 <div>
-                    <InputLabel value="De onde saiu/sai o dinheiro?" />
+                    <InputLabel :value="form.status === 'pago' ? 'De onde saiu o dinheiro?' : 'De onde vai sair o dinheiro?'" />
                     <select v-model="form.account_id" class="form-select text-base py-3">
                         <option v-for="c in contas" :key="c.id" :value="c.id">{{ c.nome }}</option>
                     </select>
@@ -230,10 +230,12 @@ function reiniciar() {
                 <div class="space-y-3">
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-xs uppercase tracking-wider text-slate-500">O que foi</div>
+                            <div class="text-xs uppercase tracking-wider text-slate-500">O gasto</div>
                             <div class="font-semibold text-slate-900 mt-1">{{ form.descricao }}</div>
-                            <div v-if="categoriaNome" class="text-sm text-slate-500 mt-0.5">Categoria: {{ categoriaNome }}</div>
-                            <div v-if="fornecedorNome" class="text-sm text-slate-500">Pagou para: {{ fornecedorNome }}</div>
+                            <div v-if="categoriaNome" class="text-sm text-slate-500 mt-0.5">Tipo: {{ categoriaNome }}</div>
+                            <div v-if="fornecedorNome" class="text-sm text-slate-500">
+                                {{ form.status === 'pago' ? 'Pagou para:' : 'Para:' }} {{ fornecedorNome }}
+                            </div>
                         </div>
                         <button @click="irPara(1)" class="text-sm text-macaybas-primary hover:underline flex-shrink-0">Trocar</button>
                     </div>

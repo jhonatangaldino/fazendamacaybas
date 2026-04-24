@@ -147,7 +147,7 @@ function reiniciar() {
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">Qual animal você quer pesar?</h2>
                     <p class="text-base text-slate-600 mt-2">
-                        A lista mostra só os animais que estão na fazenda. Escolha um clicando no quadrinho.
+                        A lista mostra só os animais que estão na fazenda. Toque em um animal para escolher.
                     </p>
                     <p v-if="animais.length === 0" class="text-sm text-amber-700 mt-2">
                         Nenhum animal disponível. Cadastre um animal antes de registrar peso.
@@ -211,15 +211,18 @@ function reiniciar() {
                 </div>
 
                 <div>
-                    <InputLabel value="Peso em kg" />
-                    <input v-model="form.peso" type="number" step="0.1" min="0" inputmode="decimal"
+                    <InputLabel value="Peso em quilos" />
+                    <!-- type=text + inputmode=decimal: aceita vírgula OU ponto. Conversão acontece em confirmar(). -->
+                    <input v-model="form.peso" type="text" inputmode="decimal"
                            placeholder="Ex: 450,5"
-                           class="form-input text-2xl py-4 font-mono w-full">
+                           class="form-input text-2xl py-4 font-mono w-full"
+                           @input="form.peso = form.peso.replace(/[^0-9.,]/g, '')">
+                    <p class="text-xs text-slate-500 mt-1">Pode usar vírgula (450,5) ou ponto (450.5).</p>
                     <p v-if="form.errors.peso" class="text-sm text-red-700 mt-1">{{ form.errors.peso }}</p>
                 </div>
 
                 <div>
-                    <InputLabel value="Quando foi a pesagem?" />
+                    <InputLabel value="Quando você pesou?" />
                     <InputDate v-model="form.data_evento" :max="hojeBR()" />
                     <p v-if="form.errors.data" class="text-sm text-red-700 mt-1">{{ form.errors.data }}</p>
                 </div>
@@ -244,7 +247,7 @@ function reiniciar() {
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
                     <p class="text-base text-slate-600 mt-2">
-                        Revise antes de salvar. Você pode trocar qualquer informação clicando no botão.
+                        Antes de salvar, dê uma olhada. Se precisar mudar algo, clique em <strong>Trocar</strong> ao lado da informação.
                     </p>
                 </div>
 
@@ -278,7 +281,7 @@ function reiniciar() {
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
                     <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
-                        {{ form.processing ? 'Salvando…' : 'Confirmar e salvar ✓' }}
+                        {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
             </div>

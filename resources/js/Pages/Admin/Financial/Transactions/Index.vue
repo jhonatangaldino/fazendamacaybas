@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -52,18 +52,53 @@ const statusBadge = (s) => ({
     atrasado: 'badge-red',
     cancelado: 'badge-slate',
 })[s] || 'badge-slate';
+
+// Hub v4 · Modo "Pagar contas" — quando o usuário chega via card do Hub
+// com ?status=pendente&tipo=despesa, a tela troca de "Lançamentos financeiros"
+// (título técnico) para "Contas a pagar" com banner instrutivo.
+const modoPagar = computed(() =>
+    props.filters?.status === 'pendente' && props.filters?.tipo === 'despesa'
+);
+const modoReceber = computed(() =>
+    props.filters?.status === 'pendente' && props.filters?.tipo === 'receita'
+);
 </script>
 
 <template>
-    <Head title="Lançamentos financeiros" />
+    <Head :title="modoPagar ? 'Contas a pagar' : modoReceber ? 'Contas a receber' : 'Lançamentos financeiros'" />
     <AdminLayout>
         <template #page-title>Financeiro</template>
 
-        <PageHeader title="Lançamentos financeiros" subtitle="Contas a pagar, contas a receber e fluxo de caixa">
+        <PageHeader
+            :title="modoPagar ? 'Contas a pagar' : modoReceber ? 'Contas a receber' : 'Lançamentos financeiros'"
+            :subtitle="modoPagar ? 'Veja abaixo o que ainda não foi pago. Clique em \'Marcar como pago\' para dar baixa.' : (modoReceber ? 'O que ainda está para cair no caixa. Clique em \'Registrar recebimento\' para dar baixa.' : 'Contas a pagar, contas a receber e fluxo de caixa')"
+        >
             <template #actions>
                 <Link :href="route('admin.financeiro.transacoes.create')" class="btn-primary">Novo lançamento</Link>
             </template>
         </PageHeader>
+
+        <!-- Banner contextual quando chega pelo card do Hub "Pagar conta" / "Receber pagamento" -->
+        <div v-if="modoPagar" class="mb-6 p-4 rounded-xl border-l-4 border-amber-400 bg-amber-50 flex items-start gap-3">
+            <span class="text-2xl flex-shrink-0" aria-hidden="true">💳</span>
+            <div class="min-w-0 flex-1">
+                <div class="font-semibold text-amber-900">Contas a pagar</div>
+                <div class="text-sm text-amber-800 mt-0.5">
+                    Cada linha abaixo é uma conta que ainda não foi paga. Clique no botão <strong>verde ✓</strong> ao lado de cada conta para marcá-la como paga.
+                </div>
+            </div>
+            <Link :href="route('admin.financeiro.transacoes.index')" class="text-xs text-amber-800 hover:underline flex-shrink-0">Ver tudo</Link>
+        </div>
+        <div v-else-if="modoReceber" class="mb-6 p-4 rounded-xl border-l-4 border-emerald-400 bg-emerald-50 flex items-start gap-3">
+            <span class="text-2xl flex-shrink-0" aria-hidden="true">💰</span>
+            <div class="min-w-0 flex-1">
+                <div class="font-semibold text-emerald-900">Contas a receber</div>
+                <div class="text-sm text-emerald-800 mt-0.5">
+                    Dinheiro que ainda está para cair. Clique no <strong>✓</strong> ao lado da conta para marcar como recebida.
+                </div>
+            </div>
+            <Link :href="route('admin.financeiro.transacoes.index')" class="text-xs text-emerald-800 hover:underline flex-shrink-0">Ver tudo</Link>
+        </div>
 
         <!-- KPIs clicáveis — filtram o tipo correspondente -->
         <div class="grid gap-4 sm:grid-cols-3 mb-6">
@@ -144,7 +179,9 @@ const statusBadge = (s) => ({
             </template>
             <template #cell-acoes="{ row }">
                 <div class="flex items-center gap-1 justify-end">
-                    <ActionIcon v-if="row.status === 'pendente'" type="pay" title="Registrar pagamento" @click="askPay(row)" />
+                    <ActionIcon v-if="row.status === 'pendente'" type="pay"
+                                :title="row.tipo === 'receita' ? 'Marcar como recebida' : 'Marcar como paga'"
+                                @click="askPay(row)" />
                     <Link :href="route('admin.financeiro.transacoes.edit', row.id)" class="inline-flex">
                         <ActionIcon type="edit" title="Editar lançamento" />
                     </Link>
@@ -153,25 +190,29 @@ const statusBadge = (s) => ({
             </template>
         </DataTable>
 
-        <!-- Modal: Registrar pagamento -->
+        <!-- Modal: Marcar como pago -->
         <Teleport to="body">
             <div v-if="payModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="payModal = null"></div>
                 <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-                    <h3 class="text-lg font-semibold text-slate-900 mb-1">Registrar pagamento</h3>
-                    <p class="text-sm text-slate-500 mb-4">Lançamento: <strong>{{ payModal.descricao }}</strong> ({{ brl(payModal.valor) }})</p>
+                    <h3 class="text-lg font-semibold text-slate-900 mb-1">
+                        {{ payModal.tipo === 'receita' ? 'Marcar como recebida' : 'Marcar conta como paga' }}
+                    </h3>
+                    <p class="text-sm text-slate-500 mb-4">
+                        <strong>{{ payModal.descricao }}</strong> · <strong class="text-slate-900">{{ brl(payModal.valor) }}</strong>
+                    </p>
                     <div class="space-y-3">
                         <div>
-                            <InputLabel value="Data de pagamento *" />
+                            <InputLabel :value="payModal.tipo === 'receita' ? 'Quando o dinheiro caiu?' : 'Quando você pagou?'" />
                             <InputDate v-model="payForm.data_pagamento" :max="new Date().toISOString().slice(0,10)" required />
                             <p v-if="payForm.errors.data_pagamento" class="text-xs text-red-600 mt-1">{{ payForm.errors.data_pagamento }}</p>
                         </div>
                         <div>
-                            <InputLabel value="Forma de pagamento" />
+                            <InputLabel :value="payModal.tipo === 'receita' ? 'Como recebeu?' : 'Como pagou?'" />
                             <select v-model="payForm.forma_pagamento" class="form-select">
                                 <option value="pix">PIX</option>
                                 <option value="dinheiro">Dinheiro</option>
-                                <option value="transferencia">Transferência</option>
+                                <option value="transferencia">Transferência bancária</option>
                                 <option value="boleto">Boleto</option>
                                 <option value="cartao">Cartão</option>
                                 <option value="cheque">Cheque</option>
@@ -182,7 +223,7 @@ const statusBadge = (s) => ({
                     <div class="mt-5 flex justify-end gap-2">
                         <button @click="payModal = null" class="btn-outline">Cancelar</button>
                         <button @click="confirmPay" :disabled="payForm.processing" class="btn-primary bg-emerald-600 hover:bg-emerald-700">
-                            {{ payForm.processing ? 'Registrando...' : 'Confirmar pagamento' }}
+                            {{ payForm.processing ? 'Salvando…' : 'Confirmar' }}
                         </button>
                     </div>
                 </div>
