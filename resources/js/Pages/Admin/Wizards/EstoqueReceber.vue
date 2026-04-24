@@ -71,12 +71,15 @@ function confirmar() {
         valorTotal: valorTotal.value,
     };
 
+    // Avança OTIMISTA para passo 4 antes do post.
+    sucesso.value = snapshot;
+    passo.value = 4;
+
     form.post(route('admin.fluxos.receber-mercadoria.store'), {
-        preserveState: true,
-        preserveScroll: true,
-        onSuccess: () => {
-            sucesso.value = snapshot;
-            passo.value = 4;
+        preserveScroll: false,
+        onError: () => {
+            sucesso.value = null;
+            passo.value = 3;
         },
     });
 }
