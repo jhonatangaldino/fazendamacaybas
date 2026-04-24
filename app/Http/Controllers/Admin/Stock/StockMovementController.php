@@ -56,7 +56,11 @@ class StockMovementController extends Controller
             'observacoes' => ['nullable', 'string'],
         ]);
 
-        $data['valor_total'] = ($data['valor_unitario'] ?? 0) * $data['quantidade'];
+        // Força valor_unitario não-null (coluna é NOT NULL no schema).
+        // Validator aceita nullable para permitir o usuário omitir em ajustes/saídas,
+        // mas o DB exige valor definido — default 0 é seguro e não polui custo médio.
+        $data['valor_unitario'] = $data['valor_unitario'] ?? 0;
+        $data['valor_total'] = $data['valor_unitario'] * $data['quantidade'];
         $data['created_by'] = $request->user()->id;
 
         DB::transaction(function () use ($data, $purchase) {

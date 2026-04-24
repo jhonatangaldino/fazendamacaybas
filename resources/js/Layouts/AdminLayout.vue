@@ -79,11 +79,16 @@ function onAvatarUpdated() {
 }
 
 function can(permission) {
-    return perms.value.includes(permission);
+    // Defensivo: perms pode não ser Array se backend mudou formato
+    const p = perms.value;
+    if (!Array.isArray(p)) return false;
+    return p.includes(permission);
 }
 
 function anyCan(permissions) {
-    return permissions.some((p) => perms.value.includes(p));
+    const p = perms.value;
+    if (!Array.isArray(p)) return false;
+    return permissions.some((x) => p.includes(x));
 }
 
 const menu = computed(() => [
