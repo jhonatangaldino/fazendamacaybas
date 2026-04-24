@@ -24,13 +24,17 @@ class PesagemWizardController extends Controller
 {
     public function create(): Response
     {
+        // photo_url é ACCESSOR (virtual), não coluna — por isso fica fora do select().
+        // O Vue só precisa dos campos abaixo; accessors apareceriam automaticamente
+        // se o front os pedisse, mas listamos colunas reais pra economizar bytes.
         $animais = Animal::ativos()
             ->with(['species:id,nome', 'breed:id,nome', 'lot:id,nome'])
-            ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'breed_id', 'lot_id', 'peso_atual', 'data_nascimento', 'photo_url', 'updated_at')
+            ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'breed_id', 'lot_id', 'peso_atual', 'data_nascimento', 'photo_path', 'updated_at')
             ->orderByDesc('updated_at')
             ->orderBy('identificacao')
             ->limit(200)
-            ->get();
+            ->get()
+            ->append('photo_url'); // hydrate o accessor pra envio ao Inertia
 
         return Inertia::render('Admin/Wizards/Pesagem', [
             'animais' => $animais,

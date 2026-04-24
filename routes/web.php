@@ -242,8 +242,13 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
             ->middleware('permission:operational.rebanho.eventos.create')->name('pesar-animal');
         Route::get('registrar-despesa', [DespesaWizardController::class, 'create'])
             ->middleware('permission:operational.financeiro.transacoes.create')->name('registrar-despesa');
+        Route::post('registrar-despesa', [DespesaWizardController::class, 'store'])
+            ->middleware('permission:operational.financeiro.transacoes.create')->name('registrar-despesa.store');
+
         Route::get('registrar-receita', [ReceitaWizardController::class, 'create'])
             ->middleware('permission:operational.financeiro.transacoes.create')->name('registrar-receita');
+        Route::post('registrar-receita', [ReceitaWizardController::class, 'store'])
+            ->middleware('permission:operational.financeiro.transacoes.create')->name('registrar-receita.store');
         Route::get('aplicar-produto', [AplicacaoWizardController::class, 'create'])
             ->middleware('permission:operational.agricola.aplicacoes.create')->name('aplicar-produto');
         Route::get('arrumar-maquina', [ManutencaoWizardController::class, 'create'])

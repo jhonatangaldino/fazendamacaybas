@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Admin\Wizards;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Financial\FinancialAccount;
+use App\Models\Financial\FinancialTransaction;
 use App\Models\Partner;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,5 +37,31 @@ class ReceitaWizardController extends Controller
                 ->orderBy('nome')
                 ->get(['id', 'nome']),
         ]);
+    }
+
+    /**
+     * Endpoint de submit do wizard — usa `back()` pra manter URL do wizard
+     * e acionar o `onSuccess` que avança ao passo "Pronto!".
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'account_id' => ['required', 'exists:financial_accounts,id'],
+            'category_id' => ['nullable', 'exists:categories,id'],
+            'partner_id' => ['nullable', 'exists:partners,id'],
+            'descricao' => ['required', 'string', 'max:255'],
+            'valor' => ['required', 'numeric', 'gt:0'],
+            'data_vencimento' => ['required', 'date'],
+            'data_pagamento' => ['nullable', 'date'],
+            'status' => ['required', 'in:pendente,pago,atrasado,cancelado'],
+            'observacoes' => ['nullable', 'string'],
+        ]);
+
+        $data['tipo'] = 'receita';
+        $data['created_by'] = $request->user()->id;
+
+        FinancialTransaction::create($data);
+
+        return back()->with('success', 'Receita registrada.');
     }
 }

@@ -79,7 +79,7 @@ function confirmar() {
     }
     form.valor = parseFloat(String(form.valor).replace(',', '.'));
 
-    form.post(route('admin.financeiro.transacoes.store'), {
+    form.post(route('admin.fluxos.registrar-despesa.store'), {
         preserveScroll: false,
         onSuccess: () => {
             sucesso.value = {
