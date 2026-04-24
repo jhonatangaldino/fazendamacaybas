@@ -8,6 +8,9 @@ use App\Http\Controllers\Admin\Wizards\DespesaWizardController;
 use App\Http\Controllers\Admin\Wizards\ReceitaWizardController;
 use App\Http\Controllers\Admin\Wizards\AplicacaoWizardController;
 use App\Http\Controllers\Admin\Wizards\ManutencaoWizardController;
+use App\Http\Controllers\Admin\Wizards\EventoRebanhoWizardController;
+use App\Http\Controllers\Admin\Wizards\TarefaWizardController;
+use App\Http\Controllers\Admin\Wizards\EstoqueWizardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
 use App\Http\Controllers\Admin\PendingPaymentController;
@@ -253,6 +256,25 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
             ->middleware('permission:operational.agricola.aplicacoes.create')->name('aplicar-produto');
         Route::get('arrumar-maquina', [ManutencaoWizardController::class, 'create'])
             ->middleware('permission:operational.maquinas.manutencoes.create')->name('arrumar-maquina');
+
+        // Onda 2 — EventoRebanho serve 6 cards via ?tipo=X
+        Route::get('evento-rebanho', [EventoRebanhoWizardController::class, 'create'])
+            ->middleware('permission:operational.rebanho.eventos.create')->name('evento-rebanho');
+
+        Route::get('criar-tarefa', [TarefaWizardController::class, 'create'])
+            ->middleware('permission:operational.funcionarios.tarefas.create')->name('criar-tarefa');
+        Route::post('criar-tarefa', [TarefaWizardController::class, 'store'])
+            ->middleware('permission:operational.funcionarios.tarefas.create')->name('criar-tarefa.store');
+
+        Route::get('receber-mercadoria', [EstoqueWizardController::class, 'receber'])
+            ->middleware('permission:operational.estoque.movimentos.create')->name('receber-mercadoria');
+        Route::post('receber-mercadoria', [EstoqueWizardController::class, 'storeReceber'])
+            ->middleware('permission:operational.estoque.movimentos.create')->name('receber-mercadoria.store');
+
+        Route::get('ajustar-estoque', [EstoqueWizardController::class, 'ajustar'])
+            ->middleware('permission:operational.estoque.movimentos.create')->name('ajustar-estoque');
+        Route::post('ajustar-estoque', [EstoqueWizardController::class, 'storeAjustar'])
+            ->middleware('permission:operational.estoque.movimentos.create')->name('ajustar-estoque.store');
     });
 
     // ------- FAZENDA (seleção e troca) -------
