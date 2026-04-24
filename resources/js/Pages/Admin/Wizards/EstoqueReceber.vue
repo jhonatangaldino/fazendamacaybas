@@ -64,15 +64,18 @@ function confirmar() {
     form.quantidade = parseFloat(String(form.quantidade).replace(',', '.'));
     if (form.valor_unitario) form.valor_unitario = parseFloat(String(form.valor_unitario).replace(',', '.'));
 
+    const snapshot = {
+        item: itemAtual.value?.nome,
+        quantidade: form.quantidade,
+        unidade: itemAtual.value?.unidade,
+        valorTotal: valorTotal.value,
+    };
+
     form.post(route('admin.fluxos.receber-mercadoria.store'), {
-        preserveScroll: false,
+        preserveState: true,
+        preserveScroll: true,
         onSuccess: () => {
-            sucesso.value = {
-                item: itemAtual.value?.nome,
-                quantidade: form.quantidade,
-                unidade: itemAtual.value?.unidade,
-                valorTotal: valorTotal.value,
-            };
+            sucesso.value = snapshot;
             passo.value = 4;
         },
     });

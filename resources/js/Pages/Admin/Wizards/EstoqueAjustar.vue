@@ -59,14 +59,19 @@ function irPara(n) { passo.value = n; }
 function confirmar() {
     form.quantidade = parseFloat(String(form.quantidade).replace(',', '.'));
 
+    // Snapshot ANTES do post (porque o redirect pode recriar o componente
+    // e computed's derivados do form ficariam vazios)
+    const snapshot = {
+        item: itemAtual.value?.nome,
+        quantidade: form.quantidade,
+        unidade: itemAtual.value?.unidade,
+    };
+
     form.post(route('admin.fluxos.ajustar-estoque.store'), {
-        preserveScroll: false,
+        preserveState: true,
+        preserveScroll: true,
         onSuccess: () => {
-            sucesso.value = {
-                item: itemAtual.value?.nome,
-                quantidade: form.quantidade,
-                unidade: itemAtual.value?.unidade,
-            };
+            sucesso.value = snapshot;
             passo.value = 4;
         },
     });
