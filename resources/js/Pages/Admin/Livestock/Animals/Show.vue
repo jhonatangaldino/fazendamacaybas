@@ -305,6 +305,8 @@ const eventoLabel = (tipo) => ({
                                 <option value="medicacao">💊 Medicação</option>
                                 <option value="reproducao">❤️ Reprodução</option>
                                 <option value="movimentacao">🔄 Movimentação (troca de lote)</option>
+                                <option value="venda">💰 Venda (encerra ciclo · gera receita)</option>
+                                <option value="mortalidade">⚰️ Mortalidade (encerra ciclo)</option>
                                 <option value="observacao">📝 Observação</option>
                             </select>
                         </div>

@@ -45,7 +45,7 @@
     {
       "module": "Parceiros",
       "action": "CREATE PF com CPF válido",
-      "ok": false,
+      "ok": true,
       "detail": ""
     },
     {
@@ -91,38 +91,7 @@
       "detail": ""
     }
   ],
-  "errs": [
-    {
-      "url": "https://fazendamacaybas.com.br/login",
-      "type": "page",
-      "text": "e.includes is not a function"
-    },
-    {
-      "url": "https://fazendamacaybas.com.br/admin/estoque/itens/novo",
-      "type": "page",
-      "text": "e.includes is not a function"
-    },
-    {
-      "url": "https://fazendamacaybas.com.br/admin/estoque/movimentos",
-      "type": "page",
-      "text": "e.includes is not a function"
-    },
-    {
-      "url": "https://fazendamacaybas.com.br/admin/financeiro/transacoes/novo",
-      "type": "page",
-      "text": "e.includes is not a function"
-    },
-    {
-      "url": "https://fazendamacaybas.com.br/admin/parceiros/novo",
-      "type": "page",
-      "text": "e.includes is not a function"
-    },
-    {
-      "url": "https://fazendamacaybas.com.br/admin/maquinas/veiculos",
-      "type": "page",
-      "text": "e.includes is not a function"
-    }
-  ],
-  "pass": 12,
-  "fail": 3
+  "errs": [],
+  "pass": 13,
+  "fail": 2
 }

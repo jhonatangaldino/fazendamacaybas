@@ -1,0 +1,229 @@
+{
+  "results": [
+    {
+      "module": "Auth",
+      "action": "Login dono_fazenda",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Parceiros",
+      "action": "CREATE · aparece na lista",
+      "ok": true,
+      "detail": "id=17"
+    },
+    {
+      "module": "Parceiros",
+      "action": "UPDATE · edição refletida",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Parceiros",
+      "action": "DELETE · removido da lista",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Rebanho",
+      "action": "Pesagem · novo evento no histórico",
+      "ok": true,
+      "detail": "4→5"
+    },
+    {
+      "module": "Rebanho",
+      "action": "Pesagem · peso_atual atualiza",
+      "ok": true,
+      "detail": "600.00 → 456.7"
+    },
+    {
+      "module": "Estoque",
+      "action": "CREATE · aparece na lista",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Estoque",
+      "action": "UPDATE · edição refletida",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Estoque",
+      "action": "DELETE/toggle · removido ou desativado",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Financeiro",
+      "action": "CREATE · aparece na lista",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Financeiro",
+      "action": "UPDATE · edição refletida",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Tarefas",
+      "action": "EXCEÇÃO",
+      "ok": false,
+      "detail": "locator.check: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"checkbox\"][value]').first()\u001b[22m\n"
+    },
+    {
+      "module": "Máquinas",
+      "action": "CREATE · aparece na lista",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Funcionários",
+      "action": "CREATE CLT · aparece na lista",
+      "ok": false,
+      "detail": ""
+    },
+    {
+      "module": "Wizard F4.1",
+      "action": "Tem comprador cadastrado",
+      "ok": false,
+      "detail": "lista vazia"
+    },
+    {
+      "module": "Integração F2.1",
+      "action": "Algum animal aparece como vendido",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Integração F2.1",
+      "action": "FT receita aparece no financeiro",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Mobile",
+      "action": "Login funciona no celular",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "module": "Mobile",
+      "action": "Dashboard carrega",
+      "ok": true,
+      "detail": "component=Admin/Dashboard"
+    },
+    {
+      "module": "Mobile",
+      "action": "Rebanho carrega",
+      "ok": true,
+      "detail": "component=Admin/Livestock/Animals/Index"
+    },
+    {
+      "module": "Mobile",
+      "action": "Rebanho · botão primário ≥ 40px",
+      "ok": true,
+      "detail": "48px"
+    },
+    {
+      "module": "Mobile",
+      "action": "Estoque carrega",
+      "ok": true,
+      "detail": "component=Admin/Stock/Items/Index"
+    },
+    {
+      "module": "Mobile",
+      "action": "Estoque · botão primário ≥ 40px",
+      "ok": true,
+      "detail": "72px"
+    },
+    {
+      "module": "Mobile",
+      "action": "Financeiro carrega",
+      "ok": true,
+      "detail": "component=Admin/Financial/Transactions/Index"
+    },
+    {
+      "module": "Mobile",
+      "action": "Financeiro · botão primário ≥ 40px",
+      "ok": true,
+      "detail": "48px"
+    },
+    {
+      "module": "Mobile",
+      "action": "Parceiros carrega",
+      "ok": true,
+      "detail": "component=Admin/Partners/Index"
+    },
+    {
+      "module": "Mobile",
+      "action": "Parceiros · botão primário ≥ 40px",
+      "ok": true,
+      "detail": "48px"
+    },
+    {
+      "module": "Mobile",
+      "action": "Máquinas carrega",
+      "ok": true,
+      "detail": "component=Admin/Vehicle/Vehicles/Index"
+    },
+    {
+      "module": "Mobile",
+      "action": "Máquinas · botão primário ≥ 40px",
+      "ok": true,
+      "detail": "48px"
+    },
+    {
+      "module": "Mobile",
+      "action": "Tarefas carrega",
+      "ok": true,
+      "detail": "component=Admin/Tasks/Index"
+    },
+    {
+      "module": "Mobile",
+      "action": "Tarefas · botão primário ≥ 40px",
+      "ok": true,
+      "detail": "48px"
+    },
+    {
+      "module": "Mobile",
+      "action": "Documentos carrega",
+      "ok": true,
+      "detail": "component=Admin/Documents/Index"
+    },
+    {
+      "module": "Mobile",
+      "action": "Documentos · botão primário ≥ 40px",
+      "ok": true,
+      "detail": "48px"
+    },
+    {
+      "module": "Mobile",
+      "action": "Funcionários carrega",
+      "ok": true,
+      "detail": "component=Admin/Employees/Index"
+    },
+    {
+      "module": "Mobile",
+      "action": "Funcionários · botão primário ≥ 40px",
+      "ok": true,
+      "detail": "48px"
+    },
+    {
+      "module": "Mobile",
+      "action": "Wizard F4.1 carrega",
+      "ok": true,
+      "detail": "component=Admin/SaleWizard/Index"
+    },
+    {
+      "module": "Mobile",
+      "action": "Wizard F4.1 · botão primário ≥ 40px",
+      "ok": true,
+      "detail": "44px"
+    }
+  ],
+  "errs": [],
+  "pass": 34,
+  "fail": 3
+}
