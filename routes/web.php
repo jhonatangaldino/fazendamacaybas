@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\Agricultural\AgriculturalController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HubController;
 use App\Http\Controllers\Admin\FarmSelectionController;
 use App\Http\Controllers\Admin\MenuUsageController;
 use App\Http\Controllers\Admin\PendingPaymentController;
@@ -205,13 +206,23 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
 //   estão na whitelist interna do middleware.
 Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.farm'])
     ->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', fn () => redirect()->route('admin.dashboard'));
+    // Raiz do admin → Hub "O que você quer fazer?" (nova porta de entrada).
+    // Antes redirecionava pro dashboard; agora o dashboard é um destino secundário
+    // (painel de números), acessível via sidebar e via link "Abrir painel de números"
+    // no rodapé do Hub.
+    Route::get('/', fn () => redirect()->route('admin.inicio'));
 
     // Tela "acesso bloqueado por inadimplência" — whitelisted no enforce.subscription.
     // Única rota /admin acessível para tenant com subscription overdue.
     // Exibe PIX copia-e-cola das invoices em aberto do próprio tenant.
     Route::get('pagamento-pendente', [PendingPaymentController::class, 'show'])
         ->name('pagamento-pendente');
+
+    // Hub de ações — porta de entrada do sistema.
+    // Não tem `permission:` no middleware: o Hub sempre renderiza; a filtragem
+    // das 27 operações por permissão acontece no front. Usuário sem nenhuma
+    // permissão vê estado vazio amigável (não 403).
+    Route::get('inicio', [HubController::class, 'index'])->name('inicio');
 
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:operational.dashboard.view')->name('dashboard');

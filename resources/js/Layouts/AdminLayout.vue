@@ -95,6 +95,9 @@ const menu = computed(() => [
     {
         section: 'Principal',
         items: [
+            // Início (Hub "O que você quer fazer?") — porta de entrada do sistema.
+            // Sem `perm`: sempre visível pra qualquer usuário logado.
+            { label: 'Início', route: 'admin.inicio', icon: 'home', perm: null },
             { label: 'Dashboard', route: 'admin.dashboard', icon: 'dashboard', perm: 'operational.dashboard.view' },
         ],
     },
@@ -135,7 +138,9 @@ const menu = computed(() => [
 const visibleMenu = computed(() =>
     menu.value
         .map((section) => {
-            const allowed = section.items.filter((i) => can(i.perm));
+            // `perm: null` → item sempre visível (ex: Início).
+            // Senão, exige a permissão nomeada.
+            const allowed = section.items.filter((i) => i.perm == null || can(i.perm));
             if (section.section === 'Operação') {
                 const indexed = allowed.map((item, idx) => ({
                     item,
@@ -158,6 +163,7 @@ function logout() {
 }
 
 const iconPath = {
+    home: 'M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3m10-11l2 2M17 21V10m-8 11h8a1 1 0 001-1v-6h-4v6H9v-6H5v6a1 1 0 001 1h3',
     dashboard: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
     cash: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M3 12a9 9 0 1118 0 9 9 0 01-18 0z',
     cow: 'M12 20.5c-4.5 0-8-3-8-7 0-4 3.5-7.5 8-7.5s8 3.5 8 7.5c0 4-3.5 7-8 7zM9 11h.01M15 11h.01M9 15c1 1 2 1.5 3 1.5s2-.5 3-1.5',
