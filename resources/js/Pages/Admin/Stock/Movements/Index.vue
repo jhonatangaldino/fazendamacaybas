@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, onMounted, computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -85,14 +85,53 @@ const tipoBadge = (t) => ({
     ajuste: 'badge-blue',
     transferencia: 'badge-yellow',
 })[t] || 'badge-slate';
+
+// Hub v4 · Modo contextual — quando o usuário chega pelo card "Registrar
+// saída de estoque" (?novo=1&tipo=saida), a tela exibe título e banner
+// apropriados em vez do genérico "Movimentações de estoque".
+const modoContextual = computed(() => {
+    if (props.filters?.novo !== '1' && !new URLSearchParams(window.location.search).has('novo')) return null;
+    const qs = new URLSearchParams(window.location.search);
+    const tipo = qs.get('tipo') || form.tipo;
+    return tipo;
+});
+const tituloContextual = computed(() => ({
+    entrada: 'Receber mercadoria',
+    saida: 'Registrar saída de estoque',
+    ajuste: 'Ajustar estoque',
+    transferencia: 'Transferir entre armazéns',
+})[modoContextual.value] ?? 'Movimentações de estoque');
+const bannerContextual = computed(() => ({
+    saida: {
+        emoji: '📤',
+        titulo: 'Registrar saída de estoque',
+        texto: 'Quando você usa algum item (ração, vacina, adubo, peça...), anote aqui quanto saiu. O saldo do estoque vai cair automaticamente.',
+        cor: 'amber',
+    },
+    entrada: {
+        emoji: '📦',
+        titulo: 'Receber mercadoria',
+        texto: 'Quando chega um produto novo (compra, doação...), anote aqui quanto entrou. O saldo do estoque vai subir.',
+        cor: 'emerald',
+    },
+    ajuste: {
+        emoji: '🔢',
+        titulo: 'Ajustar estoque',
+        texto: 'Use quando a quantidade real no galpão é diferente do que está no sistema. Anote a diferença (pode ser negativa, se faltou).',
+        cor: 'sky',
+    },
+})[modoContextual.value] ?? null);
 </script>
 
 <template>
-    <Head title="Estoque — Movimentações" />
+    <Head :title="tituloContextual" />
     <AdminLayout>
         <template #page-title>Estoque</template>
 
-        <PageHeader title="Movimentações de estoque" subtitle="Entradas, saídas, ajustes e transferências">
+        <PageHeader
+            :title="tituloContextual"
+            :subtitle="bannerContextual ? '' : 'Entradas, saídas, ajustes e transferências'"
+        >
             <template #actions>
                 <Link :href="route('admin.estoque.index')" class="btn-outline">Voltar</Link>
                 <button @click="showForm = !showForm" class="btn-primary">
@@ -100,6 +139,27 @@ const tipoBadge = (t) => ({
                 </button>
             </template>
         </PageHeader>
+
+        <!-- Banner contextual quando chega pelo card do Hub -->
+        <div v-if="bannerContextual && showForm"
+             class="mb-6 p-4 rounded-xl border-l-4 flex items-start gap-3"
+             :class="{
+                 'bg-amber-50 border-amber-400': bannerContextual.cor === 'amber',
+                 'bg-emerald-50 border-emerald-400': bannerContextual.cor === 'emerald',
+                 'bg-sky-50 border-sky-400': bannerContextual.cor === 'sky',
+             }">
+            <span class="text-2xl flex-shrink-0" aria-hidden="true">{{ bannerContextual.emoji }}</span>
+            <div class="min-w-0 flex-1">
+                <div class="font-semibold"
+                     :class="{ 'text-amber-900': bannerContextual.cor === 'amber', 'text-emerald-900': bannerContextual.cor === 'emerald', 'text-sky-900': bannerContextual.cor === 'sky' }">
+                    {{ bannerContextual.titulo }}
+                </div>
+                <div class="text-sm mt-0.5"
+                     :class="{ 'text-amber-800': bannerContextual.cor === 'amber', 'text-emerald-800': bannerContextual.cor === 'emerald', 'text-sky-800': bannerContextual.cor === 'sky' }">
+                    {{ bannerContextual.texto }}
+                </div>
+            </div>
+        </div>
 
         <!-- Form inline (toggle) -->
         <div v-if="showForm" class="card mb-6">

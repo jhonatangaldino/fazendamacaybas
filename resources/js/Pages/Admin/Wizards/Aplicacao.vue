@@ -139,8 +139,8 @@ function reiniciar() {
         <div v-if="passo === 1" class="card max-w-3xl mx-auto">
             <div class="card-body space-y-5">
                 <div>
-                    <h2 class="text-2xl font-semibold text-slate-900">O que você vai fazer?</h2>
-                    <p class="text-base text-slate-600 mt-2">Escolha a finalidade da aplicação.</p>
+                    <h2 class="text-2xl font-semibold text-slate-900">O que você vai fazer na plantação?</h2>
+                    <p class="text-base text-slate-600 mt-2">Escolha o tipo de aplicação tocando em uma das opções.</p>
                 </div>
 
                 <div class="grid gap-3 sm:grid-cols-2">
@@ -168,13 +168,13 @@ function reiniciar() {
         <div v-if="passo === 2" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
                 <h2 class="text-2xl font-semibold text-slate-900">
-                    {{ finalidadeAtual?.emoji }} {{ finalidadeAtual?.nome }} onde?
+                    Onde e com o quê você vai {{ finalidadeAtual?.nome?.toLowerCase() }}?
                 </h2>
 
                 <div>
                     <InputLabel value="Em qual talhão?" />
                     <select v-model="form.field_id" class="form-select text-base py-3">
-                        <option :value="null">Escolha o talhão…</option>
+                        <option :value="null">— Escolha o talhão —</option>
                         <option v-for="t in talhoes" :key="t.id" :value="t.id">
                             {{ t.nome }} ({{ t.area_ha }} ha)
                         </option>
@@ -182,9 +182,9 @@ function reiniciar() {
                 </div>
 
                 <div v-if="plantiosDoTalhao.length > 0">
-                    <InputLabel value="Plantio específico (opcional)" />
+                    <InputLabel value="Qual plantação (opcional)?" />
                     <select v-model="form.planting_id" class="form-select text-base py-3">
-                        <option :value="null">Aplicação no talhão inteiro</option>
+                        <option :value="null">— Aplicar no talhão inteiro —</option>
                         <option v-for="p in plantiosDoTalhao" :key="p.id" :value="p.id">
                             {{ p.crop?.nome }} — plantado em {{ dataBR(p.data_plantio) }}
                         </option>
@@ -192,16 +192,16 @@ function reiniciar() {
                 </div>
 
                 <div>
-                    <InputLabel value="Qual produto?" />
+                    <InputLabel value="Nome do produto" />
                     <input v-model="form.produto" type="text" maxlength="200"
                            list="produtos-estoque"
-                           placeholder="Ex: Ureia 45%, Glifosato 480, Roundup…"
+                           placeholder="Ex: Ureia, Glifosato, Calcário dolomítico…"
                            class="form-input text-lg py-3">
                     <datalist id="produtos-estoque">
                         <option v-for="p in produtosEstoque" :key="p.id" :value="p.nome" />
                     </datalist>
                     <p class="text-xs text-slate-500 mt-1">
-                        Se o produto estiver no seu estoque, ele vai dar baixa automaticamente.
+                        Se esse produto já estiver no estoque, ele dá baixa sozinho.
                     </p>
                 </div>
 
@@ -209,24 +209,25 @@ function reiniciar() {
                     <div>
                         <InputLabel value="Quantidade" />
                         <input v-model="form.quantidade" type="number" step="0.1" min="0" inputmode="decimal"
+                               placeholder="Ex: 100"
                                class="form-input text-xl py-3 font-mono">
                     </div>
                     <div>
                         <InputLabel value="Unidade" />
                         <select v-model="form.unidade" class="form-select text-base py-3">
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                            <option value="L">L</option>
-                            <option value="mL">mL</option>
-                            <option value="t">tonelada</option>
+                            <option value="kg">kg (quilos)</option>
+                            <option value="g">g (gramas)</option>
+                            <option value="L">L (litros)</option>
+                            <option value="mL">mL (mililitros)</option>
+                            <option value="t">t (toneladas)</option>
                             <option value="saca">saca</option>
-                            <option value="ha">hectare</option>
+                            <option value="ha">ha (hectares)</option>
                         </select>
                     </div>
                 </div>
 
                 <div>
-                    <InputLabel value="Data da aplicação" />
+                    <InputLabel value="Quando você aplicou?" />
                     <InputDate v-model="form.data_aplicacao" :max="hojeBR()" />
                 </div>
 
@@ -247,7 +248,12 @@ function reiniciar() {
         <!-- PASSO 3 · Conferência -->
         <div v-if="passo === 3" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                <div>
+                    <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                    <p class="text-base text-slate-600 mt-2">
+                        Antes de salvar, dê uma olhada. Se precisar mudar algo, clique em <strong>Trocar</strong> ao lado.
+                    </p>
+                </div>
 
                 <div class="space-y-3">
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
@@ -274,7 +280,7 @@ function reiniciar() {
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
                     <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
-                        {{ form.processing ? 'Salvando…' : 'Confirmar e salvar ✓' }}
+                        {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
             </div>

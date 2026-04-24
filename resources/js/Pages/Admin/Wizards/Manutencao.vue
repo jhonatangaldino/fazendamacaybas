@@ -143,7 +143,7 @@ function emojiVeiculo(tipo) {
             <div class="card-body space-y-5">
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">Qual máquina você quer arrumar?</h2>
-                    <p class="text-base text-slate-600 mt-2">Clique na máquina da lista.</p>
+                    <p class="text-base text-slate-600 mt-2">Toque na máquina para escolher.</p>
                 </div>
 
                 <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -210,37 +210,37 @@ function emojiVeiculo(tipo) {
                 <div>
                     <InputLabel value="Oficina ou mecânico (opcional)" />
                     <select v-model="form.partner_id" class="form-select text-base py-3">
-                        <option :value="null">Não informar</option>
+                        <option :value="null">— Não informar —</option>
                         <option v-for="o in oficinas" :key="o.id" :value="o.id">{{ o.nome }}</option>
                     </select>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <InputLabel value="Valor de peças" />
+                        <InputLabel value="Quanto gastou com peças?" />
                         <InputMoney v-model="form.valor_pecas" class="form-input py-3" />
                     </div>
                     <div>
-                        <InputLabel value="Valor do serviço" />
+                        <InputLabel value="Quanto pagou de mão de obra?" />
                         <InputMoney v-model="form.valor_servico" class="form-input py-3" />
                     </div>
                 </div>
 
                 <div v-if="valorTotal > 0" class="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                    <div class="text-sm text-slate-600">Total da manutenção: <strong class="text-slate-900">{{ brl(valorTotal) }}</strong></div>
+                    <div class="text-sm text-slate-600">Total gasto: <strong class="text-slate-900">{{ brl(valorTotal) }}</strong></div>
 
                     <label class="flex items-start gap-2 mt-3 cursor-pointer">
                         <input type="checkbox" v-model="form.gerar_lancamento_financeiro"
                                class="mt-1 rounded border-slate-300">
                         <span class="text-sm text-slate-700">
-                            Gerar lançamento automático no financeiro (conta a pagar)
+                            Criar <strong>conta a pagar</strong> no financeiro automaticamente
                         </span>
                     </label>
 
                     <div v-if="form.gerar_lancamento_financeiro" class="mt-3">
-                        <InputLabel value="De qual conta financeira?" />
+                        <InputLabel value="De qual conta vai sair o dinheiro?" />
                         <select v-model="form.account_id" class="form-select py-3">
-                            <option :value="null">Escolha a conta…</option>
+                            <option :value="null">— Escolha a conta —</option>
                             <option v-for="c in contas" :key="c.id" :value="c.id">{{ c.nome }}</option>
                         </select>
                     </div>
@@ -256,7 +256,12 @@ function emojiVeiculo(tipo) {
         <!-- PASSO 3 · Conferência -->
         <div v-if="passo === 3" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                <div>
+                    <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                    <p class="text-base text-slate-600 mt-2">
+                        Antes de salvar, dê uma olhada. Se precisar mudar algo, clique em <strong>Trocar</strong> ao lado.
+                    </p>
+                </div>
 
                 <div class="space-y-3">
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
@@ -283,7 +288,7 @@ function emojiVeiculo(tipo) {
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
                     <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
-                        {{ form.processing ? 'Salvando…' : 'Confirmar e salvar ✓' }}
+                        {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
             </div>

@@ -118,7 +118,7 @@ function reiniciar() {
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">De onde veio esse dinheiro?</h2>
                     <p class="text-base text-slate-600 mt-2">
-                        Descrição curta. Exemplos: "Venda de leite — laticínio", "Venda de ovo na feira", "Aluguel da terra".
+                        Descreva a entrada de forma curta. Exemplos: "Venda de leite — laticínio", "Venda de ovo na feira", "Aluguel da terra".
                     </p>
                 </div>
 
@@ -133,15 +133,16 @@ function reiniciar() {
                 <div>
                     <InputLabel value="Tipo de receita (opcional)" />
                     <select v-model="form.category_id" class="form-select text-base py-3">
-                        <option :value="null">Escolha depois</option>
+                        <option :value="null">— Sem tipo —</option>
                         <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nome }}</option>
                     </select>
+                    <p class="text-xs text-slate-500 mt-1">Ajuda a ver, no fim do mês, de onde está vindo mais dinheiro.</p>
                 </div>
 
                 <div>
                     <InputLabel value="De quem recebeu? (opcional)" />
                     <select v-model="form.partner_id" class="form-select text-base py-3">
-                        <option :value="null">Não informar</option>
+                        <option :value="null">— Não informar —</option>
                         <option v-for="c in clientes" :key="c.id" :value="c.id">{{ c.nome }}</option>
                     </select>
                 </div>
@@ -182,12 +183,12 @@ function reiniciar() {
                 </div>
 
                 <div>
-                    <InputLabel :value="form.status === 'pago' ? 'Quando caiu?' : 'Quando vai cair?'" />
+                    <InputLabel :value="form.status === 'pago' ? 'Quando caiu o dinheiro?' : 'Até quando deve cair?'" />
                     <InputDate v-model="form.data_vencimento" />
                 </div>
 
                 <div>
-                    <InputLabel value="Em qual conta entra o dinheiro?" />
+                    <InputLabel :value="form.status === 'pago' ? 'Em qual conta entrou o dinheiro?' : 'Em qual conta vai entrar?'" />
                     <select v-model="form.account_id" class="form-select text-base py-3">
                         <option v-for="c in contas" :key="c.id" :value="c.id">{{ c.nome }}</option>
                     </select>
@@ -203,15 +204,22 @@ function reiniciar() {
         <!-- PASSO 3 -->
         <div v-if="passo === 3" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                <div>
+                    <h2 class="text-2xl font-semibold text-slate-900">Confere os dados?</h2>
+                    <p class="text-base text-slate-600 mt-2">
+                        Antes de salvar, dê uma olhada. Se precisar mudar algo, clique em <strong>Trocar</strong> ao lado.
+                    </p>
+                </div>
 
                 <div class="space-y-3">
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
                         <div class="min-w-0">
                             <div class="text-xs uppercase tracking-wider text-slate-500">De onde veio</div>
                             <div class="font-semibold text-slate-900 mt-1">{{ form.descricao }}</div>
-                            <div v-if="categoriaNome" class="text-sm text-slate-500 mt-0.5">Categoria: {{ categoriaNome }}</div>
-                            <div v-if="clienteNome" class="text-sm text-slate-500">De: {{ clienteNome }}</div>
+                            <div v-if="categoriaNome" class="text-sm text-slate-500 mt-0.5">Tipo: {{ categoriaNome }}</div>
+                            <div v-if="clienteNome" class="text-sm text-slate-500">
+                                {{ form.status === 'pago' ? 'Recebeu de:' : 'De:' }} {{ clienteNome }}
+                            </div>
                         </div>
                         <button @click="irPara(1)" class="text-sm text-macaybas-primary hover:underline flex-shrink-0">Trocar</button>
                     </div>
@@ -232,7 +240,7 @@ function reiniciar() {
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
                     <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
-                        {{ form.processing ? 'Salvando…' : 'Confirmar e salvar ✓' }}
+                        {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
             </div>
