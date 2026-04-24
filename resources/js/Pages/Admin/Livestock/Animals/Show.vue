@@ -88,26 +88,50 @@ function removerEvento(event) {
     });
 }
 
-// Métricas
-const totalPesagens = computed(() => props.pesagens.length);
-const ganhoTotal = computed(() => {
-    if (props.pesagens.length < 2) return null;
-    return props.pesagens[props.pesagens.length - 1].peso - props.pesagens[0].peso;
+// Métricas · ordenação DEFENSIVA (não confia que props.pesagens já veio ordenado)
+// Empate de data → desempata por id (pesagem cadastrada depois fica depois)
+const pesagensOrdenadas = computed(() => {
+    return [...props.pesagens].sort((a, b) => {
+        if (a.data !== b.data) return a.data < b.data ? -1 : 1;
+        return (a.id ?? 0) - (b.id ?? 0);
+    });
 });
+
+const totalPesagens = computed(() => pesagensOrdenadas.value.length);
+
+const primeiraPesagem = computed(() => pesagensOrdenadas.value[0] ?? null);
+const ultimaPesagem = computed(() =>
+    pesagensOrdenadas.value[pesagensOrdenadas.value.length - 1] ?? null,
+);
+
+const ganhoTotal = computed(() => {
+    if (totalPesagens.value < 2) return null;
+    // Diferença entre MAIS RECENTE e MAIS ANTIGA (pode ser negativa se animal perdeu peso)
+    return ultimaPesagem.value.peso - primeiraPesagem.value.peso;
+});
+
 const ganhoMedioDiario = computed(() => {
-    if (props.pesagens.length < 2) return null;
-    const first = props.pesagens[0], last = props.pesagens[props.pesagens.length - 1];
+    if (totalPesagens.value < 2) return null;
+    const first = primeiraPesagem.value, last = ultimaPesagem.value;
     const dias = (new Date(last.data) - new Date(first.data)) / (1000 * 60 * 60 * 24);
     if (dias <= 0) return null;
     return (last.peso - first.peso) / dias;
 });
 
-// Dados do gráfico
+const ganhoSinal = computed(() => {
+    const g = ganhoTotal.value;
+    if (g === null) return 'neutro';
+    if (g > 0.01) return 'positivo';
+    if (g < -0.01) return 'negativo';
+    return 'neutro';
+});
+
+// Dados do gráfico (usa pesagens já ordenadas)
 const chartData = computed(() => ({
-    labels: props.pesagens.map(p => dataBR(p.data)),
+    labels: pesagensOrdenadas.value.map(p => dataBR(p.data)),
     datasets: [{
         label: 'Peso (kg)',
-        data: props.pesagens.map(p => p.peso),
+        data: pesagensOrdenadas.value.map(p => p.peso),
         borderColor: '#166534',
         backgroundColor: 'rgba(22, 101, 52, 0.1)',
         borderWidth: 2,
@@ -208,19 +232,52 @@ const eventoLabel = (tipo) => ({
             </div>
         </div>
 
-        <!-- KPIs -->
+        <!-- KPIs — ganho é MAIS RECENTE − MAIS ANTIGA (pode ser negativo se animal perdeu peso) -->
         <div class="grid gap-4 sm:grid-cols-3 mb-6">
-            <div class="card p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Total de pesagens</div><div class="mt-1 text-xl font-bold text-slate-700">{{ totalPesagens }}</div></div>
             <div class="card p-5">
-                <div class="text-xs uppercase tracking-wider text-slate-500">Ganho total</div>
-                <div class="mt-1 text-xl font-bold" :class="ganhoTotal >= 0 ? 'text-emerald-700' : 'text-red-700'">
-                    {{ ganhoTotal != null ? (ganhoTotal >= 0 ? '+' : '') + ganhoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' kg' : '—' }}
+                <div class="text-xs uppercase tracking-wider text-slate-500">Total de pesagens</div>
+                <div class="mt-1 text-xl font-bold text-slate-700">{{ totalPesagens }}</div>
+                <div v-if="totalPesagens < 2" class="text-xs text-slate-400 mt-1">
+                    Precisa de 2 pesagens para calcular ganho
                 </div>
             </div>
             <div class="card p-5">
-                <div class="text-xs uppercase tracking-wider text-slate-500">Ganho médio diário (GMD)</div>
-                <div class="mt-1 text-xl font-bold text-macaybas-primary">
-                    {{ ganhoMedioDiario != null ? ganhoMedioDiario.toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' kg/dia' : '—' }}
+                <div class="text-xs uppercase tracking-wider text-slate-500">
+                    {{ ganhoSinal === 'negativo' ? 'Perda total' : 'Ganho total' }}
+                </div>
+                <div class="mt-1 text-xl font-bold"
+                     :class="{
+                        'text-emerald-700': ganhoSinal === 'positivo',
+                        'text-red-700': ganhoSinal === 'negativo',
+                        'text-slate-700': ganhoSinal === 'neutro',
+                     }">
+                    {{ ganhoTotal != null ? (ganhoTotal >= 0 ? '+' : '') + ganhoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' kg' : '—' }}
+                </div>
+                <div v-if="ganhoTotal != null && primeiraPesagem && ultimaPesagem" class="text-xs text-slate-500 mt-1">
+                    {{ primeiraPesagem.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} kg
+                    ({{ dataBR(primeiraPesagem.data) }})
+                    →
+                    {{ ultimaPesagem.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} kg
+                    ({{ dataBR(ultimaPesagem.data) }})
+                </div>
+                <div v-if="ganhoSinal === 'negativo'" class="text-xs text-red-600 mt-1">
+                    ⚠ Animal perdeu peso entre a primeira e a última pesagem.
+                </div>
+            </div>
+            <div class="card p-5">
+                <div class="text-xs uppercase tracking-wider text-slate-500">
+                    {{ ganhoSinal === 'negativo' ? 'Perda média diária' : 'Ganho médio diário (GMD)' }}
+                </div>
+                <div class="mt-1 text-xl font-bold"
+                     :class="{
+                        'text-macaybas-primary': ganhoSinal === 'positivo',
+                        'text-red-700': ganhoSinal === 'negativo',
+                        'text-slate-700': ganhoSinal === 'neutro',
+                     }">
+                    {{ ganhoMedioDiario != null ? (ganhoMedioDiario >= 0 ? '+' : '') + ganhoMedioDiario.toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' kg/dia' : '—' }}
+                </div>
+                <div v-if="ganhoMedioDiario != null" class="text-xs text-slate-400 mt-1">
+                    Desde {{ dataBR(primeiraPesagem?.data) }}
                 </div>
             </div>
         </div>

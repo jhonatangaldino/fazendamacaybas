@@ -344,11 +344,15 @@ class AnimalController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        // Série para gráfico de evolução de peso (ordem cronológica)
+        // Série para gráfico de evolução de peso (ordem cronológica ESTÁVEL).
+        // Ordena por data ASC + id ASC como desempate — assim múltiplas pesagens
+        // no mesmo dia mantêm a ordem de inserção e first/last são sempre a
+        // mais antiga / mais recente de verdade.
         $pesagens = $events->where('tipo', 'pesagem')
-            ->sortBy('data')
+            ->sortBy(fn ($e) => sprintf('%s-%010d', $e->data?->format('Y-m-d') ?? '9999-12-31', $e->id))
             ->values()
             ->map(fn ($e) => [
+                'id' => $e->id,
                 'data' => $e->data?->toDateString(),
                 'peso' => (float) $e->peso,
             ]);
