@@ -133,42 +133,177 @@ const diasEntrePesagens = computed(() => {
     return dias > 0 ? dias : 0;
 });
 
-// Dados do gráfico (usa pesagens já ordenadas)
-const chartData = computed(() => ({
-    labels: pesagensOrdenadas.value.map(p => dataBR(p.data)),
-    datasets: [{
-        label: 'Peso (kg)',
-        data: pesagensOrdenadas.value.map(p => p.peso),
-        borderColor: '#166534',
-        backgroundColor: 'rgba(22, 101, 52, 0.1)',
-        borderWidth: 2,
-        tension: 0.25,
-        fill: true,
-        pointRadius: 4,
-        pointHoverRadius: 7,
-        pointBackgroundColor: '#166534',
-    }],
-}));
+/**
+ * Veredito de desempenho baseado em GMD + espécie + categoria.
+ * Benchmarks realistas para bovino de corte em pastagem (referência:
+ * EMBRAPA, 2019 — ganho médio diário esperado por fase).
+ *
+ * Para outras espécies/categorias, devolve classificação genérica
+ * baseada no sinal (ganha/perde).
+ */
+const interpretacao = computed(() => {
+    if (totalPesagens.value < 2) {
+        return {
+            tipo: 'info',
+            titulo: 'Ainda sem avaliação',
+            texto: 'Registre ao menos 2 pesagens em datas diferentes para o sistema avaliar o ganho.',
+        };
+    }
 
-const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: {
-            callbacks: {
-                label: (ctx) => `${ctx.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 1 })} kg`,
+    const gmd = ganhoMedioDiario.value;
+    if (gmd === null) return null;
+
+    const especie = (props.animal?.species?.nome ?? '').toLowerCase();
+    const categoria = (props.animal?.categoria ?? '').toLowerCase();
+    const isBovino = especie.includes('bovino') || especie.includes('búfalo');
+    const isCorte = categoria === 'corte' || categoria === 'misto';
+
+    // PERDA (qualquer espécie)
+    if (gmd < -0.01) {
+        return {
+            tipo: 'alerta',
+            titulo: 'O animal está perdendo peso',
+            texto: 'Isso é sinal de problema. Verifique alimentação, saúde e condições do pasto. Se continuar, chame o veterinário.',
+        };
+    }
+
+    // GANHO - benchmarks por espécie
+    if (isBovino && isCorte) {
+        if (gmd < 0.3) {
+            return {
+                tipo: 'aviso',
+                titulo: 'Ganho abaixo do esperado',
+                texto: `${gmd.toFixed(3)} kg/dia é pouco para boi de corte. O ideal é acima de 0,7 kg/dia. Avalie a qualidade do pasto e a suplementação.`,
+            };
+        }
+        if (gmd < 0.7) {
+            return {
+                tipo: 'regular',
+                titulo: 'Ganho regular',
+                texto: `${gmd.toFixed(3)} kg/dia — está ganhando peso, mas dá para melhorar. Boi de corte saudável em boa pastagem faz entre 0,7 e 1,2 kg/dia.`,
+            };
+        }
+        if (gmd < 1.2) {
+            return {
+                tipo: 'bom',
+                titulo: 'Ganho bom',
+                texto: `${gmd.toFixed(3)} kg/dia está dentro do esperado para boi de corte em pastagem. Continue o manejo atual.`,
+            };
+        }
+        if (gmd < 1.8) {
+            return {
+                tipo: 'excelente',
+                titulo: 'Ganho excelente',
+                texto: `${gmd.toFixed(3)} kg/dia é um ritmo ótimo — típico de confinamento ou pastagem de alta qualidade.`,
+            };
+        }
+        return {
+            tipo: 'excelente',
+            titulo: 'Ganho excepcional',
+            texto: `${gmd.toFixed(3)} kg/dia é muito alto. Confirme se as pesagens foram feitas corretamente — pode haver erro de medição.`,
+        };
+    }
+
+    // Outras espécies — genérico positivo
+    return {
+        tipo: 'bom',
+        titulo: 'O animal está ganhando peso',
+        texto: `Ganhou em média ${gmd.toFixed(3)} kg por dia. Para ${especie || 'esta espécie'}, acompanhe a evolução ao longo do tempo.`,
+    };
+});
+
+const interpretacaoClass = computed(() => ({
+    alerta:    'bg-red-50 border-red-200 text-red-900',
+    aviso:     'bg-amber-50 border-amber-200 text-amber-900',
+    regular:   'bg-amber-50 border-amber-200 text-amber-900',
+    bom:       'bg-emerald-50 border-emerald-200 text-emerald-900',
+    excelente: 'bg-emerald-50 border-emerald-300 text-emerald-900',
+    info:      'bg-slate-50 border-slate-200 text-slate-700',
+}[interpretacao.value?.tipo] ?? 'bg-slate-50 border-slate-200 text-slate-700'));
+
+const interpretacaoIcone = computed(() => ({
+    alerta:    '🚨',
+    aviso:     '⚠️',
+    regular:   '⚖️',
+    bom:       '✅',
+    excelente: '🌟',
+    info:      'ℹ️',
+}[interpretacao.value?.tipo] ?? 'ℹ️'));
+
+// Dados do gráfico — destaca último ponto (maior) + cor da linha conforme tendência
+const chartData = computed(() => {
+    const ps = pesagensOrdenadas.value;
+    const pesos = ps.map(p => p.peso);
+    const maior = Math.max(...pesos);
+    const menor = Math.min(...pesos);
+    const ultimo = ps.length - 1;
+
+    // Tendência: linha verde se ganhando, vermelha se perdendo, slate se neutro
+    const cor = ganhoSinal.value === 'negativo'
+        ? { borda: '#b91c1c', fundo: 'rgba(185, 28, 28, 0.08)' }
+        : { borda: '#166534', fundo: 'rgba(22, 101, 52, 0.1)' };
+
+    return {
+        labels: ps.map(p => dataBR(p.data)),
+        datasets: [{
+            label: 'Peso (kg)',
+            data: pesos,
+            borderColor: cor.borda,
+            backgroundColor: cor.fundo,
+            borderWidth: 2.5,
+            tension: 0.25,
+            fill: true,
+            // Destaque do ponto: último = maior (verde/vermelho), maior = dourado, menor = laranja
+            pointRadius: ps.map((p, i) => i === ultimo ? 9 : (p.peso === maior ? 7 : 5)),
+            pointHoverRadius: 10,
+            pointBackgroundColor: ps.map((p, i) =>
+                i === ultimo ? cor.borda :
+                (p.peso === maior ? '#f59e0b' :
+                 p.peso === menor && p.peso !== maior ? '#f97316' : '#ffffff')
+            ),
+            pointBorderColor: ps.map((p, i) =>
+                i === ultimo ? '#ffffff' : cor.borda
+            ),
+            pointBorderWidth: 2,
+        }],
+    };
+});
+
+const chartOptions = computed(() => {
+    const ps = pesagensOrdenadas.value;
+    const pesos = ps.map(p => p.peso);
+    const maior = Math.max(...pesos);
+    const menor = Math.min(...pesos);
+    const ultimo = ps.length - 1;
+
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => {
+                        const peso = ctx.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 1 });
+                        const i = ctx.dataIndex;
+                        let tag = '';
+                        if (i === ultimo) tag = ' · ÚLTIMA pesagem';
+                        else if (pesos[i] === maior) tag = ' · 🏆 maior peso';
+                        else if (pesos[i] === menor) tag = ' · ⚠ menor peso';
+                        return `${peso} kg${tag}`;
+                    },
+                },
             },
         },
-    },
-    scales: {
-        y: {
-            ticks: { callback: (v) => `${v} kg` },
-            grid: { color: 'rgba(148, 163, 184, 0.15)' },
+        scales: {
+            y: {
+                ticks: { callback: (v) => `${v} kg` },
+                grid: { color: 'rgba(148, 163, 184, 0.15)' },
+            },
+            x: { grid: { display: false } },
         },
-        x: { grid: { display: false } },
-    },
-};
+    };
+});
 
 const eventoIcone = (tipo) => ({
     pesagem: '⚖️',
@@ -239,13 +374,20 @@ const eventoLabel = (tipo) => ({
             </div>
         </div>
 
-        <!-- ═══ KPIs redesenhados para usuário leigo ═══
-             · Linguagem natural ("pesado 4 vezes", "De X até Y")
-             · Hierarquia visual forte (número grande, label pequeno, contexto em baixo)
-             · Cor semântica com fundo tonalizado (verde/vermelho/slate)
-             · Emoji como apoio cognitivo
-             · Alerta explicativo quando há perda ou pouca informação
-             · Mobile: cards empilham naturalmente, texto confortável -->
+        <!-- ═══ VEREDITO · interpretação em linguagem natural ═══ -->
+        <div v-if="interpretacao"
+             class="mb-4 rounded-xl border-2 px-5 py-4 flex items-start gap-3"
+             :class="interpretacaoClass">
+            <div class="text-3xl leading-none flex-shrink-0" aria-hidden="true">
+                {{ interpretacaoIcone }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="font-bold text-base leading-tight">{{ interpretacao.titulo }}</div>
+                <div class="text-sm mt-1 leading-relaxed">{{ interpretacao.texto }}</div>
+            </div>
+        </div>
+
+        <!-- ═══ KPIs redesenhados para usuário leigo ═══ -->
         <div class="grid gap-4 sm:grid-cols-3 mb-6">
 
             <!-- CARD 1 · Pesagens registradas -->
@@ -317,15 +459,12 @@ const eventoLabel = (tipo) => ({
                     para <strong>{{ ultimaPesagem.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} kg</strong>
                     em {{ dataBR(ultimaPesagem.data) }}
                 </div>
+                <div v-if="ganhoTotal != null" class="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-100">
+                    Baseado em <strong>{{ totalPesagens }}</strong> {{ totalPesagens === 1 ? 'pesagem' : 'pesagens' }}
+                    durante <strong>{{ diasEntrePesagens }}</strong> {{ diasEntrePesagens === 1 ? 'dia' : 'dias' }}.
+                </div>
                 <div v-else-if="totalPesagens < 2" class="text-sm text-slate-400 mt-3">
                     Disponível após a 2ª pesagem.
-                </div>
-
-                <!-- Alerta quando perdeu peso -->
-                <div v-if="ganhoSinal === 'negativo'"
-                     class="text-sm text-red-800 bg-red-50 rounded-md px-3 py-2 mt-3 leading-relaxed">
-                    <strong>Atenção:</strong> o animal está mais leve do que na primeira pesagem.
-                    Pode ser doença, falta de ração ou estresse — vale uma olhada de perto.
                 </div>
             </div>
 
@@ -337,26 +476,32 @@ const eventoLabel = (tipo) => ({
                     </div>
                     <div class="text-2xl leading-none" aria-hidden="true">📅</div>
                 </div>
-                <div class="text-3xl font-bold leading-tight"
-                     :class="{
-                        'text-macaybas-primary': ganhoSinal === 'positivo',
-                        'text-red-700':          ganhoSinal === 'negativo',
-                        'text-slate-400':        ganhoSinal === 'neutro',
-                     }">
-                    <template v-if="ganhoMedioDiario != null">
+                <template v-if="ganhoMedioDiario != null">
+                    <div class="text-3xl font-bold leading-tight"
+                         :class="{
+                            'text-macaybas-primary': ganhoSinal === 'positivo',
+                            'text-red-700':          ganhoSinal === 'negativo',
+                            'text-slate-400':        ganhoSinal === 'neutro',
+                         }">
                         {{ ganhoMedioDiario >= 0 ? '+' : '' }}{{ ganhoMedioDiario.toLocaleString('pt-BR', { maximumFractionDigits: 3 }) }}
                         <span class="text-base font-medium">kg</span>
-                    </template>
-                    <template v-else>—</template>
-                </div>
-                <div v-if="ganhoMedioDiario != null" class="text-sm text-slate-600 mt-3 leading-relaxed">
-                    {{ ganhoSinal === 'negativo' ? 'Perdeu' : 'Ganhou' }}
-                    <strong>{{ Math.abs(ganhoMedioDiario).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) }} kg por dia</strong>,
-                    em média, durante <strong>{{ diasEntrePesagens }}</strong> dias.
-                </div>
-                <div v-else class="text-sm text-slate-400 mt-3">
-                    Disponível após a 2ª pesagem.
-                </div>
+                    </div>
+                    <div class="text-sm text-slate-600 mt-3 leading-relaxed">
+                        {{ ganhoSinal === 'negativo' ? 'Perdeu' : 'Ganhou' }}
+                        <strong>{{ Math.abs(ganhoMedioDiario).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) }} kg por dia</strong>,
+                        em média, durante <strong>{{ diasEntrePesagens }}</strong> {{ diasEntrePesagens === 1 ? 'dia' : 'dias' }}.
+                    </div>
+                </template>
+                <template v-else>
+                    <div class="text-2xl font-semibold text-slate-400 leading-tight">
+                        Sem cálculo
+                    </div>
+                    <div class="text-sm text-slate-500 mt-3 leading-relaxed">
+                        {{ totalPesagens === 0
+                           ? 'Nenhuma pesagem registrada ainda.'
+                           : 'Dados insuficientes: precisamos de pelo menos 2 pesagens em datas diferentes para calcular a média.' }}
+                    </div>
+                </template>
             </div>
         </div>
 
