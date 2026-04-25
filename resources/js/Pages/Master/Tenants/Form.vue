@@ -261,7 +261,7 @@ function submit() {
                 <button
                     type="submit"
                     :disabled="form.processing || !! slugClientError"
-                    class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-wait"
+                    class="px-4 py-2 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800 shadow-sm disabled:opacity-60 disabled:cursor-wait"
                 >
                     {{ form.processing
                         ? 'Salvando…'

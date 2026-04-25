@@ -5,7 +5,28 @@ import MasterLayout from '@/Layouts/MasterLayout.vue';
 
 const props = defineProps({
     plan: { type: Object, default: null },
+    features_catalog: { type: Array, default: () => [] },
 });
+
+// Agrupa o catálogo por tipo (modulo / soft) para a UI organizar visualmente
+const moduleFeatures = computed(() =>
+    props.features_catalog.filter(f => f.tipo === 'modulo'));
+const softFeatures = computed(() =>
+    props.features_catalog.filter(f => f.tipo === 'soft'));
+
+function toggleFeature(key) {
+    const i = form.features.indexOf(key);
+    if (i === -1) form.features.push(key);
+    else form.features.splice(i, 1);
+}
+function selectAllModules() {
+    moduleFeatures.value.forEach(f => {
+        if (! form.features.includes(f.key)) form.features.push(f.key);
+    });
+}
+function clearFeatures() {
+    form.features = [];
+}
 
 const isEdit = computed(() => !!props.plan?.id);
 
@@ -35,18 +56,6 @@ watch(() => form.nome, (novo) => {
         form.slug = slugify(novo);
     }
 });
-
-// Features — UI de lista com add/remove
-const novaFeature = ref('');
-function adicionarFeature() {
-    const v = novaFeature.value.trim();
-    if (! v) return;
-    if (! form.features.includes(v)) form.features.push(v);
-    novaFeature.value = '';
-}
-function removerFeature(idx) {
-    form.features.splice(idx, 1);
-}
 
 function submit() {
     if (isEdit.value) {
@@ -160,40 +169,74 @@ function submit() {
                     </div>
                 </div>
 
+                <!-- Funcionalidades — checklist do catálogo (sem texto livre) -->
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Features</label>
-                    <div class="flex gap-2">
-                        <input
-                            v-model="novaFeature"
-                            @keydown.enter.prevent="adicionarFeature"
-                            type="text"
-                            class="flex-1 px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm"
-                            placeholder="Ex.: Suporte prioritário"
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-sm font-medium text-slate-700">
+                            Funcionalidades incluídas
+                        </label>
+                        <div class="text-xs space-x-2">
+                            <button type="button" @click="selectAllModules"
+                                class="text-macaybas-primary-700 hover:underline">Selecionar todos os módulos</button>
+                            <span class="text-slate-300">·</span>
+                            <button type="button" @click="clearFeatures"
+                                class="text-slate-500 hover:underline">Limpar</button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-3">
+                        Selecione quais módulos do sistema este plano libera.
+                        Quem assina vê apenas os módulos marcados aqui.
+                    </p>
+
+                    <div class="space-y-2">
+                        <label
+                            v-for="f in moduleFeatures" :key="f.key"
+                            class="flex items-start gap-3 p-3 rounded-lg ring-1 cursor-pointer transition"
+                            :class="form.features.includes(f.key)
+                                ? 'ring-macaybas-primary-300 bg-macaybas-primary-50'
+                                : 'ring-slate-200 bg-white hover:ring-macaybas-primary-200'"
                         >
-                        <button
-                            type="button"
-                            @click="adicionarFeature"
-                            class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm hover:bg-slate-200"
-                        >Adicionar</button>
+                            <input type="checkbox"
+                                :checked="form.features.includes(f.key)"
+                                @change="toggleFeature(f.key)"
+                                class="mt-0.5 h-4 w-4 rounded border-slate-300 text-macaybas-primary-700 focus:ring-macaybas-primary-500">
+                            <div class="min-w-0 flex-1">
+                                <div class="text-sm font-semibold text-slate-900">{{ f.nome }}</div>
+                                <div class="text-xs text-slate-600 mt-0.5">{{ f.descricao }}</div>
+                            </div>
+                            <code class="text-[10px] text-slate-400 font-mono pt-1">{{ f.key }}</code>
+                        </label>
                     </div>
 
-                    <ul v-if="form.features.length" class="mt-3 space-y-1">
-                        <li
-                            v-for="(f, idx) in form.features"
-                            :key="idx"
-                            class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50 ring-1 ring-slate-100 text-sm"
-                        >
-                            <span class="text-slate-700">{{ f }}</span>
-                            <button
-                                type="button"
-                                @click="removerFeature(idx)"
-                                class="text-slate-400 hover:text-red-600"
-                                title="Remover"
+                    <div v-if="softFeatures.length" class="mt-4">
+                        <div class="text-xs uppercase tracking-wider text-slate-500 mb-2 font-semibold">
+                            Diferenciais comerciais (informativo)
+                        </div>
+                        <div class="space-y-2">
+                            <label
+                                v-for="f in softFeatures" :key="f.key"
+                                class="flex items-start gap-3 p-3 rounded-lg ring-1 cursor-pointer transition"
+                                :class="form.features.includes(f.key)
+                                    ? 'ring-amber-300 bg-amber-50'
+                                    : 'ring-slate-200 bg-white hover:ring-amber-200'"
                             >
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                            </button>
-                        </li>
-                    </ul>
+                                <input type="checkbox"
+                                    :checked="form.features.includes(f.key)"
+                                    @change="toggleFeature(f.key)"
+                                    class="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500">
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-semibold text-slate-900">{{ f.nome }}</div>
+                                    <div class="text-xs text-slate-600 mt-0.5">{{ f.descricao }}</div>
+                                </div>
+                                <code class="text-[10px] text-slate-400 font-mono pt-1">{{ f.key }}</code>
+                            </label>
+                        </div>
+                    </div>
+
+                    <p class="mt-3 text-xs text-slate-500">
+                        💡 Plano sem nenhuma funcionalidade selecionada = libera tudo (compatibilidade com planos antigos).
+                        Para restringir, marque pelo menos uma.
+                    </p>
                 </div>
 
                 <div>
@@ -218,7 +261,7 @@ function submit() {
                 <button
                     type="submit"
                     :disabled="form.processing"
-                    class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-wait"
+                    class="px-4 py-2 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800 shadow-sm disabled:opacity-60 disabled:cursor-wait"
                 >
                     {{ form.processing ? 'Salvando…' : (isEdit ? 'Salvar alterações' : 'Criar plano') }}
                 </button>

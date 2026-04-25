@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Master;
 use App\Domain\Billing\Models\Tenant;
 use App\Domain\Cms\Services\LandingScaffoldService;
 use App\Http\Controllers\Controller;
+use App\Models\Farm;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -112,11 +115,57 @@ class TenantController extends Controller
         // `status` é NOT NULL na tabela (R1.1). Default 'active' até M6.
         $validated['status'] = 'active';
 
-        $tenant = Tenant::create($validated);
+        // Onboarding ATÔMICO: tenant + scaffold landing + fazenda padrão +
+        // usuário dono + senha temporária. Tudo em uma transação: ou o
+        // cliente fica 100% pronto pra usar, ou nada é criado.
+        //
+        // Correção do GAP de fechamento: sem isso, master precisava
+        // IMPERSONAR o tenant, criar a farm, criar o user e comunicar
+        // credenciais à parte — fluxo incompleto. Agora a mensagem de
+        // entrega já contém email + senha prontas pro primeiro acesso.
+        $senhaTemporaria = null;
+        $donoEmail = null;
 
-        // Scaffold imediato — cliente novo já tem landing funcional em
-        // /c/{slug} sem exigir intervenção manual no CMS.
-        $scaffold->scaffold($tenant);
+        $tenant = DB::transaction(function () use ($validated, $scaffold, &$senhaTemporaria, &$donoEmail) {
+            $tenant = Tenant::create($validated);
+
+            // Scaffold da landing (pages + sections + menus)
+            $scaffold->scaffold($tenant);
+
+            // Fazenda padrão — nome igual ao do tenant. O dono pode
+            // renomear / adicionar outras fazendas depois pelo painel.
+            $farm = Farm::create([
+                'tenant_id' => $tenant->id,
+                'nome' => $tenant->nome,
+                'is_active' => true,
+            ]);
+
+            // Usuário dono — usa o email informado no form como
+            // credencial de primeiro acesso. Senha temporária forte,
+            // forçada a troca no primeiro login (must_change_password).
+            if (! empty($tenant->email)) {
+                $donoEmail = $tenant->email;
+                $senhaTemporaria = $this->gerarSenhaTemporaria();
+
+                // User::create não aceita todos os campos em mass-assign
+                // (current_farm_id e email_verified_at não estão em fillable).
+                // Setamos atributos defensivamente e salvamos em 1 write.
+                $user = new User();
+                $user->tenant_id = $tenant->id;
+                $user->current_farm_id = $farm->id;
+                $user->name = $tenant->nome;
+                $user->email = $tenant->email;
+                $user->password = Hash::make($senhaTemporaria);
+                $user->must_change_password = true;
+                $user->is_active = true;
+                $user->email_verified_at = now();
+                $user->save();
+
+                $user->assignRole('dono_fazenda');
+            }
+
+            return $tenant;
+        });
 
         return redirect()
             ->route('master.tenants.index')
@@ -125,8 +174,26 @@ class TenantController extends Controller
                 'nome' => $tenant->nome,
                 'slug' => $tenant->slug,
                 'landing_url' => url('/c/' . $tenant->slug),
-                'delivery_message' => $this->buildDeliveryMessage($tenant),
+                'dono_email' => $donoEmail,
+                'senha_temporaria' => $senhaTemporaria,
+                'admin_url' => url('/admin'),
+                'delivery_message' => $this->buildDeliveryMessage($tenant, $donoEmail, $senhaTemporaria),
             ]);
+    }
+
+    /**
+     * Gera senha temporária forte e legível (12 caracteres, sem símbolos
+     * ambíguos). Evita caracteres que confundem o usuário ao ditar/copiar
+     * por WhatsApp: 0, O, 1, l, I.
+     */
+    private function gerarSenhaTemporaria(): string
+    {
+        $alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        $senha = '';
+        for ($i = 0; $i < 12; $i++) {
+            $senha .= $alfabeto[random_int(0, strlen($alfabeto) - 1)];
+        }
+        return $senha;
     }
 
     /**
@@ -186,6 +253,133 @@ class TenantController extends Controller
     }
 
     /**
+     * Listagem de usuários DE UM TENANT — permite ao master saber quem
+     * tem acesso em cada cliente sem precisar impersonar. Valor operacional:
+     * quando o cliente liga dizendo "esqueci a senha", o master já tem a
+     * lista de emails + pode resetar a senha direto.
+     */
+    public function users(Tenant $tenant): Response
+    {
+        $users = User::where('tenant_id', $tenant->id)
+            ->with('roles:id,name')
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'is_active' => (bool) $u->is_active,
+                'must_change_password' => (bool) $u->must_change_password,
+                'last_login_at' => $u->last_login_at?->format('d/m/Y H:i'),
+                'roles' => $u->roles->pluck('name')->all(),
+            ]);
+
+        // Papéis disponíveis para atribuir — exclui admin_master (só master real)
+        $rolesDisponiveis = \Spatie\Permission\Models\Role::where('name', '!=', 'admin_master')
+            ->orderBy('name')
+            ->pluck('name');
+
+        return Inertia::render('Master/Tenants/Users', [
+            'tenant' => [
+                'id' => $tenant->id,
+                'nome' => $tenant->nome,
+                'slug' => $tenant->slug,
+                'is_active' => (bool) $tenant->is_active,
+            ],
+            'users' => $users,
+            'rolesDisponiveis' => $rolesDisponiveis,
+        ]);
+    }
+
+    /**
+     * Endpoint inline (JSON) — cria um usuário dentro de um tenant.
+     * Gera senha temporária forte que o master copia e entrega. Usuário
+     * criado com must_change_password=true — força troca no 1º login.
+     */
+    public function storeUserInline(Request $request, Tenant $tenant): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:200'],
+            'email' => ['required', 'email', 'max:200', Rule::unique('users', 'email')],
+            'role' => ['required', 'string', 'exists:roles,name'],
+        ]);
+
+        // Impede criação de admin_master em tenant (só via seed)
+        if ($data['role'] === 'admin_master') {
+            abort(422, 'Não é permitido criar usuário admin_master em um cliente.');
+        }
+
+        $farmId = \App\Models\Farm::where('tenant_id', $tenant->id)->where('is_active', true)->value('id');
+        $senha = $this->gerarSenhaTemporaria();
+
+        $user = new User();
+        $user->tenant_id = $tenant->id;
+        $user->current_farm_id = $farmId;
+        $user->name = $data['name'];
+        $user->email = $data['email'];
+        $user->password = Hash::make($senha);
+        $user->must_change_password = true;
+        $user->is_active = true;
+        $user->email_verified_at = now();
+        $user->save();
+
+        $user->assignRole($data['role']);
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_active' => true,
+            'must_change_password' => true,
+            'last_login_at' => null,
+            'roles' => [$data['role']],
+            // Senha temp retornada UMA VEZ — master copia pra enviar ao cliente
+            'senha_temporaria' => $senha,
+            'admin_url' => url('/admin'),
+        ]);
+    }
+
+    /**
+     * Reset de senha pelo master — gera nova senha temporária, retorna uma
+     * vez ao master copiar, e marca must_change_password=true. Cliente faz
+     * login com a temp e o sistema força troca. Sem depender de SMTP / email.
+     */
+    public function resetUserPassword(Tenant $tenant, User $user): RedirectResponse
+    {
+        abort_if($user->tenant_id !== $tenant->id, 404);
+
+        $novaSenha = $this->gerarSenhaTemporaria();
+
+        $user->password = Hash::make($novaSenha);
+        $user->must_change_password = true;
+        $user->save();
+
+        return back()->with('success', 'Senha resetada.')
+            ->with('reset_password_result', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'senha_temporaria' => $novaSenha,
+                'admin_url' => url('/admin'),
+            ]);
+    }
+
+    /**
+     * Ativa/desativa usuário do tenant — útil para cortar acesso de
+     * funcionário que saiu da fazenda sem precisar impersonar.
+     */
+    public function toggleUser(Tenant $tenant, User $user): RedirectResponse
+    {
+        abort_if($user->tenant_id !== $tenant->id, 404);
+
+        $user->update(['is_active' => ! $user->is_active]);
+
+        return back()->with('success', $user->is_active
+            ? 'Usuário reativado.'
+            : 'Usuário desativado (sem acesso ao sistema).');
+    }
+
+    /**
      * Regras de validação compartilhadas entre store e update.
      * Unique no slug ignora o próprio tenant em update.
      */
@@ -216,16 +410,32 @@ class TenantController extends Controller
     }
 
     /**
-     * Texto padrão de entrega para o master copiar/colar ao comunicar
-     * o cliente de que a página dele está no ar. Formato simples, sem
-     * branding específico — o master ajusta manualmente se quiser.
+     * Texto padrão de entrega — inclui credenciais de primeiro acesso
+     * quando disponíveis. Formato whatsapp-ready (plain text, copiar-colar).
+     *
+     * Quando $donoEmail ou $senhaTemporaria estão nulos (tenant cadastrado
+     * sem email), cai no formato legado (só URL da landing) — master
+     * resolve as credenciais depois via /admin/usuarios após impersonar.
      */
-    private function buildDeliveryMessage(Tenant $tenant): string
+    private function buildDeliveryMessage(Tenant $tenant, ?string $donoEmail = null, ?string $senhaTemporaria = null): string
     {
-        $url = url('/c/' . $tenant->slug);
+        $landing = url('/c/' . $tenant->slug);
+        $admin = url('/admin');
+
+        if ($donoEmail && $senhaTemporaria) {
+            return "Olá! Seu sistema Fazenda Macaybas está pronto.\n\n"
+                . "🔐 ACESSO AO PAINEL\n"
+                . $admin . "\n"
+                . "E-mail: " . $donoEmail . "\n"
+                . "Senha temporária: " . $senhaTemporaria . "\n"
+                . "(Ao entrar pela primeira vez, o sistema vai pedir para você trocar a senha.)\n\n"
+                . "🌐 SUA PÁGINA PÚBLICA\n"
+                . $landing . "\n\n"
+                . "Qualquer dúvida é só chamar.";
+        }
 
         return "Olá! Sua página já está disponível em:\n"
-            . $url . "\n"
+            . $landing . "\n"
             . "Você pode editar acessando o painel.";
     }
 }

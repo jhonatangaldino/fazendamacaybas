@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Subscription;
+use App\Domain\Billing\Services\BillingStatusService;
 use Illuminate\Console\Command;
 
 /**
@@ -30,7 +31,7 @@ class MarkOverdueInvoices extends Command
     protected $signature = 'billing:mark-overdue';
     protected $description = 'Marca invoices pendentes e vencidas como overdue, e atualiza subscriptions';
 
-    public function handle(): int
+    public function handle(BillingStatusService $billingStatus): int
     {
         $hoje = today()->toDateString();
         $this->info("Data de corte: {$hoje}");
@@ -51,32 +52,15 @@ class MarkOverdueInvoices extends Command
             $this->info("Total marcado como overdue: {$count}");
         }
 
-        // ─── 2. Subscriptions: reconciliação em massa ────────────────
-        // Tenants com ao menos 1 invoice overdue → subscription overdue
-        $tenantsComOverdue = Invoice::where('status', 'overdue')
-            ->distinct()
-            ->pluck('tenant_id');
+        // ─── 2. Reconciliação completa (vigência, carência, bloqueio) ────
+        // Substitui a lógica antiga de "active → overdue" pelo BillingStatusService,
+        // que considera vigência expirada + 10 dias de carência → blocked.
+        $resumo = $billingStatus->reconcileAll();
 
-        $subToOverdue = Subscription::whereIn('tenant_id', $tenantsComOverdue)
-            ->where('status', 'active')
-            ->get();
-
-        foreach ($subToOverdue as $sub) {
-            $sub->update(['status' => 'overdue']);
-            $this->warn("  • Tenant {$sub->tenant_id}: subscription active → overdue");
+        $this->info("Reconciliação completa:");
+        foreach ($resumo as $status => $count) {
+            $this->line("  • {$status}: {$count} tenant(s)");
         }
-
-        // Tenants sem overdue → subscription active (se estava em overdue)
-        $subToReactivate = Subscription::where('status', 'overdue')
-            ->whereNotIn('tenant_id', $tenantsComOverdue)
-            ->get();
-
-        foreach ($subToReactivate as $sub) {
-            $sub->update(['status' => 'active']);
-            $this->info("  • Tenant {$sub->tenant_id}: subscription overdue → active (sem pendências)");
-        }
-
-        $this->info("Subscriptions atualizadas: {$subToOverdue->count()} → overdue, {$subToReactivate->count()} → active");
 
         return self::SUCCESS;
     }

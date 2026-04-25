@@ -82,4 +82,41 @@ class Tenant extends Model
     {
         return $this->hasMany(CmsMenu::class, 'tenant_id');
     }
+
+    /* ───── Features comerciais (catálogo PlanFeatures) ───── */
+
+    /**
+     * Retorna as feature keys habilitadas pelo plano vigente do tenant.
+     * Prioriza subscription.plan (sempre mais atualizado que tenant.plan_id).
+     *
+     * Compatibilidade com tenants legados (sem features no plano):
+     *   plan.features NULL ou [] → trata como "TUDO liberado" (não quebra
+     *   nada que já existia). Para restringir, master deve preencher.
+     */
+    public function planFeatures(): array
+    {
+        $plan = $this->subscription?->plan ?? $this->plan;
+        if ($plan === null) return []; // sem plano → sem features
+        $features = $plan->features;
+        if (! is_array($features)) return [];
+        return \App\Domain\Billing\PlanFeatures::sanitize($features);
+    }
+
+    /**
+     * Verifica se o tenant tem acesso à feature dada.
+     *
+     * Regra:
+     *   - Plano sem `features` definido (NULL/[]) → ASSUME TUDO liberado.
+     *     Isso preserva backward-compat para planos antigos sem catálogo.
+     *   - Plano com `features` array → exige que `key` esteja na lista.
+     */
+    public function hasFeature(string $key): bool
+    {
+        $plan = $this->subscription?->plan ?? $this->plan;
+        if ($plan === null) return true;
+        $features = $plan->features;
+        // Plano sem catálogo → libera (legado)
+        if (! is_array($features) || empty($features)) return true;
+        return in_array($key, $features, true);
+    }
 }

@@ -6,6 +6,7 @@ use App\Domain\Tenancy\Middleware\EnforceFarm;
 use App\Domain\Tenancy\Middleware\EnsureTenantUser;
 use App\Domain\Tenancy\Middleware\ResolveTenant;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\QueryCounter;
 use App\Http\Middleware\SetLocaleTimezone;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
+            // Query probe — ativo apenas com APP_DEBUG=true OU header X-Query-Probe:1
+            QueryCounter::class,
             SetLocaleTimezone::class,
             // R2.1: resolve app('tenant_id') a partir do user autenticado.
             // Posicionado ANTES do HandleInertiaRequests para que o share()
@@ -49,6 +52,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // exceto a rota de pagamento (admin.pagamento-pendente). Master
             // nunca é bloqueado, mesmo impersonando.
             'enforce.subscription' => EnforceSubscriptionStatus::class,
+            // Bloqueia rotas /admin/* cujo módulo não está no plano do tenant.
+            // Master puro ignora; impersonando respeita o plano do tenant alvo.
+            'enforce.feature' => \App\Http\Middleware\EnforceFeature::class,
         ]);
 
         // M0 — Usuário já logado tentando acessar rota guest (ex.: /login):

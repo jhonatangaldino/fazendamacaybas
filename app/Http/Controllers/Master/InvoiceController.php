@@ -6,7 +6,9 @@ use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Subscription;
 use App\Domain\Billing\Models\Tenant;
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use App\Services\Billing\PixPayloadGenerator;
+use App\Support\BillingCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,6 +38,10 @@ class InvoiceController extends Controller
     public function index(Request $request): Response
     {
         $status = $request->query('status');
+        // Filtro de busca para conciliação: aceita "MAC-0008", "0008", "INV-202604-0008",
+        // nome do tenant ou parte dele. Usado quando cliente paga e master precisa achar
+        // a cobrança correspondente rapidamente.
+        $q = trim((string) $request->query('q', ''));
 
         $query = Invoice::with('tenant:id,nome')
             ->orderByDesc('data_emissao')
@@ -43,6 +49,27 @@ class InvoiceController extends Controller
 
         if (in_array($status, ['pending', 'paid', 'overdue'], true)) {
             $query->where('status', $status);
+        }
+
+        if ($q !== '') {
+            // Casa busca de 4 jeitos:
+            //  1. MAC-000037 → tira "MAC-" e zeros → id = 37 (match exato global único)
+            //  2. 37         → numérico puro → id = 37
+            //  3. INV-202604-0001 → substring no `numero`
+            //  4. nome cliente → substring em tenant.nome
+            $idMatch = null;
+            if (preg_match('/^MAC-?(\d+)$/i', trim($q), $m)) {
+                $idMatch = (int) ltrim($m[1], '0') ?: 0;
+            } elseif (ctype_digit(str_replace([' ', '-'], '', $q))) {
+                $idMatch = (int) ltrim(str_replace([' ', '-'], '', $q), '0') ?: 0;
+            }
+            $query->where(function ($w) use ($q, $idMatch) {
+                if ($idMatch && $idMatch > 0) {
+                    $w->orWhere('id', $idMatch);
+                }
+                $w->orWhere('numero', 'like', "%{$q}%")
+                  ->orWhereHas('tenant', fn ($t) => $t->where('nome', 'like', "%{$q}%"));
+            });
         }
 
         $invoices = $query->get([
@@ -54,6 +81,7 @@ class InvoiceController extends Controller
             'invoices' => $invoices->map(fn ($i) => [
                 'id' => $i->id,
                 'numero' => $i->numero,
+                'referencia_curta' => $i->referencia_curta,
                 'tenant_id' => $i->tenant_id,
                 'tenant_nome' => $i->tenant?->nome,
                 'valor' => (float) $i->valor,
@@ -63,6 +91,7 @@ class InvoiceController extends Controller
                 'data_pagamento' => $i->data_pagamento?->format('d/m/Y'),
             ])->values(),
             'filter_status' => $status,
+            'filter_q' => $q,
             'totals' => [
                 'total' => $invoices->count(),
                 'pending' => $invoices->where('status', 'pending')->count(),
@@ -86,44 +115,134 @@ class InvoiceController extends Controller
     public function store(Request $request, Tenant $tenant, PixPayloadGenerator $pix): RedirectResponse
     {
         $validated = $request->validate([
-            'valor' => ['required', 'numeric', 'min:0', 'max:9999999.99'],
+            'valor' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'data_emissao' => ['required', 'date'],
             'data_vencimento' => ['required', 'date', 'after_or_equal:data_emissao'],
         ], [
             'valor.required' => 'Informe o valor da cobrança.',
             'valor.numeric' => 'Valor deve ser numérico.',
+            'valor.min' => 'Valor mínimo é R$ 0,01.',
             'data_emissao.required' => 'Informe a data de emissão.',
             'data_vencimento.required' => 'Informe a data de vencimento.',
             'data_vencimento.after_or_equal' => 'Vencimento não pode ser anterior à emissão.',
         ]);
 
         $subscription = $tenant->subscription()->first();
-        $nextNumero = (int) (Invoice::where('tenant_id', $tenant->id)->max('numero') ?? 0) + 1;
 
-        // Gera identificador PIX e payload EMV (simulado — válido por formato,
-        // mas sem gateway real atrás)
+        // Sem subscription → não é possível emitir invoice (subscription_id é NOT NULL).
+        // Retorna validation amigável em vez de 500. O master atribui plano antes.
+        if ($subscription === null) {
+            return back()->withErrors([
+                'valor' => 'Atribua um plano ao cliente antes de gerar a cobrança. Use "Atribuir plano" no card de Assinatura acima.',
+            ])->withInput();
+        }
+
+        // Numeração no formato INV-AAAAMM-NNNN (sequencial por tenant + ano-mês de emissão).
+        // Mesma lógica de InvoiceGenerationService — usa string ao invés do `(int) max()` antigo,
+        // que colidia com invoices novas no formato INV-... (cast para 0).
+        $numero = $this->nextNumero($tenant->id);
+
+        // Carrega config PIX salva pelo master em /master/cobrancas/configuracoes.
+        // Sem chave configurada: invoice é criada do mesmo jeito (campos PIX ficam null);
+        // master vê aviso amigável após salvar, em vez de 500.
+        $cfg = $this->loadPixConfig();
         $txid = $pix->generateTxid();
-        $payload = $pix->build(
-            amount: (float) $validated['valor'],
-            txid: $txid,
-            merchantName: config('app.name', 'Fazenda Macaybas'),
-        );
+        $payload = null;
+        if (! empty($cfg['chave'])) {
+            $payload = $pix->build(
+                amount: (float) $validated['valor'],
+                txid: $txid,
+                merchantName: $cfg['nome'] ?? null,
+                city: $cfg['cidade'] ?? null,
+                pixKey: $cfg['chave'],
+            );
+        }
 
-        $invoice = Invoice::create([
-            'tenant_id' => $tenant->id,
-            'subscription_id' => $subscription?->id,
-            'numero' => $nextNumero,
-            'valor' => $validated['valor'],
-            'status' => 'pending',
-            'data_emissao' => $validated['data_emissao'],
-            'data_vencimento' => $validated['data_vencimento'],
-            'pix_txid' => $txid,
-            'pix_payload' => $payload,
-        ]);
+        try {
+            $invoice = Invoice::create([
+                'tenant_id' => $tenant->id,
+                'subscription_id' => $subscription->id,
+                'numero' => $numero,
+                'tipo' => 'unica',
+                'periodo_inicio' => $validated['data_emissao'],
+                'periodo_fim' => $validated['data_vencimento'],
+                'aparece_em' => today()->toDateString(),
+                'valor' => $validated['valor'],
+                'status' => 'pending',
+                'data_emissao' => $validated['data_emissao'],
+                'data_vencimento' => $validated['data_vencimento'],
+                'pix_txid' => $payload ? $txid : null,
+                'pix_payload' => $payload,
+            ]);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            // Race condition (improvável mas defensivo): tenta uma vez mais
+            // recalculando a sequência e abortando elegantemente se persistir.
+            $invoice = Invoice::create([
+                'tenant_id' => $tenant->id,
+                'subscription_id' => $subscription->id,
+                'numero' => $this->nextNumero($tenant->id),
+                'tipo' => 'unica',
+                'periodo_inicio' => $validated['data_emissao'],
+                'periodo_fim' => $validated['data_vencimento'],
+                'aparece_em' => today()->toDateString(),
+                'valor' => $validated['valor'],
+                'status' => 'pending',
+                'data_emissao' => $validated['data_emissao'],
+                'data_vencimento' => $validated['data_vencimento'],
+                'pix_txid' => $payload ? $txid : null,
+                'pix_payload' => $payload,
+            ]);
+        }
+
+        // Cache invalidation: alerts/badges do tenant impactado + master KPIs
+        BillingCache::forgetForTenant($tenant->id);
+
+        // Mensagem condicional: avisa se PIX ainda não está configurado
+        $msg = empty($cfg['chave'])
+            ? 'Cobrança '.$invoice->numero.' gerada. ⚠ Chave PIX ainda não configurada — configure em Cobranças → Configurar PIX para que o cliente possa pagar.'
+            : 'Cobrança '.$invoice->numero.' gerada. Envie o PIX ao cliente.';
 
         return redirect()
             ->route('master.cobrancas.pix', $invoice->id)
-            ->with('success', 'Cobrança #'.$invoice->numero.' gerada. Envie o PIX ao cliente.');
+            ->with(empty($cfg['chave']) ? 'warning' : 'success', $msg);
+    }
+
+    /**
+     * Próximo número INV-AAAAMM-NNNN para o tenant, sequencial dentro do ano-mês.
+     * Mesma lógica usada por InvoiceGenerationService — mantém invariante:
+     *   "todas as invoices do tenant têm numero único e ordenável".
+     */
+    private function nextNumero(int $tenantId): string
+    {
+        $prefix = 'INV-'.today()->format('Ym').'-';
+        $last = Invoice::where('tenant_id', $tenantId)
+            ->where('numero', 'like', $prefix.'%')
+            ->orderByDesc('id')
+            ->value('numero');
+
+        $seq = 1;
+        if ($last && preg_match('/-(\d+)$/', (string) $last, $m)) {
+            $seq = ((int) $m[1]) + 1;
+        }
+        return $prefix.str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
+    }
+
+    /** Lê config PIX salva em settings (group=billing_pix). */
+    private function loadPixConfig(): array
+    {
+        $rows = Setting::whereIn('key', [
+            'billing_pix.tipo_chave',
+            'billing_pix.chave',
+            'billing_pix.nome_recebedor',
+            'billing_pix.cidade_recebedor',
+        ])->pluck('value', 'key');
+
+        return [
+            'tipo_chave' => $rows['billing_pix.tipo_chave'] ?? null,
+            'chave' => $rows['billing_pix.chave'] ?? null,
+            'nome' => $rows['billing_pix.nome_recebedor'] ?? null,
+            'cidade' => $rows['billing_pix.cidade_recebedor'] ?? null,
+        ];
     }
 
     /**
@@ -138,6 +257,7 @@ class InvoiceController extends Controller
             'invoice' => [
                 'id' => $invoice->id,
                 'numero' => $invoice->numero,
+                'referencia_curta' => $invoice->referencia_curta,
                 'tenant_id' => $invoice->tenant_id,
                 'tenant_nome' => $invoice->tenant?->nome,
                 'valor' => (float) $invoice->valor,
@@ -207,6 +327,11 @@ class InvoiceController extends Controller
         } elseif (! $hasOverdue && $sub->status === 'overdue') {
             $sub->update(['status' => 'active']);
         }
+
+        // Cache invalidation: alerts/badges/dashboard do tenant + master KPIs
+        // — qualquer mudança financeira reflete na tela em até 5min OU no
+        // próximo redirect (ações via UI já refazem fetch do Inertia share).
+        BillingCache::forgetForTenant($tenantId);
     }
 
     /**

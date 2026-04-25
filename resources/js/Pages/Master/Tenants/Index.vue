@@ -8,12 +8,14 @@ import OverflowMenu from '@/Components/OverflowMenu.vue';
 import OverflowMenuItem from '@/Components/OverflowMenuItem.vue';
 import OverflowMenuDivider from '@/Components/OverflowMenuDivider.vue';
 import { useToast } from '@/composables/useToast.js';
+import { useConfirm } from '@/composables/useConfirm.js';
 
 defineProps({
     tenants: { type: Array, default: () => [] },
 });
 
 const { toast } = useToast();
+const { confirm } = useConfirm();
 const page = usePage();
 
 // Flash do último cliente criado (payload preparado pelo TenantController@store).
@@ -29,17 +31,35 @@ const deliveryDialog = ref({ open: false, tenant: null, message: '' });
 // que encapsula estado open/close + click-outside + esc. Uma instância
 // por linha, sem coordenação externa.
 
-function toggle(tenant) {
-    const verbo = tenant.is_active ? 'desativar' : 'reativar';
-    if (! confirm(`Confirma ${verbo} "${tenant.nome}"?`)) return;
+async function toggle(tenant) {
+    const ativando = ! tenant.is_active;
+    const ok = await confirm({
+        title: ativando ? `Reativar ${tenant.nome}?` : `Desativar ${tenant.nome}?`,
+        message: ativando
+            ? `O cliente voltará a operar normalmente no sistema.`
+            : `O cliente perderá acesso ao sistema. Você pode reativar a qualquer momento.`,
+        confirmText: ativando ? 'Reativar' : 'Desativar',
+        cancelText: 'Cancelar',
+        variant: ativando ? 'primary' : 'danger',
+        icon: ativando ? 'question' : 'warning',
+    });
+    if (! ok) return;
 
     router.post(route('master.tenants.toggle', tenant.id), {}, {
         preserveScroll: true,
     });
 }
 
-function impersonate(tenant) {
-    if (! confirm(`Entrar no sistema do cliente "${tenant.nome}" em modo impersonação?\n\nVocê operará como usuário deste cliente até sair da impersonação.`)) return;
+async function impersonate(tenant) {
+    const ok = await confirm({
+        title: 'Entrar como cliente',
+        message: `Você operará como ${tenant.nome} até sair da impersonação. Todas as ações serão registradas para auditoria.`,
+        confirmText: 'Entrar',
+        cancelText: 'Cancelar',
+        variant: 'primary',
+        icon: 'question',
+    });
+    if (! ok) return;
 
     router.post(route('master.tenants.impersonate', tenant.id));
 }
@@ -99,9 +119,39 @@ async function copyDeliveryMessage() {
             @dismiss="createdVisible = false"
         >
             <p>
-                O cliente <strong>{{ createdTenant.nome }}</strong> foi criado com landing padrão.
-                Compartilhe o link abaixo para ele começar a usar.
+                O cliente <strong>{{ createdTenant.nome }}</strong> foi criado com landing padrão
+                <span v-if="createdTenant.senha_temporaria"> e usuário dono pronto para primeiro acesso</span>.
+                Compartilhe as informações abaixo com o cliente.
             </p>
+
+            <!-- Credenciais de primeiro acesso (destaque quando há user criado).
+                 Senha é one-shot — só aparece AQUI porque acabou de ser gerada;
+                 não é persistida em texto plano em lugar algum. Se master fechar
+                 a página antes de copiar, precisa resetar via /admin/usuarios. -->
+            <div v-if="createdTenant.senha_temporaria" class="mt-4 p-4 rounded-lg bg-white ring-1 ring-emerald-300">
+                <div class="text-xs uppercase tracking-wider text-emerald-700 font-semibold mb-2">
+                    🔐 Acesso ao painel (guarde agora — só aparece uma vez)
+                </div>
+                <dl class="grid gap-1.5 text-sm">
+                    <div class="flex flex-wrap gap-2">
+                        <dt class="text-slate-500 w-24">Painel:</dt>
+                        <dd class="font-mono text-slate-900 break-all">{{ createdTenant.admin_url }}</dd>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <dt class="text-slate-500 w-24">E-mail:</dt>
+                        <dd class="font-mono text-slate-900 break-all">{{ createdTenant.dono_email }}</dd>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <dt class="text-slate-500 w-24">Senha:</dt>
+                        <dd class="font-mono text-slate-900 font-semibold bg-amber-50 px-2 py-0.5 rounded ring-1 ring-amber-200">
+                            {{ createdTenant.senha_temporaria }}
+                        </dd>
+                    </div>
+                </dl>
+                <p class="mt-2 text-xs text-slate-500">
+                    No primeiro acesso o sistema pede para o cliente trocar a senha.
+                </p>
+            </div>
 
             <div class="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white ring-1 ring-emerald-200 text-sm font-mono text-slate-800 max-w-full">
                 <Icon name="external-link" :size="16" class="text-slate-400" />
@@ -147,7 +197,7 @@ async function copyDeliveryMessage() {
             </div>
             <Link
                 :href="route('master.tenants.create')"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-macaybas-primary-700 text-white text-sm font-medium hover:bg-macaybas-primary-800 shadow-sm"
             >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Novo Cliente
@@ -227,35 +277,45 @@ async function copyDeliveryMessage() {
                             <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ t.created_at }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="inline-flex items-center gap-2">
-                                    <!-- Ação primária 1: Ver página pública -->
+                                    <!-- Ação PRIMÁRIA: Editar (acessar dados do cliente) — destacada em verde brand -->
+                                    <Link
+                                        :href="route('master.tenants.edit', t.id)"
+                                        v-tooltip="`Editar dados de ${t.nome}`"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-macaybas-primary-700 text-white hover:bg-macaybas-primary-800 shadow-sm"
+                                    >
+                                        <Icon name="edit" :size="14" />
+                                        <span class="hidden sm:inline">Editar</span>
+                                    </Link>
+
+                                    <!-- Ação secundária visível: Ver página pública -->
                                     <a
                                         :href="t.landing_url"
                                         target="_blank"
                                         rel="noopener"
                                         v-tooltip="`Abrir ${t.landing_url}`"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:text-macaybas-primary"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:ring-macaybas-primary-300 hover:text-macaybas-primary-800"
                                     >
                                         <Icon name="external-link" :size="14" />
                                         <span class="hidden sm:inline">Ver página</span>
                                     </a>
 
-                                    <!-- Ação primária 2: CMS do cliente -->
+                                    <!-- Ação secundária visível: CMS do cliente -->
                                     <Link
                                         :href="route('master.clientes.cms.index', t.id)"
                                         v-tooltip="`Abrir CMS de ${t.nome}`"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white hover:bg-slate-800"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:ring-macaybas-primary-300 hover:text-macaybas-primary-800"
                                     >
                                         <Icon name="globe" :size="14" />
                                         <span class="hidden sm:inline">CMS</span>
                                     </Link>
 
-                                    <!-- Menu secundário "⋯" com as demais ações -->
+                                    <!-- Menu secundário "⋯" — somente ações ocasionais -->
                                     <OverflowMenu :label="`Mais ações para ${t.nome}`">
-                                        <OverflowMenuItem icon="edit" :href="route('master.tenants.edit', t.id)">
-                                            Editar cadastro
-                                        </OverflowMenuItem>
                                         <OverflowMenuItem icon="home" :href="route('master.tenants.farms.index', t.id)">
                                             Fazendas
+                                        </OverflowMenuItem>
+                                        <OverflowMenuItem icon="user" :href="route('master.tenants.users', t.id)">
+                                            Usuários
                                         </OverflowMenuItem>
                                         <OverflowMenuItem icon="invoice" :href="route('master.tenants.subscription.show', t.id)">
                                             Assinatura

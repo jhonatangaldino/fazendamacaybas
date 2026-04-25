@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -14,7 +14,20 @@ const { toast } = useToast();
 
 const props = defineProps({ settings: Object });
 
-const local = ref(JSON.parse(JSON.stringify(props.settings)));
+// Grupos internos (não editáveis pelo master via UI). `cms.*` controla wizards/onboarding,
+// é flag de sistema e nunca deveria aparecer como configuração editável.
+const HIDDEN_GROUPS = new Set(['cms']);
+
+// Filtra grupos internos e settings sem label (lixo de migrations antigas).
+// Mantém referência reativa para que save() continue iterando o objeto certo.
+const local = ref(
+    Object.fromEntries(
+        Object.entries(JSON.parse(JSON.stringify(props.settings)))
+            .filter(([key]) => ! HIDDEN_GROUPS.has(key))
+            .map(([key, group]) => [key, group.filter(s => !! s.label)])
+            .filter(([_, group]) => group.length > 0)
+    )
+);
 const uploadError = ref({});
 const uploadLoading = ref({});
 
@@ -103,7 +116,14 @@ const groupLabels = {
     social: 'Redes sociais',
     tema: 'Tema / cores',
     seo: 'SEO',
+    localizacao: 'Localização e mapa',
 };
+
+// Capitaliza fallback caso surja um grupo novo sem mapeamento
+function groupTitle(key) {
+    if (groupLabels[key]) return groupLabels[key];
+    return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+}
 
 function fieldKind(s) {
     if (s.type === 'image') return 'image';
@@ -129,7 +149,7 @@ function cacheBusted(path) {
 
         <div class="space-y-6 max-w-4xl">
             <div v-for="(group, key) in local" :key="key" class="card">
-                <div class="card-header"><h2 class="card-title">{{ groupLabels[key] ?? key }}</h2></div>
+                <div class="card-header"><h2 class="card-title">{{ groupTitle(key) }}</h2></div>
                 <div class="card-body grid gap-4 sm:grid-cols-2">
                     <div v-for="s in group" :key="s.key" :class="fieldKind(s) === 'textarea' ? 'sm:col-span-2' : ''">
                         <label class="form-label">{{ s.label }}</label>

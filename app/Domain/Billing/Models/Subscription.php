@@ -27,6 +27,7 @@ class Subscription extends Model
         'current_period_start',
         'current_period_end',
         'canceled_at',
+        'grace_until',
         'meta',
     ];
 
@@ -36,6 +37,7 @@ class Subscription extends Model
         'current_period_start' => 'datetime',
         'current_period_end' => 'datetime',
         'canceled_at' => 'datetime',
+        'grace_until' => 'date',
         'meta' => 'array',
     ];
 

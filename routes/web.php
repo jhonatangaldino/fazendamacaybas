@@ -9,6 +9,11 @@ use App\Http\Controllers\Admin\Wizards\ReceitaWizardController;
 use App\Http\Controllers\Admin\Wizards\AplicacaoWizardController;
 use App\Http\Controllers\Admin\Wizards\ManutencaoWizardController;
 use App\Http\Controllers\Admin\Wizards\EventoRebanhoWizardController;
+use App\Http\Controllers\Admin\Wizards\CadastroAnimalWizardController;
+use App\Http\Controllers\Admin\Wizards\ColheitaWizardController;
+use App\Http\Controllers\Admin\Wizards\DocumentoWizardController;
+use App\Http\Controllers\Admin\Wizards\FuncionarioWizardController;
+use App\Http\Controllers\Admin\Wizards\PlantioWizardController;
 use App\Http\Controllers\Admin\Wizards\TarefaWizardController;
 use App\Http\Controllers\Admin\Wizards\EstoqueWizardController;
 use App\Http\Controllers\Admin\FarmSelectionController;
@@ -23,6 +28,8 @@ use App\Http\Controllers\Master\Cms\SettingsController as MasterCmsSettingsContr
 use App\Http\Controllers\Master\FarmController as MasterFarmController;
 use App\Http\Controllers\Master\ImpersonationController;
 use App\Http\Controllers\Master\InvoiceController;
+use App\Http\Controllers\Master\InvoiceWizardController;
+use App\Http\Controllers\Master\BillingConfigController;
 use App\Http\Controllers\Master\MasterDashboardController;
 use App\Http\Controllers\Master\PlanController;
 use App\Http\Controllers\Master\SubscriptionController;
@@ -102,6 +109,13 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
     Route::put('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
     Route::post('tenants/{tenant}/toggle', [TenantController::class, 'toggle'])->name('tenants.toggle');
 
+    // Gestão de usuários do tenant pelo master — valor operacional: liga
+    // cliente reclamando de senha, master reseta direto sem impersonar.
+    Route::get('tenants/{tenant}/usuarios', [TenantController::class, 'users'])->name('tenants.users');
+    Route::post('tenants/{tenant}/usuarios/inline', [TenantController::class, 'storeUserInline'])->name('tenants.users.inline');
+    Route::post('tenants/{tenant}/usuarios/{user}/reset-senha', [TenantController::class, 'resetUserPassword'])->name('tenants.users.reset-password');
+    Route::post('tenants/{tenant}/usuarios/{user}/toggle', [TenantController::class, 'toggleUser'])->name('tenants.users.toggle');
+
     // M5 — Impersonação. `start` fica junto do tenant (POST /master/tenants/{tenant}/impersonate),
     // `exit` em rota própria para ser chamável de qualquer contexto (admin ou master)
     // via banner. Ambas passam por auth+enforce.master (master com tenant_id=NULL).
@@ -120,6 +134,14 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
 
     // M6 — Cobranças (listagem global + ações de status)
     Route::get('cobrancas', [InvoiceController::class, 'index'])->name('cobrancas.index');
+    // Configurações de cobrança (chave PIX) — antes do {invoice} para não colidir
+    Route::get('cobrancas/configuracoes', [BillingConfigController::class, 'index'])->name('cobrancas.configuracoes');
+    Route::put('cobrancas/configuracoes', [BillingConfigController::class, 'update'])->name('cobrancas.configuracoes.update');
+    // Wizard "Gerar faturas" (mensal ou única) — declarado ANTES da rota
+    // /{invoice}/pix para não colidir na resolução de rotas com {invoice} = "gerar".
+    Route::get('cobrancas/gerar', [InvoiceWizardController::class, 'create'])->name('cobrancas.wizard.create');
+    Route::post('cobrancas/gerar/preview', [InvoiceWizardController::class, 'preview'])->name('cobrancas.wizard.preview');
+    Route::post('cobrancas/gerar', [InvoiceWizardController::class, 'store'])->name('cobrancas.wizard.store');
     Route::get('cobrancas/{invoice}/pix', [InvoiceController::class, 'showPix'])->name('cobrancas.pix');
     Route::post('cobrancas/{invoice}/marcar-paga', [InvoiceController::class, 'markPaid'])->name('cobrancas.mark-paid');
     Route::post('cobrancas/{invoice}/marcar-pendente', [InvoiceController::class, 'markPending'])->name('cobrancas.mark-pending');
@@ -212,7 +234,7 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
 // - enforce.farm (R2.6): resolve app('farm_id') ou redireciona ao seletor
 //   quando o tenant tiver múltiplas fazendas. Rotas fazenda.select/switch
 //   estão na whitelist interna do middleware.
-Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.farm'])
+Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.farm', 'enforce.feature'])
     ->prefix('admin')->name('admin.')->group(function () {
     // Raiz do admin → Hub "O que você quer fazer?" (nova porta de entrada).
     // Antes redirecionava pro dashboard; agora o dashboard é um destino secundário
@@ -225,6 +247,24 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
     // Exibe PIX copia-e-cola das invoices em aberto do próprio tenant.
     Route::get('pagamento-pendente', [PendingPaymentController::class, 'show'])
         ->name('pagamento-pendente');
+
+    // Faturas do tenant — somente visualização. Filtra por aparece_em <= today
+    // para não revelar faturas futuras antes da hora.
+    Route::get('faturas', [\App\Http\Controllers\Admin\FaturasController::class, 'index'])
+        ->name('faturas.index');
+
+    // Tela "Plano não inclui esta funcionalidade" — destino do EnforceFeature.
+    // CORE: nunca passa por feature gate.
+    Route::get('plano-nao-inclui', function (\Illuminate\Http\Request $request) {
+        $key = (string) $request->query('feature', '');
+        $cat = \App\Domain\Billing\PlanFeatures::CATALOG;
+        return \Inertia\Inertia::render('Admin/PlanoNaoInclui', [
+            'feature' => array_merge(
+                ['key' => $key],
+                $cat[$key] ?? ['nome' => 'Funcionalidade', 'descricao' => 'Este módulo não está incluído no seu plano atual.'],
+            ),
+        ]);
+    })->name('feature-not-available');
 
     // Hub de ações — porta de entrada do sistema.
     // Não tem `permission:` no middleware: o Hub sempre renderiza; a filtragem
@@ -275,6 +315,48 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
             ->middleware('permission:operational.estoque.movimentos.create')->name('ajustar-estoque');
         Route::post('ajustar-estoque', [EstoqueWizardController::class, 'storeAjustar'])
             ->middleware('permission:operational.estoque.movimentos.create')->name('ajustar-estoque.store');
+
+        // Onda final — 4 wizards convertendo CRUD em fluxos guiados:
+        // Funcionário, Documento, Plantio, Colheita.
+        Route::get('cadastrar-funcionario', [FuncionarioWizardController::class, 'create'])
+            ->middleware('permission:operational.funcionarios.cadastro.create')->name('cadastrar-funcionario');
+        Route::post('cadastrar-funcionario', [FuncionarioWizardController::class, 'store'])
+            ->middleware('permission:operational.funcionarios.cadastro.create')->name('cadastrar-funcionario.store');
+
+        Route::get('anexar-documento', [DocumentoWizardController::class, 'create'])
+            ->middleware('permission:operational.documentos.create')->name('anexar-documento');
+        Route::post('anexar-documento', [DocumentoWizardController::class, 'store'])
+            ->middleware('permission:operational.documentos.create')->name('anexar-documento.store');
+
+        Route::get('registrar-plantio', [PlantioWizardController::class, 'create'])
+            ->middleware('permission:operational.agricola.plantios.create')->name('registrar-plantio');
+        Route::post('registrar-plantio', [PlantioWizardController::class, 'store'])
+            ->middleware('permission:operational.agricola.plantios.create')->name('registrar-plantio.store');
+        Route::post('registrar-plantio/talhao/inline', [PlantioWizardController::class, 'fieldInline'])
+            ->middleware('permission:operational.agricola.talhoes.create')->name('registrar-plantio.talhao.inline');
+        Route::post('registrar-plantio/cultura/inline', [PlantioWizardController::class, 'cropInline'])
+            ->middleware('permission:operational.agricola.plantios.create')->name('registrar-plantio.cultura.inline');
+
+        Route::get('registrar-colheita', [ColheitaWizardController::class, 'create'])
+            ->middleware('permission:operational.agricola.colheitas.create')->name('registrar-colheita');
+        Route::post('registrar-colheita', [ColheitaWizardController::class, 'store'])
+            ->middleware('permission:operational.agricola.colheitas.create')->name('registrar-colheita.store');
+
+        // Onda 7 cards finais — saída de estoque + cadastro/compra/nascimento de animal
+        Route::get('saida-estoque', [EstoqueWizardController::class, 'saida'])
+            ->middleware('permission:operational.estoque.movimentos.create')->name('saida-estoque');
+        Route::post('saida-estoque', [EstoqueWizardController::class, 'storeSaida'])
+            ->middleware('permission:operational.estoque.movimentos.create')->name('saida-estoque.store');
+
+        // Cadastro de animal — 1 wizard, 3 modos (cadastro / compra / nascimento).
+        // O modo vem por query (`?modo=...`) — o Hub anexa via hrefPara.
+        Route::get('cadastrar-animal', function (Request $request, CadastroAnimalWizardController $c) {
+            return $c->create($request, $request->query('modo', 'cadastro'));
+        })->middleware('permission:operational.rebanho.animais.create')->name('cadastrar-animal');
+
+        Route::post('cadastrar-animal', function (Request $request, CadastroAnimalWizardController $c) {
+            return $c->store($request, $request->query('modo', 'cadastro'));
+        })->middleware('permission:operational.rebanho.animais.create')->name('cadastrar-animal.store');
     });
 
     // ------- FAZENDA (seleção e troca) -------
@@ -310,6 +392,10 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
 
     // ------- PARCEIROS -------
     Route::middleware('permission:operational.parceiros.view')->group(function () {
+        // Inline JSON — criar parceiro de dentro de outros fluxos (venda, despesa)
+        Route::post('parceiros/inline', [PartnerController::class, 'storeInline'])
+            ->middleware('permission:operational.parceiros.create')
+            ->name('parceiros.inline');
         Route::get('parceiros', [PartnerController::class, 'index'])->name('parceiros.index');
         Route::get('parceiros/novo', [PartnerController::class, 'create'])->middleware('permission:operational.parceiros.create')->name('parceiros.create');
         Route::post('parceiros', [PartnerController::class, 'store'])->middleware('permission:operational.parceiros.create')->name('parceiros.store');
@@ -321,6 +407,10 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
     // ------- FINANCEIRO -------
     Route::middleware('permission:operational.financeiro.view')->group(function () {
         Route::get('financeiro', FinancialIndexController::class)->name('financeiro.index');
+        // Inline JSON — criar categoria financeira sem sair do wizard de despesa/receita
+        Route::post('financeiro/categorias/inline', [\App\Http\Controllers\Admin\CategoryController::class, 'storeInline'])
+            ->middleware('permission:operational.financeiro.transacoes.create')
+            ->name('financeiro.categorias.inline');
         Route::get('financeiro/transacoes', [FinancialTransactionController::class, 'index'])->name('financeiro.transacoes.index');
         Route::get('financeiro/transacoes/novo', [FinancialTransactionController::class, 'create'])->middleware('permission:operational.financeiro.transacoes.create')->name('financeiro.transacoes.create');
         Route::post('financeiro/transacoes', [FinancialTransactionController::class, 'store'])->middleware('permission:operational.financeiro.transacoes.create')->name('financeiro.transacoes.store');
@@ -344,11 +434,17 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
         Route::get('rebanho/animais/{animal}', [AnimalController::class, 'show'])->name('rebanho.animais.show');
         Route::post('rebanho/animais/{animal}/eventos', [AnimalController::class, 'storeEvent'])->middleware('permission:operational.rebanho.eventos.create')->name('rebanho.animais.eventos.store');
         Route::post('rebanho/animais/vender-lote', [AnimalController::class, 'sellBatch'])->middleware('permission:operational.rebanho.animais.update')->name('rebanho.animais.vender-lote');
+        // Evento em LOTE: vacinação/medicação/vermífugo/observação aplicados em múltiplos animais
+        Route::post('rebanho/animais/eventos-lote', [AnimalController::class, 'storeEventBatch'])->middleware('permission:operational.rebanho.eventos.create')->name('rebanho.animais.eventos-lote');
         Route::delete('rebanho/animais/{animal}/eventos/{event}', [AnimalController::class, 'destroyEvent'])->middleware('permission:operational.rebanho.eventos.delete')->name('rebanho.animais.eventos.destroy');
 
         // ──── Correção de domínio · Lotes (grupo) e Locais (pasto/piquete) ────
         // Antes o sistema misturava os dois conceitos em `animal_lots` e nem
         // tinha CRUD. Agora são separados e cada um tem sua própria tela.
+        // Endpoint inline (JSON) — criar lote de dentro de outros fluxos sem redirect.
+        Route::post('rebanho/lotes/inline', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'storeInline'])->name('rebanho.lotes.inline');
+        Route::post('rebanho/locais/inline', [\App\Http\Controllers\Admin\Livestock\AnimalLocationController::class, 'storeInline'])->name('rebanho.locais.inline');
+
         Route::get('rebanho/lotes', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'index'])->name('rebanho.lotes.index');
         Route::get('rebanho/lotes/novo', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'create'])->name('rebanho.lotes.create');
         Route::post('rebanho/lotes', [\App\Http\Controllers\Admin\Livestock\AnimalLotController::class, 'store'])->name('rebanho.lotes.store');
@@ -366,11 +462,16 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
         Route::post('rebanho/locais/{local}/toggle', [\App\Http\Controllers\Admin\Livestock\AnimalLocationController::class, 'toggle'])->name('rebanho.locais.toggle');
 
         // F4 · Fluxo guiado (wizard) — Venda de animal
-        // Renderiza a SPA do wizard. O submit usa a rota existente
-        // `rebanho.animais.eventos.store` (zero duplicação de lógica).
+        // FASE 5 · Camada de Inteligência: o wizard agora suporta venda
+        // adaptativa (individual, múltiplos, lote, quantidade, peso) com
+        // unidades reais de mercado (arroba/kg/litro/unidade/cabeça).
+        // O endpoint `store` é unificado e despacha por `modo`.
         Route::get('fluxos/venda-animal', [SaleWizardController::class, 'create'])
             ->middleware('permission:operational.rebanho.eventos.create')
             ->name('fluxos.venda-animal');
+        Route::post('fluxos/venda-animal', [SaleWizardController::class, 'store'])
+            ->middleware('permission:operational.rebanho.eventos.create')
+            ->name('fluxos.venda-animal.store');
     });
 
     // ------- AGRÍCOLA -------
@@ -407,6 +508,10 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
     Route::middleware('permission:operational.estoque.view')->group(function () {
         Route::get('estoque', fn () => Inertia::render('Admin/Stock/Index'))->name('estoque.index');
 
+        // Inline JSON — criar item de estoque sem sair de wizards (Ajustar, Receber, etc.)
+        Route::post('estoque/itens/inline', [StockItemController::class, 'storeInline'])
+            ->middleware('permission:operational.estoque.itens.create')
+            ->name('estoque.itens.inline');
         Route::get('estoque/itens', [StockItemController::class, 'index'])->name('estoque.itens.index');
         Route::get('estoque/itens/lookup-barcode', [StockItemController::class, 'lookupByBarcode'])->name('estoque.itens.lookup-barcode');
         Route::get('estoque/itens/novo', [StockItemController::class, 'create'])->middleware('permission:operational.estoque.itens.create')->name('estoque.itens.create');

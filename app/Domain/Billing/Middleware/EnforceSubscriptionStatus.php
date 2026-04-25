@@ -48,7 +48,18 @@ class EnforceSubscriptionStatus
      */
     private const BYPASS_ROUTES = [
         'admin.pagamento-pendente',
+        'admin.faturas.index',  // tenant pode sempre ver suas faturas
     ];
+
+    /**
+     * Status de subscription que bloqueiam acesso operacional.
+     *   overdue → existe ≥1 fatura vencida (ainda dentro da vigência)
+     *   blocked → vigência expirou + 10 dias de carência também
+     *
+     * NÃO bloqueamos `grace` aqui: cliente em carência ainda tem acesso normal,
+     * só vê o aviso. Bloqueio efetivo só ocorre quando carência termina.
+     */
+    private const BLOCKING_STATUSES = ['overdue', 'blocked'];
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -71,12 +82,12 @@ class EnforceSubscriptionStatus
             return $next($request);
         }
 
-        // Status não-overdue: passa
-        if ($subscription->status !== 'overdue') {
+        // Status não-bloqueador: passa (active, trial, grace, canceled)
+        if (! in_array($subscription->status, self::BLOCKING_STATUSES, true)) {
             return $next($request);
         }
 
-        // Status overdue — aplica whitelist
+        // Status overdue/blocked — aplica whitelist
         $routeName = $request->route()?->getName();
         if ($routeName !== null && in_array($routeName, self::BYPASS_ROUTES, true)) {
             return $next($request);

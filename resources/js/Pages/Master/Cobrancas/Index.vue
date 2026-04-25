@@ -1,12 +1,28 @@
 <script setup>
+import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 
-defineProps({
+const props = defineProps({
     invoices: { type: Array, default: () => [] },
     filter_status: { type: String, default: null },
+    filter_q: { type: String, default: '' },
     totals: { type: Object, default: () => ({}) },
 });
+
+const buscaQuery = ref(props.filter_q ?? '');
+
+function buscar() {
+    router.get(route('master.cobrancas.index'), {
+        ...(props.filter_status ? { status: props.filter_status } : {}),
+        ...(buscaQuery.value ? { q: buscaQuery.value } : {}),
+    }, { preserveScroll: true });
+}
+
+function limparBusca() {
+    buscaQuery.value = '';
+    buscar();
+}
 
 function brl(v) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
@@ -19,7 +35,10 @@ const statusLabel = {
 };
 
 function filtrar(status) {
-    router.get(route('master.cobrancas.index'), status ? { status } : {}, {
+    router.get(route('master.cobrancas.index'), {
+        ...(status ? { status } : {}),
+        ...(buscaQuery.value ? { q: buscaQuery.value } : {}),
+    }, {
         preserveScroll: true,
     });
 }
@@ -40,9 +59,28 @@ function marcarPendente(invoice) {
     <MasterLayout>
         <template #page-title>Cobranças</template>
 
-        <div class="mb-6">
-            <h2 class="text-xl font-serif font-bold text-slate-900">Cobranças emitidas</h2>
-            <p class="mt-1 text-sm text-slate-600">Todas as invoices geradas para os clientes da plataforma.</p>
+        <div class="mb-6 flex items-start justify-between gap-4">
+            <div>
+                <h2 class="text-xl font-serif font-bold text-slate-900">Cobranças emitidas</h2>
+                <p class="mt-1 text-sm text-slate-600">Todas as invoices geradas para os clientes da plataforma.</p>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <Link
+                    :href="route('master.cobrancas.configuracoes')"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg ring-1 ring-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 hover:ring-macaybas-primary-300 hover:text-macaybas-primary-800"
+                    title="Chave PIX, nome e cidade"
+                >
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span class="hidden sm:inline">Configurar PIX</span>
+                </Link>
+                <Link
+                    :href="route('master.cobrancas.wizard.create')"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800 shadow-sm"
+                >
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Gerar faturas
+                </Link>
+            </div>
         </div>
 
         <!-- Totais -->
@@ -67,9 +105,33 @@ function marcarPendente(invoice) {
             </div>
         </div>
 
+        <!-- Busca por referência (conciliação) -->
+        <div class="mb-4 flex flex-wrap items-stretch gap-2">
+            <form @submit.prevent="buscar" class="flex-1 min-w-[260px] flex gap-2">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    <input
+                        v-model="buscaQuery"
+                        type="search"
+                        placeholder="Buscar por MAC-0008, 0008 ou nome do cliente"
+                        class="w-full pl-9 pr-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary-500 focus:outline-none text-sm"
+                    >
+                </div>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800">
+                    Buscar
+                </button>
+                <button v-if="filter_q" type="button" @click="limparBusca"
+                    class="px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
+                    Limpar
+                </button>
+            </form>
+        </div>
+
         <!-- Filtros -->
         <div class="flex flex-wrap items-center gap-2 mb-4">
-            <span class="text-xs uppercase tracking-wider text-slate-500 font-semibold mr-2">Filtrar:</span>
+            <span class="text-xs uppercase tracking-wider text-slate-500 font-semibold mr-2">Status:</span>
             <button
                 @click="filtrar(null)"
                 class="px-3 py-1 rounded-full text-xs ring-1 transition"
@@ -82,6 +144,9 @@ function marcarPendente(invoice) {
                 class="px-3 py-1 rounded-full text-xs ring-1 transition"
                 :class="filter_status === st ? 'bg-slate-900 text-white ring-slate-900' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'"
             >{{ lbl.text }}</button>
+            <span v-if="filter_q" class="ml-2 text-xs text-slate-600">
+                Buscando "<strong>{{ filter_q }}</strong>" — {{ invoices.length }} resultado(s)
+            </span>
         </div>
 
         <!-- Tabela -->
@@ -97,7 +162,8 @@ function marcarPendente(invoice) {
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
-                            <th class="px-4 py-3 text-left font-medium">#</th>
+                            <th class="px-4 py-3 text-left font-medium">Ref.</th>
+                            <th class="px-4 py-3 text-left font-medium hidden sm:table-cell">#</th>
                             <th class="px-4 py-3 text-left font-medium">Cliente</th>
                             <th class="px-4 py-3 text-right font-medium">Valor</th>
                             <th class="px-4 py-3 text-left font-medium">Status</th>
@@ -109,7 +175,12 @@ function marcarPendente(invoice) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr v-for="i in invoices" :key="i.id" class="hover:bg-slate-50/60">
-                            <td class="px-4 py-3 font-mono text-xs text-slate-700">#{{ i.numero }}</td>
+                            <td class="px-4 py-3 font-mono text-xs">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-macaybas-primary-50 text-macaybas-primary-800 ring-1 ring-macaybas-primary-200 font-semibold">
+                                    {{ i.referencia_curta }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 font-mono text-xs text-slate-500 hidden sm:table-cell">{{ i.numero }}</td>
                             <td class="px-4 py-3">
                                 <Link
                                     :href="route('master.tenants.subscription.show', i.tenant_id)"

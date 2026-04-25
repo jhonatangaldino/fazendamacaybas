@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Master;
 
 use App\Domain\Billing\Models\Plan;
+use App\Domain\Billing\PlanFeatures;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,7 @@ class PlanController extends Controller
     {
         return Inertia::render('Master/Planos/Form', [
             'plan' => null,
+            'features_catalog' => PlanFeatures::catalogForFrontend(),
         ]);
     }
 
@@ -76,9 +78,14 @@ class PlanController extends Controller
                 'preco_mensal' => (float) $plan->preco_mensal,
                 'max_farms' => $plan->max_farms,
                 'max_users' => $plan->max_users,
-                'features' => is_array($plan->features) ? $plan->features : [],
+                // Sanitiza para garantir que só features do catálogo cheguem ao front,
+                // mesmo se o banco ficou com lixo de versões anteriores (text livre).
+                'features' => PlanFeatures::sanitize(
+                    is_array($plan->features) ? $plan->features : []
+                ),
                 'is_active' => (bool) $plan->is_active,
             ],
+            'features_catalog' => PlanFeatures::catalogForFrontend(),
         ]);
     }
 
@@ -132,19 +139,21 @@ class PlanController extends Controller
     }
 
     /**
-     * Normaliza features para array simples de strings (ignora vazios/duplicados).
-     * Frontend envia array; backend trata para ficar consistente.
+     * Normaliza features filtrando contra o catálogo PlanFeatures.
+     * Qualquer chave fora do catálogo é DESCARTADA — defesa contra payload
+     * adulterado (DevTools, extensões maliciosas) ou drift entre versões.
      */
     private function normalizeFeatures($input): array
     {
         if (! is_array($input)) {
             return [];
         }
-        return collect($input)
-            ->map(fn ($v) => is_string($v) ? trim($v) : '')
-            ->filter(fn ($v) => $v !== '')
-            ->unique()
-            ->values()
-            ->all();
+        return PlanFeatures::sanitize(
+            collect($input)
+                ->map(fn ($v) => is_string($v) ? trim($v) : '')
+                ->filter(fn ($v) => $v !== '')
+                ->values()
+                ->all()
+        );
     }
 }

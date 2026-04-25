@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
+import PixQrCode from '@/Components/PixQrCode.vue';
 
 const props = defineProps({
     invoice: { type: Object, required: true },
@@ -67,6 +68,9 @@ function marcarPendente() {
                     <div>
                         <div class="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-1">Valor a pagar</div>
                         <div class="text-4xl font-serif font-bold text-slate-900">{{ brl(invoice.valor) }}</div>
+                        <div v-if="invoice.referencia_curta" class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-macaybas-primary-50 text-macaybas-primary-800 ring-1 ring-macaybas-primary-200 font-mono text-sm font-bold">
+                            {{ invoice.referencia_curta }}
+                        </div>
                     </div>
                     <span
                         class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ring-1"
@@ -75,6 +79,16 @@ function marcarPendente() {
                         <span class="h-2 w-2 rounded-full" :class="statusLabel[invoice.status]?.dot"></span>
                         {{ statusLabel[invoice.status]?.text }}
                     </span>
+                </div>
+
+                <!-- Bloco de instrução para conciliação manual -->
+                <div v-if="isPayable && invoice.referencia_curta" class="mb-4 rounded-lg bg-amber-50 ring-1 ring-amber-200 p-3 text-sm">
+                    <p class="text-amber-900">
+                        💬 <strong>Instrução para o cliente:</strong>
+                        ao pagar, peça que mencione a referência
+                        <code class="px-1.5 py-0.5 rounded bg-white ring-1 ring-amber-300 font-mono font-bold">{{ invoice.referencia_curta }}</code>
+                        no comentário do PIX. Se o pagamento não atualizar, busque por essa referência aqui no Master.
+                    </p>
                 </div>
 
                 <!-- Metadados -->
@@ -100,6 +114,12 @@ function marcarPendente() {
                         <dd class="text-emerald-700 font-medium">{{ invoice.data_pagamento }}</dd>
                     </div>
                 </dl>
+            </div>
+
+            <!-- QR Code (para mostrar presencialmente ao cliente). Reutiliza o
+                 mesmo componente da tela do tenant — uma fonte de verdade só. -->
+            <div v-if="invoice.pix_payload && isPayable" class="mb-4">
+                <PixQrCode :payload="invoice.pix_payload" :referencia="invoice.referencia_curta" :size="220" />
             </div>
 
             <!-- Caixa do PIX -->

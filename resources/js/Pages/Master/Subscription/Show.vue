@@ -131,10 +131,12 @@ function gerarCobranca() {
 
                     <div class="pt-4 border-t border-slate-100 flex items-center gap-2">
                         <button
+                            type="button"
                             @click="editMode = true"
-                            class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+                            class="px-3 py-1.5 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800"
                         >Alterar plano/status</button>
                         <button
+                            type="button"
                             v-if="subscription.status !== 'canceled'"
                             @click="cancelarAssinatura"
                             class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 text-sm font-medium hover:bg-rose-100 ring-1 ring-rose-200"
@@ -145,8 +147,9 @@ function gerarCobranca() {
                 <div v-else class="text-center py-6">
                     <p class="text-sm text-slate-600 mb-4">Este cliente ainda não tem assinatura.</p>
                     <button
+                        type="button"
                         @click="editMode = true"
-                        class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+                        class="px-4 py-2 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800 shadow-sm"
                     >Atribuir plano</button>
                 </div>
 
@@ -208,9 +211,10 @@ function gerarCobranca() {
                 <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Gerar cobrança</h3>
 
                 <button
+                    type="button"
                     v-if="! showInvoiceForm"
                     @click="showInvoiceForm = true"
-                    class="w-full px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+                    class="w-full px-4 py-2.5 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800"
                 >
                     + Nova cobrança
                 </button>
