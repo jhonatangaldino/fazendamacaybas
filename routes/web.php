@@ -418,6 +418,14 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
         Route::put('financeiro/transacoes/{transacao}', [FinancialTransactionController::class, 'update'])->middleware('permission:operational.financeiro.transacoes.update')->name('financeiro.transacoes.update');
         Route::delete('financeiro/transacoes/{transacao}', [FinancialTransactionController::class, 'destroy'])->middleware('permission:operational.financeiro.transacoes.delete')->name('financeiro.transacoes.destroy');
         Route::post('financeiro/transacoes/{transacao}/pagar', [FinancialTransactionController::class, 'pay'])->middleware('permission:operational.financeiro.transacoes.update')->name('financeiro.transacoes.pay');
+
+        // BLOCO 4.3 RN3 — CRUD UI de Contas Financeiras (antes só existia via seed/tinker)
+        Route::get('financeiro/contas', [\App\Http\Controllers\Admin\Financial\FinancialAccountController::class, 'index'])->name('financeiro.contas.index');
+        Route::post('financeiro/contas', [\App\Http\Controllers\Admin\Financial\FinancialAccountController::class, 'store'])->middleware('permission:operational.financeiro.transacoes.create')->name('financeiro.contas.store');
+        Route::put('financeiro/contas/{conta}', [\App\Http\Controllers\Admin\Financial\FinancialAccountController::class, 'update'])->middleware('permission:operational.financeiro.transacoes.update')->name('financeiro.contas.update');
+        Route::post('financeiro/contas/{conta}/toggle', [\App\Http\Controllers\Admin\Financial\FinancialAccountController::class, 'toggle'])->middleware('permission:operational.financeiro.transacoes.update')->name('financeiro.contas.toggle');
+        // RN2 — endpoint inline JSON usado dentro dos wizards Despesa/Receita
+        Route::post('financeiro/contas/inline', [\App\Http\Controllers\Admin\Financial\FinancialAccountController::class, 'storeInline'])->middleware('permission:operational.financeiro.transacoes.create')->name('financeiro.contas.inline');
     });
 
     // ------- REBANHO -------

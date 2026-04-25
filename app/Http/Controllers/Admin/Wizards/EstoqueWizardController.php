@@ -82,6 +82,25 @@ class EstoqueWizardController extends Controller
                 END) as saldo
             ")->value('saldo') ?? 0;
 
+        // BLOCO 4.3 RN1 — bloqueia saldo negativo. Valida ANTES do create.
+        if ((float) $data['quantidade'] > $saldoAntes) {
+            $item = \App\Models\Stock\StockItem::find($data['item_id']);
+            $unidade = $item?->unidade ?? 'un';
+            $nomeItem = $item?->nome ?? 'Item';
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'quantidade' => sprintf(
+                        'Saldo insuficiente. %s tem apenas %s %s disponível neste armazém. Você tentou retirar %s %s.',
+                        $nomeItem,
+                        number_format($saldoAntes, 2, ',', '.'),
+                        $unidade,
+                        number_format((float) $data['quantidade'], 2, ',', '.'),
+                        $unidade
+                    ),
+                ]);
+        }
+
         StockMovement::create([
             ...$data,
             'tipo' => 'saida',

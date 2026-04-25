@@ -213,9 +213,9 @@ async function copyDeliveryMessage() {
             <p class="mt-1 text-sm text-slate-500">Comece cadastrando o primeiro cliente da plataforma.</p>
         </div>
 
-        <!-- Tabela -->
-        <div v-else class="rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
-            <div class="overflow-x-auto">
+        <!-- BLOCO 4.3 — Tabela DESKTOP only (lg+) -->
+        <div v-else class="hidden lg:block rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
+            <div>
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
@@ -351,6 +351,66 @@ async function copyDeliveryMessage() {
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- BLOCO 4.3 — MOBILE cards (< lg) — todas as ações visíveis, sem scroll horizontal -->
+        <div v-if="tenants.length" class="lg:hidden space-y-2.5">
+            <div v-for="t in tenants" :key="t.id"
+                 class="rounded-xl bg-white ring-1 ring-slate-200 p-3.5 shadow-sm">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <div class="min-w-0">
+                        <div class="font-semibold text-slate-900 truncate">{{ t.nome }}</div>
+                        <div class="text-xs text-slate-500 font-mono">{{ t.slug }}</div>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 flex-shrink-0"
+                          :class="t.is_active
+                              ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                              : 'bg-slate-100 text-slate-500 ring-slate-200'">
+                        <span class="h-1.5 w-1.5 rounded-full" :class="t.is_active ? 'bg-emerald-500' : 'bg-slate-400'"></span>
+                        {{ t.is_active ? 'Ativo' : 'Inativo' }}
+                    </span>
+                </div>
+
+                <div v-if="! t.is_ready" class="mb-2">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+                        ⚠ Configuração incompleta
+                    </span>
+                </div>
+                <div class="text-xs text-slate-500 mb-3">Criado em {{ t.created_at }}</div>
+
+                <!-- Ações principais visíveis (não em ⋯) -->
+                <div class="flex flex-wrap gap-2">
+                    <Link :href="route('master.tenants.edit', t.id)"
+                          class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-macaybas-primary-700 text-white hover:bg-macaybas-primary-800 min-w-[100px]">
+                        <Icon name="edit" :size="14" />Editar
+                    </Link>
+                    <button type="button" @click="impersonate(t)" :disabled="! t.is_active"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-amber-100 text-amber-900 ring-1 ring-amber-200 hover:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px]">
+                        <Icon name="user" :size="14" />Impersonar
+                    </button>
+                    <Link :href="route('master.clientes.cms.index', t.id)"
+                          class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 min-w-[100px]">
+                        <Icon name="globe" :size="14" />CMS
+                    </Link>
+                </div>
+                <!-- Ações secundárias em ⋯ -->
+                <div class="mt-2 flex justify-end">
+                    <OverflowMenu :label="`Mais ações para ${t.nome}`">
+                        <OverflowMenuItem icon="home" :href="route('master.tenants.farms.index', t.id)">Fazendas</OverflowMenuItem>
+                        <OverflowMenuItem icon="user" :href="route('master.tenants.users', t.id)">Usuários</OverflowMenuItem>
+                        <OverflowMenuItem icon="invoice" :href="route('master.tenants.subscription.show', t.id)">Assinatura</OverflowMenuItem>
+                        <OverflowMenuItem icon="copy" @click="openDeliveryDialog(t)">Mensagem de entrega</OverflowMenuItem>
+                        <OverflowMenuDivider />
+                        <OverflowMenuItem
+                            :icon="t.is_active ? 'power' : 'check-circle'"
+                            :danger="t.is_active"
+                            :success="! t.is_active"
+                            @click="toggle(t)">
+                            {{ t.is_active ? 'Desativar cliente' : 'Reativar cliente' }}
+                        </OverflowMenuItem>
+                    </OverflowMenu>
+                </div>
             </div>
         </div>
 

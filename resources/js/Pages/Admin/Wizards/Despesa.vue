@@ -30,6 +30,52 @@ const props = defineProps({
 // Listas locais — recebem novos itens criados inline
 const categoriasLocal = ref([...props.categorias]);
 const fornecedoresLocal = ref([...props.fornecedores]);
+// BLOCO 4.3 RN2 — conta financeira inline
+const contasLocal = ref([...props.contas]);
+const contaInlineOpen = ref(false);
+const contaInlineSalvando = ref(false);
+const contaInlineErro = ref(null);
+const contaInlineForm = ref({ nome: '', tipo: 'corrente' });
+
+function abrirNovaContaInline() {
+    contaInlineOpen.value = true;
+    contaInlineErro.value = null;
+    contaInlineForm.value = { nome: '', tipo: 'corrente' };
+}
+
+async function salvarContaInline() {
+    contaInlineErro.value = null;
+    if (! contaInlineForm.value.nome?.trim()) {
+        contaInlineErro.value = 'Informe o nome da conta.';
+        return;
+    }
+    contaInlineSalvando.value = true;
+    try {
+        const xsrf = document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] || '';
+        const r = await fetch(route('admin.financeiro.contas.inline'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-XSRF-TOKEN': decodeURIComponent(xsrf),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(contaInlineForm.value),
+        });
+        if (! r.ok) {
+            const body = await r.json().catch(() => ({}));
+            contaInlineErro.value = body.errors?.nome?.[0] || body.message || 'Erro ao criar conta.';
+            return;
+        }
+        const nova = await r.json();
+        contasLocal.value.push(nova);
+        form.account_id = nova.id;
+        contaInlineOpen.value = false;
+    } finally {
+        contaInlineSalvando.value = false;
+    }
+}
 
 const PASSOS = [
     { n: 1, titulo: 'O que pagou', icon: '🛒' },
@@ -148,11 +194,12 @@ function reiniciar() {
 
         <WizardStepper :passos="PASSOS" :passo="passo" />
 
-        <!-- Aviso se não há conta financeira cadastrada -->
+        <!-- BLOCO 4.3 RN2 — se não há conta, oferece criar inline (sem sair do fluxo) -->
         <div v-if="contas.length === 0" class="max-w-2xl mx-auto card border-amber-300 bg-amber-50 p-4 mb-4">
             <div class="font-semibold text-amber-900">Você precisa de uma conta financeira primeiro</div>
-            <p class="text-sm text-amber-800 mt-1">Cadastre uma conta (caixa ou banco) antes de registrar despesas.</p>
-            <Link :href="route('admin.financeiro.index')" class="btn-outline mt-3">Ir para o financeiro</Link>
+            <p class="text-sm text-amber-800 mt-1">Cadastre rapidamente sem sair desta tela:</p>
+            <button @click="abrirNovaContaInline" class="btn-primary mt-3">+ Cadastrar conta agora</button>
+            <Link :href="route('admin.financeiro.contas.index')" class="btn-outline mt-3 ml-2">Gerenciar contas</Link>
         </div>
 
         <template v-else>
@@ -252,10 +299,57 @@ function reiniciar() {
 
                 <div>
                     <InputLabel :value="form.status === 'pago' ? 'De onde saiu o dinheiro?' : 'De onde vai sair o dinheiro?'" />
-                    <select v-model="form.account_id" class="form-select text-base py-3">
-                        <option v-for="c in contas" :key="c.id" :value="c.id">{{ c.nome }}</option>
-                    </select>
+                    <div class="flex gap-2">
+                        <select v-model="form.account_id" class="form-select text-base py-3 flex-1">
+                            <option v-for="c in contasLocal" :key="c.id" :value="c.id">{{ c.nome }}</option>
+                        </select>
+                        <button type="button" @click="abrirNovaContaInline"
+                                class="px-3 py-2 rounded-lg text-sm font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100 whitespace-nowrap"
+                                title="Criar nova conta sem sair do wizard">
+                            + Nova conta
+                        </button>
+                    </div>
                 </div>
+
+                <!-- BLOCO 4.3 RN2 — modal inline criar conta -->
+                <Teleport to="body">
+                    <div v-if="contaInlineOpen" class="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                        <div class="absolute inset-0 bg-slate-900/60" @click="contaInlineOpen = false"></div>
+                        <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-slate-200">
+                            <div class="px-5 pt-5 pb-3 border-b border-slate-100">
+                                <h3 class="text-base font-semibold text-slate-900">Nova conta financeira</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">Cadastro rápido sem sair do wizard.</p>
+                            </div>
+                            <div class="px-5 py-4 space-y-3">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Nome *</label>
+                                    <input v-model="contaInlineForm.nome" type="text" placeholder="Ex.: Banco do Brasil PJ"
+                                           class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Tipo *</label>
+                                    <select v-model="contaInlineForm.tipo"
+                                            class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                                        <option value="corrente">Conta corrente</option>
+                                        <option value="poupanca">Poupança</option>
+                                        <option value="caixa">Caixa interno</option>
+                                        <option value="dinheiro">Dinheiro em espécie</option>
+                                        <option value="cartao">Cartão de crédito</option>
+                                        <option value="outro">Outro</option>
+                                    </select>
+                                </div>
+                                <p v-if="contaInlineErro" class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-2 py-1.5">⚠ {{ contaInlineErro }}</p>
+                            </div>
+                            <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+                                <button type="button" @click="contaInlineOpen = false" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-200">Cancelar</button>
+                                <button type="button" @click="salvarContaInline" :disabled="contaInlineSalvando"
+                                        class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                                    {{ contaInlineSalvando ? 'Salvando…' : 'Cadastrar conta' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Teleport>
 
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
