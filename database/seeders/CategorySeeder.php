@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
-use App\Models\CostCenter;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -53,16 +52,11 @@ class CategorySeeder extends Seeder
             );
         }
 
-        // Centros de custo iniciais
-        $cc = [
-            ['codigo' => 'GERAL', 'nome' => 'Geral', 'descricao' => 'Custos gerais não atribuídos'],
-            ['codigo' => 'REBANHO', 'nome' => 'Rebanho', 'descricao' => 'Custos relacionados ao rebanho'],
-            ['codigo' => 'AGRICOLA', 'nome' => 'Produção agrícola', 'descricao' => 'Custos de lavoura e talhões'],
-            ['codigo' => 'MAQUINAS', 'nome' => 'Máquinas e veículos', 'descricao' => 'Manutenção e operação de frota'],
-            ['codigo' => 'ADMIN', 'nome' => 'Administrativo', 'descricao' => 'Custos administrativos e escritório'],
-        ];
-        foreach ($cc as $c) {
-            CostCenter::updateOrCreate(['codigo' => $c['codigo']], $c + ['is_active' => true]);
-        }
+        // BLOCO 3.1 — Cost centers ficam por tenant agora.
+        // Antes este seeder criava 5 "defaults globais" (GERAL, REBANHO, AGRICOLA,
+        // MAQUINAS, ADMIN) sem tenant_id. Com o isolamento por tenant, defaults
+        // globais não fazem sentido — cada cliente cadastra os centros que usa
+        // no fluxo de financeiro. Os 5 órfãos antigos foram removidos pela
+        // migration 2026_04_25_160000_cleanup_orphan_cost_centers.
     }
 }

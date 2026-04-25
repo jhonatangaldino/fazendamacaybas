@@ -4,6 +4,7 @@ namespace App\Domain\Tenancy\Traits;
 
 use App\Domain\Tenancy\Scopes\BelongsToFarmScope;
 use Illuminate\Database\Eloquent\Model;
+use RuntimeException;
 
 /**
  * Trait BelongsToFarm — isolamento operacional por fazenda.
@@ -83,5 +84,37 @@ trait BelongsToFarm
             return;
         }
         $model->farm_id = (int) $containerFarm;
+    }
+
+    /**
+     * Asserção dura: requer que `app('farm_id')` esteja bindado e não-null.
+     *
+     * Uso recomendado em jobs, console commands, e qualquer código fora do
+     * fluxo HTTP (onde o middleware EnforceFarm já garantiu o contexto):
+     *
+     *   class MeuJob implements ShouldQueue {
+     *       public function handle(): void {
+     *           BelongsToFarm::requireContext(); // aborta se faltar
+     *           // ... lógica que TOCA dados farm-aware
+     *       }
+     *   }
+     *
+     * Por que NÃO está no boot do trait:
+     *   • Migrations e seeders LEGITIMAMENTE bypassam scope (precisam ver tudo)
+     *   • Forçar o assert no boot quebraria o `php artisan migrate`
+     *   • A política é: HTTP é blindado por middleware, CLI é opt-in via este helper
+     *
+     * Para CLI cross-tenant intencional (ex.: MarkOverdueInvoices), NÃO chame
+     * este método — o trabalho atravessa todos os tenants/farms por design.
+     */
+    public static function requireContext(): void
+    {
+        if (! app()->bound('farm_id') || app('farm_id') === null) {
+            throw new RuntimeException(
+                'BelongsToFarm::requireContext() — `app(\'farm_id\')` não está bindado. '
+                .'Em jobs/commands que tocam dados farm-aware, binde explicitamente antes: '
+                .'`app()->instance(\'farm_id\', $farmId)`.'
+            );
+        }
     }
 }
