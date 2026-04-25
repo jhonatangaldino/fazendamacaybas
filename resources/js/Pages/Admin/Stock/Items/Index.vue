@@ -116,7 +116,7 @@ const tipoLabel = {
         </div>
 
         <!-- F4.2 · Filtros colapsáveis em mobile (busca sempre visível) -->
-        <MobileFilters cols="sm:grid-cols-2">
+        <MobileFilters cols="sm:grid-cols-2 lg:grid-cols-3">
             <template #always>
                 <input v-model="filtros.search" @keyup.enter="filtrar"
                        placeholder="Buscar por código ou nome…" class="form-input">

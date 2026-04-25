@@ -293,7 +293,7 @@ function confirmarDesligamento() {
                 <div class="card-header">
                     <h2 class="card-title">{{ editing === 'new' ? 'Novo funcionário' : 'Editar funcionário' }}</h2>
                 </div>
-                <div class="card-body grid gap-4 sm:grid-cols-3">
+                <div class="card-body grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <!-- TIPO DE CONTRATO dirige toda a UX abaixo -->
                     <div>
                         <InputLabel value="Tipo de contrato" />
@@ -425,7 +425,7 @@ function confirmarDesligamento() {
         </div>
 
         <div class="card mb-4">
-            <div class="card-body grid gap-3 sm:grid-cols-3">
+            <div class="card-body grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <input v-model="filtros.search" @keyup.enter="filtrar" placeholder="Nome ou CPF" class="form-input">
                 <select v-model="filtros.setor" @change="filtrar" class="form-select">
                     <option value="">Todos os setores</option>

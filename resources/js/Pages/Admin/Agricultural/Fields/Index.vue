@@ -62,7 +62,7 @@ function doDelete() {
 
         <div v-if="editing" class="card mb-6">
             <div class="card-header"><h2 class="card-title">{{ editing === 'new' ? 'Novo talhão' : 'Editar talhão' }}</h2></div>
-            <div class="card-body grid gap-4 sm:grid-cols-3">
+            <div class="card-body grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div><InputLabel value="Código" /><input v-model="form.codigo" required class="form-input"></div>
                 <div class="sm:col-span-2"><InputLabel value="Nome" /><input v-model="form.nome" required class="form-input"></div>
                 <div>
@@ -90,7 +90,7 @@ function doDelete() {
         </div>
 
         <div class="card mb-4">
-            <div class="card-body grid gap-3 sm:grid-cols-3">
+            <div class="card-body grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <input v-model="filtros.search" @keyup.enter="filtrar" placeholder="Buscar código ou nome" class="form-input sm:col-span-2">
                 <select v-model="filtros.status" @change="filtrar" class="form-select">
                     <option value="ativos">Ativos</option>

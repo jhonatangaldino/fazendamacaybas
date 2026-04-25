@@ -135,7 +135,7 @@ const modoReceber = computed(() =>
         </div>
 
         <!-- F4.2 · Filtros colapsáveis em mobile -->
-        <MobileFilters cols="sm:grid-cols-5">
+        <MobileFilters cols="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <select v-model="filtros.tipo" @change="filtrar" class="form-select">
                 <option value="">Todos os tipos</option>
                 <option value="receita">Receitas</option>

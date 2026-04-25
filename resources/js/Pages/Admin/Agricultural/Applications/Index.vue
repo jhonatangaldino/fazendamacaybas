@@ -71,7 +71,7 @@ const tipoLabel = {
 
         <div v-if="showForm" class="card mb-6">
             <div class="card-header"><h2 class="card-title">Registrar aplicação</h2></div>
-            <div class="card-body grid gap-4 sm:grid-cols-3">
+            <div class="card-body grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <InputLabel value="Talhão" />
                     <select v-model="form.field_id" class="form-select" required>

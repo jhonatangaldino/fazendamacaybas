@@ -75,7 +75,7 @@ const statusBadge = (s) => ({
 
         <div v-if="editing" class="card mb-6">
             <div class="card-header"><h2 class="card-title">{{ editing === 'new' ? 'Novo plantio' : 'Editar plantio' }}</h2></div>
-            <div class="card-body grid gap-4 sm:grid-cols-3">
+            <div class="card-body grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <InputLabel value="Talhão" />
                     <select v-model="form.field_id" class="form-select" required>
@@ -120,7 +120,7 @@ const statusBadge = (s) => ({
         </div>
 
         <div class="card mb-4">
-            <div class="card-body grid gap-3 sm:grid-cols-3">
+            <div class="card-body grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <select v-model="filtros.status" @change="filtrar" class="form-select">
                     <option value="">Todos</option>
                     <option value="em_andamento">Em andamento</option>

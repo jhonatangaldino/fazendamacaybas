@@ -60,7 +60,7 @@ function doDelete() {
 
         <div v-if="showForm" class="card mb-6">
             <div class="card-header"><h2 class="card-title">Registrar colheita</h2></div>
-            <div class="card-body grid gap-4 sm:grid-cols-3">
+            <div class="card-body grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="sm:col-span-2">
                     <InputLabel value="Plantio" />
                     <select v-model="form.planting_id" class="form-select" required>

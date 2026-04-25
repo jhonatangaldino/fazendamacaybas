@@ -499,7 +499,7 @@ function vinculoLabel(t) {
         </div>
 
         <!-- F4.2 · Filtros colapsáveis em mobile -->
-        <MobileFilters cols="sm:grid-cols-4">
+        <MobileFilters cols="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <select v-model="filtros.status" @change="filtrar" class="form-select">
                 <option value="">Todos os status</option>
                 <option value="pendente">Pendentes</option>

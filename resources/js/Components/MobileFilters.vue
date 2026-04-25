@@ -29,8 +29,13 @@
 import { ref, computed, useSlots } from 'vue';
 
 const props = defineProps({
-    /** Tailwind grid classes para o layout em desktop. Default: 3 colunas. */
-    cols: { type: String, default: 'sm:grid-cols-3' },
+    /**
+     * Tailwind grid classes para layout em desktop.
+     * BLOCO 4.4 fix: novo default escalona gradualmente sem truncar texto.
+     * sm:2 (640+), md:3 (768+), lg:4 (1024+), xl:5 (1280+).
+     * Use a prop somente se precisar override explícito.
+     */
+    cols: { type: String, default: 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' },
 });
 
 const slots = useSlots();
