@@ -86,6 +86,12 @@ tar --exclude='./.git' \
     --exclude='./.env*' \
     --exclude='./CREDENCIAIS*' \
     --exclude='./docs' \
+    --exclude='./qa-evidence' \
+    --exclude='./qa-ux' \
+    --exclude='./screenshots' \
+    --exclude='./qa-output' \
+    --exclude='./tmp' \
+    --exclude='./*.tmp' \
     -czf "${ARTIFACT_LOCAL}" .
 
 SIZE=$(du -h "${ARTIFACT_LOCAL}" | cut -f1)

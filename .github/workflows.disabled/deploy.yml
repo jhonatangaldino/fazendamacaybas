@@ -92,6 +92,12 @@ jobs:
               --exclude='./.env*' \
               --exclude='./CREDENCIAIS*' \
               --exclude='./docs' \
+              --exclude='./qa-evidence' \
+              --exclude='./qa-ux' \
+              --exclude='./screenshots' \
+              --exclude='./qa-output' \
+              --exclude='./tmp' \
+              --exclude='./*.tmp' \
               -czf artifact/release-${RELEASE_ID}.tar.gz .
 
       # Escrita defensiva da chave SSH.
