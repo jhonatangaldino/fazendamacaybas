@@ -81,9 +81,21 @@ class UserController extends Controller
             return back()->with('error', 'Você não tem permissão para atribuir o perfil Admin Master.');
         }
 
+        // BUG FIX: tenant_id e current_farm_id devem vir do user que CRIA, não do payload.
+        // Sem isso, novos users virariam "master órfãos" (tenant_id NULL) e login deles
+        // jogaria em /master/dashboard com 403 (não têm role admin_master).
+        // Master criando user de tenant deve usar /master/tenants/{id}/usuarios/inline.
+        // Aqui (admin area) o user atual SEMPRE é tenant user, então herdamos seu contexto.
+        $criador = $request->user();
+        if ($criador->tenant_id === null) {
+            return back()->with('error', 'Master não pode criar usuários por esta tela. Use a tela de Usuários do cliente em /master/tenants/{id}/usuarios.');
+        }
+
         $user = User::create([
             ...collect($data)->except('password', 'roles')->all(),
             'password' => Hash::make($data['password']),
+            'tenant_id' => $criador->tenant_id,
+            'current_farm_id' => $criador->current_farm_id,
         ]);
 
         $user->syncRoles($data['roles'] ?? []);
