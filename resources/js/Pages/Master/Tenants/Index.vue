@@ -309,6 +309,19 @@ async function copyDeliveryMessage() {
                                         <span class="hidden sm:inline">CMS</span>
                                     </Link>
 
+                                    <!-- BLOCO 4.3 — Impersonar saiu do ⋯ pra ação secundária visível
+                                         (audit B4 apontou que era ação principal escondida) -->
+                                    <button
+                                        type="button"
+                                        @click="impersonate(t)"
+                                        :disabled="! t.is_active"
+                                        v-tooltip="t.is_active ? `Acessar como ${t.nome}` : 'Cliente desativado — ative antes de impersonar'"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-100 text-amber-900 ring-1 ring-amber-200 hover:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Icon name="user" :size="14" />
+                                        <span class="hidden sm:inline">Impersonar</span>
+                                    </button>
+
                                     <!-- Menu secundário "⋯" — somente ações ocasionais -->
                                     <OverflowMenu :label="`Mais ações para ${t.nome}`">
                                         <OverflowMenuItem icon="home" :href="route('master.tenants.farms.index', t.id)">
@@ -322,9 +335,6 @@ async function copyDeliveryMessage() {
                                         </OverflowMenuItem>
                                         <OverflowMenuItem icon="copy" @click="openDeliveryDialog(t)">
                                             Mensagem de entrega
-                                        </OverflowMenuItem>
-                                        <OverflowMenuItem icon="user" :disabled="! t.is_active" @click="impersonate(t)">
-                                            Impersonar
                                         </OverflowMenuItem>
                                         <OverflowMenuDivider />
                                         <OverflowMenuItem

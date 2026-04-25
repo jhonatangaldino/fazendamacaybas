@@ -250,10 +250,13 @@ function doDelete() {
         <template #page-title>Rebanho</template>
         <PageHeader title="Animais" subtitle="Cadastro individual com histórico incremental de pesagens, vacinas e eventos">
             <template #actions>
-                <Link :href="route('admin.fluxos.venda-animal')" class="btn-outline" title="Fluxo guiado em 5 passos — ideal para vendas individuais sem procurar pelo animal">
+                <!-- BLOCO 4.3 — Hierarquia invertida: Vender é a ação core do dono (faz mais), Cadastrar é raro -->
+                <Link :href="route('admin.rebanho.animais.create')" class="btn-outline" title="Cadastrar animal individualmente">
+                    Novo animal
+                </Link>
+                <Link :href="route('admin.fluxos.venda-animal')" class="btn-primary" title="Fluxo guiado em 5 passos — ação principal do dono">
                     💰 Vender animal
                 </Link>
-                <Link :href="route('admin.rebanho.animais.create')" class="btn-primary">Novo animal</Link>
             </template>
         </PageHeader>
 

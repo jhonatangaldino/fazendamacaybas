@@ -157,79 +157,120 @@ function marcarPendente(invoice) {
             </p>
         </div>
 
-        <div v-else class="rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
-            <div class="overflow-x-auto">
+        <div v-else>
+            <!-- BLOCO 4.3 — Lista refatorada:
+                 DESKTOP: tabela limpa com ações com label visível
+                 MOBILE:  cards verticais (ref grande, cliente, valor+status,
+                          venc, ações com label) — nada some em mobile -->
+
+            <!-- DESKTOP TABLE (lg+) -->
+            <div class="hidden lg:block rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
-                            <th class="px-4 py-3 text-left font-medium">Ref.</th>
-                            <th class="px-4 py-3 text-left font-medium hidden sm:table-cell">#</th>
+                            <th class="px-4 py-3 text-left font-medium whitespace-nowrap">Ref.</th>
                             <th class="px-4 py-3 text-left font-medium">Cliente</th>
                             <th class="px-4 py-3 text-right font-medium">Valor</th>
                             <th class="px-4 py-3 text-left font-medium">Status</th>
-                            <th class="px-4 py-3 text-left font-medium hidden sm:table-cell">Emissão</th>
                             <th class="px-4 py-3 text-left font-medium">Vencimento</th>
-                            <th class="px-4 py-3 text-left font-medium hidden md:table-cell">Pago em</th>
+                            <th class="px-4 py-3 text-left font-medium">Pago em</th>
                             <th class="px-4 py-3 text-right font-medium">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr v-for="i in invoices" :key="i.id" class="hover:bg-slate-50/60">
-                            <td class="px-4 py-3 font-mono text-xs">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-macaybas-primary-50 text-macaybas-primary-800 ring-1 ring-macaybas-primary-200 font-semibold">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-macaybas-primary-50 text-macaybas-primary-800 ring-1 ring-macaybas-primary-200 font-mono text-xs font-semibold">
                                     {{ i.referencia_curta }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 font-mono text-xs text-slate-500 hidden sm:table-cell">{{ i.numero }}</td>
                             <td class="px-4 py-3">
-                                <Link
-                                    :href="route('master.tenants.subscription.show', i.tenant_id)"
-                                    class="text-slate-900 hover:underline font-medium"
-                                >{{ i.tenant_nome }}</Link>
+                                <Link :href="route('master.tenants.subscription.show', i.tenant_id)"
+                                      class="text-slate-900 hover:underline font-medium">{{ i.tenant_nome }}</Link>
+                                <div class="text-xs text-slate-500 font-mono">#{{ i.numero }} · {{ i.data_emissao }}</div>
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-slate-900">{{ brl(i.valor) }}</td>
+                            <td class="px-4 py-3 text-right font-mono text-slate-900 font-semibold">{{ brl(i.valor) }}</td>
                             <td class="px-4 py-3">
-                                <span
-                                    class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1"
-                                    :class="statusLabel[i.status]?.color || 'bg-slate-100 text-slate-700 ring-slate-200'"
-                                >
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1"
+                                      :class="statusLabel[i.status]?.color || 'bg-slate-100 text-slate-700 ring-slate-200'">
                                     <span class="h-1.5 w-1.5 rounded-full" :class="statusLabel[i.status]?.dot || 'bg-slate-400'"></span>
                                     {{ statusLabel[i.status]?.text || i.status }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-slate-600 hidden sm:table-cell">{{ i.data_emissao }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ i.data_vencimento }}</td>
-                            <td class="px-4 py-3 text-slate-600 hidden md:table-cell">{{ i.data_pagamento || '—' }}</td>
+                            <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ i.data_vencimento }}</td>
+                            <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ i.data_pagamento || '—' }}</td>
                             <td class="px-4 py-3 text-right">
-                                <div class="inline-flex items-center gap-1">
-                                    <Link
-                                        :href="route('master.cobrancas.pix', i.id)"
-                                        title="Ver PIX copia-e-cola"
-                                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
-                                    >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                <div class="inline-flex items-center gap-2">
+                                    <Link :href="route('master.cobrancas.pix', i.id)"
+                                          class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                        Ver PIX
                                     </Link>
-                                    <button
-                                        v-if="i.status !== 'paid'"
-                                        @click="marcarPaga(i)"
-                                        title="Marcar como paga"
-                                        class="p-2 rounded-md hover:bg-emerald-50 text-slate-600 hover:text-emerald-700"
-                                    >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <button v-if="i.status !== 'paid'" @click="marcarPaga(i)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Marcar paga
                                     </button>
-                                    <button
-                                        v-else
-                                        @click="marcarPendente(i)"
-                                        title="Reverter para pendente"
-                                        class="p-2 rounded-md hover:bg-amber-50 text-slate-600 hover:text-amber-700"
-                                    >
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                    <button v-else @click="marcarPendente(i)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                        Reverter
                                     </button>
                                 </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- MOBILE CARDS (< lg) — todas as ações visíveis, sem ⋯ -->
+            <div class="lg:hidden space-y-2.5">
+                <div v-for="i in invoices" :key="i.id"
+                     class="rounded-xl bg-white ring-1 ring-slate-200 p-3.5 shadow-sm">
+                    <!-- linha 1: ref badge + status -->
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-macaybas-primary-50 text-macaybas-primary-800 ring-1 ring-macaybas-primary-200 font-mono text-xs font-semibold whitespace-nowrap">
+                            {{ i.referencia_curta }}
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 whitespace-nowrap"
+                              :class="statusLabel[i.status]?.color || 'bg-slate-100 text-slate-700 ring-slate-200'">
+                            <span class="h-1.5 w-1.5 rounded-full" :class="statusLabel[i.status]?.dot || 'bg-slate-400'"></span>
+                            {{ statusLabel[i.status]?.text || i.status }}
+                        </span>
+                    </div>
+
+                    <!-- linha 2: cliente nome -->
+                    <Link :href="route('master.tenants.subscription.show', i.tenant_id)"
+                          class="block text-slate-900 font-semibold hover:underline truncate">
+                        {{ i.tenant_nome }}
+                    </Link>
+
+                    <!-- linha 3: valor + venc -->
+                    <div class="mt-1.5 flex items-center justify-between gap-2 text-sm">
+                        <span class="font-mono font-bold text-slate-900">{{ brl(i.valor) }}</span>
+                        <span class="text-xs text-slate-500">venc. {{ i.data_vencimento }}</span>
+                    </div>
+                    <div v-if="i.data_pagamento" class="text-xs text-emerald-700 mt-0.5">Pago em {{ i.data_pagamento }}</div>
+
+                    <!-- linha 4: ações com label -->
+                    <div class="mt-3 flex items-center gap-2">
+                        <Link :href="route('master.cobrancas.pix', i.id)"
+                              class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                            Ver PIX
+                        </Link>
+                        <button v-if="i.status !== 'paid'" @click="marcarPaga(i)"
+                                class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Marcar paga
+                        </button>
+                        <button v-else @click="marcarPendente(i)"
+                                class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                            Reverter
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </MasterLayout>
