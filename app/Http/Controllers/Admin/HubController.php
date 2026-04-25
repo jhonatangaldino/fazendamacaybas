@@ -10,7 +10,7 @@ use Inertia\Response;
  * Hub de ações — a "porta de entrada" do sistema.
  *
  * Em vez de abrir num menu técnico por módulo, o usuário vê
- * "O que você quer fazer?" com as 27 operações reais da fazenda
+ * "O que você quer fazer?" com as operações reais da fazenda
  * organizadas por frequência (todo dia / essa semana / safra / ocasional).
  *
  * O Hub é pura renderização — não carrega dados. A filtragem por
@@ -18,8 +18,12 @@ use Inertia\Response;
  * já exposto pelo HandleInertiaRequests). Sem permissão, o card
  * simplesmente não aparece.
  *
- * Decisão de produto: o Dashboard antigo continua em /admin/dashboard
- * (painel de números). Este Hub é a nova raiz de /admin.
+ * NOTA: anteriormente havia detecção "zero-data" aqui que trocava o Hub
+ * por um wizard linear de onboarding. Removido por decisão de produto:
+ * **fluxo guiado = funcionalidades interligadas, não tutorial linear**.
+ * Cliente novo chega no Hub normal e cada ação que ele escolher aceita
+ * criação inline das dependências que faltarem — assim funciona para
+ * qualquer tipo de fazenda (bovina, peixe, pet, agrícola…).
  */
 class HubController extends Controller
 {

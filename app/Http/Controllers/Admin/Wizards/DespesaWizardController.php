@@ -67,6 +67,26 @@ class DespesaWizardController extends Controller
 
         FinancialTransaction::create($data);
 
+        // Contexto financeiro pós-lançamento — permite o wizard mostrar o
+        // IMPACTO (total gasto no mês, saldo do mês), não só confirmação.
+        $inicioMes = now()->startOfMonth();
+        $fimMes = now()->endOfMonth();
+
+        $totalDespesasMes = FinancialTransaction::where('tipo', 'despesa')
+            ->whereBetween('data_vencimento', [$inicioMes, $fimMes])
+            ->sum('valor');
+        $totalReceitasMes = FinancialTransaction::where('tipo', 'receita')
+            ->whereBetween('data_vencimento', [$inicioMes, $fimMes])
+            ->sum('valor');
+
+        session()->flash('financeiro_contexto', [
+            'tipo' => 'despesa',
+            'valor' => (float) $data['valor'],
+            'despesas_mes' => (float) $totalDespesasMes,
+            'receitas_mes' => (float) $totalReceitasMes,
+            'saldo_mes' => (float) $totalReceitasMes - (float) $totalDespesasMes,
+        ]);
+
         return back()->with('success', 'Despesa registrada.');
     }
 }

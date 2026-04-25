@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, watch, onMounted, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -8,8 +8,10 @@ import InputError from '@/Components/InputError.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
+import { router } from '@inertiajs/vue3';
+import { emojiEspecie } from '@/utils/emojiEspecie.js';
 
-const props = defineProps({ animal: Object, species: Array, lots: Array, farms: Array, partners: Array });
+const props = defineProps({ animal: Object, species: Array, lots: Array, locations: { type: Array, default: () => [] }, farms: Array, partners: Array });
 const isEdit = !!props.animal;
 
 const form = useForm({
@@ -17,6 +19,7 @@ const form = useForm({
     species_id: props.animal?.species_id ?? props.species[0]?.id ?? '',
     breed_id: props.animal?.breed_id ?? null,
     lot_id: props.animal?.lot_id ?? null,
+    location_id: props.animal?.location_id ?? null,
     identificacao: props.animal?.identificacao ?? '',
     nome: props.animal?.nome ?? '',
     numero_registro: props.animal?.numero_registro ?? '',
@@ -199,20 +202,181 @@ watch(
     },
 );
 
-function submit() {
-    if (isEdit) form.put(route('admin.rebanho.animais.update', props.animal.id));
-    else form.post(route('admin.rebanho.animais.store'));
+// Foto no cadastro inicial — preview local imediato + upload pós-create.
+// Solução pragmática sem alterar o store controller: guarda File ref aqui,
+// após o create bem-sucedido faz upload via rota /foto.upload existente.
+const fotoFile = ref(null);
+const fotoPreview = ref(null);
+
+function onFotoChange(e) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { alert('Imagem acima de 5 MB.'); return; }
+    fotoFile.value = f;
+    const reader = new FileReader();
+    reader.onload = (ev) => { fotoPreview.value = ev.target.result; };
+    reader.readAsDataURL(f);
 }
+
+function removerFoto() {
+    fotoFile.value = null;
+    fotoPreview.value = null;
+}
+
+function submit() {
+    if (isEdit) {
+        form.put(route('admin.rebanho.animais.update', props.animal.id));
+        return;
+    }
+    // Create + foto na MESMA request (atomicidade). Inertia useForm aceita
+    // File via transform — backend trata 'foto' como UploadedFile opcional.
+    form.transform((d) => {
+        const out = { ...d };
+        if (fotoFile.value) out.foto = fotoFile.value;
+        return out;
+    }).post(route('admin.rebanho.animais.store'), {
+        forceFormData: true, // multipart pra suportar o File
+    });
+}
+
+// Emoji/placeholder coerente com a espécie escolhida — usado quando
+// não há foto. Antes o sistema mostrava ícone genérico; agora respeita
+// a espécie (ex.: cabra pra caprino, gato pra pet felino, peixe pra aquicultura).
+const emojiSelecionado = computed(() => emojiEspecie(selectedSpecies.value?.nome));
+
+// ═════ Listas locais + modais inline de criação ═════
+// Princípio: se faltar lote ou local no momento do cadastro, o usuário
+// NÃO sai do form. Abre modal, cria, o novo item entra na lista e
+// fica selecionado automaticamente. Funciona para cliente zero-data
+// (peixe, pet, bovino — qualquer tipo de fazenda).
+const lotsLocal = ref([...props.lots]);
+const locationsLocal = ref([...(props.locations ?? [])]);
+
+// CSRF helper — endpoints inline usam fetch puro (não Inertia), então
+// precisam do token CSRF manual. Laravel aceita:
+//   X-CSRF-TOKEN: <hash> (do meta name="csrf-token")
+//   OU X-XSRF-TOKEN: <cookie XSRF-TOKEN decodificado>
+// Usamos o primeiro (meta) porque é mais estável — cookie pode vir
+// URL-encoded em formas diferentes entre browsers.
+function csrfHeader() {
+    const meta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    return meta ? { 'X-CSRF-TOKEN': meta } : {};
+}
+
+const novoLoteAberto = ref(false);
+const novoLoteForm = ref({ nome: '', codigo: '' });
+const novoLoteError = ref(null);
+const salvandoLote = ref(false);
+function abrirNovoLote() {
+    novoLoteForm.value = { nome: '', codigo: '' };
+    novoLoteError.value = null;
+    novoLoteAberto.value = true;
+}
+async function salvarNovoLote() {
+    salvandoLote.value = true;
+    novoLoteError.value = null;
+    try {
+        const resp = await fetch(route('admin.rebanho.lotes.inline'), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...csrfHeader(),
+            },
+            body: JSON.stringify(novoLoteForm.value),
+        });
+        if (!resp.ok) throw new Error('Falha ao criar lote (' + resp.status + ').');
+        const lote = await resp.json();
+        lotsLocal.value = [...lotsLocal.value, lote];
+        form.lot_id = lote.id;        // já seleciona o recém-criado
+        novoLoteAberto.value = false;
+    } catch (e) {
+        novoLoteError.value = e.message || 'Erro.';
+    } finally {
+        salvandoLote.value = false;
+    }
+}
+
+const novoLocalAberto = ref(false);
+const novoLocalForm = ref({ nome: '', codigo: '', tipo: 'pasto' });
+const novoLocalError = ref(null);
+const salvandoLocal = ref(false);
+function abrirNovoLocal() {
+    novoLocalForm.value = { nome: '', codigo: '', tipo: 'pasto' };
+    novoLocalError.value = null;
+    novoLocalAberto.value = true;
+}
+async function salvarNovoLocal() {
+    salvandoLocal.value = true;
+    novoLocalError.value = null;
+    try {
+        const resp = await fetch(route('admin.rebanho.locais.inline'), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...csrfHeader(),
+            },
+            body: JSON.stringify(novoLocalForm.value),
+        });
+        if (!resp.ok) throw new Error('Falha ao criar local (' + resp.status + ').');
+        const local = await resp.json();
+        locationsLocal.value = [...locationsLocal.value, local];
+        form.location_id = local.id;
+        novoLocalAberto.value = false;
+    } catch (e) {
+        novoLocalError.value = e.message || 'Erro.';
+    } finally {
+        salvandoLocal.value = false;
+    }
+}
+
+// ═════ Hub v3 · Modo "Registrar nascimento" ═════
+// Quando o usuário chega pelo card "Registrar nascimento" (?origem=nascimento),
+// mostramos um banner contextual explicando o fluxo e pré-configuramos a
+// origem para 'nascido'. Isso dá clareza visual (não é um cadastro aleatório,
+// é o nascimento de um animal na fazenda) sem precisar de wizard separado.
+const modoNascimento = ref(false);
+onMounted(() => {
+    if (!isEdit) {
+        const qs = new URLSearchParams(window.location.search);
+        if (qs.get('origem') === 'nascimento') {
+            modoNascimento.value = true;
+            form.origem = 'nascido';
+            if (!form.data_nascimento) form.data_nascimento = new Date().toISOString().slice(0, 10);
+        }
+    }
+});
 </script>
 
 <template>
-    <Head :title="isEdit ? 'Editar animal' : 'Novo animal'" />
+    <Head :title="modoNascimento ? 'Registrar nascimento' : (isEdit ? 'Editar animal' : 'Novo animal')" />
     <AdminLayout>
-        <PageHeader :title="isEdit ? 'Editar animal' : 'Novo animal'">
+        <PageHeader
+            :title="modoNascimento ? 'Registrar nascimento' : (isEdit ? 'Editar animal' : 'Novo animal')"
+            :subtitle="modoNascimento ? 'Cadastre o novo animal que acabou de nascer na fazenda.' : ''"
+        >
             <template #actions>
                 <Link :href="route('admin.rebanho.animais.index')" class="btn-outline">Voltar</Link>
             </template>
         </PageHeader>
+
+        <!-- Banner contextual quando veio do card "Registrar nascimento" do Hub -->
+        <div v-if="modoNascimento"
+             class="mb-6 rounded-xl border-2 border-pink-200 bg-pink-50 px-5 py-4 flex items-start gap-3 max-w-4xl">
+            <span class="text-3xl flex-shrink-0" aria-hidden="true">🐣</span>
+            <div>
+                <div class="font-semibold text-pink-900">Bem-vindo ao rebanho!</div>
+                <div class="text-sm text-pink-800 mt-0.5">
+                    Você está cadastrando um animal que <strong>nasceu aqui na fazenda</strong>. Preencha identificação, espécie e sexo — os campos essenciais para criação.
+                    Se preferir, pode informar peso ao nascer e pais para enriquecer o histórico.
+                </div>
+            </div>
+        </div>
 
         <form @submit.prevent="submit" class="space-y-6 max-w-4xl">
             <!-- Foto do animal — só faz sentido após criação (precisa de ID pra upload) -->
@@ -229,9 +393,28 @@ function submit() {
                     />
                 </div>
             </div>
-            <div v-else-if="!isEdit && !isLote" class="card bg-slate-50">
-                <div class="card-body text-sm text-slate-500">
-                    📷 A foto poderá ser adicionada após salvar o cadastro inicial.
+            <!-- Foto no cadastro INICIAL — file input + preview.
+                 Se o usuário não escolher foto, placeholder usa o emoji correto
+                 da espécie (cabra, gato, peixe, etc.), nunca um genérico errado. -->
+            <div v-else-if="!isEdit && !isLote" class="card">
+                <div class="card-header"><h2 class="card-title">Foto do animal (opcional)</h2></div>
+                <div class="card-body flex items-center gap-4">
+                    <div class="h-32 w-32 rounded-lg bg-slate-50 ring-1 ring-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <img v-if="fotoPreview" :src="fotoPreview" class="h-full w-full object-cover" alt="Preview">
+                        <span v-else class="text-6xl" :title="nomeEspecie">{{ emojiSelecionado }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="btn-outline cursor-pointer inline-flex items-center gap-2">
+                            <span>{{ fotoPreview ? 'Trocar foto' : '📷 Escolher foto' }}</span>
+                            <input type="file" accept="image/*" @change="onFotoChange" class="hidden">
+                        </label>
+                        <button v-if="fotoPreview" type="button" @click="removerFoto" class="ml-2 text-sm text-red-700 hover:underline">
+                            Remover
+                        </button>
+                        <p class="text-xs text-slate-500 mt-2">
+                            Se não tiver foto agora, o sistema usa o ícone da espécie ({{ nomeEspecie }}). Você pode adicionar depois na ficha do animal.
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -294,21 +477,55 @@ function submit() {
                         <p v-if="isLote" class="text-xs text-slate-400 mt-1">Para lotes mistos, informe o sexo predominante.</p>
                     </div>
 
+                    <!-- LOTE com criação inline (não manda o usuário para outra tela) -->
                     <div>
-                        <InputLabel :value="requiresLote ? 'Lote' : 'Lote (opcional)'" />
+                        <InputLabel :value="requiresLote ? 'Lote (grupo lógico)' : 'Lote (opcional)'" />
                         <select
                             v-model="form.lot_id"
                             class="form-select"
                             :required="requiresLote"
                         >
                             <option :value="null">—</option>
-                            <option v-for="l in lots" :key="l.id" :value="l.id">{{ l.nome }}</option>
+                            <option v-for="l in lotsLocal" :key="l.id" :value="l.id">{{ l.nome }}</option>
                         </select>
-                        <p v-if="requiresLote && !form.lot_id && lots.length === 0" class="text-xs text-red-600 mt-1">
-                            Nenhum lote cadastrado. Crie um lote antes de cadastrar aves, peixes ou apicultura.
-                        </p>
-                        <p v-else-if="requiresLote" class="text-xs text-slate-400 mt-1">
+                        <div class="mt-1 flex items-center gap-2">
+                            <button type="button" @click="abrirNovoLote"
+                                    class="text-xs text-macaybas-primary hover:underline">
+                                + Criar lote novo
+                            </button>
+                            <span v-if="lotsLocal.length === 0" class="text-xs text-amber-700">
+                                Nenhum lote ainda — crie o primeiro aqui.
+                            </span>
+                        </div>
+                        <p v-if="requiresLote" class="text-xs text-slate-400 mt-1">
                             Obrigatório para {{ nomeEspecie.toLowerCase() }}.
+                        </p>
+                        <p v-else class="text-xs text-slate-400 mt-1">
+                            🐄 Agrupamento para manejo (ex.: Bezerros 2026, Vacas em lactação).
+                        </p>
+                    </div>
+
+                    <!-- PASTO / LOCAL com criação inline -->
+                    <div>
+                        <InputLabel value="Pasto / Local (opcional)" />
+                        <select v-model="form.location_id" class="form-select">
+                            <option :value="null">—</option>
+                            <option v-for="l in locationsLocal" :key="l.id" :value="l.id">
+                                {{ l.nome }}<span v-if="l.tipo"> · {{ l.tipo }}</span>
+                            </option>
+                        </select>
+                        <InputError :message="form.errors.location_id" />
+                        <div class="mt-1 flex items-center gap-2">
+                            <button type="button" @click="abrirNovoLocal"
+                                    class="text-xs text-macaybas-primary hover:underline">
+                                + Criar pasto/local novo
+                            </button>
+                            <span v-if="locationsLocal.length === 0" class="text-xs text-amber-700">
+                                Nenhum local ainda — crie aqui.
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">
+                            📍 Onde o animal está fisicamente (pasto, piquete, curral, baia, tanque).
                         </p>
                     </div>
 
@@ -395,5 +612,79 @@ function submit() {
                 <button type="submit" class="btn-primary" :disabled="form.processing">Salvar</button>
             </div>
         </form>
+
+        <!-- Modal inline: criar LOTE sem sair do form (fetch JSON, zero navigation) -->
+        <Teleport to="body">
+            <div v-if="novoLoteAberto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="novoLoteAberto = false"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-semibold mb-1">Novo lote (grupo)</h3>
+                    <p class="text-sm text-slate-500 mb-4">
+                        Crie o grupo de manejo aqui mesmo — depois o animal já fica associado.
+                    </p>
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Nome do lote *" />
+                            <input v-model="novoLoteForm.nome" class="form-input" placeholder="Ex.: Bezerros 2026" required>
+                        </div>
+                        <div>
+                            <InputLabel value="Código (opcional)" />
+                            <input v-model="novoLoteForm.codigo" class="form-input" placeholder="Ex.: BZ-26">
+                        </div>
+                    </div>
+                    <p v-if="novoLoteError" class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5">
+                        {{ novoLoteError }}
+                    </p>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="novoLoteAberto = false" class="btn-outline">Cancelar</button>
+                        <button @click="salvarNovoLote" :disabled="salvandoLote || !novoLoteForm.nome.trim()" class="btn-primary">
+                            {{ salvandoLote ? 'Salvando…' : 'Criar lote' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal inline: criar LOCAL/PASTO sem sair do form -->
+            <div v-if="novoLocalAberto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="novoLocalAberto = false"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-semibold mb-1">Novo pasto / local</h3>
+                    <p class="text-sm text-slate-500 mb-4">
+                        Onde o animal fica fisicamente. Pasto, piquete, curral, baia ou tanque.
+                    </p>
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Nome *" />
+                            <input v-model="novoLocalForm.nome" class="form-input" placeholder="Ex.: Pasto Norte" required>
+                        </div>
+                        <div>
+                            <InputLabel value="Tipo *" />
+                            <div class="grid grid-cols-3 gap-2">
+                                <button v-for="t in ['pasto','piquete','curral','baia','tanque','galpao']"
+                                        :key="t" type="button"
+                                        @click="novoLocalForm.tipo = t"
+                                        class="px-2 py-1.5 rounded border text-sm capitalize"
+                                        :class="novoLocalForm.tipo === t ? 'border-macaybas-primary bg-emerald-50 text-emerald-800 font-semibold' : 'border-slate-200'">
+                                    {{ t }}
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <InputLabel value="Código (opcional)" />
+                            <input v-model="novoLocalForm.codigo" class="form-input" placeholder="Ex.: P-N">
+                        </div>
+                    </div>
+                    <p v-if="novoLocalError" class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5">
+                        {{ novoLocalError }}
+                    </p>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="novoLocalAberto = false" class="btn-outline">Cancelar</button>
+                        <button @click="salvarNovoLocal" :disabled="salvandoLocal || !novoLocalForm.nome.trim()" class="btn-primary">
+                            {{ salvandoLocal ? 'Salvando…' : 'Criar local' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AdminLayout>
 </template>

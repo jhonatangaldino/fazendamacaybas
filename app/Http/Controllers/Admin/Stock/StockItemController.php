@@ -83,10 +83,34 @@ class StockItemController extends Controller
             ];
         });
 
+        // Resumo de valor — ajuda o dono a decidir o que comprar HOJE,
+        // sem precisar varrer a tabela procurando vermelhos. A subquery
+        // é agregada, então impacto no MySQL é baixo.
+        $resumo = DB::table('stock_items')
+            ->leftJoin('stock_movements', 'stock_items.id', '=', 'stock_movements.item_id')
+            ->whereNull('stock_items.deleted_at')
+            ->where('stock_items.is_active', true)
+            ->select(
+                'stock_items.id',
+                'stock_items.estoque_minimo',
+                DB::raw("SUM(CASE WHEN stock_movements.tipo IN ('entrada','ajuste') THEN stock_movements.quantidade WHEN stock_movements.tipo = 'saida' THEN -stock_movements.quantidade ELSE 0 END) as saldo")
+            )
+            ->groupBy('stock_items.id', 'stock_items.estoque_minimo')
+            ->get();
+
+        $abaixoMinimo = $resumo->filter(fn ($r) => (float) ($r->saldo ?? 0) < (float) $r->estoque_minimo)->count();
+        $semEstoque  = $resumo->filter(fn ($r) => (float) ($r->saldo ?? 0) <= 0)->count();
+        $totalItens  = $resumo->count();
+
         return Inertia::render('Admin/Stock/Items/Index', [
             'items' => $items,
             'filters' => $request->only(['search', 'tipo', 'category_id', 'status']),
             'categories' => Category::where('tipo', 'estoque')->where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
+            'resumo' => [
+                'total_itens' => $totalItens,
+                'abaixo_minimo' => $abaixoMinimo,
+                'sem_estoque' => $semEstoque,
+            ],
         ]);
     }
 
@@ -95,6 +119,41 @@ class StockItemController extends Controller
         return Inertia::render('Admin/Stock/Items/Form', [
             'item' => null,
             'categories' => Category::where('tipo', 'estoque')->where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
+        ]);
+    }
+
+    /**
+     * Endpoint inline (JSON) — cria item de estoque sem redirect, para uso
+     * em modais dentro de wizards (Estoque Ajustar, Receber Mercadoria,
+     * e também Vacinação quando usuário quer registrar o medicamento).
+     */
+    public function storeInline(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'nome' => ['required', 'string', 'max:200'],
+            'tipo' => ['required', 'in:insumo,medicamento,racao,ferramenta,peca,combustivel,material'],
+            'unidade' => ['required', 'string', 'max:20'],
+            'estoque_minimo' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        // `codigo` é NOT NULL — gera automático quando não informado.
+        $base = \Illuminate\Support\Str::slug($data['nome']);
+        $codigo = strtoupper(substr($base, 0, 8)) . '-' . substr(time(), -4);
+
+        $item = \App\Models\Stock\StockItem::create([
+            'nome' => $data['nome'],
+            'codigo' => $codigo,
+            'tipo' => $data['tipo'],
+            'unidade' => $data['unidade'],
+            'estoque_minimo' => $data['estoque_minimo'] ?? 0,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'id' => $item->id,
+            'nome' => $item->nome,
+            'tipo' => $item->tipo,
+            'unidade' => $item->unidade,
         ]);
     }
 

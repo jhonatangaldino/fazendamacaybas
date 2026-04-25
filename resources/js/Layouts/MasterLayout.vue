@@ -21,14 +21,22 @@
 
 import { computed, ref } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import AlertBar from '@/Components/AlertBar.vue';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import FlashMessages from '@/Components/FlashMessages.vue';
 import GlobalLoading from '@/Components/GlobalLoading.vue';
+import Icon from '@/Components/Icon.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user ?? null);
 const sidebarOpen = ref(false);
+// Counters para badges nos itens do menu Master (vindos do AlertsService).
+// Estrutura: { 'master.cobrancas.index': { n: 5, sev: 'critico' }, ... }
+const menuBadges = computed(() => page.props.menuBadges || {});
+// Impersonação ativa controla offset do layout (banner fixed empurra com padding-top)
+const impersonation = computed(() => page.props.impersonation || null);
 
 /**
  * Detecta se uma rota está ativa. Para rotas `.index` de um CRUD, considera
@@ -52,6 +60,9 @@ function logout() {
  *   - `route`: rota Inertia real. Se null → placeholder desabilitado.
  *   - `phase`: fase roadmap em que ficará ativo (exibido como rótulo).
  */
+// Menu do master — somente rotas OPERACIONAIS.
+// Item "Configurações" (M8) removido para não exibir placeholder "em breve"
+// em produto comercial. Quando tiver tela real, basta readicionar com route:'master.cms.settings'.
 const menu = [
     { label: 'Dashboard', route: 'master.dashboard', phase: null, icon: 'dashboard' },
     { label: 'Clientes', route: 'master.tenants.index', phase: null, icon: 'building' },
@@ -61,106 +72,109 @@ const menu = [
     // acessa via Clientes → ícone "CMS" em cada linha. A rota legada
     // `master.cms.index` permanece viva (compatibilidade), só não aparece
     // mais como item de menu para evitar confusão com CMS global.
-    { label: 'Configurações', route: null, phase: 'M8', icon: 'cog' },
 ];
+
+// (paths centralizados em Icon.vue — usar <Icon name="..." />)
 </script>
 
 <template>
     <GlobalLoading />
     <ToastContainer />
+    <ConfirmDialog />
     <FlashMessages />
     <ImpersonationBanner />
 
-    <div class="min-h-screen flex bg-slate-50">
-        <!-- SIDEBAR -->
+    <div :class="['min-h-screen flex bg-slate-50 w-full overflow-x-hidden', impersonation ? 'pt-10' : '']">
+        <!-- SIDEBAR — mesmo padrão visual do AdminLayout (verde-escuro do brand)
+             para consistência. A diferenciação semântica fica no badge MASTER
+             âmbar do topbar e no item "Plataforma" abaixo da logo. -->
         <aside
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-100 transform transition-transform duration-200 lg:relative lg:translate-x-0"
-            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform duration-200 lg:static lg:flex-shrink-0 lg:translate-x-0"
+            :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', impersonation ? 'top-10' : 'top-0']"
         >
-            <!-- Brand -->
-            <div class="h-16 px-5 flex items-center gap-3 border-b border-slate-800">
-                <div class="h-9 w-9 rounded-full bg-white text-slate-900 flex items-center justify-center font-serif text-lg font-bold">M</div>
+            <!-- Brand — mesmo formato do Admin (logo redonda + nome + papel) -->
+            <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10">
+                <div class="h-9 w-9 rounded-full bg-white text-macaybas-primary-900 flex items-center justify-center font-serif text-lg font-bold">M</div>
                 <div class="min-w-0">
-                    <div class="font-serif font-semibold text-sm leading-tight truncate">Plataforma</div>
-                    <div class="text-[10px] text-amber-400 uppercase tracking-[0.2em]">Área Master</div>
+                    <div class="text-white font-serif font-bold leading-none truncate">Plataforma</div>
+                    <div class="text-xs text-amber-400 uppercase tracking-[0.18em]">Área Master</div>
                 </div>
             </div>
 
-            <!-- Menu -->
-            <nav class="p-3 space-y-1">
+            <!-- Menu — mesmo estilo do AdminLayout (espaços, ícones, cores).
+                 Indicador de ativo: faixa lateral âmbar (cor de identidade Master) +
+                 fundo translúcido. Ícones específicos por item (não mais hambúrguer). -->
+            <nav class="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-4rem)]">
+                <h3 class="text-xs uppercase tracking-widest text-white/40 px-3 mb-2">Plataforma</h3>
                 <template v-for="item in menu" :key="item.label">
-                    <!-- Item ativo (rota real) -->
                     <Link
                         v-if="item.route"
                         :href="route(item.route)"
-                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition"
+                        @click="sidebarOpen = false"
+                        class="relative flex items-center gap-3 rounded-lg pl-4 pr-3 py-2.5 text-sm transition"
                         :class="isActive(item.route)
-                            ? 'bg-slate-800 text-white font-medium'
-                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'"
+                            ? 'bg-white/10 text-white font-semibold'
+                            : 'text-slate-300 hover:bg-white/5 hover:text-white'"
                     >
-                        <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-                        <span class="truncate">{{ item.label }}</span>
+                        <span
+                            v-if="isActive(item.route)"
+                            class="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r bg-amber-400"
+                            aria-hidden="true"
+                        ></span>
+                        <Icon :name="item.icon" :size="20" :stroke-width="1.7" />
+                        <span class="flex-1 truncate">{{ item.label }}</span>
+                        <span
+                            v-if="menuBadges[item.route]"
+                            :class="[
+                                'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold',
+                                menuBadges[item.route].sev === 'critico'
+                                    ? 'bg-rose-500 text-white'
+                                    : 'bg-amber-400 text-amber-900',
+                            ]"
+                            :title="`${menuBadges[item.route].n} pendência(s)`"
+                        >
+                            {{ menuBadges[item.route].n > 99 ? '99+' : menuBadges[item.route].n }}
+                        </span>
                     </Link>
-
-                    <!-- Placeholder — em breve -->
-                    <div
-                        v-else
-                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-500 cursor-not-allowed select-none"
-                        :title="`Disponível em ${item.phase}`"
-                    >
-                        <svg class="h-4 w-4 flex-shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span class="truncate flex-1">{{ item.label }}</span>
-                        <span class="text-[9px] uppercase tracking-widest text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">{{ item.phase }}</span>
-                    </div>
                 </template>
             </nav>
-
-            <!-- Footer -->
-            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800 text-[10px] text-slate-500">
-                <div class="uppercase tracking-widest">Fase M2</div>
-                <div class="mt-0.5">Estrutura base — sem funcionalidades ainda</div>
-            </div>
         </aside>
 
-        <!-- Overlay mobile -->
-        <div
-            v-if="sidebarOpen"
-            @click="sidebarOpen = false"
-            class="fixed inset-0 z-30 bg-black/50 lg:hidden"
-        ></div>
+        <!-- Overlay mobile (mesma intensidade do Admin) -->
+        <div v-if="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black/40 z-30 lg:hidden"></div>
 
-        <!-- CONTENT -->
+        <!-- MAIN — espaçamento, sticky topbar e padding idênticos ao Admin -->
         <div class="flex-1 flex flex-col min-w-0 w-full">
-            <!-- TOPBAR -->
-            <header class="sticky top-0 z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 px-4 lg:px-8">
-                <button
-                    @click="sidebarOpen = !sidebarOpen"
-                    class="lg:hidden p-2 rounded-md hover:bg-slate-100"
-                    aria-label="Menu"
-                >
+            <header :class="['sticky z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 px-4 lg:px-8', impersonation ? 'top-10' : 'top-0']">
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
                     <svg class="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
 
-                <!-- Título da página (slot) -->
                 <div class="hidden lg:block">
                     <h1 class="text-lg font-semibold text-slate-900"><slot name="page-title">Plataforma</slot></h1>
                 </div>
 
-                <!-- User + MASTER badge + logout -->
+                <!-- User + badge MASTER (mesmo dropdown-style do Admin) -->
                 <div class="flex items-center gap-3">
                     <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-semibold uppercase tracking-widest ring-1 ring-amber-500/30">
                         <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
                         Master
                     </span>
-                    <span class="text-sm text-slate-700 hidden sm:block truncate max-w-[180px]">{{ user?.name }}</span>
+                    <div class="flex items-center gap-2 p-1.5">
+                        <div class="h-8 w-8 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center text-sm font-semibold">
+                            {{ user?.name?.[0]?.toUpperCase() }}
+                        </div>
+                        <span class="text-sm font-medium text-slate-700 hidden sm:block truncate max-w-[140px]">{{ user?.name }}</span>
+                    </div>
                     <button
                         @click="logout"
-                        class="text-sm text-slate-600 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50"
+                        class="text-sm text-slate-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition"
                     >Sair</button>
                 </div>
             </header>
 
             <main class="flex-1 p-4 lg:p-8 min-w-0 w-full max-w-full overflow-x-hidden">
+                <AlertBar />
                 <slot />
             </main>
         </div>

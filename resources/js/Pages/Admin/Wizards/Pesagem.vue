@@ -18,6 +18,7 @@ import WizardStepper from '@/Components/WizardStepper.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import { hojeBR, dataBR } from '@/utils/format.js';
+import { emojiEspecie } from '@/utils/emojiEspecie.js';
 
 const props = defineProps({
     animais: { type: Array, required: true },
@@ -35,6 +36,7 @@ const selecionado = ref(null);
 const busca = ref('');
 const animalRegistrado = ref(null);
 const pesoRegistrado = ref(null);
+const pesoAnterior = ref(null); // snapshot pre-submit para calcular ganho no passo 4
 
 const form = useForm({
     tipo: 'pesagem',
@@ -60,16 +62,7 @@ const podeAvancar2 = computed(() => {
     return !isNaN(n) && n > 0 && !!form.data_evento;
 });
 
-function emojiEspecie(nome) {
-    const n = (nome || '').toLowerCase();
-    if (n.includes('bovino') || n.includes('búfalo')) return '🐄';
-    if (n.includes('suíno') || n.includes('porco')) return '🐖';
-    if (n.includes('ovino') || n.includes('caprino') || n.includes('ovelha') || n.includes('cabra')) return '🐑';
-    if (n.includes('ave') || n.includes('galinha') || n.includes('frango')) return '🐔';
-    if (n.includes('equino') || n.includes('cavalo')) return '🐎';
-    if (n.includes('peixe') || n.includes('piscic')) return '🐟';
-    return '🐾';
-}
+// emojiEspecie vem de '@/utils/emojiEspecie.js' — centralizado.
 
 function idadeHumana(dn) {
     if (!dn) return '';
@@ -98,6 +91,9 @@ function irPara(n) { passo.value = n; }
 function confirmar() {
     if (!podeAvancar1.value || !podeAvancar2.value) return;
 
+    // Snapshot do peso ANTES do submit — usado no passo 4 para mostrar evolução
+    pesoAnterior.value = selecionado.value?.peso_atual ? Number(selecionado.value.peso_atual) : null;
+
     form
         .transform((d) => {
             const { data_evento, ...r } = d;
@@ -112,6 +108,23 @@ function confirmar() {
             },
         });
 }
+
+// Ganho = novo - anterior (null se era a primeira pesagem)
+const ganhoKg = computed(() => {
+    if (pesoAnterior.value === null || pesoRegistrado.value === null) return null;
+    return pesoRegistrado.value - pesoAnterior.value;
+});
+
+// Interpretação humana do ganho — espelha heurística da ficha do animal (Show.vue)
+// mas mais curta, adequada ao momento pós-pesagem. Sem benchmark por GMD aqui
+// porque não temos o intervalo entre pesagens no wizard.
+const interpretacaoGanho = computed(() => {
+    const g = ganhoKg.value;
+    if (g === null) return { tipo: 'primeira', titulo: 'Primeira pesagem registrada', texto: 'Faça outra pesagem em alguns dias para o sistema começar a calcular o ganho de peso.' };
+    if (g > 0.1) return { tipo: 'positivo', titulo: `Ganhou ${g.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg desde a última pesagem`, texto: 'O animal está evoluindo bem.' };
+    if (g < -0.1) return { tipo: 'negativo', titulo: `Perdeu ${Math.abs(g).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg desde a última pesagem`, texto: 'Atenção: perda de peso pode indicar problema de saúde ou alimentação. Verifique o animal.' };
+    return { tipo: 'estavel', titulo: 'Peso estável desde a última pesagem', texto: 'Variação mínima — pesagens mais espaçadas ajudam a avaliar melhor.' };
+});
 
 function reiniciar() {
     selecionado.value = null;
@@ -287,24 +300,71 @@ function reiniciar() {
             </div>
         </div>
 
-        <!-- PASSO 4 · Sucesso -->
+        <!-- PASSO 4 · Sucesso
+             Não é só "registrado" — mostra o que mudou: peso anterior → novo,
+             variação e interpretação humana. Dados vêm do snapshot gravado
+             antes do submit (pesoAnterior) + pesoRegistrado. -->
         <div v-if="passo === 4" class="card max-w-2xl mx-auto">
             <div class="card-body text-center space-y-5 py-8">
-                <div class="text-6xl" aria-hidden="true">🎉</div>
+                <div class="text-6xl" aria-hidden="true">⚖️</div>
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">Peso registrado com sucesso!</h2>
                     <p class="text-base text-slate-600 mt-2">
-                        O peso de <strong>{{ animalRegistrado.identificacao }}</strong> foi atualizado para
+                        <strong>{{ animalRegistrado.identificacao }}</strong> agora pesa
                         <strong class="text-macaybas-primary">{{ pesoRegistrado.toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }} kg</strong>.
                     </p>
                 </div>
 
-                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-left">
-                    <div class="text-sm font-semibold text-emerald-900 mb-2">O que vai acontecer:</div>
-                    <ul class="text-sm text-emerald-800 space-y-1">
-                        <li>✓ Peso atual do animal foi atualizado no cadastro</li>
-                        <li>✓ Pesagem entrou no histórico do animal</li>
-                        <li>✓ Ganho/perda de peso será calculado automaticamente</li>
+                <!-- Evolução: comparação com última pesagem + interpretação contextual -->
+                <div
+                    class="rounded-lg p-4 text-left border-2"
+                    :class="{
+                        'bg-emerald-50 border-emerald-300': interpretacaoGanho.tipo === 'positivo',
+                        'bg-red-50 border-red-300': interpretacaoGanho.tipo === 'negativo',
+                        'bg-slate-50 border-slate-200': interpretacaoGanho.tipo === 'estavel' || interpretacaoGanho.tipo === 'primeira',
+                    }"
+                >
+                    <div class="flex items-start gap-3">
+                        <div class="text-3xl leading-none flex-shrink-0" aria-hidden="true">
+                            {{ interpretacaoGanho.tipo === 'positivo' ? '📈'
+                              : interpretacaoGanho.tipo === 'negativo' ? '📉'
+                              : interpretacaoGanho.tipo === 'primeira' ? '🌱'
+                              : '➖' }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div
+                                class="font-semibold"
+                                :class="{
+                                    'text-emerald-900': interpretacaoGanho.tipo === 'positivo',
+                                    'text-red-900': interpretacaoGanho.tipo === 'negativo',
+                                    'text-slate-800': interpretacaoGanho.tipo === 'estavel' || interpretacaoGanho.tipo === 'primeira',
+                                }"
+                            >
+                                {{ interpretacaoGanho.titulo }}
+                            </div>
+                            <div v-if="pesoAnterior !== null" class="text-sm text-slate-600 mt-1">
+                                Peso anterior: <strong>{{ pesoAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }} kg</strong>
+                                → agora: <strong>{{ pesoRegistrado.toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }} kg</strong>
+                            </div>
+                            <p class="text-sm mt-2"
+                               :class="{
+                                    'text-emerald-800': interpretacaoGanho.tipo === 'positivo',
+                                    'text-red-800': interpretacaoGanho.tipo === 'negativo',
+                                    'text-slate-600': interpretacaoGanho.tipo === 'estavel' || interpretacaoGanho.tipo === 'primeira',
+                               }"
+                            >
+                                {{ interpretacaoGanho.texto }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 text-left">
+                    <div class="text-sm font-semibold text-slate-800 mb-2">O que foi feito:</div>
+                    <ul class="text-sm text-slate-700 space-y-1">
+                        <li>✓ Pesagem salva no histórico do animal</li>
+                        <li>✓ Peso atual do cadastro atualizado</li>
+                        <li v-if="pesoAnterior !== null">✓ Ganho/perda calculado automaticamente</li>
                     </ul>
                 </div>
 

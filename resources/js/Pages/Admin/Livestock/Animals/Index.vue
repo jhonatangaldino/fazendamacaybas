@@ -12,11 +12,28 @@ import InputMoney from '@/Components/InputMoney.vue';
 import { dataBR, brl, hojeBR } from '@/utils/format.js';
 import { tableActionsFor, EVENT_CATALOG, vendaConfigFor } from '@/utils/animalProfile.js';
 
-const props = defineProps({ animals: Object, filters: Object, species: Array, lots: Array, categorias: Array, partners: Array });
+const props = defineProps({
+    animals: Object,
+    filters: Object,
+    species: Array,
+    lots: Array,
+    locations: { type: Array, default: () => [] },
+    categorias: Array,
+    partners: Array,
+    resumo: { type: Object, default: () => ({ ativos: 0, vendidos: 0, baixas: 0, peso_total: 0, ativos_com_peso: 0 }) },
+});
+
+// Peso médio do rebanho (apenas considera animais com peso registrado)
+const pesoMedio = computed(() => {
+    const total = Number(props.resumo.peso_total || 0);
+    const n = Number(props.resumo.ativos_com_peso || 0);
+    return n > 0 ? total / n : 0;
+});
 const filtros = reactive({
     search: props.filters?.search ?? '',
     species_id: props.filters?.species_id ?? '',
     lot_id: props.filters?.lot_id ?? '',
+    location_id: props.filters?.location_id ?? '',
     status: props.filters?.status ?? '',
     categoria: props.filters?.categoria ?? '',
 });
@@ -181,7 +198,8 @@ const MAPA_ACAO_TIPO = {
     medicar:     'medicacao',
     vermifugar:  'vermifugacao',
     observar:    'observacao',
-    mover:       'movimentacao',
+    mover:       'movimentacao',         // mudança de LOTE (grupo)
+    mover_pasto: 'movimentacao_local',   // mudança de PASTO (local físico)
     morte:       'mortalidade',
 };
 
@@ -191,7 +209,8 @@ const ACAO_META = {
     medicar:     { titulo: 'Aplicar medicamento',       instrucao: 'Clique no animal que vai receber o medicamento.', emoji: '💊' },
     vermifugar:  { titulo: 'Aplicar vermífugo',         instrucao: 'Clique no animal que você quer vermifugar.', emoji: '🧴' },
     observar:    { titulo: 'Registrar observação',      instrucao: 'Clique no animal sobre o qual você quer anotar.', emoji: '📝' },
-    mover:       { titulo: 'Mover animal de lote',      instrucao: 'Clique no animal que vai mudar de lote.', emoji: '🐄' },
+    mover:       { titulo: 'Mudar animal de lote',      instrucao: 'Clique no animal que vai mudar de grupo (lote).', emoji: '🐄' },
+    mover_pasto: { titulo: 'Mover animal de pasto',     instrucao: 'Clique no animal que vai mudar de pasto (local físico).', emoji: '📍' },
     morte:       { titulo: 'Registrar morte do animal', instrucao: 'Clique no animal que morreu.',            emoji: '⚰️' },
 };
 
@@ -238,6 +257,33 @@ function doDelete() {
             </template>
         </PageHeader>
 
+        <!-- Resumo do rebanho — responde "quanto tenho?" sem precisar
+             abrir o Dashboard. Cards simples (não clicáveis — apenas
+             informação). -->
+        <div v-if="Number(resumo.ativos) > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            <div class="rounded-lg p-3 bg-emerald-50 border border-emerald-200">
+                <div class="text-xs uppercase tracking-wider font-semibold text-emerald-700">🐄 Ativos</div>
+                <div class="text-2xl font-bold mt-1 text-emerald-800">{{ resumo.ativos }}</div>
+            </div>
+            <div class="rounded-lg p-3 bg-slate-50 border border-slate-200">
+                <div class="text-xs uppercase tracking-wider font-semibold text-slate-600">⚖️ Peso médio</div>
+                <div class="text-2xl font-bold mt-1 text-slate-800">
+                    {{ pesoMedio > 0 ? Number(pesoMedio).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' kg' : '—' }}
+                </div>
+                <div v-if="pesoMedio > 0" class="text-xs text-slate-500 mt-0.5">
+                    Base: {{ resumo.ativos_com_peso }} {{ Number(resumo.ativos_com_peso) === 1 ? 'animal' : 'animais' }}
+                </div>
+            </div>
+            <div class="rounded-lg p-3 bg-blue-50 border border-blue-200">
+                <div class="text-xs uppercase tracking-wider font-semibold text-blue-700">💰 Vendidos</div>
+                <div class="text-2xl font-bold mt-1 text-blue-800">{{ resumo.vendidos }}</div>
+            </div>
+            <div class="rounded-lg p-3 bg-slate-50 border border-slate-200">
+                <div class="text-xs uppercase tracking-wider font-semibold text-slate-600">⚰️ Baixas</div>
+                <div class="text-2xl font-bold mt-1 text-slate-700">{{ resumo.baixas }}</div>
+            </div>
+        </div>
+
         <!-- Hub v3 · Banner contextual quando usuário chega de um card de ação -->
         <div v-if="acaoContextual && ACAO_META[acaoContextual]"
              class="mb-4 p-4 rounded-xl bg-macaybas-primary-50 border-l-4 border-macaybas-primary-500 flex items-start gap-3">
@@ -252,7 +298,7 @@ function doDelete() {
         </div>
 
         <!-- F4.2 · Filtros colapsáveis em mobile (busca sempre visível) -->
-        <MobileFilters cols="sm:grid-cols-4">
+        <MobileFilters cols="sm:grid-cols-5">
             <template #always>
                 <input v-model="filtros.search" @keyup.enter="filtrar"
                        placeholder="Buscar por brinco ou nome…" class="form-input">
@@ -265,9 +311,15 @@ function doDelete() {
                 <option value="">Todas as espécies</option>
                 <option v-for="s in species" :key="s.id" :value="s.id">{{ s.nome }}</option>
             </select>
-            <select v-model="filtros.lot_id" @change="filtrar" class="form-select">
-                <option value="">Todos os lotes</option>
+            <select v-model="filtros.lot_id" @change="filtrar" class="form-select" title="Filtrar por LOTE (grupo lógico)">
+                <option value="">🐄 Todos os lotes</option>
                 <option v-for="l in lots" :key="l.id" :value="l.id">{{ l.nome }}</option>
+            </select>
+            <select v-model="filtros.location_id" @change="filtrar" class="form-select" title="Filtrar por PASTO (local físico)">
+                <option value="">📍 Todos os pastos</option>
+                <option v-for="l in locations" :key="l.id" :value="l.id">
+                    {{ l.nome }}<span v-if="l.tipo"> · {{ l.tipo }}</span>
+                </option>
             </select>
             <select v-model="filtros.status" @change="filtrar" class="form-select">
                 <option value="">Todos os status</option>
@@ -323,14 +375,15 @@ function doDelete() {
                         <th>Espécie</th>
                         <th>Sexo</th>
                         <th class="text-right">Peso atual</th>
-                        <th>Lote</th>
+                        <th title="LOTE = grupo lógico (ex.: Bezerros 2026)">🐄 Lote</th>
+                        <th title="PASTO = local físico (ex.: Pasto 1)">📍 Pasto</th>
                         <th>Status</th>
                         <th class="text-right"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     <tr v-if="!animals.data.length">
-                        <td colspan="11" class="text-center text-slate-500 py-10">Nenhum animal cadastrado.</td>
+                        <td colspan="12" class="text-center text-slate-500 py-10">Nenhum animal cadastrado.</td>
                     </tr>
                     <tr v-for="row in animals.data" :key="row.id"
                         :class="[selecionados.has(row.id) ? 'bg-macaybas-primary-50' : '']">
@@ -359,6 +412,13 @@ function doDelete() {
                         <td>{{ row.sexo }}</td>
                         <td class="text-right font-mono">{{ row.peso_atual ? Number(row.peso_atual).toLocaleString('pt-BR', {minimumFractionDigits: 1}) + ' kg' : '—' }}</td>
                         <td>{{ row.lot?.nome || '—' }}</td>
+                        <td>
+                            <template v-if="row.location">
+                                {{ row.location.nome }}
+                                <span v-if="row.location.tipo" class="text-xs text-slate-400">· {{ row.location.tipo }}</span>
+                            </template>
+                            <span v-else class="text-slate-400">—</span>
+                        </td>
                         <td><span :class="statusBadge(row.status)">{{ row.status }}</span></td>
                         <td class="text-right">
                             <div class="flex gap-1 justify-end">
@@ -393,7 +453,9 @@ function doDelete() {
                             <div class="font-semibold text-slate-900 truncate text-macaybas-primary-800">{{ row.identificacao }}<span v-if="row.nome" class="font-normal text-slate-500"> · {{ row.nome }}</span></div>
                             <span :class="statusBadge(row.status)" class="flex-shrink-0">{{ row.status }}</span>
                         </div>
-                        <div class="text-xs text-slate-500 mt-0.5">{{ row.species?.nome }} · {{ row.sexo }}<span v-if="row.lot"> · lote {{ row.lot.nome }}</span></div>
+                        <div class="text-xs text-slate-500 mt-0.5">
+                            {{ row.species?.nome }} · {{ row.sexo }}<span v-if="row.lot"> · 🐄 {{ row.lot.nome }}</span><span v-if="row.location"> · 📍 {{ row.location.nome }}</span>
+                        </div>
                         <div v-if="row.peso_atual" class="text-xs text-slate-600 mt-1">{{ Number(row.peso_atual).toLocaleString('pt-BR', {minimumFractionDigits: 1}) }} kg</div>
                     </Link>
                     <div v-else class="flex-1 min-w-0">
@@ -401,7 +463,9 @@ function doDelete() {
                             <div class="font-semibold text-slate-900 truncate">{{ row.identificacao }}<span v-if="row.nome" class="font-normal text-slate-500"> · {{ row.nome }}</span></div>
                             <span :class="statusBadge(row.status)" class="flex-shrink-0">{{ row.status }}</span>
                         </div>
-                        <div class="text-xs text-slate-500 mt-0.5">{{ row.species?.nome }} · {{ row.sexo }}<span v-if="row.lot"> · lote {{ row.lot.nome }}</span></div>
+                        <div class="text-xs text-slate-500 mt-0.5">
+                            {{ row.species?.nome }} · {{ row.sexo }}<span v-if="row.lot"> · 🐄 {{ row.lot.nome }}</span><span v-if="row.location"> · 📍 {{ row.location.nome }}</span>
+                        </div>
                         <div v-if="row.peso_atual" class="text-xs text-slate-600 mt-1">{{ Number(row.peso_atual).toLocaleString('pt-BR', {minimumFractionDigits: 1}) }} kg</div>
                     </div>
                 </div>

@@ -12,7 +12,7 @@ import { useAutoReload } from '@/composables/useAutoReload.js';
 import { useToast } from '@/composables/useToast.js';
 
 const { toast } = useToast();
-const props = defineProps({ items: Object, filters: Object, categories: Array });
+const props = defineProps({ items: Object, filters: Object, categories: Array, resumo: { type: Object, default: () => ({ total_itens: 0, abaixo_minimo: 0, sem_estoque: 0 }) } });
 const filtros = reactive({ ...props.filters });
 const confirmDelete = ref(null);
 
@@ -95,6 +95,25 @@ const tipoLabel = {
                 <Link :href="route('admin.estoque.itens.create')" class="btn-primary">Novo item</Link>
             </template>
         </PageHeader>
+
+        <!-- Resumo de valor — ajuda o dono a DECIDIR o que repor hoje.
+             Só aparece quando há pelo menos 1 item abaixo do mínimo — caso
+             contrário é só poluição visual. -->
+        <div v-if="resumo.abaixo_minimo > 0"
+             class="mb-5 rounded-xl border-l-4 border-amber-500 bg-amber-50 p-4 flex flex-wrap items-center gap-3">
+            <span class="text-3xl flex-shrink-0" aria-hidden="true">⚠️</span>
+            <div class="flex-1 min-w-0">
+                <div class="font-semibold text-amber-900">
+                    {{ resumo.abaixo_minimo }} {{ resumo.abaixo_minimo === 1 ? 'item precisa' : 'itens precisam' }} ser reposto{{ resumo.abaixo_minimo === 1 ? '' : 's' }}
+                </div>
+                <div class="text-sm text-amber-800 mt-0.5">
+                    Saldo abaixo do mínimo definido.<span v-if="resumo.sem_estoque > 0"> <strong>{{ resumo.sem_estoque }} {{ resumo.sem_estoque === 1 ? 'está' : 'estão' }} zerado{{ resumo.sem_estoque === 1 ? '' : 's' }}.</strong></span>
+                </div>
+            </div>
+            <div class="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                Total: {{ resumo.total_itens }} {{ resumo.total_itens === 1 ? 'item ativo' : 'itens ativos' }}
+            </div>
+        </div>
 
         <!-- F4.2 · Filtros colapsáveis em mobile (busca sempre visível) -->
         <MobileFilters cols="sm:grid-cols-2">

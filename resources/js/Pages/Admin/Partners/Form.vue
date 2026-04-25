@@ -94,11 +94,11 @@ const dicaPessoa = computed(() =>
     isPF.value
         ? {
               titulo: 'Pessoa física',
-              texto: 'Cadastro de produtor rural, prestador autônomo ou cliente individual. CPF é obrigatório; campos empresariais (razão social, nome fantasia, inscrição estadual) não se aplicam.',
+              texto: 'Produtor rural, prestador autônomo ou cliente individual. CPF é OPCIONAL — só preenche se tiver. Sistema valida o formato apenas quando preenchido.',
           }
         : {
               titulo: 'Pessoa jurídica',
-              texto: 'Cadastro de empresa ou cooperativa. CNPJ é obrigatório (aceita formato alfanumérico da Resolução CGSIM 2026). Nome fantasia e inscrição estadual são opcionais mas úteis na emissão de documentos.',
+              texto: 'Empresa ou cooperativa. CNPJ é OPCIONAL (aceita alfanumérico CGSIM 2026) — só preenche se tiver. Sistema valida o formato apenas quando preenchido.',
           },
 );
 
@@ -124,12 +124,14 @@ watch(
     },
 );
 
-// Trava o submit se documento exigido está inválido/vazio
+// Permite salvar parceiro INFORMAL (sem CPF/CNPJ).
+// Se o campo foi PREENCHIDO pelo usuário, exige que o formato seja válido —
+// senão deixa passar, o backend agora aceita documento vazio.
 const podeSalvar = computed(() => {
-    // Documento sempre obrigatório (D4): backend aceita vazio no validator base
-    // mas validateDomainCoherence rejeita. Aqui replicamos.
-    if (!docValido.value) return false;
-    return !form.processing;
+    if (form.processing) return false;
+    const tem = (form.documento ?? '').trim().length > 0;
+    if (tem && !docValido.value) return false; // preenchido mas inválido
+    return true;
 });
 
 function submit() {
@@ -196,14 +198,16 @@ function submit() {
                         >
                     </div>
 
-                    <!-- Documento: CPF (11) ou CNPJ (14) conforme pessoa -->
+                    <!-- Documento: CPF (11) ou CNPJ (14) conforme pessoa.
+                         OPCIONAL: parceiro informal (vizinho que vende leite,
+                         comprador da feira) pode ficar sem documento — só
+                         valida formato quando preenchido. -->
                     <div>
-                        <InputLabel :value="labelDocumento + ' (obrigatório)'" />
+                        <InputLabel :value="labelDocumento + ' (opcional)'" />
                         <InputMasked
                             v-model="form.documento"
                             :mask="maskDocumento"
                             :placeholder="placeholderDocumento"
-                            required
                         />
                         <InputError :message="form.errors.documento" />
                         <!-- Feedback live de DV -->

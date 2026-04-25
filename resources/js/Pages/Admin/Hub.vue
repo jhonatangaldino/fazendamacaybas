@@ -61,7 +61,7 @@ const primeiroNome = computed(() => {
 });
 
 /**
- * Catálogo das 27 operações. Cada item tem:
+ * Catálogo das operações. Cada item tem:
  *   id        — slug único (usado como key de tracking: `hub:<id>`)
  *   nome      — ação em tom equilibrado (verbo + substantivo neutro)
  *   desc      — 3-6 palavras complementando
@@ -69,7 +69,15 @@ const primeiroNome = computed(() => {
  *   rota      — nome da rota Laravel
  *   query     — opcional: pré-filtro/pré-seleção na tela destino
  *   perm      — permissão requerida (filtra no front)
- *   destaque  — true quando já existe wizard guiado
+ *   tipo      — wizard | lista | acao  (controla badge visual obrigatório)
+ *
+ * REGRA DO BADGE:
+ *   - tipo='wizard' → badge "PASSO A PASSO" (verde)
+ *   - tipo='lista'  → badge "AÇÃO RÁPIDA"  (azul)
+ *   - tipo='acao'   → badge "AÇÃO"         (âmbar)
+ *
+ * Nenhum card pode ficar sem `tipo` — o usuário sempre sabe o que vai acontecer
+ * antes de clicar.
  */
 const grupos = [
     {
@@ -79,14 +87,14 @@ const grupos = [
         emoji: '🌅',
         tom: 'primary',
         itens: [
-            { id: 'pesar-animal',         nome: 'Registrar peso do animal',   desc: 'Passo a passo guiado',             emoji: '⚖️', rota: 'admin.fluxos.pesar-animal',      perm: 'operational.rebanho.eventos.create', destaque: true },
-            { id: 'registrar-despesa',    nome: 'Registrar despesa',          desc: 'Passo a passo guiado',             emoji: '💸', rota: 'admin.fluxos.registrar-despesa', perm: 'operational.financeiro.transacoes.create', destaque: true },
-            { id: 'receber-mercadoria',   nome: 'Receber mercadoria',         desc: 'Passo a passo guiado',             emoji: '📦', rota: 'admin.fluxos.receber-mercadoria', perm: 'operational.estoque.movimentos.create', destaque: true },
-            { id: 'pagar-conta',          nome: 'Pagar conta',                desc: 'Baixa em conta a pagar',           emoji: '💳', rota: 'admin.financeiro.transacoes.index', query: { status: 'pendente', tipo: 'despesa' }, perm: 'operational.financeiro.transacoes.update' },
-            { id: 'receber-pagamento',    nome: 'Receber pagamento',          desc: 'Passo a passo guiado',             emoji: '💰', rota: 'admin.fluxos.registrar-receita', perm: 'operational.financeiro.transacoes.create', destaque: true },
-            { id: 'criar-tarefa',         nome: 'Criar tarefa',               desc: 'Passo a passo guiado',             emoji: '📋', rota: 'admin.fluxos.criar-tarefa',       perm: 'operational.funcionarios.tarefas.create', destaque: true },
-            { id: 'concluir-tarefa',      nome: 'Concluir tarefa',            desc: 'Marcar tarefa como feita',         emoji: '✅', rota: 'admin.tarefas.index',             query: { status: 'pendente' }, perm: 'operational.funcionarios.tarefas.update' },
-            { id: 'saida-estoque',        nome: 'Registrar saída de estoque', desc: 'Baixa de material utilizado',      emoji: '📤', rota: 'admin.estoque.movimentos.index',  query: { novo: 1, tipo: 'saida', motivo: 'uso' }, perm: 'operational.estoque.movimentos.create' },
+            { id: 'pesar-animal',         tipo: 'wizard', nome: 'Registrar peso do animal',   desc: 'Atualiza o peso atual e o histórico de ganho',         emoji: '⚖️', rota: 'admin.fluxos.pesar-animal',      perm: 'operational.rebanho.eventos.create' },
+            { id: 'registrar-despesa',    tipo: 'wizard', nome: 'Registrar despesa',          desc: 'Lança no caixa, escolhe categoria/conta na hora',      emoji: '💸', rota: 'admin.fluxos.registrar-despesa', perm: 'operational.financeiro.transacoes.create' },
+            { id: 'receber-mercadoria',   tipo: 'wizard', nome: 'Receber mercadoria',         desc: 'Entra no estoque, cria o item se não existir',         emoji: '📦', rota: 'admin.fluxos.receber-mercadoria', perm: 'operational.estoque.movimentos.create' },
+            { id: 'pagar-conta',          tipo: 'lista',  nome: 'Pagar conta',                desc: 'Lista de contas pendentes — 1 clique pra baixar',      emoji: '💳', rota: 'admin.financeiro.transacoes.index', query: { status: 'pendente', tipo: 'despesa' }, perm: 'operational.financeiro.transacoes.update' },
+            { id: 'receber-pagamento',    tipo: 'wizard', nome: 'Receber pagamento',          desc: 'Soma no caixa e fecha a conta a receber',              emoji: '💰', rota: 'admin.fluxos.registrar-receita', perm: 'operational.financeiro.transacoes.create' },
+            { id: 'criar-tarefa',         tipo: 'wizard', nome: 'Criar tarefa',               desc: 'Define o que fazer, quem faz e até quando',            emoji: '📋', rota: 'admin.fluxos.criar-tarefa',       perm: 'operational.funcionarios.tarefas.create' },
+            { id: 'concluir-tarefa',      tipo: 'lista',  nome: 'Concluir tarefa',            desc: 'Lista pendentes — ✓ verde de 1 clique pra fechar',     emoji: '✅', rota: 'admin.tarefas.index',             query: { status: 'pendente' }, perm: 'operational.funcionarios.tarefas.update' },
+            { id: 'saida-estoque',        tipo: 'wizard', nome: 'Registrar saída de estoque', desc: 'Item + motivo + saldo final visível antes de salvar',  emoji: '📤', rota: 'admin.fluxos.saida-estoque', perm: 'operational.estoque.movimentos.create' },
         ],
     },
     {
@@ -96,15 +104,15 @@ const grupos = [
         emoji: '📅',
         tom: 'sky',
         itens: [
-            { id: 'vacinar-animal',       nome: 'Aplicar vacina no animal',   desc: 'Passo a passo guiado',             emoji: '💉', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'vacinacao' },   perm: 'operational.rebanho.eventos.create', destaque: true },
-            { id: 'medicar-animal',       nome: 'Aplicar medicamento',        desc: 'Passo a passo guiado',             emoji: '💊', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'medicacao' },   perm: 'operational.rebanho.eventos.create', destaque: true },
-            { id: 'vermifugar-animal',    nome: 'Aplicar vermífugo',          desc: 'Passo a passo guiado',             emoji: '🧴', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'vermifugacao' }, perm: 'operational.rebanho.eventos.create', destaque: true },
-            { id: 'aplicar-defensivo',    nome: 'Aplicar produto na plantação', desc: 'Passo a passo guiado',           emoji: '🌿', rota: 'admin.fluxos.aplicar-produto',   query: { tipo: 'herbicida' },  perm: 'operational.agricola.aplicacoes.create', destaque: true },
-            { id: 'aplicar-adubo',        nome: 'Aplicar adubo na plantação', desc: 'Passo a passo guiado',             emoji: '🌱', rota: 'admin.fluxos.aplicar-produto',   query: { tipo: 'adubacao' },   perm: 'operational.agricola.aplicacoes.create', destaque: true },
-            { id: 'manutencao-maquina',   nome: 'Arrumar máquina',            desc: 'Passo a passo guiado',             emoji: '🔧', rota: 'admin.fluxos.arrumar-maquina',   perm: 'operational.maquinas.manutencoes.create', destaque: true },
-            { id: 'mover-lote',           nome: 'Mover animal de lote',       desc: 'Mudar o grupo (lote) do animal',   emoji: '🐄', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'movimentacao' }, perm: 'operational.rebanho.eventos.create', destaque: true },
-            { id: 'mover-pasto',          nome: 'Mover animal de pasto',      desc: 'Mudar o local físico do animal',   emoji: '📍', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'movimentacao_local' }, perm: 'operational.rebanho.eventos.create', destaque: true },
-            { id: 'observar-animal',      nome: 'Registrar observação do animal', desc: 'Passo a passo guiado',         emoji: '📝', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'observacao' },  perm: 'operational.rebanho.eventos.create', destaque: true },
+            { id: 'vacinar-animal',       tipo: 'wizard', nome: 'Aplicar vacina no animal',   desc: 'Um animal, lote inteiro ou pasto — escolhe na hora',   emoji: '💉', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'vacinacao' },   perm: 'operational.rebanho.eventos.create' },
+            { id: 'medicar-animal',       tipo: 'wizard', nome: 'Aplicar medicamento',        desc: 'Individual ou em lote, com dose e via',                emoji: '💊', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'medicacao' },   perm: 'operational.rebanho.eventos.create' },
+            { id: 'vermifugar-animal',    tipo: 'wizard', nome: 'Aplicar vermífugo',          desc: 'Bicho a bicho ou pasto inteiro, sem retrabalho',       emoji: '🧴', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'vermifugacao' }, perm: 'operational.rebanho.eventos.create' },
+            { id: 'aplicar-defensivo',    tipo: 'wizard', nome: 'Aplicar defensivo',          desc: 'Talhão, dose por hectare, carência da cultura',        emoji: '🌿', rota: 'admin.fluxos.aplicar-produto',   query: { tipo: 'herbicida' },  perm: 'operational.agricola.aplicacoes.create' },
+            { id: 'aplicar-adubo',        tipo: 'wizard', nome: 'Aplicar adubo',              desc: 'Vincula talhão, NPK e quantidade aplicada',            emoji: '🌱', rota: 'admin.fluxos.aplicar-produto',   query: { tipo: 'adubacao' },   perm: 'operational.agricola.aplicacoes.create' },
+            { id: 'manutencao-maquina',   tipo: 'wizard', nome: 'Arrumar máquina',            desc: 'Anota troca de óleo, peça, valor e horímetro',         emoji: '🔧', rota: 'admin.fluxos.arrumar-maquina',   perm: 'operational.maquinas.manutencoes.create' },
+            { id: 'mover-lote',           tipo: 'wizard', nome: 'Mover animal de lote',       desc: 'Muda o grupo lógico — registra origem e destino',      emoji: '🐄', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'movimentacao' }, perm: 'operational.rebanho.eventos.create' },
+            { id: 'mover-pasto',          tipo: 'wizard', nome: 'Mover animal de pasto',      desc: 'Atualiza o local físico (pasto/curral/tanque)',        emoji: '📍', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'movimentacao_local' }, perm: 'operational.rebanho.eventos.create' },
+            { id: 'observar-animal',      tipo: 'wizard', nome: 'Registrar observação',       desc: 'Anota mancando, brigando, com bicheira, etc.',         emoji: '📝', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'observacao' },  perm: 'operational.rebanho.eventos.create' },
         ],
     },
     {
@@ -114,11 +122,11 @@ const grupos = [
         emoji: '🌾',
         tom: 'amber',
         itens: [
-            { id: 'registrar-plantio',    nome: 'Registrar plantio',          desc: 'Iniciar um plantio',               emoji: '🌾', rota: 'admin.agricola.plantios.index',   query: { novo: 1 },           perm: 'operational.agricola.plantios.create' },
-            { id: 'registrar-colheita',   nome: 'Registrar colheita',         desc: 'Fechamento da safra',              emoji: '🌽', rota: 'admin.agricola.colheitas.index',  query: { novo: 1 },           perm: 'operational.agricola.colheitas.create' },
-            { id: 'vender-animal',        nome: 'Vender animal',              desc: 'Passo a passo guiado',             emoji: '🐂', rota: 'admin.fluxos.venda-animal',       perm: 'operational.rebanho.eventos.create', destaque: true },
-            { id: 'comprar-animal',       nome: 'Comprar animal',             desc: 'Registrar compra de animal',       emoji: '🛒', rota: 'admin.rebanho.animais.create',    query: { origem: 'compra' },  perm: 'operational.rebanho.animais.create' },
-            { id: 'ajustar-estoque',      nome: 'Ajustar estoque',            desc: 'Passo a passo guiado',             emoji: '🔢', rota: 'admin.fluxos.ajustar-estoque',   perm: 'operational.estoque.movimentos.create', destaque: true },
+            { id: 'registrar-plantio',    tipo: 'wizard', nome: 'Registrar plantio',          desc: 'Cultura, talhão e área — sugere colheita pelo ciclo', emoji: '🌾', rota: 'admin.fluxos.registrar-plantio',  perm: 'operational.agricola.plantios.create' },
+            { id: 'registrar-colheita',   tipo: 'wizard', nome: 'Registrar colheita',         desc: 'Fecha plantio, calcula produtividade e gera receita', emoji: '🌽', rota: 'admin.fluxos.registrar-colheita', perm: 'operational.agricola.colheitas.create' },
+            { id: 'vender-animal',        tipo: 'wizard', nome: 'Vender animal',              desc: 'Cabeça, arroba, kg ou unidade — adapta ao mercado',    emoji: '🐂', rota: 'admin.fluxos.venda-animal',       perm: 'operational.rebanho.eventos.create' },
+            { id: 'comprar-animal',       tipo: 'wizard', nome: 'Comprar animal',             desc: 'Fornecedor, valor e data de aquisição — guiado',       emoji: '🛒', rota: 'admin.fluxos.cadastrar-animal', query: { modo: 'compra' }, perm: 'operational.rebanho.animais.create' },
+            { id: 'ajustar-estoque',      tipo: 'wizard', nome: 'Ajustar estoque',            desc: 'Conferência física: corrige saldo com motivo',         emoji: '🔢', rota: 'admin.fluxos.ajustar-estoque',   perm: 'operational.estoque.movimentos.create' },
         ],
     },
     {
@@ -128,15 +136,22 @@ const grupos = [
         emoji: '🏥',
         tom: 'slate',
         itens: [
-            { id: 'registrar-morte',      nome: 'Registrar morte do animal',  desc: 'Passo a passo guiado',             emoji: '⚰️', rota: 'admin.fluxos.evento-rebanho',  query: { tipo: 'mortalidade' }, perm: 'operational.rebanho.eventos.create', destaque: true },
-            { id: 'registrar-nascimento', nome: 'Registrar nascimento',       desc: 'Cria nova no rebanho',             emoji: '🐣', rota: 'admin.rebanho.animais.create', query: { origem: 'nascimento' }, perm: 'operational.rebanho.animais.create' },
-            { id: 'cadastrar-funcionario',nome: 'Cadastrar funcionário',      desc: 'Novo colaborador na fazenda',      emoji: '👷', rota: 'admin.funcionarios.index',     query: { novo: 1 },           perm: 'operational.funcionarios.cadastro.create' },
-            { id: 'desligar-funcionario', nome: 'Desligar funcionário',       desc: 'Encerrar vínculo com o funcionário', emoji: '👋', rota: 'admin.funcionarios.index', perm: 'operational.funcionarios.cadastro.update' },
-            { id: 'anexar-documento',     nome: 'Anexar documento',           desc: 'GTA, licença, receita, contrato',  emoji: '📄', rota: 'admin.documentos.index',       query: { novo: 1 },           perm: 'operational.documentos.create' },
-            { id: 'cadastrar-animal',     nome: 'Cadastrar animal',           desc: 'Por doação, pedigree, importação', emoji: '🐾', rota: 'admin.rebanho.animais.create', perm: 'operational.rebanho.animais.create' },
+            { id: 'registrar-morte',      tipo: 'wizard', nome: 'Registrar morte do animal',  desc: 'Causa, data e baixa do rebanho ativo',                 emoji: '⚰️', rota: 'admin.fluxos.evento-rebanho',  query: { tipo: 'mortalidade' }, perm: 'operational.rebanho.eventos.create' },
+            { id: 'registrar-nascimento', tipo: 'wizard', nome: 'Registrar nascimento',       desc: 'Vincula à mãe, peso ao nascer — cria entra no rebanho', emoji: '🐣', rota: 'admin.fluxos.cadastrar-animal', query: { modo: 'nascimento' }, perm: 'operational.rebanho.animais.create' },
+            { id: 'cadastrar-funcionario',tipo: 'wizard', nome: 'Cadastrar funcionário',      desc: 'Vínculo (CLT/PJ/diarista/safrista) — adapta os campos', emoji: '👷', rota: 'admin.fluxos.cadastrar-funcionario', perm: 'operational.funcionarios.cadastro.create' },
+            { id: 'desligar-funcionario', tipo: 'acao',   nome: 'Desligar funcionário',       desc: 'Modal com data e motivo — mantém histórico',           emoji: '👋', rota: 'admin.funcionarios.index', perm: 'operational.funcionarios.cadastro.update' },
+            { id: 'anexar-documento',     tipo: 'wizard', nome: 'Anexar documento',           desc: 'GTA / licença / receita / contrato — adapta validade', emoji: '📄', rota: 'admin.fluxos.anexar-documento', perm: 'operational.documentos.create' },
+            { id: 'cadastrar-animal',     tipo: 'wizard', nome: 'Cadastrar animal',           desc: 'Espécie, brinco, sexo, lote — passo a passo guiado',   emoji: '🐾', rota: 'admin.fluxos.cadastrar-animal', perm: 'operational.rebanho.animais.create' },
         ],
     },
 ];
+
+// Mapa de badge visual por tipo (regra obrigatória do hardening)
+const BADGE_POR_TIPO = {
+    wizard: { texto: 'PASSO A PASSO', classe: 'badge-wizard' },
+    lista:  { texto: 'AÇÃO RÁPIDA',   classe: 'badge-lista' },
+    acao:   { texto: 'AÇÃO',          classe: 'badge-acao' },
+};
 
 // Filtragem por permissão, preservando estrutura dos grupos
 const gruposVisiveis = computed(() =>
@@ -247,14 +262,14 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
                     class="hub-card hub-card--favorito"
                     :class="[
                         `hub-card--${item.grupoTom}`,
-                        item.destaque ? 'hub-card--destaque' : '',
+                        item.tipo === 'wizard' ? 'hub-card--destaque' : '',
                     ]"
                 >
                     <span class="hub-card__emoji" aria-hidden="true">{{ item.emoji }}</span>
                     <span class="hub-card__nome">{{ item.nome }}</span>
                     <span class="hub-card__desc">{{ item.desc }}</span>
-                    <span v-if="item.destaque" class="hub-card__badge">
-                        Passo a passo
+                    <span class="hub-card__badge" :class="BADGE_POR_TIPO[item.tipo].classe">
+                        {{ BADGE_POR_TIPO[item.tipo].texto }}
                     </span>
                 </Link>
             </div>
@@ -285,14 +300,14 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
                     class="hub-card"
                     :class="[
                         `hub-card--${grupo.tom}`,
-                        item.destaque ? 'hub-card--destaque' : '',
+                        item.tipo === 'wizard' ? 'hub-card--destaque' : '',
                     ]"
                 >
                     <span class="hub-card__emoji" aria-hidden="true">{{ item.emoji }}</span>
                     <span class="hub-card__nome">{{ item.nome }}</span>
                     <span class="hub-card__desc">{{ item.desc }}</span>
-                    <span v-if="item.destaque" class="hub-card__badge">
-                        Passo a passo
+                    <span class="hub-card__badge" :class="BADGE_POR_TIPO[item.tipo].classe">
+                        {{ BADGE_POR_TIPO[item.tipo].texto }}
                     </span>
                 </Link>
             </div>
@@ -311,6 +326,7 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
                 Abrir painel de números
             </Link>
         </div>
+
     </AdminLayout>
 </template>
 
@@ -399,9 +415,25 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+    border-radius: 6px;
+}
+
+/* Badge WIZARD — verde escuro: indica fluxo guiado passo a passo */
+.badge-wizard {
     background: rgb(236 253 245);
     color: rgb(6 78 59);
-    border-radius: 6px;
+}
+
+/* Badge LISTA — azul: indica ação rápida sobre lista filtrada */
+.badge-lista {
+    background: rgb(219 234 254);
+    color: rgb(30 64 175);
+}
+
+/* Badge AÇÃO — âmbar: indica modal/ação focada (ex: desligar) */
+.badge-acao {
+    background: rgb(254 243 199);
+    color: rgb(146 64 14);
 }
 
 /* Tom por grupo — faixa superior */

@@ -16,7 +16,7 @@ import {
 import { Line } from 'vue-chartjs';
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, TimeScale, Tooltip, Legend, Title, Filler);
 
-const props = defineProps({ animal: Object, events: Array, pesagens: Array, partners: Array, lots: Array });
+const props = defineProps({ animal: Object, events: Array, pesagens: Array, partners: Array, lots: Array, locations: { type: Array, default: () => [] } });
 
 // Idade amigável em anos/meses/dias
 const idadeFormatada = computed(() => {
@@ -58,6 +58,9 @@ const eventForm = useForm({
     partner_id: null,
     lot_origem_id: null,
     lot_destino_id: null,
+    // LOCATION (pasto/piquete/curral) — evento separado de movimentação de LOTE
+    location_origem_id: null,
+    location_destino_id: null,
     observacoes: '',
 });
 
@@ -78,7 +81,8 @@ const MAPA_ACAO_HUB = {
     medicar:     'medicacao',
     vermifugar:  'vermifugacao',
     observar:    'observacao',
-    mover:       'movimentacao',
+    mover:       'movimentacao',        // muda de LOTE (grupo lógico)
+    mover_pasto: 'movimentacao_local',  // muda de PASTO (local físico)
     morte:       'mortalidade',
     ordenha:     'ordenha',
     alimentar:   'alimentacao',
@@ -334,10 +338,12 @@ const eventoIcone = (tipo) => ({
     vacinacao: '💉',
     medicacao: '💊',
     reproducao: '❤️',
-    movimentacao: '🔄',
+    movimentacao: '🔄',         // mudança de LOTE (grupo)
+    movimentacao_local: '📍',   // mudança de PASTO (local físico)
     observacao: '📝',
     nascimento: '🐣',
     morte: '⚰️',
+    mortalidade: '⚰️',
     compra: '🛒',
     venda: '💰',
 })[tipo] || '📌';
@@ -347,10 +353,12 @@ const eventoLabel = (tipo) => ({
     vacinacao: 'Vacinação',
     medicacao: 'Medicação',
     reproducao: 'Reprodução',
-    movimentacao: 'Movimentação',
+    movimentacao: 'Mudança de lote',
+    movimentacao_local: 'Mudança de pasto',
     observacao: 'Observação',
     nascimento: 'Nascimento',
     morte: 'Morte',
+    mortalidade: 'Mortalidade',
     compra: 'Compra',
     venda: 'Venda',
 })[tipo] || tipo;
@@ -392,7 +400,20 @@ const eventoLabel = (tipo) => ({
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Idade</div><div class="font-medium">{{ idadeFormatada }}</div></div>
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Peso atual</div><div class="font-medium">{{ animal.peso_atual ? Number(animal.peso_atual).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) + ' kg' : '—' }}</div></div>
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Categoria</div><div class="font-medium">{{ animal.categoria || '—' }}</div></div>
-                    <div><div class="text-xs uppercase tracking-wide text-slate-500">Lote</div><div class="font-medium">{{ animal.lot?.nome || '—' }}</div></div>
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-slate-500">🐄 Lote <span class="normal-case text-slate-400">(grupo)</span></div>
+                        <div class="font-medium">{{ animal.lot?.nome || '—' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-slate-500">📍 Pasto <span class="normal-case text-slate-400">(local)</span></div>
+                        <div class="font-medium">
+                            <template v-if="animal.location">
+                                {{ animal.location.nome }}
+                                <span v-if="animal.location.tipo" class="text-xs text-slate-400">· {{ animal.location.tipo }}</span>
+                            </template>
+                            <template v-else>—</template>
+                        </div>
+                    </div>
                     <div><div class="text-xs uppercase tracking-wide text-slate-500">Status</div><div class="font-medium">{{ animal.status }}</div></div>
                 </div>
             </div>
@@ -580,7 +601,10 @@ const eventoLabel = (tipo) => ({
                                     <div v-if="e.valor">Valor: <strong class="text-red-700">{{ brl(e.valor) }}</strong></div>
                                     <div v-if="e.partner">Parceiro: {{ e.partner.nome }}</div>
                                     <div v-if="e.lot_origem || e.lot_destino" class="sm:col-span-2">
-                                        Movimentação: {{ e.lot_origem?.nome || '—' }} → {{ e.lot_destino?.nome || '—' }}
+                                        🐄 Lote: {{ e.lot_origem?.nome || '—' }} → <strong>{{ e.lot_destino?.nome || '—' }}</strong>
+                                    </div>
+                                    <div v-if="e.location_origem || e.location_destino" class="sm:col-span-2">
+                                        📍 Pasto: {{ e.location_origem?.nome || '—' }} → <strong>{{ e.location_destino?.nome || '—' }}</strong>
                                     </div>
                                 </div>
                                 <p v-if="e.observacoes" class="mt-2 text-sm text-slate-500 italic">{{ e.observacoes }}</p>
@@ -619,7 +643,8 @@ const eventoLabel = (tipo) => ({
                                 <option value="vacinacao">💉 Vacinação</option>
                                 <option value="medicacao">💊 Medicação</option>
                                 <option value="reproducao">❤️ Reprodução</option>
-                                <option value="movimentacao">🔄 Movimentação (troca de lote)</option>
+                                <option value="movimentacao">🔄 Mudar de lote (grupo)</option>
+                                <option value="movimentacao_local">📍 Mover de pasto (local físico)</option>
                                 <option value="venda">💰 Venda (encerra ciclo · gera receita)</option>
                                 <option value="mortalidade">⚰️ Mortalidade (encerra ciclo)</option>
                                 <option value="observacao">📝 Observação</option>
@@ -652,8 +677,11 @@ const eventoLabel = (tipo) => ({
                             <div><InputLabel value="Via aplicação" /><input v-model="eventForm.via_aplicacao" class="form-input"></div>
                         </template>
 
-                        <!-- Movimentação -->
+                        <!-- Movimentação de LOTE (grupo lógico) -->
                         <template v-if="eventForm.tipo === 'movimentacao'">
+                            <div class="sm:col-span-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
+                                🐄 <strong>Mudança de lote</strong>: muda o GRUPO do animal (ex.: Bezerros → Vacas em lactação). Não altera a posição física.
+                            </div>
                             <div>
                                 <InputLabel value="Lote de origem" />
                                 <select v-model="eventForm.lot_origem_id" class="form-select">
@@ -667,6 +695,34 @@ const eventoLabel = (tipo) => ({
                                     <option :value="null">—</option>
                                     <option v-for="l in lots" :key="l.id" :value="l.id">{{ l.nome }}</option>
                                 </select>
+                            </div>
+                        </template>
+
+                        <!-- Movimentação de LOCAL (pasto físico) -->
+                        <template v-if="eventForm.tipo === 'movimentacao_local'">
+                            <div class="sm:col-span-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
+                                📍 <strong>Mudança de pasto</strong>: muda a POSIÇÃO FÍSICA do animal (ex.: Pasto 1 → Piquete 3). Não altera o grupo de manejo.
+                            </div>
+                            <div>
+                                <InputLabel value="Pasto de origem" />
+                                <select v-model="eventForm.location_origem_id" class="form-select">
+                                    <option :value="null">—</option>
+                                    <option v-for="l in locations" :key="l.id" :value="l.id">
+                                        {{ l.nome }}<span v-if="l.tipo"> · {{ l.tipo }}</span>
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <InputLabel value="Pasto de destino *" />
+                                <select v-model="eventForm.location_destino_id" class="form-select" required>
+                                    <option :value="null">—</option>
+                                    <option v-for="l in locations" :key="l.id" :value="l.id">
+                                        {{ l.nome }}<span v-if="l.tipo"> · {{ l.tipo }}</span>
+                                    </option>
+                                </select>
+                                <p v-if="!locations.length" class="text-xs text-amber-600 mt-1">
+                                    Nenhum pasto cadastrado. Cadastre em <em>Rebanho → Locais</em>.
+                                </p>
                             </div>
                         </template>
 

@@ -9,7 +9,7 @@
  *   4 · Pronto!            (sucesso)
  */
 import { ref, computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
@@ -71,8 +71,11 @@ function confirmar() {
 
     form.post(route('admin.fluxos.registrar-receita.store'), {
         preserveScroll: false,
-        onSuccess: () => {
-            sucesso.value = { descricao: form.descricao, valor: form.valor, status: form.status };
+        onSuccess: (page) => {
+            const ctx = page?.props?.flash?.financeiro_contexto
+                ?? usePage()?.props?.flash?.financeiro_contexto
+                ?? null;
+            sucesso.value = { descricao: form.descricao, valor: form.valor, status: form.status, ctx };
             passo.value = 4;
         },
     });
@@ -265,6 +268,30 @@ function reiniciar() {
                         <li v-else>✓ Entrou na sua lista de contas a receber</li>
                         <li>✓ Entrou no fluxo de caixa / relatório de receitas do mês</li>
                     </ul>
+                </div>
+
+                <!-- Impacto financeiro real do mês corrente -->
+                <div v-if="sucesso.ctx" class="rounded-lg p-4 bg-white border-2 border-slate-200 text-left">
+                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">
+                        📊 Seu mês agora
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 text-sm text-center">
+                        <div>
+                            <div class="text-xs text-slate-500">Receitas</div>
+                            <div class="font-mono font-semibold text-emerald-700 mt-1">{{ brl(sucesso.ctx.receitas_mes) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500">Despesas</div>
+                            <div class="font-mono font-semibold text-red-700 mt-1">{{ brl(sucesso.ctx.despesas_mes) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500">Saldo</div>
+                            <div class="font-mono font-bold text-lg mt-1"
+                                 :class="sucesso.ctx.saldo_mes >= 0 ? 'text-emerald-700' : 'text-red-700'">
+                                {{ brl(sucesso.ctx.saldo_mes) }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-3 pt-3">

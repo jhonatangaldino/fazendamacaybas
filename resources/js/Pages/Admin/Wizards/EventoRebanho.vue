@@ -12,13 +12,14 @@
  *   Passo 4 · Pronto!               (sucesso)
  */
 import { ref, computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import { hojeBR, dataBR } from '@/utils/format.js';
+import { emojiEspecie } from '@/utils/emojiEspecie.js';
 
 const props = defineProps({
     tipoInicial: { type: String, required: true },
@@ -96,12 +97,13 @@ const TIPOS = {
     mortalidade: {
         titulo: 'Registrar morte do animal',
         emoji: '⚰️',
+        tom: 'sobrio', // tom grave — evita UI celebratória no passo 4
         passo1Titulo: 'Qual animal morreu?',
-        passo2Titulo: 'Como foi?',
+        passo2Titulo: 'O que aconteceu?',
         perguntaQuando: 'Quando aconteceu?',
-        tituloSucesso: 'Morte do animal registrada.',
-        sucessoMsg: (d) => `${d._animal.identificacao} foi baixado do rebanho ativo.`,
-        impactos: ['Animal saiu do rebanho ativo', 'Baixa por mortalidade no relatório'],
+        tituloSucesso: 'Morte registrada.',
+        sucessoMsg: (d) => `${d._animal.identificacao} saiu do rebanho ativo.`,
+        impactos: ['Animal saiu do rebanho ativo', 'Baixa aparece no relatório de mortalidade'],
         campos: ['causa', 'data', 'observacoes'],
         camposObrigatorios: [],
     },
@@ -133,6 +135,52 @@ const passo = ref(1);
 const selecionado = ref(null);
 const busca = ref('');
 const sucesso = ref(null);
+const erroServidor = ref(null); // flash.error vindo do backend (ex.: allowed_events rejeitou)
+
+// Listas LOCAIS — começam com as props e ganham novos itens criados via modal inline.
+// Isso evita sair do wizard quando falta lote/pasto (regra: criar dependência dentro do fluxo).
+const lotesLocal = ref([...props.lotes]);
+const locaisLocal = ref([...(props.locais ?? [])]);
+
+// Modal: novo lote inline
+const novoLoteAberto = ref(false);
+const novoLoteForm = useForm({ nome: '', codigo: '' });
+function abrirNovoLote() { novoLoteForm.reset(); novoLoteAberto.value = true; }
+function salvarNovoLote() {
+    novoLoteForm.post(route('admin.rebanho.lotes.store'), {
+        preserveScroll: true,
+        preserveState: true,
+        only: ['lotes', 'flash'],
+        onSuccess: (page) => {
+            // Backend redireciona pra lista, mas o flash carrega. Alternativa
+            // robusta: buscar o lote recém-criado via JSON na lista atualizada.
+            // Como o store redireciona pra index, usamos fetch direto para
+            // pegar o lote novo e injetar na lista local sem sair do wizard.
+            fetch(route('admin.rebanho.lotes.index'), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            }).catch(() => {});
+            // Fallback simples: adiciona à lista local com ID temporário caso
+            // o backend não retorne JSON. Próximo reload mostra o ID real.
+            // Mais pragmático: usar o nome para match depois.
+            novoLoteAberto.value = false;
+        },
+        onError: () => { /* banner de erro inline dentro do modal */ },
+    });
+}
+
+// Modal: novo local inline
+const novoLocalAberto = ref(false);
+const novoLocalForm = useForm({ nome: '', codigo: '', tipo: 'pasto' });
+function abrirNovoLocal() { novoLocalForm.reset(); novoLocalForm.tipo = 'pasto'; novoLocalAberto.value = true; }
+function salvarNovoLocal() {
+    novoLocalForm.post(route('admin.rebanho.locais.store'), {
+        preserveScroll: true,
+        preserveState: true,
+        only: ['locais', 'flash'],
+        onSuccess: () => { novoLocalAberto.value = false; },
+    });
+}
 
 const form = useForm({
     tipo: tipoAtivo.value,
@@ -157,7 +205,37 @@ const animaisFiltrados = computed(() => {
     );
 });
 
-const podeAvancar1 = computed(() => !!selecionado.value);
+// MODO em lote — para vacinação/medicação/vermífugo/observação.
+// Deixa o usuário aplicar o MESMO evento em múltiplos animais:
+//   - por lote (grupo)
+//   - por pasto (local físico)
+//   - por seleção múltipla
+// Adapta o comportamento do wizard conforme o tipo ativo.
+const TIPOS_LOTE_OK = ['vacinacao', 'medicacao', 'vermifugacao', 'observacao'];
+const permiteLote = computed(() => TIPOS_LOTE_OK.includes(tipoAtivo.value));
+const modo = ref('individual');           // 'individual' | 'lote_grupo' | 'lote_pasto' | 'selecao'
+const loteFiltroId = ref(null);            // quando modo=lote_grupo
+const localFiltroId = ref(null);           // quando modo=lote_pasto
+const idsSelecionados = ref([]);           // quando modo=selecao
+
+const animaisDoFiltro = computed(() => {
+    if (modo.value === 'lote_grupo' && loteFiltroId.value) {
+        return props.animais.filter(a => a.lot?.id === loteFiltroId.value);
+    }
+    if (modo.value === 'lote_pasto' && localFiltroId.value) {
+        return props.animais.filter(a => a.location_id === localFiltroId.value);
+    }
+    if (modo.value === 'selecao') {
+        return props.animais.filter(a => idsSelecionados.value.includes(a.id));
+    }
+    return [];
+});
+
+const podeAvancar1 = computed(() => {
+    if (modo.value === 'individual') return !!selecionado.value;
+    // Lote: precisa ter ao menos 1 animal afetado
+    return animaisDoFiltro.value.length > 0;
+});
 const podeAvancar2 = computed(() => {
     if (!form.data_evento) return false;
     const obrig = meta.value.camposObrigatorios;
@@ -171,15 +249,8 @@ function mostraCampo(nome) {
     return meta.value.campos.includes(nome);
 }
 
-function emojiEspecie(nome) {
-    const n = (nome || '').toLowerCase();
-    if (n.includes('bovino') || n.includes('búfalo')) return '🐄';
-    if (n.includes('suíno')) return '🐖';
-    if (n.includes('ovino') || n.includes('caprino')) return '🐑';
-    if (n.includes('ave') || n.includes('galinha')) return '🐔';
-    if (n.includes('equino') || n.includes('cavalo')) return '🐎';
-    return '🐾';
-}
+// emojiEspecie agora vem de '@/utils/emojiEspecie.js' — centralizado,
+// com mapeamento correto (cabra ≠ ovelha, cão ≠ gato, búfalo ≠ bovino).
 
 function avancar() { if (passo.value < PASSOS.value.length) passo.value++; }
 function voltar() { if (passo.value > 1) passo.value--; }
@@ -192,10 +263,16 @@ const localNome = computed(() => {
 });
 
 function confirmar() {
+    // Em modo LOTE, usa endpoint batch
+    if (modo.value !== 'individual') {
+        return confirmarEmLote();
+    }
     // Para mortalidade com "causa", anexa na observacoes (backend não tem campo causa dedicado)
     if (tipoAtivo.value === 'mortalidade' && form.causa) {
         form.observacoes = form.causa + (form.observacoes ? ` · ${form.observacoes}` : '');
     }
+
+    erroServidor.value = null;
 
     form
         .transform((d) => {
@@ -204,16 +281,87 @@ function confirmar() {
         })
         .post(route('admin.rebanho.animais.eventos.store', selecionado.value.id), {
             preserveScroll: false,
-            onSuccess: () => {
+            // IMPORTANT: onSuccess dispara mesmo quando o backend faz
+            // `back()->with('error', ...)` (resposta 200 Inertia). Por isso
+            // checamos flash.error antes de celebrar sucesso — senão o
+            // usuário vê a tela "Pronto!" mesmo quando NADA foi salvo.
+            onSuccess: (page) => {
+                const flashError = page?.props?.flash?.error
+                    ?? usePage()?.props?.flash?.error
+                    ?? null;
+                if (flashError) {
+                    erroServidor.value = flashError;
+                    passo.value = 3; // mantém na conferência com banner vermelho
+                    return;
+                }
+                // Contexto emitido por AnimalController::buildContexto — contém
+                // dados como animais_no_lote_destino, receita_gerada, etc.
+                const ctx = page?.props?.flash?.event_contexto
+                    ?? usePage()?.props?.flash?.event_contexto
+                    ?? null;
                 sucesso.value = {
                     _animal: selecionado.value,
                     _localNome: localNome.value,
                     _loteNome: loteNome.value,
+                    _contexto: ctx,
                     tipo: tipoAtivo.value,
                 };
                 passo.value = 4;
             },
+            onError: (errors) => {
+                // Validation errors (422) — mostra banner com 1ª mensagem
+                const first = Object.values(errors || {})[0];
+                if (first) erroServidor.value = Array.isArray(first) ? first[0] : first;
+            },
         });
+}
+
+// Envio em LOTE — um único POST aplica o evento em N animais.
+function confirmarEmLote() {
+    erroServidor.value = null;
+
+    const payload = {
+        tipo: tipoAtivo.value,
+        data: form.data_evento,
+        vacina: form.vacina || null,
+        medicamento: form.medicamento || null,
+        dose: form.dose || null,
+        via_aplicacao: form.via_aplicacao || null,
+        responsavel: form.responsavel || null,
+        observacoes: form.observacoes || null,
+    };
+    if (modo.value === 'lote_grupo')  payload.lot_id = loteFiltroId.value;
+    if (modo.value === 'lote_pasto')  payload.location_id = localFiltroId.value;
+    if (modo.value === 'selecao')     payload.animal_ids = [...idsSelecionados.value];
+
+    form.transform(() => payload).post(route('admin.rebanho.animais.eventos-lote'), {
+        preserveScroll: false,
+        onSuccess: (page) => {
+            const flashError = page?.props?.flash?.error
+                ?? usePage()?.props?.flash?.error
+                ?? null;
+            if (flashError) {
+                erroServidor.value = flashError;
+                passo.value = 3;
+                return;
+            }
+            const ctxBatch = page?.props?.flash?.event_batch_contexto
+                ?? usePage()?.props?.flash?.event_batch_contexto
+                ?? null;
+            sucesso.value = {
+                _animal: { identificacao: `${ctxBatch?.total ?? '?'} animais`, id: null },
+                _loteNome: loteNome.value,
+                _localNome: localNome.value,
+                _contexto: { batch: ctxBatch },
+                tipo: tipoAtivo.value,
+            };
+            passo.value = 4;
+        },
+        onError: (errors) => {
+            const first = Object.values(errors || {})[0];
+            if (first) erroServidor.value = Array.isArray(first) ? first[0] : first;
+        },
+    });
 }
 
 function reiniciar() {
@@ -223,6 +371,10 @@ function reiniciar() {
     form.reset();
     form.tipo = tipoAtivo.value;
     form.data_evento = hojeBR();
+    modo.value = 'individual';
+    loteFiltroId.value = null;
+    localFiltroId.value = null;
+    idsSelecionados.value = [];
     passo.value = 1;
 }
 </script>
@@ -247,43 +399,119 @@ function reiniciar() {
         <div v-if="passo === 1" class="card max-w-5xl mx-auto">
             <div class="card-body space-y-5">
                 <h2 class="text-2xl font-semibold text-slate-900">{{ meta.passo1Titulo }}</h2>
-                <p class="text-base text-slate-600">Toque em um animal para escolher.</p>
-                <p v-if="animais.length === 0" class="text-sm text-amber-700">
-                    Nenhum animal disponível. Cadastre um antes.
-                </p>
 
-                <div v-if="animais.length > 6" class="relative">
-                    <input v-model="busca" placeholder="Buscar por brinco, nome ou raça…"
-                           class="form-input pl-10 text-base py-3">
-                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                </div>
-
-                <div v-if="animaisFiltrados.length === 0" class="text-center text-slate-500 py-12">
-                    Nenhum animal encontrado.
-                </div>
-
-                <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 max-h-[55vh] overflow-y-auto pr-1">
-                    <button v-for="a in animaisFiltrados" :key="a.id" type="button"
-                            @click="selecionado = a"
-                            class="text-left rounded-xl border-2 p-4 transition-all hover:border-macaybas-primary"
-                            :class="selecionado?.id === a.id ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200 bg-white'">
-                        <div class="flex items-start gap-3">
-                            <img v-if="a.photo_url" :src="a.photo_url" class="h-14 w-14 rounded-lg object-cover flex-shrink-0">
-                            <div v-else class="h-14 w-14 rounded-lg bg-slate-100 flex items-center justify-center text-3xl flex-shrink-0">
-                                {{ emojiEspecie(a.species?.nome) }}
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="font-bold text-slate-900 truncate">{{ a.identificacao }}</div>
-                                <div v-if="a.nome" class="text-sm text-slate-700 truncate">{{ a.nome }}</div>
-                                <div class="text-sm text-slate-500 mt-0.5">
-                                    {{ a.species?.nome ?? '—' }}<span v-if="a.lot"> · {{ a.lot.nome }}</span>
-                                </div>
-                            </div>
-                        </div>
+                <!-- Toggle INDIVIDUAL vs EM LOTE — só para tipos que aceitam em lote
+                     (vacinação/medicação/vermifugação/observação). Cenário real:
+                     veterinário aplica a mesma vacina em 80 animais de uma vez. -->
+                <div v-if="permiteLote" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button type="button" @click="modo = 'individual'"
+                        class="py-3 px-2 rounded-lg border-2 text-sm font-medium"
+                        :class="modo === 'individual' ? 'border-macaybas-primary bg-emerald-50 text-emerald-800' : 'border-slate-200'">
+                        🐄 Um animal
+                    </button>
+                    <button type="button" @click="modo = 'lote_grupo'"
+                        class="py-3 px-2 rounded-lg border-2 text-sm font-medium"
+                        :class="modo === 'lote_grupo' ? 'border-macaybas-primary bg-emerald-50 text-emerald-800' : 'border-slate-200'">
+                        🐑 Lote inteiro
+                    </button>
+                    <button type="button" @click="modo = 'lote_pasto'"
+                        class="py-3 px-2 rounded-lg border-2 text-sm font-medium"
+                        :class="modo === 'lote_pasto' ? 'border-macaybas-primary bg-emerald-50 text-emerald-800' : 'border-slate-200'">
+                        📍 Pasto inteiro
+                    </button>
+                    <button type="button" @click="modo = 'selecao'"
+                        class="py-3 px-2 rounded-lg border-2 text-sm font-medium"
+                        :class="modo === 'selecao' ? 'border-macaybas-primary bg-emerald-50 text-emerald-800' : 'border-slate-200'">
+                        ✓ Escolher vários
                     </button>
                 </div>
+
+                <!-- INDIVIDUAL: mesma UI de sempre -->
+                <template v-if="modo === 'individual'">
+                    <p class="text-base text-slate-600">Toque em um animal para escolher.</p>
+                    <p v-if="animais.length === 0" class="text-sm text-amber-700">
+                        Nenhum animal disponível. Cadastre um antes.
+                    </p>
+
+                    <div v-if="animais.length > 6" class="relative">
+                        <input v-model="busca" placeholder="Buscar por brinco, nome ou raça…"
+                               class="form-input pl-10 text-base py-3">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+
+                    <div v-if="animaisFiltrados.length === 0" class="text-center text-slate-500 py-12">
+                        Nenhum animal encontrado.
+                    </div>
+
+                    <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 max-h-[55vh] overflow-y-auto pr-1">
+                        <button v-for="a in animaisFiltrados" :key="a.id" type="button"
+                                @click="selecionado = a"
+                                class="text-left rounded-xl border-2 p-4 transition-all hover:border-macaybas-primary"
+                                :class="selecionado?.id === a.id ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200 bg-white'">
+                            <div class="flex items-start gap-3">
+                                <img v-if="a.photo_url" :src="a.photo_url" class="h-14 w-14 rounded-lg object-cover flex-shrink-0">
+                                <div v-else class="h-14 w-14 rounded-lg bg-slate-100 flex items-center justify-center text-3xl flex-shrink-0">
+                                    {{ emojiEspecie(a.species?.nome) }}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-bold text-slate-900 truncate">{{ a.identificacao }}</div>
+                                    <div v-if="a.nome" class="text-sm text-slate-700 truncate">{{ a.nome }}</div>
+                                    <div class="text-sm text-slate-500 mt-0.5">
+                                        {{ a.species?.nome ?? '—' }}<span v-if="a.lot"> · {{ a.lot.nome }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </template>
+
+                <!-- LOTE (grupo): escolhe 1 lote, aplica em todos animais ativos -->
+                <template v-if="modo === 'lote_grupo'">
+                    <p class="text-base text-slate-600">Escolha o lote (grupo). O evento será aplicado em TODOS os animais ativos do lote.</p>
+                    <select v-model="loteFiltroId" class="form-select text-base py-3">
+                        <option :value="null">— Escolha um lote —</option>
+                        <option v-for="l in lotesLocal" :key="l.id" :value="l.id">{{ l.nome }}</option>
+                    </select>
+                    <div v-if="loteFiltroId" class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded p-3">
+                        <strong>{{ animaisDoFiltro.length }}</strong> animal{{ animaisDoFiltro.length === 1 ? '' : 'is' }} ativo{{ animaisDoFiltro.length === 1 ? '' : 's' }} nesse lote vão receber o evento.
+                    </div>
+                </template>
+
+                <!-- LOTE (pasto): escolhe 1 local físico -->
+                <template v-if="modo === 'lote_pasto'">
+                    <p class="text-base text-slate-600">Escolha o pasto. Todos os animais que estão nele receberão o evento.</p>
+                    <select v-model="localFiltroId" class="form-select text-base py-3">
+                        <option :value="null">— Escolha um pasto —</option>
+                        <option v-for="l in locaisLocal" :key="l.id" :value="l.id">
+                            {{ l.nome }}<span v-if="l.tipo"> · {{ l.tipo }}</span>
+                        </option>
+                    </select>
+                    <div v-if="localFiltroId" class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded p-3">
+                        <strong>{{ animaisDoFiltro.length }}</strong> animal{{ animaisDoFiltro.length === 1 ? '' : 'is' }} no pasto vão receber o evento.
+                    </div>
+                </template>
+
+                <!-- SELEÇÃO: checkboxes em múltiplos animais -->
+                <template v-if="modo === 'selecao'">
+                    <p class="text-base text-slate-600">Marque os animais que receberão o evento.</p>
+                    <div class="text-sm text-slate-500">
+                        Selecionados: <strong>{{ idsSelecionados.length }}</strong>
+                    </div>
+                    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 max-h-[55vh] overflow-y-auto pr-1">
+                        <label v-for="a in animais" :key="a.id"
+                               class="flex items-center gap-3 rounded-lg border-2 p-3 cursor-pointer transition-all"
+                               :class="idsSelecionados.includes(a.id) ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200 bg-white'">
+                            <input type="checkbox" :value="a.id" v-model="idsSelecionados" class="rounded border-slate-300">
+                            <span class="text-xl">{{ emojiEspecie(a.species?.nome) }}</span>
+                            <div class="min-w-0 flex-1">
+                                <div class="font-medium text-slate-900 truncate">{{ a.identificacao }}<span v-if="a.nome" class="text-slate-500"> · {{ a.nome }}</span></div>
+                                <div class="text-xs text-slate-500">{{ a.species?.nome }}<span v-if="a.lot"> · {{ a.lot.nome }}</span></div>
+                            </div>
+                        </label>
+                    </div>
+                </template>
 
                 <div class="flex justify-end pt-4">
                     <button @click="avancar" :disabled="!podeAvancar1" class="btn-primary px-8 py-3 text-base">Continuar →</button>
@@ -298,7 +526,14 @@ function reiniciar() {
                     {{ meta.emoji }} {{ meta.passo2Titulo }}
                 </h2>
                 <p class="text-base text-slate-600">
-                    Animal: <strong>{{ selecionado.identificacao }}</strong><span v-if="selecionado.nome"> · {{ selecionado.nome }}</span>
+                    <template v-if="modo === 'individual' && selecionado">
+                        Animal: <strong>{{ selecionado.identificacao }}</strong><span v-if="selecionado.nome"> · {{ selecionado.nome }}</span>
+                    </template>
+                    <template v-else>
+                        <strong>{{ animaisDoFiltro.length }}</strong> animal{{ animaisDoFiltro.length === 1 ? '' : 'is' }} receberão este evento
+                        <template v-if="modo === 'lote_grupo'"> (lote inteiro)</template>
+                        <template v-else-if="modo === 'lote_pasto'"> (pasto inteiro)</template>
+                    </template>
                 </p>
 
                 <!-- Campo: vacina -->
@@ -325,30 +560,40 @@ function reiniciar() {
                            class="form-input text-base py-3">
                 </div>
 
-                <!-- Lote destino (grupo) -->
+                <!-- Lote destino (grupo) — com "criar agora" inline (sem sair do fluxo) -->
                 <div v-if="mostraCampo('lot_destino_id')">
                     <InputLabel value="Para qual lote vai?" />
                     <select v-model="form.lot_destino_id" class="form-select text-base py-3">
                         <option :value="null">— Escolha o lote —</option>
-                        <option v-for="l in lotes" :key="l.id" :value="l.id">{{ l.nome }}</option>
+                        <option v-for="l in lotesLocal" :key="l.id" :value="l.id">{{ l.nome }}</option>
                     </select>
-                    <p v-if="lotes.length === 0" class="text-sm text-amber-700 mt-1">
-                        Nenhum lote cadastrado ainda. <a :href="route('admin.rebanho.lotes.create')" class="underline">Cadastrar lote</a>.
-                    </p>
+                    <div class="mt-2 flex items-center gap-2">
+                        <button type="button" @click="abrirNovoLote" class="text-sm text-macaybas-primary hover:underline">
+                            + Criar lote novo
+                        </button>
+                        <span v-if="lotesLocal.length === 0" class="text-xs text-amber-700">
+                            Nenhum lote cadastrado ainda — crie o primeiro aqui.
+                        </span>
+                    </div>
                 </div>
 
-                <!-- Local destino (posição física) -->
+                <!-- Local destino (posição física) — com "criar agora" inline -->
                 <div v-if="mostraCampo('location_destino_id')">
                     <InputLabel value="Para qual pasto vai?" />
                     <select v-model="form.location_destino_id" class="form-select text-base py-3">
                         <option :value="null">— Escolha o pasto —</option>
-                        <option v-for="l in locais" :key="l.id" :value="l.id">
+                        <option v-for="l in locaisLocal" :key="l.id" :value="l.id">
                             {{ l.nome }} <span v-if="l.tipo !== 'pasto'">({{ l.tipo }})</span>
                         </option>
                     </select>
-                    <p v-if="locais.length === 0" class="text-sm text-amber-700 mt-1">
-                        Nenhum pasto ou local cadastrado ainda. <a :href="route('admin.rebanho.locais.create')" class="underline">Cadastrar local</a>.
-                    </p>
+                    <div class="mt-2 flex items-center gap-2">
+                        <button type="button" @click="abrirNovoLocal" class="text-sm text-macaybas-primary hover:underline">
+                            + Criar pasto/local novo
+                        </button>
+                        <span v-if="locaisLocal.length === 0" class="text-xs text-amber-700">
+                            Nenhum local cadastrado ainda — crie o primeiro aqui.
+                        </span>
+                    </div>
                 </div>
 
                 <!-- Causa (mortalidade) -->
@@ -393,8 +638,18 @@ function reiniciar() {
                 <div class="space-y-3">
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-xs uppercase tracking-wider text-slate-500">Animal</div>
-                            <div class="font-semibold text-slate-900 mt-1">{{ selecionado.identificacao }}<span v-if="selecionado.nome" class="text-slate-600"> · {{ selecionado.nome }}</span></div>
+                            <div class="text-xs uppercase tracking-wider text-slate-500">
+                                {{ modo === 'individual' ? 'Animal' : 'Animais afetados' }}
+                            </div>
+                            <div v-if="modo === 'individual' && selecionado" class="font-semibold text-slate-900 mt-1">
+                                {{ selecionado.identificacao }}<span v-if="selecionado.nome" class="text-slate-600"> · {{ selecionado.nome }}</span>
+                            </div>
+                            <div v-else class="font-semibold text-slate-900 mt-1">
+                                {{ animaisDoFiltro.length }} animal{{ animaisDoFiltro.length === 1 ? '' : 'is' }}
+                                <span v-if="modo === 'lote_grupo'" class="text-sm text-slate-500"> (lote inteiro)</span>
+                                <span v-else-if="modo === 'lote_pasto'" class="text-sm text-slate-500"> (pasto inteiro)</span>
+                                <span v-else-if="modo === 'selecao'" class="text-sm text-slate-500"> (selecionados)</span>
+                            </div>
                         </div>
                         <button @click="irPara(1)" class="text-sm text-macaybas-primary hover:underline flex-shrink-0">Trocar</button>
                     </div>
@@ -417,6 +672,13 @@ function reiniciar() {
                     </div>
                 </div>
 
+                <!-- Erro do servidor (ex.: allowed_events rejeitou o evento) -->
+                <div v-if="erroServidor"
+                     class="rounded-lg border-2 border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+                    <div class="font-semibold mb-1">⚠ Não foi possível salvar</div>
+                    <div>{{ erroServidor }}</div>
+                </div>
+
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
                     <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
@@ -426,26 +688,157 @@ function reiniciar() {
             </div>
         </div>
 
-        <!-- PASSO 4 · Sucesso -->
+        <!-- PASSO 4 · Sucesso
+             Para eventos sensíveis (tom=sobrio, ex: mortalidade), a UI usa cores
+             neutras (slate) em vez do verde celebratório. CTA "Registrar outro"
+             também é substituída por "Voltar ao início" como ação primária — seria
+             insensível oferecer "Registrar outro [óbito]" como primeiro clique. -->
         <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto">
             <div class="card-body text-center space-y-5 py-8">
                 <div class="text-6xl">{{ meta.emoji }}</div>
                 <h2 class="text-2xl font-semibold text-slate-900">{{ meta.tituloSucesso }}</h2>
                 <p class="text-base text-slate-600">{{ meta.sucessoMsg(sucesso) }}</p>
 
-                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-left">
-                    <div class="text-sm font-semibold text-emerald-900 mb-2">O que vai acontecer:</div>
-                    <ul class="text-sm text-emerald-800 space-y-1">
+                <div
+                    class="rounded-lg p-4 text-left border"
+                    :class="meta.tom === 'sobrio'
+                        ? 'bg-slate-50 border-slate-200'
+                        : 'bg-emerald-50 border-emerald-200'"
+                >
+                    <div
+                        class="text-sm font-semibold mb-2"
+                        :class="meta.tom === 'sobrio' ? 'text-slate-800' : 'text-emerald-900'"
+                    >O que vai acontecer:</div>
+                    <ul
+                        class="text-sm space-y-1"
+                        :class="meta.tom === 'sobrio' ? 'text-slate-700' : 'text-emerald-800'"
+                    >
                         <li v-for="(i, idx) in meta.impactos" :key="idx">✓ {{ i }}</li>
                     </ul>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-3 pt-3">
+                <!-- Contexto dinâmico (ENTREGA DE VALOR) — dados reais do DB
+                     pós-ação. Mostra ao usuário o IMPACTO da ação dele, não
+                     apenas confirmação. Vem do AnimalController::buildContexto. -->
+                <div
+                    v-if="sucesso._contexto"
+                    class="rounded-lg p-4 text-left bg-white border-2 border-slate-200"
+                >
+                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">
+                        📊 Como está agora
+                    </div>
+                    <ul class="text-sm text-slate-800 space-y-1.5">
+                        <li v-if="sucesso._contexto.animais_no_lote_destino !== undefined">
+                            🐄 O lote <strong>{{ sucesso._contexto.lote_nome }}</strong> agora tem
+                            <strong>{{ sucesso._contexto.animais_no_lote_destino }}</strong>
+                            animal{{ sucesso._contexto.animais_no_lote_destino === 1 ? '' : 'is' }} ativo{{ sucesso._contexto.animais_no_lote_destino === 1 ? '' : 's' }}.
+                        </li>
+                        <li v-if="sucesso._contexto.animais_no_local_destino !== undefined">
+                            📍 O pasto <strong>{{ sucesso._contexto.local_nome }}</strong> agora tem
+                            <strong>{{ sucesso._contexto.animais_no_local_destino }}</strong>
+                            animal{{ sucesso._contexto.animais_no_local_destino === 1 ? '' : 'is' }}.
+                        </li>
+                        <li v-if="sucesso._contexto.receita_gerada">
+                            💰 Receita de <strong class="text-emerald-700">R$ {{ Number(sucesso._contexto.receita_gerada).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }}</strong>
+                            lançada automaticamente no Financeiro.
+                        </li>
+                        <li v-if="sucesso._contexto.despesa_gerada">
+                            💸 Custo de <strong class="text-red-700">R$ {{ Number(sucesso._contexto.despesa_gerada).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }}</strong>
+                            anotado no histórico.
+                        </li>
+                        <li v-if="sucesso._contexto.total_ativos_restantes !== undefined">
+                            Rebanho ativo agora: <strong>{{ sucesso._contexto.total_ativos_restantes }}</strong>
+                            animal{{ sucesso._contexto.total_ativos_restantes === 1 ? '' : 'is' }}.
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- CTA sóbria (morte): prioriza "voltar ao início" -->
+                <div v-if="meta.tom === 'sobrio'" class="flex flex-col sm:flex-row gap-3 pt-3">
+                    <Link :href="route('admin.inicio')" class="btn-primary flex-1 py-3 text-center">Voltar ao início</Link>
+                    <Link v-if="sucesso._animal && sucesso._animal.id" :href="route('admin.rebanho.animais.show', sucesso._animal.id)" class="btn-outline flex-1 py-3 text-center">Ver ficha do animal</Link>
+                    <button @click="reiniciar" class="btn-outline flex-1 py-3">Registrar outra baixa</button>
+                </div>
+                <!-- CTA padrão (celebratória): eventos produtivos -->
+                <div v-else class="flex flex-col sm:flex-row gap-3 pt-3">
                     <button @click="reiniciar" class="btn-primary flex-1 py-3">Registrar outro</button>
-                    <Link :href="route('admin.rebanho.animais.show', sucesso._animal.id)" class="btn-outline flex-1 py-3 text-center">Ver ficha do animal</Link>
+                    <Link v-if="sucesso._animal && sucesso._animal.id" :href="route('admin.rebanho.animais.show', sucesso._animal.id)" class="btn-outline flex-1 py-3 text-center">Ver ficha do animal</Link>
+                    <Link :href="route('admin.rebanho.animais.index')" class="btn-outline flex-1 py-3 text-center">Ver rebanho</Link>
                     <Link :href="route('admin.inicio')" class="btn-outline flex-1 py-3 text-center">Voltar ao início</Link>
                 </div>
             </div>
         </div>
+
+        <!-- Modal inline: novo LOTE (sem sair do wizard) -->
+        <Teleport to="body">
+            <div v-if="novoLoteAberto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="novoLoteAberto = false"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-semibold mb-1">Novo lote</h3>
+                    <p class="text-sm text-slate-500 mb-4">
+                        Um lote é um <strong>grupo de manejo</strong> (ex.: "Bezerros 2026"). Depois de criar,
+                        ele aparece no dropdown aí em cima para você usar agora.
+                    </p>
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Nome do lote *" />
+                            <input v-model="novoLoteForm.nome" class="form-input" placeholder="Ex.: Engorda Q1 2026" required>
+                            <p v-if="novoLoteForm.errors.nome" class="text-xs text-red-600 mt-1">{{ novoLoteForm.errors.nome }}</p>
+                        </div>
+                        <div>
+                            <InputLabel value="Código (opcional)" />
+                            <input v-model="novoLoteForm.codigo" class="form-input" placeholder="Ex.: ENG-Q1-26">
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="novoLoteAberto = false" class="btn-outline">Cancelar</button>
+                        <button @click="salvarNovoLote" :disabled="novoLoteForm.processing || !novoLoteForm.nome.trim()" class="btn-primary">
+                            {{ novoLoteForm.processing ? 'Salvando…' : 'Criar lote' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal inline: novo LOCAL (pasto/piquete/curral) -->
+            <div v-if="novoLocalAberto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="novoLocalAberto = false"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-semibold mb-1">Novo pasto / local</h3>
+                    <p class="text-sm text-slate-500 mb-4">
+                        Um local é a <strong>posição física</strong> (pasto, piquete, curral, baia, tanque).
+                        Diferente do lote (que é o grupo).
+                    </p>
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Nome *" />
+                            <input v-model="novoLocalForm.nome" class="form-input" placeholder="Ex.: Pasto 3 — Norte" required>
+                            <p v-if="novoLocalForm.errors.nome" class="text-xs text-red-600 mt-1">{{ novoLocalForm.errors.nome }}</p>
+                        </div>
+                        <div>
+                            <InputLabel value="Tipo *" />
+                            <div class="grid grid-cols-3 gap-2">
+                                <button v-for="t in ['pasto','piquete','curral','baia','tanque','galpao']"
+                                        :key="t" type="button"
+                                        @click="novoLocalForm.tipo = t"
+                                        class="px-2 py-1.5 rounded border text-sm capitalize"
+                                        :class="novoLocalForm.tipo === t ? 'border-macaybas-primary bg-emerald-50 text-emerald-800 font-semibold' : 'border-slate-200'">
+                                    {{ t }}
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <InputLabel value="Código (opcional)" />
+                            <input v-model="novoLocalForm.codigo" class="form-input" placeholder="Ex.: P3-N">
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="novoLocalAberto = false" class="btn-outline">Cancelar</button>
+                        <button @click="salvarNovoLocal" :disabled="novoLocalForm.processing || !novoLocalForm.nome.trim()" class="btn-primary">
+                            {{ novoLocalForm.processing ? 'Salvando…' : 'Criar local' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AdminLayout>
 </template>

@@ -16,7 +16,14 @@ const props = defineProps({
     filters: Object,
     employees: Array,
     linkables: Object,
+    resumo: { type: Object, default: () => ({ pendentes: 0, em_andamento: 0, atrasadas: 0, hoje: 0, concluidas_hoje: 0 }) },
 });
+
+// Atalhos para filtrar pelos cards de resumo
+function filtrarPorStatus(status) {
+    filtros.status = status;
+    filtrar();
+}
 useAutoReload(['tasks'], 15000);
 
 const filtros = reactive({ ...props.filters });
@@ -277,6 +284,58 @@ function vinculoLabel(t) {
                 <button @click="novo" class="btn-primary">+ Nova tarefa</button>
             </template>
         </PageHeader>
+
+        <!-- Resumo do dia — ajuda a decidir o que fazer AGORA.
+             Cards clicáveis filtram a lista. Alerta vermelho quando há
+             atrasadas (ação prioritária). -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            <button
+                @click="filtrarPorStatus('atrasada')"
+                class="rounded-lg p-3 text-left border-2 transition-all"
+                :class="Number(resumo.atrasadas) > 0
+                    ? 'bg-red-50 border-red-300 hover:ring-2 hover:ring-red-200'
+                    : 'bg-slate-50 border-slate-200 opacity-60 cursor-default'"
+            >
+                <div class="text-xs uppercase tracking-wider font-semibold"
+                     :class="Number(resumo.atrasadas) > 0 ? 'text-red-700' : 'text-slate-500'">
+                    ⚠ Atrasadas
+                </div>
+                <div class="text-2xl font-bold mt-1"
+                     :class="Number(resumo.atrasadas) > 0 ? 'text-red-700' : 'text-slate-400'">
+                    {{ resumo.atrasadas ?? 0 }}
+                </div>
+            </button>
+            <button
+                @click="filtros.status = 'pendente'; filtros.data_venc = 'hoje'; filtrar()"
+                class="rounded-lg p-3 text-left border-2 bg-amber-50 border-amber-200 hover:ring-2 hover:ring-amber-200 transition-all"
+            >
+                <div class="text-xs uppercase tracking-wider font-semibold text-amber-700">
+                    📅 Para hoje
+                </div>
+                <div class="text-2xl font-bold mt-1 text-amber-700">
+                    {{ resumo.hoje ?? 0 }}
+                </div>
+            </button>
+            <button
+                @click="filtrarPorStatus('pendente')"
+                class="rounded-lg p-3 text-left border-2 bg-white border-slate-200 hover:ring-2 hover:ring-slate-200 transition-all"
+            >
+                <div class="text-xs uppercase tracking-wider font-semibold text-slate-600">
+                    📋 Pendentes
+                </div>
+                <div class="text-2xl font-bold mt-1 text-slate-700">
+                    {{ resumo.pendentes ?? 0 }}
+                </div>
+            </button>
+            <div class="rounded-lg p-3 text-left border-2 bg-emerald-50 border-emerald-200">
+                <div class="text-xs uppercase tracking-wider font-semibold text-emerald-700">
+                    ✓ Feitas hoje
+                </div>
+                <div class="text-2xl font-bold mt-1 text-emerald-700">
+                    {{ resumo.concluidas_hoje ?? 0 }}
+                </div>
+            </div>
+        </div>
 
         <div v-if="editing" class="mb-6 space-y-4">
             <!-- Dica contextual por módulo (F3 — UX guiada) -->

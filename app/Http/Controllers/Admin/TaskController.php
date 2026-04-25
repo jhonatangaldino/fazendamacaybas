@@ -92,6 +92,16 @@ class TaskController extends Controller
             'filters' => $request->only(['status', 'prioridade', 'modulo', 'employee_id']),
             'employees' => Employee::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
 
+            // Resumo de valor — ajuda a decidir o que resolver PRIMEIRO.
+            // 1 query agregada com CASE — barata para Hostinger.
+            'resumo' => Task::selectRaw("
+                SUM(CASE WHEN status = 'pendente' THEN 1 ELSE 0 END) as pendentes,
+                SUM(CASE WHEN status = 'em_andamento' THEN 1 ELSE 0 END) as em_andamento,
+                SUM(CASE WHEN status IN ('pendente','em_andamento') AND data_vencimento < CURDATE() THEN 1 ELSE 0 END) as atrasadas,
+                SUM(CASE WHEN status IN ('pendente','em_andamento') AND data_vencimento = CURDATE() THEN 1 ELSE 0 END) as hoje,
+                SUM(CASE WHEN status = 'concluida' AND concluida_em >= CURDATE() THEN 1 ELSE 0 END) as concluidas_hoje
+            ")->first(),
+
             // F3 · Entidades linkáveis para vínculo polimórfico.
             // Mesmo padrão de Documents: carregar listas moderadas.
             // Transactions limitadas a 200 mais recentes (o típico é

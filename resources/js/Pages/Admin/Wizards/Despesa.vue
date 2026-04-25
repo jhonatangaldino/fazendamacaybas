@@ -11,7 +11,7 @@
  * Submit: reutiliza `admin.financeiro.transacoes.store` com tipo=despesa.
  */
 import { ref, computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
@@ -19,12 +19,17 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import { hojeBR, dataBR, brl } from '@/utils/format.js';
+import { useInlineCreate } from '@/composables/useInlineCreate.js';
 
 const props = defineProps({
     contas: { type: Array, required: true },
     categorias: { type: Array, required: true },
     fornecedores: { type: Array, required: true },
 });
+
+// Listas locais — recebem novos itens criados inline
+const categoriasLocal = ref([...props.categorias]);
+const fornecedoresLocal = ref([...props.fornecedores]);
 
 const PASSOS = [
     { n: 1, titulo: 'O que pagou', icon: '🛒' },
@@ -56,14 +61,34 @@ const podeAvancar2 = computed(() => {
 });
 
 const categoriaNome = computed(() =>
-    props.categorias.find((c) => c.id === form.category_id)?.nome ?? null
+    categoriasLocal.value.find((c) => c.id === form.category_id)?.nome ?? null
 );
 const fornecedorNome = computed(() =>
-    props.fornecedores.find((p) => p.id === form.partner_id)?.nome ?? null
+    fornecedoresLocal.value.find((p) => p.id === form.partner_id)?.nome ?? null
 );
 const contaNome = computed(() =>
     props.contas.find((c) => c.id === form.account_id)?.nome ?? null
 );
+
+// Criação inline de CATEGORIA financeira sem sair do wizard
+const novaCategoria = useInlineCreate({
+    endpoint: route('admin.financeiro.categorias.inline'),
+    initialForm: { nome: '', tipo: 'financeiro' },
+    onCreated: (c) => {
+        categoriasLocal.value = [...categoriasLocal.value, c];
+        form.category_id = c.id;
+    },
+});
+
+// Criação inline de FORNECEDOR (parceiro) sem sair do wizard de despesa
+const novoFornecedor = useInlineCreate({
+    endpoint: route('admin.parceiros.inline'),
+    initialForm: { nome: '', tipo: 'fornecedor', pessoa: 'juridica', documento: '', telefone: '' },
+    onCreated: (p) => {
+        fornecedoresLocal.value = [...fornecedoresLocal.value, p];
+        form.partner_id = p.id;
+    },
+});
 
 function avancar() { if (passo.value < PASSOS.length) passo.value++; }
 function voltar() { if (passo.value > 1) passo.value--; }
@@ -81,11 +106,15 @@ function confirmar() {
 
     form.post(route('admin.fluxos.registrar-despesa.store'), {
         preserveScroll: false,
-        onSuccess: () => {
+        onSuccess: (page) => {
+            const ctx = page?.props?.flash?.financeiro_contexto
+                ?? usePage()?.props?.flash?.financeiro_contexto
+                ?? null;
             sucesso.value = {
                 descricao: form.descricao,
                 valor: form.valor,
                 status: form.status,
+                ctx,
             };
             passo.value = 4;
         },
@@ -149,8 +178,16 @@ function reiniciar() {
                     <InputLabel value="Tipo de gasto (opcional)" />
                     <select v-model="form.category_id" class="form-select text-base py-3">
                         <option :value="null">— Sem tipo —</option>
-                        <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nome }}</option>
+                        <option v-for="c in categoriasLocal" :key="c.id" :value="c.id">{{ c.nome }}</option>
                     </select>
+                    <div class="mt-1 flex items-center gap-2">
+                        <button type="button" @click="novaCategoria.abrir()" class="text-xs text-macaybas-primary hover:underline">
+                            + Criar tipo novo
+                        </button>
+                        <span v-if="categoriasLocal.length === 0" class="text-xs text-amber-700">
+                            Nenhum tipo ainda — crie aqui.
+                        </span>
+                    </div>
                     <p class="text-xs text-slate-500 mt-1">Ajuda a ver, no fim do mês, onde está saindo mais dinheiro.</p>
                 </div>
 
@@ -158,8 +195,13 @@ function reiniciar() {
                     <InputLabel value="Para quem você pagou? (opcional)" />
                     <select v-model="form.partner_id" class="form-select text-base py-3">
                         <option :value="null">— Não informar —</option>
-                        <option v-for="p in fornecedores" :key="p.id" :value="p.id">{{ p.nome }}</option>
+                        <option v-for="p in fornecedoresLocal" :key="p.id" :value="p.id">{{ p.nome }}</option>
                     </select>
+                    <div class="mt-1">
+                        <button type="button" @click="novoFornecedor.abrir()" class="text-xs text-macaybas-primary hover:underline">
+                            + Cadastrar fornecedor novo
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex justify-end pt-4">
@@ -283,6 +325,30 @@ function reiniciar() {
                     </ul>
                 </div>
 
+                <!-- Impacto financeiro real do mês corrente (dados do DB via flash) -->
+                <div v-if="sucesso.ctx" class="rounded-lg p-4 bg-white border-2 border-slate-200 text-left">
+                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">
+                        📊 Seu mês agora
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 text-sm text-center">
+                        <div>
+                            <div class="text-xs text-slate-500">Receitas</div>
+                            <div class="font-mono font-semibold text-emerald-700 mt-1">{{ brl(sucesso.ctx.receitas_mes) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500">Despesas</div>
+                            <div class="font-mono font-semibold text-red-700 mt-1">{{ brl(sucesso.ctx.despesas_mes) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500">Saldo</div>
+                            <div class="font-mono font-bold text-lg mt-1"
+                                 :class="sucesso.ctx.saldo_mes >= 0 ? 'text-emerald-700' : 'text-red-700'">
+                                {{ brl(sucesso.ctx.saldo_mes) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex flex-col sm:flex-row gap-3 pt-3">
                     <button @click="reiniciar" class="btn-primary flex-1 py-3">Registrar outra despesa</button>
                     <Link :href="route('admin.financeiro.transacoes.index')" class="btn-outline flex-1 py-3 text-center">Ver todos os lançamentos</Link>
@@ -291,5 +357,75 @@ function reiniciar() {
             </div>
         </div>
         </template>
+
+        <!-- Modais inline: criar CATEGORIA e FORNECEDOR sem sair do wizard -->
+        <Teleport to="body">
+            <div v-if="novaCategoria.modalAberto.value" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="novaCategoria.fechar"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-semibold mb-1">Novo tipo de gasto</h3>
+                    <p class="text-sm text-slate-500 mb-4">Ex.: "Ração", "Combustível", "Veterinário".</p>
+                    <div>
+                        <InputLabel value="Nome *" />
+                        <input v-model="novaCategoria.form.value.nome" class="form-input" placeholder="Ex.: Combustível" required>
+                    </div>
+                    <p v-if="novaCategoria.erro.value" class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5">
+                        {{ novaCategoria.erro.value }}
+                    </p>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="novaCategoria.fechar" class="btn-outline">Cancelar</button>
+                        <button @click="novaCategoria.salvar"
+                                :disabled="novaCategoria.salvando.value || !novaCategoria.form.value.nome?.trim()"
+                                class="btn-primary">
+                            {{ novaCategoria.salvando.value ? 'Salvando…' : 'Criar e continuar' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="novoFornecedor.modalAberto.value" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="novoFornecedor.fechar"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-semibold mb-1">Novo fornecedor</h3>
+                    <p class="text-sm text-slate-500 mb-4">Quem você pagou ou vai pagar.</p>
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Nome *" />
+                            <input v-model="novoFornecedor.form.value.nome" class="form-input" placeholder="Ex.: Posto Central" required>
+                        </div>
+                        <div>
+                            <InputLabel value="Pessoa" />
+                            <div class="flex gap-2">
+                                <button type="button" @click="novoFornecedor.form.value.pessoa = 'fisica'"
+                                    class="flex-1 py-2 rounded border-2 text-sm font-medium"
+                                    :class="novoFornecedor.form.value.pessoa === 'fisica' ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200'">
+                                    👤 Pessoa
+                                </button>
+                                <button type="button" @click="novoFornecedor.form.value.pessoa = 'juridica'"
+                                    class="flex-1 py-2 rounded border-2 text-sm font-medium"
+                                    :class="novoFornecedor.form.value.pessoa === 'juridica' ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
+                                    🏢 Empresa
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <InputLabel value="CPF/CNPJ (opcional)" />
+                            <input v-model="novoFornecedor.form.value.documento" class="form-input" placeholder="000.000.000-00">
+                        </div>
+                    </div>
+                    <p v-if="novoFornecedor.erro.value" class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5">
+                        {{ novoFornecedor.erro.value }}
+                    </p>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="novoFornecedor.fechar" class="btn-outline">Cancelar</button>
+                        <button @click="novoFornecedor.salvar"
+                                :disabled="novoFornecedor.salvando.value || !novoFornecedor.form.value.nome?.trim()"
+                                class="btn-primary">
+                            {{ novoFornecedor.salvando.value ? 'Salvando…' : 'Cadastrar e voltar' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AdminLayout>
 </template>

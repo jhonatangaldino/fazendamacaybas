@@ -64,6 +64,53 @@ class PartnerController extends Controller
         return redirect()->route('admin.parceiros.index')->with('success', 'Parceiro cadastrado.');
     }
 
+    /**
+     * Endpoint inline (AJAX/JSON) — cria um parceiro mínimo (nome + tipo)
+     * sem redirect, para ser usado em modais dentro de outros fluxos
+     * (venda de animal, registro de despesa/receita, etc.).
+     *
+     * Aceita só os campos essenciais; o parceiro pode ser completado depois
+     * em /admin/parceiros/{id}/editar pela ficha completa.
+     */
+    public function storeInline(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'nome' => ['required', 'string', 'max:200'],
+            'tipo' => ['required', 'in:cliente,fornecedor,ambos'],
+            // `pessoa` no DB é varchar(2) — aceita valores curtos ('pf'/'pj')
+            // OU os longos vindos do front ('fisica'/'juridica'). Convertemos.
+            'pessoa' => ['nullable', 'in:fisica,juridica,pf,pj'],
+            'documento' => ['nullable', 'string', 'max:30'],
+            'telefone' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:200'],
+        ]);
+
+        $pessoa = match ($data['pessoa'] ?? 'fisica') {
+            'fisica', 'pf' => 'pf',
+            'juridica', 'pj' => 'pj',
+            default => 'pf',
+        };
+
+        $partner = Partner::create([
+            'nome' => $data['nome'],
+            'tipo' => $data['tipo'],
+            'pessoa' => $pessoa,
+            'documento' => $data['documento'] ?? null,
+            'telefone' => $data['telefone'] ?? null,
+            'email' => $data['email'] ?? null,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'id' => $partner->id,
+            'nome' => $partner->nome,
+            'tipo' => $partner->tipo,
+            'pessoa' => $partner->pessoa,
+            'documento' => $partner->documento,
+            'telefone' => $partner->telefone,
+        ]);
+    }
+
     public function edit(Partner $parceiro)
     {
         return Inertia::render('Admin/Partners/Form', ['partner' => $parceiro]);
@@ -147,11 +194,12 @@ class PartnerController extends Controller
             }
         }
 
-        // Documento obrigatório (em ambos os tipos).
+        // Parceiro INFORMAL: nome só basta. Documento é opcional — só validamos
+        // formato/coerência quando o usuário decidiu preenchê-lo. Caso real:
+        // pequeno produtor que vende leite pro vizinho sem nota, ou comprador
+        // ocasional na feira que não quer dar CPF.
         if ($docNovo === '') {
-            return $pessoa === 'pf'
-                ? 'Pessoa física exige CPF. Preencha o campo Documento com um CPF válido (11 dígitos).'
-                : 'Pessoa jurídica exige CNPJ. Preencha o campo Documento com um CNPJ válido (14 dígitos, permite alfanumérico).';
+            return null;
         }
 
         // Normaliza — remove máscara (pontuação) para checar dígitos/alfa.

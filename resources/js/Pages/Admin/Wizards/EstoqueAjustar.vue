@@ -4,17 +4,31 @@
  * 3 passos + sucesso.
  */
 import { ref, computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import { hojeBR } from '@/utils/format.js';
+import { useInlineCreate } from '@/composables/useInlineCreate.js';
 
 const props = defineProps({
     itens: { type: Array, required: true },
     armazens: { type: Array, required: true },
+});
+
+// Itens local (recebe novos criados inline)
+const itensLocal = ref([...props.itens]);
+
+// Criação inline de ITEM de estoque sem sair do wizard
+const novoItem = useInlineCreate({
+    endpoint: route('admin.estoque.itens.inline'),
+    initialForm: { nome: '', tipo: 'insumo', unidade: 'kg', estoque_minimo: 0 },
+    onCreated: (i) => {
+        itensLocal.value = [...itensLocal.value, i];
+        form.item_id = i.id;
+    },
 });
 
 const PASSOS = [
@@ -24,10 +38,13 @@ const PASSOS = [
     { n: 4, titulo: 'Pronto!',     icon: '✅' },
 ];
 
+// Motivos redigidos em tom operacional — evitam acusações diretas
+// (o antigo "Roubo ou sumiço" força o usuário a etiquetar evento como crime).
+// "Desaparecimento" cobre roubo, extravio, erro de registro anterior, etc.
 const MOTIVOS = [
     { id: 'contagem', nome: 'Contagem física não bate' },
-    { id: 'perda',    nome: 'Perda (vencimento, avaria)' },
-    { id: 'roubo',    nome: 'Roubo ou sumiço' },
+    { id: 'perda',    nome: 'Perda (vencimento, avaria, quebra)' },
+    { id: 'roubo',    nome: 'Desaparecimento / sumiço inexplicado' },
     { id: 'outro',    nome: 'Outro motivo' },
 ];
 
@@ -43,7 +60,7 @@ const form = useForm({
     observacoes: '',
 });
 
-const itemAtual = computed(() => props.itens.find(i => i.id === form.item_id));
+const itemAtual = computed(() => itensLocal.value.find(i => i.id === form.item_id));
 const armazemAtual = computed(() => props.armazens.find(a => a.id === form.warehouse_id));
 
 const podeAvancar1 = computed(() => !!form.item_id && !!form.warehouse_id);
@@ -74,6 +91,14 @@ function confirmar() {
 
     form.post(route('admin.fluxos.ajustar-estoque.store'), {
         preserveScroll: false,
+        onSuccess: (page) => {
+            // Contexto de saldo (anterior + atual) enriquece o passo 4 —
+            // usuário vê que o ajuste teve efeito, não só "registrado".
+            const ctx = page?.props?.flash?.ajuste_contexto
+                ?? usePage()?.props?.flash?.ajuste_contexto
+                ?? null;
+            if (ctx) sucesso.value = { ...sucesso.value, ctx };
+        },
         onError: () => {
             sucesso.value = null;
             passo.value = 3;
@@ -104,7 +129,7 @@ function reiniciar() {
 
         <WizardStepper :passos="PASSOS" :passo="passo" />
 
-        <template v-if="itens.length > 0">
+        <template v-if="itensLocal.length > 0 || passo === 1">
         <div v-if="passo === 1" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
                 <h2 class="text-2xl font-semibold text-slate-900">Qual produto precisa ajustar?</h2>
@@ -112,8 +137,16 @@ function reiniciar() {
                     <InputLabel value="Produto" />
                     <select v-model="form.item_id" class="form-select text-base py-3">
                         <option :value="null">Escolha…</option>
-                        <option v-for="i in itens" :key="i.id" :value="i.id">{{ i.nome }} ({{ i.unidade }})</option>
+                        <option v-for="i in itensLocal" :key="i.id" :value="i.id">{{ i.nome }} ({{ i.unidade }})</option>
                     </select>
+                    <div class="mt-1 flex items-center gap-2">
+                        <button type="button" @click="novoItem.abrir()" class="text-sm text-macaybas-primary hover:underline">
+                            + Cadastrar produto novo
+                        </button>
+                        <span v-if="itensLocal.length === 0" class="text-xs text-amber-700">
+                            Nenhum produto ainda — cadastre aqui.
+                        </span>
+                    </div>
                 </div>
                 <div>
                     <InputLabel value="Em qual armazém?" />
@@ -204,6 +237,35 @@ function reiniciar() {
                 <p class="text-base text-slate-600">
                     <strong>{{ sucesso.item }}</strong>: {{ sucesso.quantidade > 0 ? '+' : '' }}{{ sucesso.quantidade }} {{ sucesso.unidade }}
                 </p>
+
+                <!-- Saldo anterior → atual (entrega de valor: usuário vê o efeito real) -->
+                <div v-if="sucesso.ctx" class="rounded-lg p-4 bg-white border-2 border-slate-200 text-left">
+                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">
+                        📊 Saldo no armazém
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 items-center text-sm">
+                        <div class="text-center">
+                            <div class="text-xs text-slate-500">Antes</div>
+                            <div class="font-mono font-semibold text-slate-700 mt-1">
+                                {{ Number(sucesso.ctx.saldo_anterior).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) }} {{ sucesso.unidade }}
+                            </div>
+                        </div>
+                        <div class="text-center text-2xl" aria-hidden="true">
+                            {{ sucesso.ctx.ajuste > 0 ? '↗' : '↘' }}
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-slate-500">Agora</div>
+                            <div class="font-mono font-bold text-lg mt-1"
+                                 :class="sucesso.ctx.saldo_atual >= 0 ? 'text-emerald-700' : 'text-red-700'">
+                                {{ Number(sucesso.ctx.saldo_atual).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) }} {{ sucesso.unidade }}
+                            </div>
+                        </div>
+                    </div>
+                    <p v-if="sucesso.ctx.saldo_atual < 0" class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">
+                        ⚠ Saldo negativo — revise as entradas ou ajuste novamente se for erro.
+                    </p>
+                </div>
+
                 <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-left">
                     <ul class="text-sm text-emerald-800 space-y-1">
                         <li>✓ Saldo corrigido para bater com a realidade</li>
@@ -218,5 +280,59 @@ function reiniciar() {
             </div>
         </div>
         </template>
+
+        <!-- Modal inline: cadastrar produto de estoque sem sair do wizard -->
+        <Teleport to="body">
+            <div v-if="novoItem.modalAberto.value" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="novoItem.fechar"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-semibold mb-1">Novo produto</h3>
+                    <p class="text-sm text-slate-500 mb-4">
+                        Informe nome, tipo e unidade. Depois você pode completar mais detalhes em "Estoque → Itens".
+                    </p>
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Nome *" />
+                            <input v-model="novoItem.form.value.nome" class="form-input" placeholder="Ex.: Ração bovina" required>
+                        </div>
+                        <div>
+                            <InputLabel value="Tipo *" />
+                            <select v-model="novoItem.form.value.tipo" class="form-select">
+                                <option value="insumo">Insumo</option>
+                                <option value="medicamento">Medicamento</option>
+                                <option value="racao">Ração</option>
+                                <option value="ferramenta">Ferramenta</option>
+                                <option value="peca">Peça</option>
+                                <option value="combustivel">Combustível</option>
+                                <option value="material">Material</option>
+                            </select>
+                        </div>
+                        <div>
+                            <InputLabel value="Unidade *" />
+                            <div class="grid grid-cols-4 gap-2">
+                                <button v-for="u in ['kg','L','un','saco','cx','g','mL','m']"
+                                        :key="u" type="button"
+                                        @click="novoItem.form.value.unidade = u"
+                                        class="py-2 rounded border-2 text-sm font-medium"
+                                        :class="novoItem.form.value.unidade === u ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200'">
+                                    {{ u }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <p v-if="novoItem.erro.value" class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5">
+                        {{ novoItem.erro.value }}
+                    </p>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="novoItem.fechar" class="btn-outline">Cancelar</button>
+                        <button @click="novoItem.salvar"
+                                :disabled="novoItem.salvando.value || !novoItem.form.value.nome?.trim()"
+                                class="btn-primary">
+                            {{ novoItem.salvando.value ? 'Salvando…' : 'Cadastrar e voltar' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AdminLayout>
 </template>

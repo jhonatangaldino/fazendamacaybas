@@ -62,6 +62,26 @@ class ReceitaWizardController extends Controller
 
         FinancialTransaction::create($data);
 
+        // Contexto financeiro pós-lançamento — espelha DespesaWizard para
+        // mostrar IMPACTO no mês (total recebido, saldo atual).
+        $inicioMes = now()->startOfMonth();
+        $fimMes = now()->endOfMonth();
+
+        $totalDespesasMes = FinancialTransaction::where('tipo', 'despesa')
+            ->whereBetween('data_vencimento', [$inicioMes, $fimMes])
+            ->sum('valor');
+        $totalReceitasMes = FinancialTransaction::where('tipo', 'receita')
+            ->whereBetween('data_vencimento', [$inicioMes, $fimMes])
+            ->sum('valor');
+
+        session()->flash('financeiro_contexto', [
+            'tipo' => 'receita',
+            'valor' => (float) $data['valor'],
+            'despesas_mes' => (float) $totalDespesasMes,
+            'receitas_mes' => (float) $totalReceitasMes,
+            'saldo_mes' => (float) $totalReceitasMes - (float) $totalDespesasMes,
+        ]);
+
         return back()->with('success', 'Receita registrada.');
     }
 }
