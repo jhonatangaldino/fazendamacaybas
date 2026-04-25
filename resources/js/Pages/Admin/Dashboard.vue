@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -11,7 +11,7 @@ const drawer = ref(null);
 function abrir(nome) { drawer.value = nome; }
 function fechar() { drawer.value = null; }
 
-defineProps({
+const props = defineProps({
     widgets: Object,
     contas_a_pagar: Array,
     contas_a_receber: Array,
@@ -19,6 +19,18 @@ defineProps({
     tarefas_pendentes: Array,
     drillReceitasMes: Array,
     drillDespesasMes: Array,
+});
+
+// BLOCO 4.4 onboarding · Tenant ainda sem dados? Mostra empty state guiando
+// para o primeiro cadastro. Resolve fricção do piloto Joaquim:
+// "Dashboard com zero em tudo me deu sensação ruim"
+const ehOnboarding = computed(() => {
+    const w = props.widgets;
+    return (w?.financeiro?.receitas_mes ?? 0) === 0
+        && (w?.financeiro?.despesas_mes ?? 0) === 0
+        && (w?.rebanho?.total ?? 0) === 0
+        && (w?.financeiro?.contas_atrasadas ?? 0) === 0
+        && (w?.tarefas?.pendentes ?? 0) === 0;
 });
 
 // Intervalo do mês corrente (usado nos filtros dos drill-downs)
@@ -49,6 +61,50 @@ const prioridadeBadge = (p) => ({
         <template #page-title>Dashboard</template>
 
         <PageHeader title="Visão geral" subtitle="Resumo da operação da fazenda" />
+
+        <!-- BLOCO 4.4 · Onboarding empty state — substitui dashboard zerado por CTAs claros
+             Resolve fricção do piloto: 'parece que tá quebrado' quando todos KPIs = 0 -->
+        <div v-if="ehOnboarding" class="mb-8 rounded-2xl bg-gradient-to-br from-macaybas-primary-50 to-emerald-50 ring-1 ring-macaybas-primary-200 p-6 sm:p-8">
+            <div class="max-w-2xl">
+                <div class="text-3xl mb-3">🌱</div>
+                <h2 class="text-2xl font-serif font-bold text-slate-900 mb-2">Vamos começar a usar a fazenda no sistema!</h2>
+                <p class="text-slate-700 mb-5">
+                    Você ainda não cadastrou movimentos. Comece pelo que é mais comum no dia a dia —
+                    os números deste painel vão aparecer assim que você registrar.
+                </p>
+
+                <div class="grid sm:grid-cols-3 gap-3">
+                    <Link :href="route('admin.fluxos.cadastrar-animal')"
+                          class="flex items-start gap-3 p-3.5 rounded-xl bg-white ring-1 ring-slate-200 hover:ring-macaybas-primary-400 hover:shadow-sm transition">
+                        <div class="text-2xl">🐮</div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-slate-900 text-sm">Cadastrar 1º animal</div>
+                            <div class="text-xs text-slate-500 mt-0.5">Espécie, brinco, lote — passo a passo</div>
+                        </div>
+                    </Link>
+                    <Link :href="route('admin.fluxos.registrar-despesa')"
+                          class="flex items-start gap-3 p-3.5 rounded-xl bg-white ring-1 ring-slate-200 hover:ring-macaybas-primary-400 hover:shadow-sm transition">
+                        <div class="text-2xl">💸</div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-slate-900 text-sm">Registrar 1ª despesa</div>
+                            <div class="text-xs text-slate-500 mt-0.5">Compra de ração, sal, vacina…</div>
+                        </div>
+                    </Link>
+                    <Link :href="route('admin.fluxos.criar-tarefa')"
+                          class="flex items-start gap-3 p-3.5 rounded-xl bg-white ring-1 ring-slate-200 hover:ring-macaybas-primary-400 hover:shadow-sm transition">
+                        <div class="text-2xl">📋</div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-slate-900 text-sm">Criar 1ª tarefa</div>
+                            <div class="text-xs text-slate-500 mt-0.5">"Vacinar lote A na 6ª"</div>
+                        </div>
+                    </Link>
+                </div>
+
+                <p class="mt-4 text-xs text-slate-500">
+                    Prefere ver tudo organizado por categoria? Vai em <Link :href="route('admin.inicio')" class="text-macaybas-primary-700 font-medium hover:underline">Início</Link>.
+                </p>
+            </div>
+        </div>
 
         <!-- KPIs: cada card abre um drawer lateral com o detalhamento (fecha com ESC/clique fora) -->
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">

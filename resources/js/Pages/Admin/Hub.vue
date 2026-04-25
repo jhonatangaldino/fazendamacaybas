@@ -253,7 +253,7 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
                     </p>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 <Link
                     v-for="item in maisUsados"
                     :key="`fav-${item.id}`"
@@ -291,7 +291,7 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 <Link
                     v-for="item in grupo.itens"
                     :key="item.id"

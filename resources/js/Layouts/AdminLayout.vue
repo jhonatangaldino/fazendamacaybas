@@ -205,8 +205,8 @@ function logout() {
     <div :class="['min-h-screen flex bg-slate-50 w-full overflow-x-hidden', layoutPadTop]">
         <!-- SIDEBAR -->
         <aside
-            :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', 'lg:translate-x-0', impersonation ? 'top-10' : 'top-0']"
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform lg:static lg:flex-shrink-0"
+            :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', 'md:translate-x-0', impersonation ? 'top-10' : 'top-0']"
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:static md:flex-shrink-0"
         >
             <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10">
                 <img v-if="siteLogo"
@@ -252,17 +252,17 @@ function logout() {
             </nav>
         </aside>
 
-        <div v-if="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black/40 z-30 lg:hidden"></div>
+        <div v-if="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black/40 z-30 md:hidden"></div>
 
         <!-- MAIN -->
         <div class="flex-1 flex flex-col min-w-0 w-full">
             <!-- TOPBAR -->
             <header :class="['sticky z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 px-4 lg:px-8', stickyTop]">
-                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
+                <button @click="sidebarOpen = !sidebarOpen" class="md:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
                     <svg class="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
 
-                <div class="hidden lg:block">
+                <div class="hidden md:block">
                     <h1 class="text-lg font-semibold text-slate-900"><slot name="page-title">Painel</slot></h1>
                 </div>
 
