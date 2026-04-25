@@ -250,7 +250,10 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
 
     // Faturas do tenant — somente visualização. Filtra por aparece_em <= today
     // para não revelar faturas futuras antes da hora.
+    // BLOCO 4.4 fix: requer permission financeiro.view — veterinário/agronomo
+    // não devem ver faturas (audit B4.4 confirmou leak antes do fix)
     Route::get('faturas', [\App\Http\Controllers\Admin\FaturasController::class, 'index'])
+        ->middleware('permission:operational.financeiro.view')
         ->name('faturas.index');
 
     // Tela "Plano não inclui esta funcionalidade" — destino do EnforceFeature.
