@@ -69,7 +69,8 @@ class StockMovementController extends Controller
             // Atualiza custo médio ponderado se for entrada com valor
             if ($data['tipo'] === 'entrada' && ! empty($data['valor_unitario'])) {
                 $item = StockItem::find($data['item_id']);
-                $saldoAnterior = DB::table('stock_movements')
+                // BUG FIX B4.4: usar StockMovement model com scopes (não DB::table)
+                $saldoAnterior = StockMovement::query()
                     ->where('item_id', $item->id)
                     ->where('id', '<>', $m->id)
                     ->selectRaw("SUM(CASE WHEN tipo IN ('entrada','ajuste') THEN quantidade WHEN tipo='saida' THEN -quantidade END) as s")

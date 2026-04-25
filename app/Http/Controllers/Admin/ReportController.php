@@ -3,6 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Agricultural\Harvest;
+use App\Models\Financial\FinancialTransaction;
+use App\Models\Livestock\Animal;
+use App\Models\Stock\StockItem;
+use App\Models\Task\Task;
+use App\Models\Vehicle\MaintenanceOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -10,25 +16,36 @@ use Inertia\Inertia;
 
 class ReportController extends Controller
 {
+    /**
+     * Relatórios consolidados.
+     *
+     * BUG FIX B4.4: TODAS as queries antes usavam DB::table('...') que BYPASSA
+     * os global scopes BelongsToTenant + BelongsToFarm. Resultado: relatórios
+     * mostravam dados de OUTRAS fazendas/tenants, divergindo das telas
+     * detalhadas (que usam Models e respeitam scopes).
+     *
+     * Agora todas as queries usam Eloquent Models — scopes globais filtram
+     * automaticamente por tenant_id (BelongsToTenant) e farm_id (BelongsToFarm).
+     */
     public function index(Request $request)
     {
         $from = $request->from ? Carbon::parse($request->from) : now()->startOfMonth();
         $to = $request->to ? Carbon::parse($request->to) : now()->endOfMonth();
 
-        // Financeiro
-        $receitas = DB::table('financial_transactions')
+        // ─── Financeiro ───
+        $receitas = FinancialTransaction::query()
             ->where('tipo', 'receita')
             ->where('status', 'pago')
             ->whereBetween('data_pagamento', [$from, $to])
             ->sum('valor');
 
-        $despesas = DB::table('financial_transactions')
+        $despesas = FinancialTransaction::query()
             ->where('tipo', 'despesa')
             ->where('status', 'pago')
             ->whereBetween('data_pagamento', [$from, $to])
             ->sum('valor');
 
-        $despesasPorCategoria = DB::table('financial_transactions')
+        $despesasPorCategoria = FinancialTransaction::query()
             ->leftJoin('categories', 'financial_transactions.category_id', '=', 'categories.id')
             ->where('financial_transactions.tipo', 'despesa')
             ->where('financial_transactions.status', 'pago')
@@ -38,26 +55,21 @@ class ReportController extends Controller
             ->orderByDesc('total')
             ->get();
 
-        // Rebanho
-        $rebanhoPorEspecie = DB::table('animals')
+        // ─── Rebanho ───
+        $rebanhoPorEspecie = Animal::ativos()
             ->leftJoin('animal_species', 'animals.species_id', '=', 'animal_species.id')
-            ->where('animals.status', 'ativo')
-            ->whereNull('animals.deleted_at')
             ->select(DB::raw("COALESCE(animal_species.nome, 'Sem espécie') as especie"), DB::raw('COUNT(*) as total'))
             ->groupBy('especie')
             ->get();
 
-        $rebanhoPorSexo = DB::table('animals')
-            ->where('status', 'ativo')
-            ->whereNull('deleted_at')
+        $rebanhoPorSexo = Animal::ativos()
             ->select('sexo', DB::raw('COUNT(*) as total'))
             ->groupBy('sexo')
             ->pluck('total', 'sexo');
 
-        // Estoque — itens abaixo do mínimo
-        $estoqueCritico = DB::table('stock_items')
+        // ─── Estoque crítico ───
+        $estoqueCritico = StockItem::query()
             ->leftJoin('stock_movements', 'stock_items.id', '=', 'stock_movements.item_id')
-            ->whereNull('stock_items.deleted_at')
             ->where('stock_items.is_active', true)
             ->select(
                 'stock_items.nome',
@@ -70,8 +82,8 @@ class ReportController extends Controller
             ->limit(30)
             ->get();
 
-        // Agrícola — produtividade por talhão
-        $produtividade = DB::table('harvests')
+        // ─── Agrícola: produtividade por talhão ───
+        $produtividade = Harvest::query()
             ->join('plantings', 'harvests.planting_id', '=', 'plantings.id')
             ->join('fields', 'plantings.field_id', '=', 'fields.id')
             ->join('crops', 'plantings.crop_id', '=', 'crops.id')
@@ -86,18 +98,17 @@ class ReportController extends Controller
             ->orderByDesc('colhido')
             ->get();
 
-        // Máquinas — custo de manutenção por veículo
-        $manutencoesPorVeiculo = DB::table('maintenance_orders')
+        // ─── Máquinas: custo de manutenção por veículo ───
+        $manutencoesPorVeiculo = MaintenanceOrder::query()
             ->join('vehicles', 'maintenance_orders.vehicle_id', '=', 'vehicles.id')
             ->whereBetween('data_realizada', [$from, $to])
-            ->select('vehicles.nome', DB::raw('SUM(valor_total) as total'), DB::raw('COUNT(*) as qtd'))
+            ->select('vehicles.nome', DB::raw('SUM(maintenance_orders.valor_total) as total'), DB::raw('COUNT(*) as qtd'))
             ->groupBy('vehicles.id', 'vehicles.nome')
             ->orderByDesc('total')
             ->get();
 
-        // Tarefas
-        $tarefasStatus = DB::table('tasks')
-            ->whereNull('deleted_at')
+        // ─── Tarefas ───
+        $tarefasStatus = Task::query()
             ->select('status', DB::raw('COUNT(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');

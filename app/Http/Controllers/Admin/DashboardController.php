@@ -33,7 +33,9 @@ class DashboardController extends Controller
         $tenant = app()->bound('tenant_id') ? app('tenant_id') : 'null';
         $farm   = app()->bound('farm_id') ? app('farm_id') : 'null';
         $user   = $request->user()?->id ?? 'guest';
-        $cacheKey = "dashboard:{$tenant}:{$farm}:{$user}";
+        // Cache key versionado: bump v2 invalida automaticamente caches velhos
+        // que tinham contagens incorretas (DB::table sem scopes — bug B4.4 fix).
+        $cacheKey = "dashboard:v2:{$tenant}:{$farm}:{$user}";
 
         if ($request->query('refresh') === '1') {
             Cache::forget($cacheKey);
@@ -94,20 +96,23 @@ class DashboardController extends Controller
             ->where('data_vencimento', '<', $hoje)
             ->count();
 
-        // Rebanho
+        // Rebanho — TUDO via Eloquent (Animal model com BelongsToTenant + BelongsToFarm).
+        // BUG FIX B4.4: antes usava DB::table('animals') que BYPASSA scopes globais.
+        // Isso causava modal "Rebanho ativo" mostrar animais de outras farms (46+26+5=77)
+        // enquanto card Rebanho (Animal::ativos()) mostrava apenas 1 da farm correta.
         $totalAnimais = Animal::ativos()->count();
-        $animaisPorEspecie = DB::table('animals')
+        $animaisPorEspecie = Animal::ativos()
             ->leftJoin('animal_species', 'animals.species_id', '=', 'animal_species.id')
-            ->where('animals.status', 'ativo')
-            ->whereNull('animals.deleted_at')
             ->select('animal_species.nome as especie', DB::raw('COUNT(*) as total'))
             ->groupBy('animal_species.nome')
             ->get();
 
-        // Estoque: itens com estoque baixo (soma de entradas - saídas < estoque_minimo)
-        $itensBaixoEstoque = DB::table('stock_items')
+        // Estoque — TUDO via Eloquent (StockItem model com BelongsToTenant + BelongsToFarm).
+        // BUG FIX B4.4: idem para stock_items. DB::table() bypassava scopes →
+        // alerta mostrava itens baixos de OUTRAS farms enquanto /admin/estoque/itens
+        // (que usa StockItem model) renderizava "Nenhum registro encontrado".
+        $itensBaixoEstoque = StockItem::query()
             ->leftJoin('stock_movements', 'stock_items.id', '=', 'stock_movements.item_id')
-            ->whereNull('stock_items.deleted_at')
             ->where('stock_items.is_active', true)
             ->select(
                 'stock_items.id',

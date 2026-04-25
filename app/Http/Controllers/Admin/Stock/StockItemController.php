@@ -61,8 +61,9 @@ class StockItemController extends Controller
             ->orderBy('nome');
 
         // saldo atual por item (soma de entradas - saidas)
+        // BUG FIX B4.4: usar StockMovement model com scopes (não DB::table)
         $items = $q->paginate(25)->withQueryString()->through(function (StockItem $i) {
-            $saldo = DB::table('stock_movements')
+            $saldo = \App\Models\Stock\StockMovement::query()
                 ->where('item_id', $i->id)
                 ->selectRaw("SUM(CASE WHEN tipo IN ('entrada','ajuste') THEN quantidade WHEN tipo = 'saida' THEN -quantidade ELSE 0 END) as saldo")
                 ->value('saldo') ?? 0;
@@ -86,9 +87,9 @@ class StockItemController extends Controller
         // Resumo de valor — ajuda o dono a decidir o que comprar HOJE,
         // sem precisar varrer a tabela procurando vermelhos. A subquery
         // é agregada, então impacto no MySQL é baixo.
-        $resumo = DB::table('stock_items')
+        // BUG FIX B4.4: usar StockItem model com scopes (não DB::table)
+        $resumo = StockItem::query()
             ->leftJoin('stock_movements', 'stock_items.id', '=', 'stock_movements.item_id')
-            ->whereNull('stock_items.deleted_at')
             ->where('stock_items.is_active', true)
             ->select(
                 'stock_items.id',
