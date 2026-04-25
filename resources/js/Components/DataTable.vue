@@ -42,9 +42,9 @@ function renderCell(col, row) {
 </script>
 
 <template>
-    <div class="lg:card lg:overflow-hidden">
-        <!-- =============== DESKTOP (≥ 1024px) =============== -->
-        <div class="hidden lg:block overflow-x-auto">
+    <div class="xl:card xl:overflow-hidden">
+        <!-- =============== DESKTOP PLENO (≥ 1280px) — só com sidebar 256px sobra ≥1024 conteúdo =============== -->
+        <div class="hidden xl:block overflow-x-auto">
             <table class="table-base">
                 <thead>
                     <tr>
@@ -72,8 +72,11 @@ function renderCell(col, row) {
             </table>
         </div>
 
-        <!-- =============== MOBILE + TABLET (< 1024px) — cards com respiro =============== -->
-        <div class="lg:hidden p-3 space-y-3 bg-slate-50 w-full max-w-full overflow-hidden rounded-xl">
+        <!-- =============== MOBILE + TABLET + LAPTOP até 1280 — cards com respiro =============== -->
+        <!-- B4.4 fix · iPad portrait (768) e landscape (1024) entravam no modo tabela e
+             cortavam colunas direitas porque sidebar fixa de 256px deixa pouca largura.
+             Subimos breakpoint de lg: para xl: para iPad SEMPRE usar cards. -->
+        <div class="xl:hidden p-3 space-y-3 bg-slate-50 w-full max-w-full overflow-hidden rounded-xl">
             <div v-if="!rows.length" class="text-center text-slate-500 py-10">{{ emptyText }}</div>
             <div v-for="(row, i) in rows" :key="row.id ?? i"
                  :class="['bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4 w-full max-w-full overflow-hidden',

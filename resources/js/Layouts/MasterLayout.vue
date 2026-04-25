@@ -164,7 +164,7 @@ const menu = [
                         <div class="h-8 w-8 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center text-sm font-semibold">
                             {{ user?.name?.[0]?.toUpperCase() }}
                         </div>
-                        <span class="text-sm font-medium text-slate-700 hidden sm:block truncate max-w-[140px]">{{ user?.name }}</span>
+                        <span class="text-sm font-medium text-slate-700 hidden xl:block truncate max-w-[140px] whitespace-nowrap">{{ user?.name }}</span>
                     </div>
                     <button
                         @click="logout"

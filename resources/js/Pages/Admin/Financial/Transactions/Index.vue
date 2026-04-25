@@ -19,7 +19,15 @@ const props = defineProps({
     totais: Object,
 });
 
-const filtros = reactive({ ...props.filters });
+// B4.4 fix · defaults '' garantem que option value="" seja auto-selecionado
+const filtros = reactive({
+    tipo: '',
+    status: '',
+    account_id: '',
+    from: '',
+    to: '',
+    ...props.filters,
+});
 const confirmDelete = ref(null);
 
 function filtrar() {

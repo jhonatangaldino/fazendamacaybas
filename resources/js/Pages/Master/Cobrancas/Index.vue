@@ -174,8 +174,8 @@ async function marcarPendente(invoice) {
                  MOBILE:  cards verticais (ref grande, cliente, valor+status,
                           venc, ações com label) — nada some em mobile -->
 
-            <!-- DESKTOP TABLE (lg+) -->
-            <div class="hidden lg:block rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
+            <!-- DESKTOP TABLE (xl+ · iPad usa cards) -->
+            <div class="hidden xl:block rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
@@ -234,8 +234,8 @@ async function marcarPendente(invoice) {
                 </table>
             </div>
 
-            <!-- MOBILE CARDS (< lg) — todas as ações visíveis, sem ⋯ -->
-            <div class="lg:hidden space-y-2.5">
+            <!-- MOBILE/iPad CARDS (< xl) — todas as ações visíveis, sem ⋯ -->
+            <div class="xl:hidden space-y-2.5">
                 <div v-for="i in invoices" :key="i.id"
                      class="rounded-xl bg-white ring-1 ring-slate-200 p-3.5 shadow-sm">
                     <!-- linha 1: ref badge + status -->

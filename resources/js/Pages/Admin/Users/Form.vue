@@ -6,6 +6,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
+import PasswordInput from '@/Components/PasswordInput.vue';
 import InputMasked from '@/Components/InputMasked.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
 
@@ -98,7 +99,7 @@ function submit() {
                 <div class="card-body space-y-4">
                     <div>
                         <InputLabel :value="isEdit ? 'Nova senha (deixe em branco para manter a atual)' : 'Senha'" />
-                        <TextInput type="password" v-model="form.password" :required="!isEdit" autocomplete="new-password" />
+                        <PasswordInput v-model="form.password" :required="!isEdit" autocomplete="new-password" />
                         <InputError :message="form.errors.password" />
                         <p class="form-help">Mínimo 8 caracteres, com letras, números e símbolos.</p>
                     </div>

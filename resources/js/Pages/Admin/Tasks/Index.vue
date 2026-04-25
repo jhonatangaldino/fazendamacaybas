@@ -26,7 +26,15 @@ function filtrarPorStatus(status) {
 }
 useAutoReload(['tasks'], 15000);
 
-const filtros = reactive({ ...props.filters });
+// B4.4 fix · defaults '' garantem que option value="" seja auto-selecionado
+const filtros = reactive({
+    status: '',
+    prioridade: '',
+    modulo: '',
+    employee_id: '',
+    data_venc: '',
+    ...props.filters,
+});
 const editing = ref(null);
 const confirmDelete = ref(null);
 const newChecklistItem = ref('');

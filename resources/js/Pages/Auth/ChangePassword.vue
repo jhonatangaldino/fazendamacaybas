@@ -3,7 +3,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import PasswordInput from '@/Components/PasswordInput.vue';
 import InputError from '@/Components/InputError.vue';
 
 const props = defineProps({ forced: Boolean });
@@ -33,18 +33,18 @@ function submit() {
         <form @submit.prevent="submit" class="space-y-4">
             <div v-if="!forced">
                 <InputLabel for="current_password" value="Senha atual" />
-                <TextInput id="current_password" type="password" v-model="form.current_password" required />
+                <PasswordInput id="current_password" v-model="form.current_password" required autocomplete="current-password" />
                 <InputError :message="form.errors.current_password" />
             </div>
             <div>
                 <InputLabel for="password" value="Nova senha" />
-                <TextInput id="password" type="password" v-model="form.password" required autofocus />
+                <PasswordInput id="password" v-model="form.password" required autofocus autocomplete="new-password" />
                 <InputError :message="form.errors.password" />
                 <p class="form-help">Mínimo 8 caracteres, com letras, números e símbolos.</p>
             </div>
             <div>
                 <InputLabel for="password_confirmation" value="Confirme a nova senha" />
-                <TextInput id="password_confirmation" type="password" v-model="form.password_confirmation" required />
+                <PasswordInput id="password_confirmation" v-model="form.password_confirmation" required autocomplete="new-password" />
             </div>
             <PrimaryButton class="w-full justify-center" :disabled="form.processing">Salvar nova senha</PrimaryButton>
         </form>

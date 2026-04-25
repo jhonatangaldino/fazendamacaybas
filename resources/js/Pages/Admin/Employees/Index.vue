@@ -16,7 +16,13 @@ import { useAutoReload } from '@/composables/useAutoReload.js';
 const props = defineProps({ employees: Object, filters: Object, farms: Array, setores: Array });
 useAutoReload(['employees'], 25000);
 
-const filtros = reactive({ ...props.filters });
+// B4.4 fix · defaults '' garantem que option value="" seja auto-selecionado
+const filtros = reactive({
+    search: '',
+    setor: '',
+    status: '',
+    ...props.filters,
+});
 const editing = ref(null);
 const desligamento = ref(null);
 const desligForm = useForm({ data_demissao: '', motivo_demissao: '' });

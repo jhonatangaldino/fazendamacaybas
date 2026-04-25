@@ -300,9 +300,10 @@ function logout() {
                         </div>
                     </div>
 
-                    <a href="/" target="_blank" class="hidden sm:flex items-center gap-2 text-sm text-slate-600 hover:text-macaybas-primary">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                        Ver site público
+                    <a href="/" target="_blank" title="Ver site público"
+                       class="hidden sm:flex items-center gap-2 whitespace-nowrap text-sm text-slate-600 hover:text-macaybas-primary">
+                        <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        <span class="hidden xl:inline">Ver site público</span>
                     </a>
 
                     <button @click="userMenuOpen = !userMenuOpen" class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100">
@@ -312,7 +313,7 @@ function logout() {
                         <div v-else class="h-8 w-8 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center text-sm font-semibold">
                             {{ user?.name?.[0]?.toUpperCase() }}
                         </div>
-                        <span class="text-sm font-medium text-slate-700 hidden sm:block">{{ user?.name }}</span>
+                        <span class="text-sm font-medium text-slate-700 hidden xl:block max-w-[140px] truncate whitespace-nowrap">{{ user?.name }}</span>
                         <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
 

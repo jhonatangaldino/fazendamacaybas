@@ -21,7 +21,13 @@ const props = defineProps({
 });
 useAutoReload(['documents'], 20000);
 
-const filtros = reactive({ ...props.filters });
+// B4.4 fix · defaults '' garantem que option value="" seja auto-selecionado
+const filtros = reactive({
+    search: '',
+    category_id: '',
+    venc: '',
+    ...props.filters,
+});
 const showUpload = ref(false);
 const confirmDelete = ref(null);
 

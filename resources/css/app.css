@@ -52,8 +52,10 @@
     /* ============ Botões ============ */
     .btn {
         /* Mobile: py-3 (~48px) + text-base = confortável para dedo.
-           md+ (≥768px): volta para densidade desktop (py-2 text-sm). */
-        @apply inline-flex items-center justify-center gap-2 rounded-lg
+           md+ (≥768px): volta para densidade desktop (py-2 text-sm).
+           B4.4 fix · whitespace-nowrap evita rótulos de botão quebrarem em
+           viewports apertados (ex.: "Novo animal" virando "Novo / animal" em iPad). */
+        @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg
                px-5 py-3 text-base font-semibold
                md:px-4 md:py-2 md:text-sm
                transition-all focus:outline-none focus:ring-2 focus:ring-offset-2

@@ -362,8 +362,8 @@ function doDelete() {
             </div>
         </transition>
 
-        <!-- Tabela custom com checkbox (desktop) -->
-        <div class="hidden lg:block card overflow-hidden">
+        <!-- Tabela custom com checkbox (desktop pleno ≥1280; iPad usa cards) -->
+        <div class="hidden xl:block card overflow-hidden">
             <table class="table-base">
                 <thead>
                     <tr>
@@ -442,7 +442,12 @@ function doDelete() {
         </div>
 
         <!-- Cards mobile -->
-        <div class="lg:hidden space-y-3">
+        <div class="xl:hidden space-y-3">
+            <!-- B4.4 fix · empty state nos cards mobile (faltava antes do fix de breakpoint) -->
+            <div v-if="!animals.data.length"
+                 class="bg-white rounded-xl ring-1 ring-slate-200 shadow-sm p-8 text-center text-slate-500">
+                Nenhum animal cadastrado.
+            </div>
             <div v-for="row in animals.data" :key="row.id"
                  :class="[selecionados.has(row.id) ? 'ring-2 ring-macaybas-primary-300 bg-macaybas-primary-50' : 'bg-white ring-1 ring-slate-200']"
                  class="rounded-xl shadow-sm p-4">

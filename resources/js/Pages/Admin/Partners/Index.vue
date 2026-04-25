@@ -9,7 +9,12 @@ import ActionIcon from '@/Components/ActionIcon.vue';
 import { cpfCnpjMask, telefoneMask } from '@/utils/format.js';
 
 const props = defineProps({ partners: Object, filters: Object });
-const filtros = reactive({ ...props.filters });
+// B4.4 fix · defaults '' garantem que option value="" seja auto-selecionado
+const filtros = reactive({
+    search: '',
+    tipo: '',
+    ...props.filters,
+});
 const confirmDelete = ref(null);
 
 function filtrar() {

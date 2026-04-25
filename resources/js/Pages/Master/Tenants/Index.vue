@@ -213,8 +213,8 @@ async function copyDeliveryMessage() {
             <p class="mt-1 text-sm text-slate-500">Comece cadastrando o primeiro cliente da plataforma.</p>
         </div>
 
-        <!-- BLOCO 4.3 — Tabela DESKTOP only (lg+) -->
-        <div v-else class="hidden lg:block rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
+        <!-- BLOCO 4.3/4.4 — Tabela DESKTOP pleno (xl+ · iPad usa cards) -->
+        <div v-else class="hidden xl:block rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
             <div>
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-slate-600">
@@ -354,8 +354,8 @@ async function copyDeliveryMessage() {
             </div>
         </div>
 
-        <!-- BLOCO 4.3 — MOBILE cards (< lg) — todas as ações visíveis, sem scroll horizontal -->
-        <div v-if="tenants.length" class="lg:hidden space-y-2.5">
+        <!-- BLOCO 4.3/4.4 — MOBILE/iPad cards (< xl) — todas as ações visíveis, sem scroll horizontal -->
+        <div v-if="tenants.length" class="xl:hidden space-y-2.5">
             <div v-for="t in tenants" :key="t.id"
                  class="rounded-xl bg-white ring-1 ring-slate-200 p-3.5 shadow-sm">
                 <div class="flex items-start justify-between gap-2 mb-2">

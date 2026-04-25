@@ -5,6 +5,7 @@ import AuthLayout from '@/Layouts/AuthLayout.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
+import PasswordInput from '@/Components/PasswordInput.vue';
 import InputError from '@/Components/InputError.vue';
 
 defineProps({ canResetPassword: Boolean, status: String });
@@ -34,7 +35,7 @@ function submit() {
 
             <div>
                 <InputLabel for="password" value="Senha" />
-                <TextInput id="password" type="password" v-model="form.password" required autocomplete="current-password" />
+                <PasswordInput id="password" v-model="form.password" required autocomplete="current-password" />
                 <InputError :message="form.errors.password" />
             </div>
 

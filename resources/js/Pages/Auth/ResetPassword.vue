@@ -4,6 +4,7 @@ import AuthLayout from '@/Layouts/AuthLayout.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
+import PasswordInput from '@/Components/PasswordInput.vue';
 import InputError from '@/Components/InputError.vue';
 
 const props = defineProps({ email: String, token: String });
@@ -34,12 +35,12 @@ function submit() {
             </div>
             <div>
                 <InputLabel for="password" value="Nova senha" />
-                <TextInput id="password" type="password" v-model="form.password" required autofocus autocomplete="new-password" />
+                <PasswordInput id="password" v-model="form.password" required autofocus autocomplete="new-password" />
                 <InputError :message="form.errors.password" />
             </div>
             <div>
                 <InputLabel for="password_confirmation" value="Confirme a senha" />
-                <TextInput id="password_confirmation" type="password" v-model="form.password_confirmation" required autocomplete="new-password" />
+                <PasswordInput id="password_confirmation" v-model="form.password_confirmation" required autocomplete="new-password" />
             </div>
             <PrimaryButton class="w-full justify-center" :disabled="form.processing">Redefinir senha</PrimaryButton>
         </form>

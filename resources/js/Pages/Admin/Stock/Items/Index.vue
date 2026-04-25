@@ -13,7 +13,13 @@ import { useToast } from '@/composables/useToast.js';
 
 const { toast } = useToast();
 const props = defineProps({ items: Object, filters: Object, categories: Array, resumo: { type: Object, default: () => ({ total_itens: 0, abaixo_minimo: 0, sem_estoque: 0 }) } });
-const filtros = reactive({ ...props.filters });
+// B4.4 fix · defaults '' garantem que option value="" seja auto-selecionado
+const filtros = reactive({
+    search: '',
+    tipo: '',
+    status: 'ativos',
+    ...props.filters,
+});
 const confirmDelete = ref(null);
 
 // Scanner a partir da listagem: se achar, abre o item; se não, oferece cadastro.

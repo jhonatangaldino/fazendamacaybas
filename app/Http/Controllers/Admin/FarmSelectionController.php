@@ -33,7 +33,7 @@ class FarmSelectionController extends Controller
 
         // Master global não usa seleção — manda para dashboard
         if ($user->tenant_id === null) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route('admin.inicio');
         }
 
         // Leitura já isolada por tenant (R2.4). Usa cache de request se disponível.
@@ -48,7 +48,7 @@ class FarmSelectionController extends Controller
         // Se só houver 1, não faz sentido abrir seletor — manda ao dashboard,
         // o EnforceFarm fará auto-seleção no próximo ciclo.
         if ($farms->count() <= 1) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route('admin.inicio');
         }
 
         return Inertia::render('Admin/Farm/Select', [
@@ -82,7 +82,7 @@ class FarmSelectionController extends Controller
             $imp = $request->session()->get('impersonation');
             if (! is_array($imp) || empty($imp['tenant_id'])) {
                 // Master fora de impersonação: não tem farm context — manda dashboard.
-                return redirect()->route('admin.dashboard');
+                return redirect()->route('admin.inicio');
             }
 
             // Validação explícita: farm pertence ao tenant impersonado e está ativa.
@@ -106,9 +106,9 @@ class FarmSelectionController extends Controller
                 app()->forgetInstance('tenant_farms');
             }
 
-            return redirect()->route('admin.dashboard')->with(
+            return redirect()->route('admin.inicio')->with(
                 'success',
-                'Operando em '.$farm->nome.' (impersonando).'
+                'Agora operando em '.$farm->nome.' (impersonando).'
             );
         }
 
@@ -132,7 +132,7 @@ class FarmSelectionController extends Controller
             app()->forgetInstance('tenant_farms');
         }
 
-        return redirect()->route('admin.dashboard')->with(
+        return redirect()->route('admin.inicio')->with(
             'success',
             'Agora operando em '.$farm->nome.'.'
         );

@@ -100,7 +100,7 @@ function brl(v) {
         </div>
 
         <!-- DESKTOP table -->
-        <div v-else-if="contas.length" class="hidden lg:block rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
+        <div v-else-if="contas.length" class="hidden xl:block rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50 text-slate-600">
                     <tr>
@@ -147,7 +147,7 @@ function brl(v) {
         </div>
 
         <!-- MOBILE cards -->
-        <div v-if="contas.length" class="lg:hidden space-y-2.5">
+        <div v-if="contas.length" class="xl:hidden space-y-2.5">
             <div v-for="c in contas" :key="c.id" class="rounded-xl bg-white ring-1 ring-slate-200 p-3.5 shadow-sm">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
