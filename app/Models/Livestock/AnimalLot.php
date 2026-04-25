@@ -4,6 +4,7 @@ namespace App\Models\Livestock;
 
 use App\Domain\Billing\Models\Tenant;
 use App\Domain\Tenancy\Traits\BelongsToTenant;
+use App\Domain\Tenancy\Traits\BelongsToFarm;
 use App\Models\Farm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AnimalLot extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, BelongsToFarm;
 
     protected $table = 'animal_lots';
 

@@ -4,6 +4,7 @@ namespace App\Models\Stock;
 
 use App\Domain\Billing\Models\Tenant;
 use App\Domain\Tenancy\Traits\BelongsToTenant;
+use App\Domain\Tenancy\Traits\BelongsToFarm;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class StockItem extends Model
 {
     use SoftDeletes;
-    use BelongsToTenant;
+    use BelongsToTenant, BelongsToFarm;
 
     protected $fillable = [
         'category_id', 'codigo', 'codigo_barras', 'nome', 'descricao', 'unidade', 'marca',

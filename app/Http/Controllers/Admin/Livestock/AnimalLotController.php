@@ -71,6 +71,53 @@ class AnimalLotController extends Controller
             ->with('success', 'Lote criado.');
     }
 
+    /**
+     * Endpoint inline (AJAX/JSON) — cria um lote e retorna {id, nome}
+     * SEM REDIRECIONAR. Usado por modais em wizards/forms que precisam
+     * criar um lote sem tirar o usuário do fluxo principal.
+     *
+     * Princípio: qualquer ação em curso deve conseguir concluir mesmo
+     * sem dados prévios; a dependência é criada no próprio lugar.
+     */
+    public function storeInline(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'nome' => ['required', 'string', 'max:120'],
+            'codigo' => ['nullable', 'string', 'max:30'],
+            'finalidade' => ['nullable', 'string', 'max:30'],
+            'observacoes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        // Bloco 3 — multi-fazenda: SEMPRE usar farm ativa do contexto
+        // (resolved by EnforceFarm middleware). Sem fallback silencioso —
+        // se o binding faltar, é bug de boot, não pode escolher farm sozinho.
+        abort_unless(app()->bound('farm_id'), 500, 'Contexto de fazenda não resolvido (EnforceFarm).');
+        $farmId = app('farm_id');
+
+        // `codigo` é NOT NULL na tabela — se o usuário não informou, geramos
+        // um automático baseado no nome (slug + timestamp curto).
+        $codigo = $data['codigo'] ?? null;
+        if (! $codigo) {
+            $base = \Illuminate\Support\Str::slug($data['nome']);
+            $codigo = strtoupper(substr($base, 0, 8)) . '-' . substr(time(), -4);
+        }
+
+        $lote = AnimalLot::create([
+            'farm_id' => $farmId,
+            'nome' => $data['nome'],
+            'codigo' => $codigo,
+            'finalidade' => $data['finalidade'] ?? null,
+            'observacoes' => $data['observacoes'] ?? null,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'id' => $lote->id,
+            'nome' => $lote->nome,
+            'codigo' => $lote->codigo,
+        ]);
+    }
+
     public function edit(AnimalLot $lote): Response
     {
         return Inertia::render('Admin/Livestock/Lots/Form', [

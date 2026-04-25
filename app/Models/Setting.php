@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
@@ -40,40 +41,48 @@ class Setting extends Model
     public static function getValue(string $key, mixed $default = null): mixed
     {
         $tenantId = app()->bound('tenant_id') ? (int) app('tenant_id') : null;
+        $memoryKey = ($tenantId ?? 'null') . ':' . $key;
 
-        $cacheKey = ($tenantId ?? 'null') . ':' . $key;
-        if (array_key_exists($cacheKey, self::$memory)) {
-            return self::$memory[$cacheKey] ?? $default;
+        // Camada 1 · Request memory (micro-cache; evita múltiplas chamadas da
+        // mesma key no mesmo request — ex.: 4 settings compartilhados em share()).
+        if (array_key_exists($memoryKey, self::$memory)) {
+            return self::$memory[$memoryKey] ?? $default;
         }
 
-        // 1. Tenta específico do cliente (se houver contexto)
-        $setting = null;
-        if ($tenantId !== null) {
-            $setting = static::where('key', $key)
-                ->where('tenant_id', $tenantId)
-                ->first();
+        // Camada 2 · Laravel Cache (arquivo — 1h TTL). Settings mudam raramente
+        // (logo, cor_primaria, favicon), não vale 1 query MySQL por request só
+        // pra ler uma string. Invalida automaticamente em saved/deleted via booted().
+        $cacheKey = 'setting:' . $memoryKey;
+        $cached = Cache::remember($cacheKey, now()->addHour(), function () use ($tenantId, $key) {
+            $setting = null;
+            if ($tenantId !== null) {
+                $setting = static::where('key', $key)
+                    ->where('tenant_id', $tenantId)
+                    ->first();
+            }
+            if (! $setting) {
+                $setting = static::where('key', $key)
+                    ->whereNull('tenant_id')
+                    ->first();
+            }
+            if (! $setting) {
+                return ['found' => false, 'value' => null, 'type' => null];
+            }
+            return ['found' => true, 'value' => $setting->value, 'type' => $setting->type];
+        });
+
+        if (! $cached['found']) {
+            return self::$memory[$memoryKey] = $default;
         }
 
-        // 2. Fallback para global (tenant_id NULL)
-        if (! $setting) {
-            $setting = static::where('key', $key)
-                ->whereNull('tenant_id')
-                ->first();
-        }
-
-        // 3. Default do código
-        if (! $setting) {
-            return self::$memory[$cacheKey] = $default;
-        }
-
-        $value = match ($setting->type) {
-            'bool' => filter_var($setting->value, FILTER_VALIDATE_BOOLEAN),
-            'int' => (int) $setting->value,
-            'json' => json_decode($setting->value, true),
-            default => $setting->value,
+        $value = match ($cached['type']) {
+            'bool' => filter_var($cached['value'], FILTER_VALIDATE_BOOLEAN),
+            'int' => (int) $cached['value'],
+            'json' => json_decode($cached['value'], true),
+            default => $cached['value'],
         };
 
-        return self::$memory[$cacheKey] = $value;
+        return self::$memory[$memoryKey] = $value;
     }
 
     /**
@@ -114,17 +123,34 @@ class Setting extends Model
     {
         if ($key === null) {
             self::$memory = [];
-
+            // NOTA: não limpamos o Cache facade global aqui porque a chamada
+            // sem args é rara (testes). Em runtime, saved()/deleted() chamam
+            // com key específico — ali SIM limpa ambos.
             return;
         }
 
+        $tenantKey = ($tenantId ?? 'null') . ':' . $key;
+
+        // Limpa request memory
         if ($tenantId !== null) {
-            unset(self::$memory[$tenantId . ':' . $key]);
+            unset(self::$memory[$tenantKey]);
         } else {
             // Limpa ambas as entradas possíveis (cliente X e global)
             foreach (array_keys(self::$memory) as $cacheKey) {
                 if (str_ends_with($cacheKey, ':' . $key)) {
                     unset(self::$memory[$cacheKey]);
+                }
+            }
+        }
+
+        // Limpa Laravel Cache (file-backed, cross-request)
+        Cache::forget('setting:' . $tenantKey);
+        // Se limparmos tenant-específico, também invalida o fallback global
+        // (pode ter mudado). Custo baixo: 1 forget a mais.
+        if ($tenantId === null) {
+            foreach (array_keys(self::$memory) as $cacheKey) {
+                if (str_ends_with($cacheKey, ':' . $key)) {
+                    Cache::forget('setting:' . $cacheKey);
                 }
             }
         }

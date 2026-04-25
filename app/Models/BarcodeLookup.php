@@ -4,12 +4,13 @@ namespace App\Models;
 
 use App\Domain\Billing\Models\Tenant;
 use App\Domain\Tenancy\Traits\BelongsToTenant;
+use App\Domain\Tenancy\Traits\BelongsToFarm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BarcodeLookup extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, BelongsToFarm;
 
     protected $fillable = [
         'code', 'user_id', 'found_local', 'source',

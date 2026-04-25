@@ -89,13 +89,20 @@ class EnforceFarm
             && app()->bound('tenant_id');
 
         if ($isImpersonating) {
-            // Query explícita conforme brief — redundante com BelongsToTenantScope
-            // mas deixa o intento claro e é imune a mudanças futuras no scope.
-            $farm = Farm::query()
-                ->where('tenant_id', app('tenant_id'))
-                ->where('is_active', true)
-                ->orderBy('id')
-                ->first(['id']);
+            // BLOCO 3 — multi-fazenda em impersonação:
+            // populamos `tenant_farms` cache p/ Inertia share enxergar dropdown,
+            // e respeitamos a fazenda selecionada pelo master via session
+            // (`impersonation.farm_id`), com fallback p/ 1ª ativa.
+            $farms = $this->tenantFarms();
+
+            $sessionFarmId = isset($imp['farm_id']) ? (int) $imp['farm_id'] : 0;
+            $farm = null;
+            if ($sessionFarmId > 0) {
+                $farm = $farms->firstWhere('id', $sessionFarmId);
+            }
+            if (! $farm) {
+                $farm = $farms->sortBy('id')->first();
+            }
 
             if ($farm) {
                 app()->instance('farm_id', (int) $farm->id);

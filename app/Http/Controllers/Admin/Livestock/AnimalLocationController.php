@@ -50,6 +50,46 @@ class AnimalLocationController extends Controller
         ]);
     }
 
+    /**
+     * Endpoint inline (AJAX/JSON) — cria um local e retorna {id, nome, tipo}
+     * SEM REDIRECIONAR. Irmão de AnimalLotController::storeInline; mesmo
+     * princípio: deixar o usuário criar a dependência no meio do fluxo.
+     */
+    public function storeInline(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'nome' => ['required', 'string', 'max:120'],
+            'tipo' => ['required', 'in:pasto,piquete,curral,baia,tanque,galpao,outro'],
+            'codigo' => ['nullable', 'string', 'max:30'],
+        ]);
+
+        // Bloco 3 — multi-fazenda: SEMPRE usar farm ativa do contexto
+        // (resolved by EnforceFarm middleware). Sem fallback silencioso.
+        abort_unless(app()->bound('farm_id'), 500, 'Contexto de fazenda não resolvido (EnforceFarm).');
+        $farmId = app('farm_id');
+
+        // `codigo` defensivamente auto-gerado se vazio (coluna pode ser NOT NULL).
+        $codigo = $data['codigo'] ?? null;
+        if (! $codigo) {
+            $base = \Illuminate\Support\Str::slug($data['nome']);
+            $codigo = strtoupper(substr($base, 0, 8)) . '-' . substr(time(), -4);
+        }
+
+        $local = AnimalLocation::create([
+            'farm_id' => $farmId,
+            'nome' => $data['nome'],
+            'tipo' => $data['tipo'],
+            'codigo' => $codigo,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'id' => $local->id,
+            'nome' => $local->nome,
+            'tipo' => $local->tipo,
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);

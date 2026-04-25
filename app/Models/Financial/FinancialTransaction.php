@@ -4,6 +4,7 @@ namespace App\Models\Financial;
 
 use App\Domain\Billing\Models\Tenant;
 use App\Domain\Tenancy\Traits\BelongsToTenant;
+use App\Domain\Tenancy\Traits\BelongsToFarm;
 use App\Models\Category;
 use App\Models\CostCenter;
 use App\Models\Partner;
@@ -18,7 +19,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class FinancialTransaction extends Model
 {
     use LogsActivity, SoftDeletes;
-    use BelongsToTenant;
+    use BelongsToTenant, BelongsToFarm;
 
     protected $fillable = [
         'account_id', 'category_id', 'cost_center_id', 'partner_id', 'recurrence_id',

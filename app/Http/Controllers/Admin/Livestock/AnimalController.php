@@ -8,6 +8,7 @@ use App\Models\Livestock\Animal;
 use App\Models\Livestock\AnimalBreed;
 use App\Domain\Integration\Services\AnimalSaleToRevenueService;
 use App\Models\Livestock\AnimalEvent;
+use App\Models\Livestock\AnimalLocation;
 use App\Models\Livestock\AnimalLot;
 use App\Models\Livestock\AnimalSpecies;
 use App\Models\Partner;
@@ -64,40 +65,65 @@ class AnimalController extends Controller
 
     public function index(Request $request)
     {
-        $q = Animal::with(['species:id,nome,gestao,profile,allowed_events', 'breed:id,nome', 'lot:id,nome', 'farm:id,nome'])
+        // Reference data multi-tenant: species/breed estão em tenant_id=1 (sistema)
+        // mas o user pode estar em outro tenant. O global scope filtra por tenant
+        // no HTTP, deixando species nulo. Carregamos manualmente sem escopo —
+        // mesmo padrão do SaleWizardController.
+        $speciesById = AnimalSpecies::withoutGlobalScope(\App\Domain\Tenancy\Scopes\BelongsToTenantScope::class)
+            ->get(['id', 'nome', 'profile', 'gestao', 'allowed_events'])
+            ->keyBy('id');
+
+        $q = Animal::with(['breed:id,nome', 'lot:id,nome', 'location:id,nome,tipo', 'farm:id,nome'])
             ->when($request->search, fn ($qq) => $qq->where(fn ($w) => $w
                 ->where('identificacao', 'like', "%{$request->search}%")
                 ->orWhere('nome', 'like', "%{$request->search}%")))
             ->when($request->species_id, fn ($qq) => $qq->where('species_id', $request->species_id))
             ->when($request->lot_id, fn ($qq) => $qq->where('lot_id', $request->lot_id))
+            ->when($request->location_id, fn ($qq) => $qq->where('location_id', $request->location_id))
             ->when($request->status, fn ($qq) => $qq->where('status', $request->status))
             ->when($request->categoria, fn ($qq) => $qq->where('categoria', $request->categoria))
             ->orderBy('identificacao');
 
         return Inertia::render('Admin/Livestock/Animals/Index', [
-            'animals' => $q->paginate(25)->withQueryString()->through(fn (Animal $a) => [
-                'id' => $a->id,
-                'identificacao' => $a->identificacao,
-                'nome' => $a->nome,
-                'sexo' => $a->sexo,
-                'categoria' => $a->categoria,
-                'status' => $a->status,
-                'data_nascimento' => $a->data_nascimento,
-                'peso_atual' => $a->peso_atual,
-                'photo_url' => $a->photoUrl(),
-                'species' => $a->species ? [
-                    'id' => $a->species->id,
-                    'nome' => $a->species->nome,
-                    'gestao' => $a->species->gestao,
-                    'profile' => $a->species->profile,
-                    'allowed_events' => $a->species->allowed_events,
-                ] : null,
-                'breed' => $a->breed ? ['nome' => $a->breed->nome] : null,
-                'lot' => $a->lot ? ['nome' => $a->lot->nome] : null,
-            ]),
-            'filters' => $request->only(['search', 'species_id', 'lot_id', 'status', 'categoria']),
+            'animals' => $q->paginate(25)->withQueryString()->through(function (Animal $a) use ($speciesById) {
+                $sp = $speciesById->get($a->species_id);
+                return [
+                    'id' => $a->id,
+                    'identificacao' => $a->identificacao,
+                    'nome' => $a->nome,
+                    'sexo' => $a->sexo,
+                    'categoria' => $a->categoria,
+                    'status' => $a->status,
+                    'data_nascimento' => $a->data_nascimento,
+                    'peso_atual' => $a->peso_atual,
+                    'photo_url' => $a->photoUrl(),
+                    'species' => $sp ? [
+                        'id' => $sp->id,
+                        'nome' => $sp->nome,
+                        'gestao' => $sp->gestao,
+                        'profile' => $sp->profile,
+                        'allowed_events' => $sp->allowed_events,
+                    ] : null,
+                    'breed' => $a->breed ? ['nome' => $a->breed->nome] : null,
+                    'lot' => $a->lot ? ['nome' => $a->lot->nome] : null,
+                    'location' => $a->location ? ['nome' => $a->location->nome, 'tipo' => $a->location->tipo] : null,
+                ];
+            }),
+            'filters' => $request->only(['search', 'species_id', 'lot_id', 'location_id', 'status', 'categoria']),
             'species' => AnimalSpecies::where('is_active', true)->get(['id', 'nome']),
             'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome']),
+            'locations' => AnimalLocation::ativos()->orderBy('tipo')->orderBy('nome')->get(['id', 'nome', 'tipo']),
+            // Resumo de valor — 1 query agregada ajuda o dono a saber
+            // "quanto rebanho tenho" e "quantos precisam de atenção"
+            // sem ter que navegar. Sem pesagem há 60+ dias = lembrete
+            // de pesar (ganho/perda só é calculável com pesagens).
+            'resumo' => Animal::selectRaw("
+                SUM(CASE WHEN status = 'ativo' THEN 1 ELSE 0 END) as ativos,
+                SUM(CASE WHEN status = 'vendido' THEN 1 ELSE 0 END) as vendidos,
+                SUM(CASE WHEN status IN ('morto','abatido') THEN 1 ELSE 0 END) as baixas,
+                SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN peso_atual ELSE 0 END) as peso_total,
+                SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN 1 ELSE 0 END) as ativos_com_peso
+            ")->first(),
             'partners' => Partner::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
             'categorias' => [
                 ['value' => 'leite', 'label' => 'Leite'],
@@ -124,9 +150,24 @@ class AnimalController extends Controller
             return back()->withInput()->with('error', $err);
         }
 
-        Animal::create($data);
+        // Foto opcional anexada ao cadastro (mesma request — UX zero-saída).
+        // Antes o front fazia upload em request separada e às vezes perdia o ID;
+        // agora é atômico: cadastro + foto em uma transação.
+        $animal = Animal::create($data);
 
-        return redirect()->route('admin.rebanho.animais.index')->with('success', 'Animal cadastrado.');
+        if ($request->hasFile('foto')) {
+            $request->validate(['foto' => ['image', 'max:5120']]); // 5 MB
+            $path = $request->file('foto')->store(
+                "animais/tenant_{$animal->tenant_id}",
+                'public',
+            );
+            $animal->update(['photo_path' => $path]);
+        }
+
+        return redirect()
+            ->route('admin.rebanho.animais.index')
+            ->with('success', 'Animal cadastrado.')
+            ->with('created_animal_id', $animal->id);
     }
 
     public function edit(Animal $animal)
@@ -166,6 +207,7 @@ class AnimalController extends Controller
             'animal' => $animalPayload,
             'species' => AnimalSpecies::where('is_active', true)->with(['breeds:id,species_id,nome'])->get(),
             'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome', 'codigo']),
+            'locations' => AnimalLocation::ativos()->orderBy('tipo')->orderBy('nome')->get(['id', 'nome', 'tipo']),
             'farms' => Farm::where('is_active', true)->get(['id', 'nome']),
             'partners' => Partner::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
         ]);
@@ -178,6 +220,7 @@ class AnimalController extends Controller
             'species_id' => ['required', 'exists:animal_species,id'],
             'breed_id' => ['nullable', 'exists:animal_breeds,id'],
             'lot_id' => ['nullable', 'exists:animal_lots,id'],
+            'location_id' => ['nullable', 'exists:animal_locations,id'],
             'identificacao' => ['required', 'string', 'max:30', Rule::unique('animals', 'identificacao')->ignore($id)->whereNull('deleted_at')],
             'nome' => ['nullable', 'string', 'max:100'],
             'sexo' => ['required', 'in:M,F'],
@@ -339,7 +382,12 @@ class AnimalController extends Controller
     public function show(Animal $animal)
     {
         $events = $animal->events()
-            ->with(['partner:id,nome', 'lotOrigem:id,nome', 'lotDestino:id,nome', 'creator:id,name'])
+            ->with([
+                'partner:id,nome',
+                'lotOrigem:id,nome', 'lotDestino:id,nome',
+                'locationOrigem:id,nome,tipo', 'locationDestino:id,nome,tipo',
+                'creator:id,name',
+            ])
             ->orderByDesc('data')
             ->orderByDesc('id')
             ->get();
@@ -359,7 +407,7 @@ class AnimalController extends Controller
 
         return Inertia::render('Admin/Livestock/Animals/Show', [
             'animal' => [
-                ...$animal->load(['species:id,nome', 'breed:id,nome', 'lot:id,nome', 'farm:id,nome', 'fornecedor:id,nome'])->toArray(),
+                ...$animal->load(['species:id,nome', 'breed:id,nome', 'lot:id,nome', 'location:id,nome,tipo', 'farm:id,nome', 'fornecedor:id,nome'])->toArray(),
                 'photo_url' => $animal->photoUrl(),
                 'idade_em_meses' => $animal->data_nascimento?->diffInMonths(now()),
             ],
@@ -367,6 +415,7 @@ class AnimalController extends Controller
             'pesagens' => $pesagens,
             'partners' => Partner::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
             'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome']),
+            'locations' => AnimalLocation::ativos()->orderBy('tipo')->orderBy('nome')->get(['id', 'nome', 'tipo']),
         ]);
     }
 
@@ -441,7 +490,12 @@ class AnimalController extends Controller
         // allowed_events filtra apenas eventos de manejo ESPECÍFICO do
         // perfil (ex.: ordenha só para leiteiro, postura só para ave).
         $allowed = $animal->species?->allowed_events;
-        $eventosUniversais = ['venda', 'compra', 'mortalidade', 'nascimento', 'observacao'];
+        // Eventos universais — aplicáveis a QUALQUER espécie independente do profile:
+        //   - venda/compra/mortalidade/nascimento/observacao: ciclo de vida
+        //   - movimentacao: mudar de LOTE (grupo) — todo animal pertence a algum grupo
+        //   - movimentacao_local: mudar de PASTO/piquete/tanque (local físico) — todo animal está em algum lugar
+        // allowed_events é só para eventos de manejo ESPECÍFICO do profile (ex.: ordenha só para leiteiro).
+        $eventosUniversais = ['venda', 'compra', 'mortalidade', 'nascimento', 'observacao', 'movimentacao', 'movimentacao_local'];
         $isUniversal = in_array($data['tipo'], $eventosUniversais, true);
 
         if (! $isUniversal && is_array($allowed) && count($allowed) > 0 && ! in_array($data['tipo'], $allowed, true)) {
@@ -494,6 +548,12 @@ class AnimalController extends Controller
 
             return $event;
         });
+
+        // Contexto pós-ação — dados auxiliares para o wizard mostrar IMPACTO,
+        // não apenas "registrado". Usuário 60+ precisa ver o que mudou para
+        // confiar que o sistema fez o que prometeu.
+        $contexto = $this->buildContexto($animal->fresh(), $data, $event);
+        session()->flash('event_contexto', $contexto);
 
         return back()->with('success', match ($data['tipo']) {
             'pesagem' => 'Pesagem registrada.',
@@ -583,6 +643,126 @@ class AnimalController extends Controller
             .' vendido'.($animais->count() === 1 ? '' : 's').' em lote (R$ '.number_format($data['valor_total'], 2, ',', '.').').');
     }
 
+    /**
+     * Evento EM LOTE — aplica o MESMO evento (vacina, medicação, vermífugo,
+     * observação) a MÚLTIPLOS animais de uma só vez. Cenário real:
+     * veterinário passa vacinando 80 bovinos em manejo; sem esse endpoint
+     * o usuário teria que registrar 80 vezes individualmente.
+     *
+     * Filtros aceitos (um obrigatório):
+     *   - animal_ids: array explícito de IDs
+     *   - lot_id: todos os animais ativos do lote
+     *   - location_id: todos os animais ativos do pasto
+     *   - species_id: todos os animais ativos da espécie (use com cuidado)
+     *
+     * Roda em DB::transaction — se qualquer evento falhar, rollback total.
+     */
+    public function storeEventBatch(Request $request)
+    {
+        $data = $request->validate([
+            'tipo' => ['required', 'in:vacinacao,medicacao,vermifugacao,observacao'],
+            'data' => ['required', 'date', 'before_or_equal:today'],
+            'vacina' => ['nullable', 'string', 'max:120'],
+            'medicamento' => ['nullable', 'string', 'max:120'],
+            'dose' => ['nullable', 'numeric', 'min:0'],
+            'via_aplicacao' => ['nullable', 'string', 'max:30'],
+            'responsavel' => ['nullable', 'string', 'max:120'],
+            'observacoes' => ['nullable', 'string'],
+            // Filtros (exatamente 1 obrigatório)
+            'animal_ids' => ['nullable', 'array', 'min:1'],
+            'animal_ids.*' => ['integer', 'exists:animals,id'],
+            'lot_id' => ['nullable', 'exists:animal_lots,id'],
+            'location_id' => ['nullable', 'exists:animal_locations,id'],
+            'species_id' => ['nullable', 'exists:animal_species,id'],
+        ]);
+
+        // Regras por tipo
+        if ($data['tipo'] === 'vacinacao' && empty($data['vacina'])) {
+            return back()->with('error', 'Informe o nome da vacina.');
+        }
+        if (in_array($data['tipo'], ['medicacao', 'vermifugacao'], true) && empty($data['medicamento'])) {
+            return back()->with('error', 'Informe o nome do medicamento.');
+        }
+        if ($data['tipo'] === 'observacao' && empty($data['observacoes'])) {
+            return back()->with('error', 'Escreva a observação.');
+        }
+
+        // Resolver animais-alvo
+        $q = Animal::where('status', 'ativo');
+        if (! empty($data['animal_ids'])) {
+            $q->whereIn('id', $data['animal_ids']);
+        } elseif (! empty($data['lot_id'])) {
+            $q->where('lot_id', $data['lot_id']);
+        } elseif (! empty($data['location_id'])) {
+            $q->where('location_id', $data['location_id']);
+        } elseif (! empty($data['species_id'])) {
+            $q->where('species_id', $data['species_id']);
+        } else {
+            return back()->with('error', 'Selecione pelo menos um filtro (animais, lote, pasto ou espécie).');
+        }
+
+        $animais = $q->get();
+        if ($animais->isEmpty()) {
+            return back()->with('error', 'Nenhum animal ativo encontrado com esse filtro.');
+        }
+
+        // Valida contra allowed_events por espécie (universais passam sempre)
+        $eventosUniversais = ['vacinacao', 'medicacao', 'vermifugacao', 'observacao'];
+        // observacao é universal; vacinacao/medicacao devem estar em allowed_events
+        // ou ser bloqueadas pra espécies sem manejo individual (ex.: peixe não toma vacina tradicional).
+        $animaisIncompativeis = [];
+        foreach ($animais as $a) {
+            if ($data['tipo'] === 'observacao') continue;
+            $allowed = $a->species?->allowed_events;
+            if (is_array($allowed) && count($allowed) > 0 && ! in_array($data['tipo'], $allowed, true)) {
+                $animaisIncompativeis[] = $a->identificacao;
+            }
+        }
+        if (! empty($animaisIncompativeis)) {
+            $lista = implode(', ', array_slice($animaisIncompativeis, 0, 5));
+            return back()->with('error',
+                "Evento não é compatível com " . count($animaisIncompativeis) . " animal(is): {$lista}"
+                . (count($animaisIncompativeis) > 5 ? ' e outros.' : '.')
+                . ' Remova-os do filtro ou escolha outro tipo de evento.');
+        }
+
+        // Cria eventos em transação
+        DB::transaction(function () use ($animais, $data, $request) {
+            foreach ($animais as $animal) {
+                $animal->events()->create([
+                    'tipo' => $data['tipo'],
+                    'data' => $data['data'],
+                    'vacina' => $data['vacina'] ?? null,
+                    'medicamento' => $data['medicamento'] ?? null,
+                    'dose' => $data['dose'] ?? null,
+                    'via_aplicacao' => $data['via_aplicacao'] ?? null,
+                    'responsavel' => $data['responsavel'] ?? null,
+                    'observacoes' => $data['observacoes'] ?? null,
+                    'lot_id' => $animal->lot_id,
+                    'created_by' => $request->user()?->id,
+                ]);
+            }
+        });
+
+        $n = $animais->count();
+        $msg = match ($data['tipo']) {
+            'vacinacao' => "{$n} animais vacinados com {$data['vacina']}.",
+            'medicacao' => "{$n} animais medicados com {$data['medicamento']}.",
+            'vermifugacao' => "{$n} animais vermifugados.",
+            'observacao' => "Observação registrada em {$n} animais.",
+        };
+
+        // Contexto pro wizard mostrar impacto na tela de sucesso
+        session()->flash('event_batch_contexto', [
+            'tipo' => $data['tipo'],
+            'total' => $n,
+            'detalhe' => $data['vacina'] ?? $data['medicamento'] ?? null,
+            'data' => $data['data'],
+        ]);
+
+        return back()->with('success', $msg);
+    }
+
     public function destroyEvent(Animal $animal, AnimalEvent $event)
     {
         abort_if($event->animal_id !== $animal->id, 404);
@@ -595,5 +775,55 @@ class AnimalController extends Controller
         }
 
         return back()->with('success', 'Evento removido.');
+    }
+
+    /**
+     * Contexto pós-evento — dados auxiliares para o wizard mostrar "o que
+     * mudou", não só "registrado". São queries leves (count/sum) feitas
+     * UMA vez após a transação principal, então não impactam o rate-limit
+     * do MySQL Hostinger significativamente.
+     *
+     * Os campos dependem do tipo do evento:
+     *   - movimentacao        → animais_no_lote_destino (count)
+     *   - movimentacao_local  → animais_no_local_destino (count)
+     *   - venda               → receita_gerada (valor)
+     *   - vacinacao/medicacao → despesa_gerada (valor)
+     *   - mortalidade         → total_ativos (count após baixa)
+     */
+    private function buildContexto(Animal $animal, array $data, AnimalEvent $event): array
+    {
+        $c = [
+            'tipo' => $data['tipo'],
+            'animal_id' => $animal->id,
+            'animal_identificacao' => $animal->identificacao,
+        ];
+
+        if ($data['tipo'] === 'movimentacao' && ! empty($data['lot_destino_id'])) {
+            $c['lote_destino_id'] = (int) $data['lot_destino_id'];
+            $c['animais_no_lote_destino'] = Animal::where('lot_id', $data['lot_destino_id'])
+                ->where('status', 'ativo')->count();
+            $c['lote_nome'] = \App\Models\Livestock\AnimalLot::find($data['lot_destino_id'])?->nome;
+        }
+
+        if ($data['tipo'] === 'movimentacao_local' && ! empty($data['location_destino_id'])) {
+            $c['local_destino_id'] = (int) $data['location_destino_id'];
+            $c['animais_no_local_destino'] = Animal::where('location_id', $data['location_destino_id'])
+                ->where('status', 'ativo')->count();
+            $c['local_nome'] = \App\Models\Livestock\AnimalLocation::find($data['location_destino_id'])?->nome;
+        }
+
+        if ($data['tipo'] === 'venda' && ! empty($data['valor'])) {
+            $c['receita_gerada'] = (float) $data['valor'];
+        }
+
+        if (in_array($data['tipo'], ['vacinacao', 'medicacao', 'vermifugacao'], true) && ! empty($data['valor'])) {
+            $c['despesa_gerada'] = (float) $data['valor'];
+        }
+
+        if ($data['tipo'] === 'mortalidade') {
+            $c['total_ativos_restantes'] = Animal::where('status', 'ativo')->count();
+        }
+
+        return $c;
     }
 }

@@ -72,14 +72,47 @@ class FarmSelectionController extends Controller
         ]);
 
         $user = $request->user();
-
-        // Master global não deveria chegar aqui, mas defesa em profundidade
-        if ($user->tenant_id === null) {
-            return redirect()->route('admin.dashboard');
-        }
-
         $requestedId = (int) $validated['farm_id'];
 
+        // BLOCO 3 — multi-fazenda em impersonação:
+        // Master tem tenant_id NULL e nunca deve persistir current_farm_id no
+        // próprio user. Quando impersonando, salvamos a escolha em
+        // session('impersonation.farm_id') — EnforceFarm respeita.
+        if ($user->tenant_id === null) {
+            $imp = $request->session()->get('impersonation');
+            if (! is_array($imp) || empty($imp['tenant_id'])) {
+                // Master fora de impersonação: não tem farm context — manda dashboard.
+                return redirect()->route('admin.dashboard');
+            }
+
+            // Validação explícita: farm pertence ao tenant impersonado e está ativa.
+            // BelongsToTenantScope já filtra por app('tenant_id') (bindado em impersonação),
+            // mas o where explícito é defesa em profundidade.
+            $farm = Farm::query()
+                ->where('id', $requestedId)
+                ->where('tenant_id', (int) $imp['tenant_id'])
+                ->where('is_active', true)
+                ->first(['id', 'nome']);
+
+            if ($farm === null) {
+                return back()->with('error', 'Fazenda não encontrada ou inativa.');
+            }
+
+            $imp['farm_id'] = (int) $farm->id;
+            $request->session()->put('impersonation', $imp);
+
+            // Limpa cache de request — próxima nav reconsulta com a farm nova.
+            if (app()->bound('tenant_farms')) {
+                app()->forgetInstance('tenant_farms');
+            }
+
+            return redirect()->route('admin.dashboard')->with(
+                'success',
+                'Operando em '.$farm->nome.' (impersonando).'
+            );
+        }
+
+        // Tenant user: fluxo regular — persiste em users.current_farm_id.
         // Query que passa pelo BelongsToTenantScope → se a farm for de outro tenant,
         // retorna null. Nunca usamos find(), exatamente para garantir essa barreira.
         $farm = Farm::query()
