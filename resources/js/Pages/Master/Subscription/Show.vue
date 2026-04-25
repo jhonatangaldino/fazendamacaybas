@@ -2,6 +2,9 @@
 import { ref, computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 const props = defineProps({
     tenant: { type: Object, required: true },
@@ -45,8 +48,14 @@ function salvarAssinatura() {
     });
 }
 
-function cancelarAssinatura() {
-    if (! confirm(`Confirma cancelar a assinatura de "${props.tenant.nome}"?`)) return;
+async function cancelarAssinatura() {
+    const ok = await confirm({
+        title: 'Cancelar assinatura',
+        message: `Cancelar a assinatura de "${props.tenant.nome}"? O cliente perde acesso ao /admin imediatamente. Cobranças pendentes permanecem em aberto. Esta ação pode ser revertida atribuindo um novo plano.`,
+        confirmText: 'Cancelar assinatura',
+        variant: 'danger',
+    });
+    if (! ok) return;
     useForm({}).post(route('master.tenants.subscription.cancel', props.tenant.id));
 }
 

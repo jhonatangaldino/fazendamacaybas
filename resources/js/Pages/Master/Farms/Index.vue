@@ -1,16 +1,26 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 defineProps({
     tenant: { type: Object, required: true },
     farms: { type: Array, default: () => [] },
 });
 
-function toggle(tenant, farm) {
+async function toggle(tenant, farm) {
     const verbo = farm.is_active ? 'desativar' : 'reativar';
-    if (! confirm(`Confirma ${verbo} "${farm.nome}"?`)) return;
-
+    const ok = await confirm({
+        title: `${verbo[0].toUpperCase() + verbo.slice(1)} fazenda`,
+        message: farm.is_active
+            ? `Desativar "${farm.nome}"? Usuários do tenant não conseguirão mais selecionar esta fazenda. Dados e histórico permanecem intactos.`
+            : `Reativar "${farm.nome}"? Usuários voltam a poder selecionar esta fazenda como ativa.`,
+        confirmText: verbo[0].toUpperCase() + verbo.slice(1),
+        variant: farm.is_active ? 'danger' : 'primary',
+    });
+    if (! ok) return;
     router.post(route('master.tenants.farms.toggle', [tenant.id, farm.id]), {}, {
         preserveScroll: true,
     });

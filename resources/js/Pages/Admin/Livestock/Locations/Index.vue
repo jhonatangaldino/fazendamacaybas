@@ -5,6 +5,9 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 const props = defineProps({
     locations: Object,
@@ -22,8 +25,14 @@ function toggle(loc) {
     router.post(route('admin.rebanho.locais.toggle', loc.id), {}, { preserveScroll: true });
 }
 
-function excluir(loc) {
-    if (!confirm(`Excluir o local "${loc.nome}"?`)) return;
+async function excluir(loc) {
+    const ok = await confirm({
+        title: 'Excluir local',
+        message: `Excluir o local "${loc.nome}"? Animais alocados não serão excluídos, mas perdem o vínculo com este local físico.`,
+        confirmText: 'Excluir local',
+        variant: 'danger',
+    });
+    if (! ok) return;
     router.delete(route('admin.rebanho.locais.destroy', loc.id), { preserveScroll: true });
 }
 </script>

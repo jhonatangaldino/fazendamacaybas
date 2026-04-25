@@ -207,11 +207,17 @@ watch(
 // após o create bem-sucedido faz upload via rota /foto.upload existente.
 const fotoFile = ref(null);
 const fotoPreview = ref(null);
+const fotoErro = ref(null); // erro inline (substitui alert nativo)
 
 function onFotoChange(e) {
     const f = e.target.files?.[0];
+    fotoErro.value = null;
     if (!f) return;
-    if (f.size > 5 * 1024 * 1024) { alert('Imagem acima de 5 MB.'); return; }
+    if (f.size > 5 * 1024 * 1024) {
+        fotoErro.value = 'Imagem acima de 5 MB. Reduza o tamanho ou escolha outra foto.';
+        e.target.value = ''; // limpa input para permitir nova seleção
+        return;
+    }
     fotoFile.value = f;
     const reader = new FileReader();
     reader.onload = (ev) => { fotoPreview.value = ev.target.result; };
@@ -413,6 +419,9 @@ onMounted(() => {
                         </button>
                         <p class="text-xs text-slate-500 mt-2">
                             Se não tiver foto agora, o sistema usa o ícone da espécie ({{ nomeEspecie }}). Você pode adicionar depois na ficha do animal.
+                        </p>
+                        <p v-if="fotoErro" class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-2 py-1.5 mt-2">
+                            ⚠ {{ fotoErro }}
                         </p>
                     </div>
                 </div>

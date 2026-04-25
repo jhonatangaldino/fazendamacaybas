@@ -5,6 +5,9 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 const props = defineProps({
     lots: Object,
@@ -18,8 +21,14 @@ function filtrar() {
     router.get(route('admin.rebanho.lotes.index'), filtros, { preserveState: true, replace: true });
 }
 
-function excluir(l) {
-    if (!confirm(`Excluir o lote "${l.nome}"?`)) return;
+async function excluir(l) {
+    const ok = await confirm({
+        title: 'Excluir lote',
+        message: `Excluir o lote "${l.nome}"? Animais associados não serão excluídos, mas perdem o vínculo com este grupo.`,
+        confirmText: 'Excluir lote',
+        variant: 'danger',
+    });
+    if (! ok) return;
     router.delete(route('admin.rebanho.lotes.destroy', l.id), { preserveScroll: true });
 }
 </script>

@@ -1,6 +1,9 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 defineProps({
     plans: { type: Array, default: () => [] },
@@ -10,10 +13,17 @@ function brl(v) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
 }
 
-function toggle(plan) {
+async function toggle(plan) {
     const verbo = plan.is_active ? 'desativar' : 'reativar';
-    if (! confirm(`Confirma ${verbo} "${plan.nome}"?`)) return;
-
+    const ok = await confirm({
+        title: `${verbo[0].toUpperCase() + verbo.slice(1)} plano`,
+        message: plan.is_active
+            ? `Desativar "${plan.nome}"? Não será possível atribuir o plano a novos clientes. Clientes que já têm o plano não serão afetados.`
+            : `Reativar "${plan.nome}"? Plano voltará a estar disponível para atribuição.`,
+        confirmText: verbo[0].toUpperCase() + verbo.slice(1),
+        variant: plan.is_active ? 'danger' : 'primary',
+    });
+    if (! ok) return;
     router.post(route('master.planos.toggle', plan.id), {}, { preserveScroll: true });
 }
 </script>

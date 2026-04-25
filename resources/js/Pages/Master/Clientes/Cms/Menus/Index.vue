@@ -13,6 +13,9 @@
 import { ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 import ClientCmsHeader from '@/Components/ClientCmsHeader.vue';
 import Icon from '@/Components/Icon.vue';
 
@@ -87,8 +90,14 @@ function toggleActive(item) {
     }, { preserveScroll: true });
 }
 
-function removeItem(item) {
-    if (! confirm(`Remover "${item.label}"?`)) return;
+async function removeItem(item) {
+    const ok = await confirm({
+        title: 'Remover item do menu',
+        message: `Remover "${item.label}" do menu deste cliente?`,
+        confirmText: 'Remover',
+        variant: 'danger',
+    });
+    if (! ok) return;
     router.delete(route('master.clientes.cms.menus.items.destroy', [props.cliente.id, item.id]), {
         preserveScroll: true,
     });

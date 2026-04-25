@@ -285,17 +285,30 @@ class InvoiceController extends Controller
      */
     public function markPaid(Request $request, Invoice $invoice): RedirectResponse
     {
+        // BLOCO 4.3 — processo seguro: aceita data_pagamento, método e observação.
+        // Método e observação ficam em `meta.payment` (Invoice já tem coluna meta JSON).
         $validated = $request->validate([
-            'data_pagamento' => ['nullable', 'date'],
+            'data_pagamento' => ['nullable', 'date', 'before_or_equal:today'],
+            'metodo_pagamento' => ['nullable', 'in:pix,transferencia,dinheiro,boleto,cartao,outro'],
+            'observacao_pagamento' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $meta = $invoice->meta ?? [];
+        if (! empty($validated['metodo_pagamento']) || ! empty($validated['observacao_pagamento'])) {
+            $meta['payment'] = array_filter([
+                'metodo' => $validated['metodo_pagamento'] ?? null,
+                'observacao' => $validated['observacao_pagamento'] ?? null,
+                'registrado_em' => now()->toIso8601String(),
+                'registrado_por' => auth()->id(),
+            ]);
+        }
 
         $invoice->update([
             'status' => 'paid',
             'data_pagamento' => $validated['data_pagamento'] ?? now()->toDateString(),
+            'meta' => $meta,
         ]);
 
-        // Regulariza subscription: se estava em atraso E não há mais overdue,
-        // volta para active.
         $this->reconcileSubscriptionFromInvoices($invoice->tenant_id);
 
         return back()->with('success', 'Cobrança #'.$invoice->numero.' marcada como paga.');

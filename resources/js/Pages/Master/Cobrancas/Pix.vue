@@ -3,6 +3,11 @@ import { ref, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import PixQrCode from '@/Components/PixQrCode.vue';
+import MarkInvoicePaidModal from '@/Components/MarkInvoicePaidModal.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
+const invoiceParaPagar = ref(null);
 
 const props = defineProps({
     invoice: { type: Object, required: true },
@@ -39,12 +44,17 @@ async function copiarPix() {
 }
 
 function marcarPaga() {
-    if (! confirm(`Confirma marcar cobrança #${props.invoice.numero} como PAGA?\n\nEssa ação atualiza a assinatura do cliente automaticamente se estava em atraso.`)) return;
-    router.post(route('master.cobrancas.mark-paid', props.invoice.id));
+    invoiceParaPagar.value = props.invoice;
 }
 
-function marcarPendente() {
-    if (! confirm(`Reverter cobrança #${props.invoice.numero} para pendente?`)) return;
+async function marcarPendente() {
+    const ok = await confirm({
+        title: 'Reverter para pendente',
+        message: `Reverter cobrança ${props.invoice.referencia_curta || `#${props.invoice.numero}`} para pendente? O registro de pagamento será removido. Use só em caso de estorno ou erro.`,
+        confirmText: 'Reverter',
+        variant: 'danger',
+    });
+    if (! ok) return;
     router.post(route('master.cobrancas.mark-pending', props.invoice.id));
 }
 </script>
@@ -193,5 +203,8 @@ function marcarPendente() {
                 </p>
             </div>
         </div>
+
+        <!-- BLOCO 4.3 — modal processo seguro -->
+        <MarkInvoicePaidModal :invoice="invoiceParaPagar" @close="invoiceParaPagar = null" />
     </MasterLayout>
 </template>

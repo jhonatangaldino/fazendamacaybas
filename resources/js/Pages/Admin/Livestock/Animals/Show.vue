@@ -2,6 +2,9 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm: confirmModal } = useConfirm();
 import PageHeader from '@/Components/PageHeader.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
@@ -109,8 +112,14 @@ function salvarEvento() {
         });
 }
 
-function removerEvento(event) {
-    if (!confirm('Remover este evento?')) return;
+async function removerEvento(event) {
+    const ok = await confirmModal({
+        title: 'Remover evento do histórico',
+        message: `Remover o evento "${event.tipo || 'evento'}" de ${event.data || ''} do histórico deste animal? Métricas calculadas a partir deste evento (ex.: peso, ganho) serão revistas.`,
+        confirmText: 'Remover evento',
+        variant: 'danger',
+    });
+    if (! ok) return;
     router.delete(route('admin.rebanho.animais.eventos.destroy', [props.animal.id, event.id]), {
         preserveScroll: true,
     });

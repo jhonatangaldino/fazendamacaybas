@@ -38,6 +38,7 @@ const form = useForm({
 
 const arquivoNome = ref('');
 const arquivoPreview = ref(null);
+const arquivoErro = ref(null); // erro inline (substitui alert nativo)
 
 const tipoSelecionado = computed(() => props.tipos.find(t => t.id === form.tipo));
 
@@ -55,8 +56,13 @@ watch(() => form.tipo, (novoTipo) => {
 
 function onArquivoChange(e) {
     const f = e.target.files?.[0];
+    arquivoErro.value = null;
     if (!f) return;
-    if (f.size > 20 * 1024 * 1024) { alert('Arquivo acima de 20 MB.'); return; }
+    if (f.size > 20 * 1024 * 1024) {
+        arquivoErro.value = 'Arquivo acima de 20 MB. Comprima o arquivo ou divida em partes menores.';
+        e.target.value = '';
+        return;
+    }
     form.arquivo = f;
     arquivoNome.value = f.name;
     if (f.type.startsWith('image/')) {
@@ -146,6 +152,10 @@ function reiniciar() {
                 <h2 class="text-2xl font-semibold text-slate-900">Anexa o arquivo</h2>
                 <p class="text-sm text-slate-600">
                     Aceita: <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{{ tipoSelecionado?.mimes ?? 'pdf, imagens, docx, xlsx' }}</code> · até 20 MB.
+                </p>
+
+                <p v-if="arquivoErro" class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-2.5 py-2">
+                    ⚠ {{ arquivoErro }}
                 </p>
 
                 <div class="rounded-xl border-2 border-dashed border-slate-300 p-6 text-center bg-slate-50">

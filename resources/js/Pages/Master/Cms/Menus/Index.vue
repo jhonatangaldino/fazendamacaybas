@@ -13,6 +13,9 @@
 import { ref } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
+import { useConfirm } from '@/composables/useConfirm.js';
+
+const { confirm } = useConfirm();
 
 defineProps({
     menus: { type: Array, default: () => [] },
@@ -84,8 +87,14 @@ function toggleActive(item) {
     }, { preserveScroll: true });
 }
 
-function removeItem(item) {
-    if (! confirm(`Remover "${item.label}"?`)) return;
+async function removeItem(item) {
+    const ok = await confirm({
+        title: 'Remover item do menu',
+        message: `Remover "${item.label}" do menu? Os visitantes do site público não verão mais este link.`,
+        confirmText: 'Remover',
+        variant: 'danger',
+    });
+    if (! ok) return;
     router.delete(route('master.cms.menus.items.destroy', item.id), {
         preserveScroll: true,
     });
