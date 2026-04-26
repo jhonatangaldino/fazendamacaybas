@@ -35,14 +35,14 @@ class TutorialSeeder extends Seeder
         return [
             [
                 'key' => 'hub.boas-vindas',
-                'titulo' => 'Boas-vindas ao Hub',
+                'titulo' => 'Boas-vindas — tela de Início',
                 'rota' => '/admin/inicio',
                 'order_column' => 1,
                 'passos' => [
-                    ['titulo' => 'Este é o seu Hub', 'descricao' => 'Tudo que você faz no dia a dia da fazenda começa aqui. Cards agrupados por frequência: o que você faz Todo dia, Toda semana, etc.'],
-                    ['titulo' => 'Ações com ícones', 'descricao' => 'Cada ícone representa uma ação. Balança = pesar; seringa = vacina; folha = defensivo. Clique para abrir o passo a passo.'],
-                    ['titulo' => 'Tags claras', 'descricao' => '"PASSO A PASSO" = wizard com várias etapas. "AÇÃO RÁPIDA" = um clique faz tudo (ex.: marcar uma tarefa como concluída).'],
-                    ['titulo' => 'Pronto!', 'descricao' => 'Comece pelo card que mais faz sentido pro seu dia. Tudo que você cadastrar vai aparecer no Dashboard (painel de números).'],
+                    ['titulo' => 'Esta é a sua tela de Início', 'descricao' => 'Tudo que você faz no dia a dia da fazenda começa aqui. Os atalhos estão agrupados por frequência: o que você faz Todo dia, Toda semana, etc.'],
+                    ['titulo' => 'Ações com ícones', 'descricao' => 'Cada ícone representa uma ação. Balança = pesar; seringa = vacina; folha = defensivo. Toque para abrir o passo a passo.'],
+                    ['titulo' => 'Etiquetas claras', 'descricao' => '"PASSO A PASSO" = assistente com várias etapas guiadas. "AÇÃO RÁPIDA" = um toque faz tudo (ex.: marcar uma tarefa como concluída).'],
+                    ['titulo' => 'Pronto!', 'descricao' => 'Comece pelo atalho que mais faz sentido pro seu dia. Tudo que você cadastrar vai aparecer no Painel (com totais e gráficos).'],
                 ],
             ],
             [
@@ -52,7 +52,7 @@ class TutorialSeeder extends Seeder
                 'order_column' => 2,
                 'passos' => [
                     ['titulo' => 'Visão geral', 'descricao' => 'Aqui você vê os totais: receitas e despesas do mês, saldo, tarefas pendentes, alertas de estoque.'],
-                    ['titulo' => 'Comece pelo Hub', 'descricao' => 'Se ainda não cadastrou movimentos, volte para Início e use os cards de ação. Os números aparecem assim que você registra.'],
+                    ['titulo' => 'Comece pela tela de Início', 'descricao' => 'Se ainda não cadastrou movimentos, volte para Início e use os atalhos de ação. Os números aparecem assim que você registra.'],
                 ],
             ],
             [
@@ -64,7 +64,7 @@ class TutorialSeeder extends Seeder
                 'passos' => [
                     ['titulo' => 'Cadastro individual', 'descricao' => 'Cada animal tem brinco, peso, lote (grupo lógico) e local (pasto onde fica fisicamente).'],
                     ['titulo' => 'Histórico incremental', 'descricao' => 'Pesagens, vacinas e eventos ficam guardados no animal — você consegue ver o ganho de peso ao longo do tempo.'],
-                    ['titulo' => 'Vender animal', 'descricao' => 'Use o botão verde "Vender animal" para abrir o wizard. Você seleciona vários, define unidade (arroba, kg, cabeça) e finaliza com 1 nota.'],
+                    ['titulo' => 'Vender animal', 'descricao' => 'Use o botão verde "Vender animal" para abrir o assistente. Você seleciona vários, define unidade (arroba, kg, cabeça) e finaliza com 1 nota.'],
                 ],
             ],
             [
@@ -85,8 +85,8 @@ class TutorialSeeder extends Seeder
                 'order_column' => 5,
                 'permissions_required' => ['operational.financeiro.view'],
                 'passos' => [
-                    ['titulo' => 'KPIs do topo', 'descricao' => 'Saldo total nas suas contas, receitas/despesas do mês, contas atrasadas (em vermelho).'],
-                    ['titulo' => 'Atalhos rápidos', 'descricao' => 'Registrar despesa, Registrar receita, Pagar contas — todos abrem wizard guiado.'],
+                    ['titulo' => 'Indicadores do topo', 'descricao' => 'Saldo total nas suas contas, receitas/despesas do mês, contas atrasadas (em vermelho).'],
+                    ['titulo' => 'Atalhos rápidos', 'descricao' => 'Registrar despesa, Registrar receita, Pagar contas — todos abrem assistente guiado.'],
                     ['titulo' => 'Cadastre uma conta primeiro', 'descricao' => 'Antes de lançar movimentos, cadastre pelo menos 1 conta financeira (banco ou caixa). O sistema avisa.'],
                 ],
             ],
@@ -110,9 +110,9 @@ class TutorialSeeder extends Seeder
                 'order_column' => 7,
                 'permissions_required' => ['operational.funcionarios.tarefas.view'],
                 'passos' => [
-                    ['titulo' => 'KPIs por estado', 'descricao' => 'Atrasadas (vermelho), Para hoje (amarelo), Pendentes, Feitas hoje (verde). Click em qualquer para filtrar.'],
-                    ['titulo' => 'Criar tarefa', 'descricao' => 'Use "+ Nova tarefa" ou o card "Criar tarefa" no Hub para abrir o wizard guiado.'],
-                    ['titulo' => 'Concluir', 'descricao' => 'Marque como concluída diretamente da lista — 1 clique. Não precisa abrir.'],
+                    ['titulo' => 'Números por estado', 'descricao' => 'Atrasadas (vermelho), Para hoje (amarelo), Pendentes, Feitas hoje (verde). Toque em qualquer um para filtrar.'],
+                    ['titulo' => 'Criar tarefa', 'descricao' => 'Use "+ Nova tarefa" ou o atalho "Criar tarefa" na tela de Início para abrir o assistente guiado.'],
+                    ['titulo' => 'Concluir', 'descricao' => 'Marque como concluída diretamente da lista — 1 toque. Não precisa abrir.'],
                 ],
             ],
             [
@@ -123,7 +123,7 @@ class TutorialSeeder extends Seeder
                 'passos' => [
                     ['titulo' => 'Quando aparece esta tela', 'descricao' => 'Quando seu acesso tem mais de 1 fazenda. Você escolhe qual operar agora.'],
                     ['titulo' => 'Isolamento total', 'descricao' => 'Cada fazenda tem seus próprios animais, contas, transações. Trocar muda 100% do contexto.'],
-                    ['titulo' => 'Volta pro Hub', 'descricao' => 'Após trocar, você é levado para o Hub da nova fazenda — começa fresco, com os ícones contextuais.'],
+                    ['titulo' => 'Volta pra tela de Início', 'descricao' => 'Após trocar, você é levado para a tela de Início da nova fazenda — começa fresco, com os ícones contextuais.'],
                 ],
             ],
         ];

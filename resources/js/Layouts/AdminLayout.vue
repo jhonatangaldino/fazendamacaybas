@@ -117,7 +117,7 @@ const menu = computed(() => [
             // Início (Hub "O que você quer fazer?") — porta de entrada do sistema.
             // Sem `perm`: sempre visível pra qualquer usuário logado.
             { label: 'Início', route: 'admin.inicio', icon: 'home', perm: null },
-            { label: 'Dashboard', route: 'admin.dashboard', icon: 'dashboard', perm: 'operational.dashboard.view' },
+            { label: 'Painel', route: 'admin.dashboard', icon: 'dashboard', perm: 'operational.dashboard.view' },
         ],
     },
     {

@@ -305,7 +305,7 @@ function reiniciar() {
                         </select>
                         <button type="button" @click="abrirNovaContaInline"
                                 class="px-3 py-2 rounded-lg text-sm font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100 whitespace-nowrap"
-                                title="Criar nova conta sem sair do wizard">
+                                title="Criar nova conta sem sair deste assistente">
                             + Nova conta
                         </button>
                     </div>
@@ -318,7 +318,7 @@ function reiniciar() {
                         <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-slate-200">
                             <div class="px-5 pt-5 pb-3 border-b border-slate-100">
                                 <h3 class="text-base font-semibold text-slate-900">Nova conta financeira</h3>
-                                <p class="text-xs text-slate-500 mt-0.5">Cadastro rápido sem sair do wizard.</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Cadastro rápido sem sair do assistente.</p>
                             </div>
                             <div class="px-5 py-4 space-y-3">
                                 <div>

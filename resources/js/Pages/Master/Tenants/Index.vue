@@ -220,7 +220,7 @@ async function copyDeliveryMessage() {
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
                             <th class="px-4 py-3 text-left font-medium">Nome</th>
-                            <th class="px-4 py-3 text-left font-medium">Slug</th>
+                            <th class="px-4 py-3 text-left font-medium">Identificador</th>
                             <th class="px-4 py-3 text-left font-medium">Ativo</th>
                             <th class="px-4 py-3 text-left font-medium">Configuração</th>
                             <th class="px-4 py-3 text-left font-medium hidden md:table-cell">Criado em</th>

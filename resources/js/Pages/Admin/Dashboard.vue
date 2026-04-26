@@ -56,9 +56,9 @@ const prioridadeBadge = (p) => ({
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head title="Painel" />
     <AdminLayout>
-        <template #page-title>Dashboard</template>
+        <template #page-title>Painel</template>
 
         <PageHeader title="Visão geral" subtitle="Resumo da operação da fazenda" />
 

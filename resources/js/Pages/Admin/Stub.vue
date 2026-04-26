@@ -11,15 +11,15 @@ defineProps({ title: String, module: String, next: Array });
     <AdminLayout>
         <template #page-title>{{ title }}</template>
 
-        <PageHeader :title="title" :subtitle="`Módulo '${module}' — estrutura pronta, CRUD completo em sprint seguinte`" />
+        <PageHeader :title="title" :subtitle="`Módulo '${module}' — em construção, telas detalhadas chegam em breve`" />
 
         <div class="card max-w-3xl">
             <div class="card-body space-y-4">
                 <div class="flex items-start gap-3 rounded-lg bg-macaybas-primary-50 p-4 text-sm text-macaybas-primary-900">
                     <svg class="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div>
-                        <p class="font-semibold mb-1">Estrutura técnica já pronta</p>
-                        <p>As tabelas no banco, os models Eloquent, as permissões e a navegação já estão funcionais. As telas CRUD finais serão incrementadas em sprints seguintes.</p>
+                        <p class="font-semibold mb-1">Esta área já está prevista no sistema</p>
+                        <p>O módulo já está cadastrado e acessível. As telas detalhadas (com listas, cadastros e relatórios) serão liberadas em uma próxima atualização.</p>
                     </div>
                 </div>
 

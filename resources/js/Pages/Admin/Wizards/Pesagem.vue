@@ -183,6 +183,8 @@ function reiniciar() {
                 <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 max-h-[55vh] overflow-y-auto pr-1">
                     <button v-for="a in animaisFiltrados" :key="a.id" type="button"
                             @click="selecionado = a"
+                            data-cy="card-animal"
+                            :data-animal-id="a.id"
                             class="text-left rounded-xl border-2 p-4 transition-all hover:border-macaybas-primary hover:shadow-md"
                             :class="selecionado?.id === a.id ? 'border-macaybas-primary bg-emerald-50 shadow-md' : 'border-slate-200 bg-white'">
                         <div class="flex items-start gap-3">

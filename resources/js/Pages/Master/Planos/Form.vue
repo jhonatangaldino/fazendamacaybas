@@ -108,7 +108,8 @@ function submit() {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">
-                            Slug <span class="text-red-500">*</span>
+                            Identificador <span class="text-red-500">*</span>
+                            <span class="ml-1 text-xs font-normal text-slate-500">(usado internamente)</span>
                         </label>
                         <input
                             v-model="form.slug"

@@ -47,7 +47,7 @@ watch(() => form.nome, (novo) => {
 const slugClientError = computed(() => {
     const v = form.slug;
     if (! v) return null;
-    if (/\s/.test(v)) return 'O slug não pode ter espaços.';
+    if (/\s/.test(v)) return 'O identificador não pode ter espaços.';
     if (/[^a-z0-9-]/.test(v)) return 'Use apenas letras minúsculas, números e hífen.';
     return null;
 });
@@ -98,8 +98,8 @@ function submit() {
                         Atualize os dados de cadastro deste cliente.
                     </template>
                     <template v-else>
-                        Após criar, o cliente receberá automaticamente uma landing pública em
-                        <code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">/c/{slug}</code>.
+                        Após criar, o cliente receberá automaticamente uma página pública no endereço
+                        <code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">/c/identificador</code>.
                     </template>
                 </p>
             </div>
@@ -137,10 +137,11 @@ function submit() {
                     <p v-if="form.errors.nome" class="mt-1 text-xs text-red-600">{{ form.errors.nome }}</p>
                 </div>
 
-                <!-- Slug -->
+                <!-- Identificador (slug) -->
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">
-                        Slug (URL pública) <span class="text-red-500">*</span>
+                        Identificador da URL pública <span class="text-red-500">*</span>
+                        <span class="ml-1 text-xs font-normal text-slate-500">(letras minúsculas, números e traços)</span>
                     </label>
                     <div class="flex items-stretch">
                         <span class="inline-flex items-center px-3 rounded-l-lg bg-slate-100 text-slate-500 text-xs font-mono border border-r-0 border-slate-200">

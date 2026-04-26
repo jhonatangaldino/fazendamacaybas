@@ -24,10 +24,10 @@ const form = useForm({
 });
 
 const moduleLabels = {
-    dashboard: 'Dashboard',
+    dashboard: 'Painel',
     users: 'Usuários',
     roles: 'Perfis e permissões',
-    cms: 'CMS / Landing',
+    cms: 'Site / Landing',
     financeiro: 'Financeiro',
     rebanho: 'Rebanho',
     agricola: 'Agrícola',

@@ -25,17 +25,27 @@ const passoAtual = computed(() => tutorial.value?.passos[passoIdx.value] ?? null
 const totalPassos = computed(() => tutorial.value?.passos.length ?? 0);
 const ultimoPasso = computed(() => passoIdx.value >= totalPassos.value - 1);
 
-// B4.4 fix · NÃO exibir tutorial em rotas de form/wizard onde popup bloquearia ações.
-// Tutorial só faz sentido em hubs/listas/dashboards, não no meio de operações.
+// B4.4 fix · NÃO exibir tutorial em rotas de form/assistente onde popup bloquearia ações.
+// Tutorial só faz sentido em telas de início/listas/painel, não no meio de operações.
 function rotaPermiteTutorial(path) {
     const blacklist = ['/fluxos/', '/novo', '/editar', '/edit', '/criar', '/cadastrar'];
     return ! blacklist.some(b => path.includes(b));
+}
+
+// B4.4 fix · NÃO auto-exibir em mobile pequeno (<480px) — popup ocupa toda tela
+// e bloqueia visualização da sidebar. Usuário pode acionar manual via botão "?"
+function viewportPermiteTutorial() {
+    return window.innerWidth >= 480;
 }
 
 async function fetchTutorial() {
     if (carregando.value) return;
     const path = window.location.pathname;
     if (! rotaPermiteTutorial(path)) {
+        tutorial.value = null;
+        return;
+    }
+    if (! viewportPermiteTutorial()) {
         tutorial.value = null;
         return;
     }

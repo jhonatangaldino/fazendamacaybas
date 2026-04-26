@@ -53,7 +53,7 @@ defineProps({ kpis: Object });
                     <div class="flex-shrink-0 h-10 w-10 rounded-xl bg-red-50 ring-1 ring-red-200 flex items-center justify-center text-xl">💸</div>
                     <div class="flex-1 min-w-0">
                         <div class="font-semibold text-slate-900">Registrar despesa</div>
-                        <div class="text-xs text-slate-500">Wizard passo a passo</div>
+                        <div class="text-xs text-slate-500">Assistente passo a passo</div>
                     </div>
                 </div>
             </Link>
@@ -63,7 +63,7 @@ defineProps({ kpis: Object });
                     <div class="flex-shrink-0 h-10 w-10 rounded-xl bg-emerald-50 ring-1 ring-emerald-200 flex items-center justify-center text-xl">💰</div>
                     <div class="flex-1 min-w-0">
                         <div class="font-semibold text-slate-900">Registrar receita</div>
-                        <div class="text-xs text-slate-500">Wizard passo a passo</div>
+                        <div class="text-xs text-slate-500">Assistente passo a passo</div>
                     </div>
                 </div>
             </Link>
