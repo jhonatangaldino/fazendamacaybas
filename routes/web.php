@@ -242,6 +242,16 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
     // no rodapé do Hub.
     Route::get('/', fn () => redirect()->route('admin.inicio'));
 
+    // ═════════════════════════════════════════════════════════════════════
+    // Tutorial in-app contextual — endpoints REST consumidos pelo TutorialTour.vue
+    // ═════════════════════════════════════════════════════════════════════
+    Route::prefix('tutorials')->name('tutorials.')->group(function () {
+        Route::get('active', [\App\Http\Controllers\Admin\TutorialController::class, 'active'])->name('active');
+        Route::post('{key}/complete', [\App\Http\Controllers\Admin\TutorialController::class, 'complete'])->name('complete');
+        Route::post('{key}/dismiss', [\App\Http\Controllers\Admin\TutorialController::class, 'dismiss'])->name('dismiss');
+        Route::post('{key}/snooze', [\App\Http\Controllers\Admin\TutorialController::class, 'snooze'])->name('snooze');
+    });
+
     // Tela "acesso bloqueado por inadimplência" — whitelisted no enforce.subscription.
     // Única rota /admin acessível para tenant com subscription overdue.
     // Exibe PIX copia-e-cola das invoices em aberto do próprio tenant.

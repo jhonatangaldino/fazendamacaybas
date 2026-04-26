@@ -120,9 +120,19 @@ function reiniciar() {
 
         <WizardStepper :passos="PASSOS" :passo="passo" />
 
-        <div v-if="funcionarios.length === 0" class="max-w-2xl mx-auto card border-amber-300 bg-amber-50 p-4 mb-4">
-            <div class="font-semibold text-amber-900">Cadastre um funcionário primeiro</div>
-            <Link :href="route('admin.funcionarios.index')" class="btn-outline mt-3">Cadastrar funcionário</Link>
+        <!-- B4.4 fix · padronização de bloqueio com pattern do wizard Despesa
+             (2 CTAs estilizados: ação principal verde + secundária branca) -->
+        <div v-if="funcionarios.length === 0" class="max-w-2xl mx-auto card border-amber-300 bg-amber-50 p-5 mb-4">
+            <div class="font-semibold text-amber-900 mb-1">Você precisa cadastrar um funcionário primeiro</div>
+            <p class="text-sm text-amber-800 mb-4">Tarefas precisam ter pelo menos um responsável atribuído.</p>
+            <div class="flex flex-wrap gap-2">
+                <Link :href="route('admin.funcionarios.index') + '?abrir=novo'" class="btn-primary">
+                    + Cadastrar funcionário agora
+                </Link>
+                <Link :href="route('admin.funcionarios.index')" class="btn-outline">
+                    Gerenciar funcionários
+                </Link>
+            </div>
         </div>
 
         <template v-else>

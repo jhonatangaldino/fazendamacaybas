@@ -23,6 +23,7 @@ import { computed, ref } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import AlertBar from '@/Components/AlertBar.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import TutorialTour from '@/Components/TutorialTour.vue';
 import FlashMessages from '@/Components/FlashMessages.vue';
 import GlobalLoading from '@/Components/GlobalLoading.vue';
 import Icon from '@/Components/Icon.vue';
@@ -81,6 +82,7 @@ const menu = [
     <GlobalLoading />
     <ToastContainer />
     <ConfirmDialog />
+    <TutorialTour />
     <FlashMessages />
     <ImpersonationBanner />
 

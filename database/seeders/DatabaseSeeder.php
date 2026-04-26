@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             AnimalSpeciesSeeder::class,
             DocumentCategorySeeder::class,
+            TutorialSeeder::class,
         ]);
     }
 }

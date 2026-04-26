@@ -98,21 +98,25 @@ async function toggle(plan) {
                     </li>
                 </ul>
 
-                <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end gap-1">
+                <!-- B4.4 fix · botões com rótulo (antes eram só ícones nudos sem contexto) -->
+                <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
                     <button
                         @click="toggle(p)"
-                        :title="p.is_active ? 'Desativar' : 'Reativar'"
-                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+                        :class="p.is_active
+                            ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100'
+                            : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100'"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium"
                     >
-                        <svg v-if="p.is_active" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                        <svg v-else class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <svg v-if="p.is_active" class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                        <svg v-else class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {{ p.is_active ? 'Desativar' : 'Reativar' }}
                     </button>
                     <Link
                         :href="route('master.planos.edit', p.id)"
-                        title="Editar"
-                        class="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200"
                     >
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        Editar
                     </Link>
                 </div>
             </div>

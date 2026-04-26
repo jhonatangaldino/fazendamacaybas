@@ -6,6 +6,7 @@ import FlashMessages from '@/Components/FlashMessages.vue';
 import GlobalLoading from '@/Components/GlobalLoading.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import TutorialTour from '@/Components/TutorialTour.vue';
 import Icon from '@/Components/Icon.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
@@ -201,6 +202,7 @@ function logout() {
     <ToastContainer />
     <ImpersonationBanner />
     <ConfirmDialog />
+    <TutorialTour />
     <FlashMessages />
     <div :class="['min-h-screen flex bg-slate-50 w-full overflow-x-hidden', layoutPadTop]">
         <!-- SIDEBAR -->
