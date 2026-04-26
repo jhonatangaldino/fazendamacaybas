@@ -206,11 +206,17 @@ function logout() {
     <FlashMessages />
     <div :class="['min-h-screen flex bg-slate-50 w-full overflow-x-hidden', layoutPadTop]">
         <!-- SIDEBAR -->
+        <!-- B4.4 fix · sidebar usa flex column + flex-1 + min-h-0 + overscroll-contain
+             para que o <nav> sempre scrolle dentro do espaço disponível.
+             ANTES: max-h-[calc(100vh-4rem)] cortava itens em iOS Safari porque
+             100vh ignora a barra de URL inferior, deixando "Faturas/Usuários"
+             inacessíveis. h-screen + dvh resolve em viewports modernos. -->
         <aside
             :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', 'md:translate-x-0', impersonation ? 'top-10' : 'top-0']"
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:static md:flex-shrink-0"
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:static md:flex-shrink-0 flex flex-col h-screen md:h-auto"
+            style="height: 100dvh;"
         >
-            <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10">
+            <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10 flex-shrink-0">
                 <img v-if="siteLogo"
                      :src="`/storage/${siteLogo}`"
                      :alt="siteNome"
@@ -222,7 +228,7 @@ function logout() {
                 </div>
             </div>
 
-            <nav class="p-3 space-y-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
+            <nav class="p-3 space-y-6 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-8">
                 <div v-for="section in visibleMenu" :key="section.section">
                     <h3 class="text-xs uppercase tracking-widest text-white/40 px-3 mb-2">{{ section.section }}</h3>
                     <ul class="space-y-1">

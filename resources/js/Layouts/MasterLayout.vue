@@ -90,12 +90,15 @@ const menu = [
         <!-- SIDEBAR — mesmo padrão visual do AdminLayout (verde-escuro do brand)
              para consistência. A diferenciação semântica fica no badge MASTER
              âmbar do topbar e no item "Plataforma" abaixo da logo. -->
+        <!-- B4.4 fix · flex column + flex-1 + dvh para sidebar scrollar até o fim
+             em iOS Safari (problema reportado: itens inferiores inacessíveis em mobile) -->
         <aside
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform duration-200 lg:static lg:flex-shrink-0 lg:translate-x-0"
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform duration-200 lg:static lg:flex-shrink-0 lg:translate-x-0 flex flex-col h-screen lg:h-auto"
+            style="height: 100dvh;"
             :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', impersonation ? 'top-10' : 'top-0']"
         >
             <!-- Brand — mesmo formato do Admin (logo redonda + nome + papel) -->
-            <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10">
+            <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10 flex-shrink-0">
                 <div class="h-9 w-9 rounded-full bg-white text-macaybas-primary-900 flex items-center justify-center font-serif text-lg font-bold">M</div>
                 <div class="min-w-0">
                     <div class="text-white font-serif font-bold leading-none truncate">Plataforma</div>
@@ -106,7 +109,7 @@ const menu = [
             <!-- Menu — mesmo estilo do AdminLayout (espaços, ícones, cores).
                  Indicador de ativo: faixa lateral âmbar (cor de identidade Master) +
                  fundo translúcido. Ícones específicos por item (não mais hambúrguer). -->
-            <nav class="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-4rem)]">
+            <nav class="p-3 space-y-1 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-8">
                 <h3 class="text-xs uppercase tracking-widest text-white/40 px-3 mb-2">Plataforma</h3>
                 <template v-for="item in menu" :key="item.label">
                     <Link
