@@ -362,6 +362,7 @@ onMounted(() => {
 <template>
     <Head :title="modoNascimento ? 'Registrar nascimento' : (isEdit ? 'Editar animal' : 'Novo animal')" />
     <AdminLayout>
+        <template #page-title>{{ modoNascimento ? 'Registrar nascimento' : (isEdit ? 'Editar animal' : 'Novo animal') }}</template>
         <PageHeader
             :title="modoNascimento ? 'Registrar nascimento' : (isEdit ? 'Editar animal' : 'Novo animal')"
             :subtitle="modoNascimento ? 'Cadastre o novo animal que acabou de nascer na fazenda.' : ''"
@@ -443,6 +444,7 @@ onMounted(() => {
                     <div>
                         <InputLabel value="Espécie" />
                         <select v-model="form.species_id" class="form-select" required>
+                            <option value="">Selecione a espécie</option>
                             <option v-for="s in species" :key="s.id" :value="s.id">{{ s.nome }}</option>
                         </select>
                         <p class="text-xs text-slate-400 mt-1">Define o perfil de manejo (individual ou lote) e os campos do formulário.</p>
