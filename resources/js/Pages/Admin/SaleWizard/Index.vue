@@ -425,6 +425,7 @@ const tituloModo = computed(() => MODOS.find((m) => m.id === modo.value)?.rotulo
 <template>
     <Head title="Vender — Fluxo adaptativo" />
     <AdminLayout>
+        <template #page-title>Vender animal</template>
         <PageHeader
             title="Assistente de venda"
             subtitle="Vendendo o quê? Fala primeiro o tipo — depois a gente adapta o resto."

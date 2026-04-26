@@ -144,6 +144,7 @@ function submit() {
 <template>
     <Head :title="isEdit ? 'Editar lançamento' : 'Novo lançamento'" />
     <AdminLayout>
+        <template #page-title>{{ isEdit ? 'Editar lançamento' : 'Novo lançamento' }}</template>
         <PageHeader :title="isEdit ? 'Editar lançamento' : 'Novo lançamento'">
             <template #actions>
                 <Link :href="route('admin.financeiro.transacoes.index')" class="btn-outline">Voltar</Link>

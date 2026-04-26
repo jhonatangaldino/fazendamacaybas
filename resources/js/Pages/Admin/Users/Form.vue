@@ -41,6 +41,7 @@ function submit() {
 <template>
     <Head :title="isEdit ? `Editar usuário` : 'Novo usuário'" />
     <AdminLayout>
+        <template #page-title>{{ isEdit ? 'Editar usuário' : 'Novo usuário' }}</template>
         <PageHeader
             :title="isEdit ? 'Editar usuário' : 'Novo usuário'"
             :subtitle="isEdit ? 'Atualize as informações abaixo' : 'Cadastre um novo usuário do sistema'"

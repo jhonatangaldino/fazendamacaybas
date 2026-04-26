@@ -25,11 +25,22 @@ const passoAtual = computed(() => tutorial.value?.passos[passoIdx.value] ?? null
 const totalPassos = computed(() => tutorial.value?.passos.length ?? 0);
 const ultimoPasso = computed(() => passoIdx.value >= totalPassos.value - 1);
 
+// B4.4 fix · NÃO exibir tutorial em rotas de form/wizard onde popup bloquearia ações.
+// Tutorial só faz sentido em hubs/listas/dashboards, não no meio de operações.
+function rotaPermiteTutorial(path) {
+    const blacklist = ['/fluxos/', '/novo', '/editar', '/edit', '/criar', '/cadastrar'];
+    return ! blacklist.some(b => path.includes(b));
+}
+
 async function fetchTutorial() {
     if (carregando.value) return;
+    const path = window.location.pathname;
+    if (! rotaPermiteTutorial(path)) {
+        tutorial.value = null;
+        return;
+    }
     carregando.value = true;
     try {
-        const path = window.location.pathname;
         const resp = await fetch(`/admin/tutorials/active?rota=${encodeURIComponent(path)}`, {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
@@ -103,9 +114,11 @@ onMounted(() => {
             leave-from-class="opacity-100"
             leave-to-class="opacity-0"
         >
+            <!-- B4.4 fix · pointer-events-none no wrapper deixa cliques passarem
+                 para elementos do conteúdo. Apenas o card interno captura eventos. -->
             <div v-if="tutorial && passoAtual"
-                 class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-[420px] z-50">
-                <div class="rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 p-5">
+                 class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-[420px] z-50 pointer-events-none">
+                <div class="rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 p-5 pointer-events-auto">
                     <!-- Header com indicador de progresso + close -->
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-1.5">

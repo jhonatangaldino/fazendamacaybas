@@ -265,6 +265,7 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3',
 <template>
     <Head :title="isEdit ? 'Editar item' : 'Novo item'" />
     <AdminLayout>
+        <template #page-title>{{ isEdit ? 'Editar item' : 'Novo item de estoque' }}</template>
         <PageHeader :title="isEdit ? 'Editar item de estoque' : 'Novo item de estoque'">
             <template #actions>
                 <Link :href="route('admin.estoque.itens.index')" class="btn-outline">Voltar</Link>

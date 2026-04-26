@@ -143,6 +143,7 @@ function submit() {
 <template>
     <Head :title="isEdit ? 'Editar parceiro' : 'Novo parceiro'" />
     <AdminLayout>
+        <template #page-title>{{ isEdit ? 'Editar parceiro' : 'Novo parceiro' }}</template>
         <PageHeader :title="isEdit ? 'Editar parceiro' : 'Novo parceiro'">
             <template #actions>
                 <Link :href="route('admin.parceiros.index')" class="btn-outline">Voltar</Link>
