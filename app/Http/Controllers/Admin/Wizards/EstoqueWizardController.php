@@ -120,28 +120,85 @@ class EstoqueWizardController extends Controller
         return back()->with('success', 'Saída de estoque registrada.');
     }
 
+    /**
+     * Auditoria 2026-04-27 — recebe NOTA FISCAL MULTI-ITEM.
+     *
+     * Aceita 1 OU N itens em uma única nota. Cenário real: o produtor compra
+     * 5 produtos diferentes (ração + sal + remédio + adubo + diesel) na mesma
+     * nota do mesmo fornecedor. Antes era 1 wizard por produto = 5 contas a
+     * pagar duplicadas; agora é 1 cadastro = 1 nota = N movimentos de estoque.
+     *
+     * Backward-compat: se o payload vem com 'item_id' diretamente (formato
+     * antigo do wizard com 1 item), monta items[] de tamanho 1 transparente.
+     */
     public function storeReceber(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'item_id' => ['required', 'exists:stock_items,id'],
-            'warehouse_id' => ['required', 'exists:warehouses,id'],
-            'partner_id' => ['nullable', 'exists:partners,id'],
-            'quantidade' => ['required', 'numeric', 'gt:0'],
-            'valor_unitario' => ['nullable', 'numeric', 'min:0'],
-            'numero_documento' => ['nullable', 'string', 'max:50'],
-            'data' => ['required', 'date'],
-            'observacoes' => ['nullable', 'string'],
-        ]);
+        // Aceita formato novo (items[]) ou antigo (campos planos)
+        $isMulti = is_array($request->input('items'));
 
-        $data['tipo'] = 'entrada';
-        $data['motivo'] = 'compra';
-        $data['valor_unitario'] = $data['valor_unitario'] ?? 0;
-        $data['valor_total'] = $data['valor_unitario'] * $data['quantidade'];
-        $data['created_by'] = $request->user()->id;
+        if ($isMulti) {
+            $data = $request->validate([
+                'warehouse_id' => ['required', 'exists:warehouses,id'],
+                'partner_id' => ['nullable', 'exists:partners,id'],
+                'numero_documento' => ['nullable', 'string', 'max:50'],
+                'data' => ['required', 'date'],
+                'observacoes' => ['nullable', 'string'],
+                'items' => ['required', 'array', 'min:1', 'max:50'],
+                'items.*.item_id' => ['required', 'exists:stock_items,id'],
+                'items.*.quantidade' => ['required', 'numeric', 'gt:0'],
+                'items.*.valor_unitario' => ['nullable', 'numeric', 'min:0'],
+            ]);
+        } else {
+            // Formato antigo: 1 item, retrocompatível
+            $simples = $request->validate([
+                'item_id' => ['required', 'exists:stock_items,id'],
+                'warehouse_id' => ['required', 'exists:warehouses,id'],
+                'partner_id' => ['nullable', 'exists:partners,id'],
+                'quantidade' => ['required', 'numeric', 'gt:0'],
+                'valor_unitario' => ['nullable', 'numeric', 'min:0'],
+                'numero_documento' => ['nullable', 'string', 'max:50'],
+                'data' => ['required', 'date'],
+                'observacoes' => ['nullable', 'string'],
+            ]);
+            $data = [
+                'warehouse_id' => $simples['warehouse_id'],
+                'partner_id' => $simples['partner_id'] ?? null,
+                'numero_documento' => $simples['numero_documento'] ?? null,
+                'data' => $simples['data'],
+                'observacoes' => $simples['observacoes'] ?? null,
+                'items' => [[
+                    'item_id' => $simples['item_id'],
+                    'quantidade' => $simples['quantidade'],
+                    'valor_unitario' => $simples['valor_unitario'] ?? 0,
+                ]],
+            ];
+        }
 
-        StockMovement::create($data);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($data, $request) {
+            foreach ($data['items'] as $row) {
+                StockMovement::create([
+                    'item_id' => $row['item_id'],
+                    'warehouse_id' => $data['warehouse_id'],
+                    'partner_id' => $data['partner_id'] ?? null,
+                    'numero_documento' => $data['numero_documento'] ?? null,
+                    'data' => $data['data'],
+                    'observacoes' => $data['observacoes'] ?? null,
+                    'tipo' => 'entrada',
+                    'motivo' => 'compra',
+                    'quantidade' => $row['quantidade'],
+                    'valor_unitario' => $row['valor_unitario'] ?? 0,
+                    'valor_total' => ($row['valor_unitario'] ?? 0) * $row['quantidade'],
+                    'created_by' => $request->user()->id,
+                ]);
+            }
+        });
 
-        return back()->with('success', 'Mercadoria recebida.');
+        $qtdItens = count($data['items']);
+        $msg = $qtdItens === 1
+            ? 'Mercadoria recebida.'
+            : "Nota fiscal recebida com {$qtdItens} itens.";
+
+        return back()->with('success', $msg);
     }
 
     public function storeAjustar(Request $request): RedirectResponse
