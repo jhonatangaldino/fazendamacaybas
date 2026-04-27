@@ -37,10 +37,12 @@ class RoleController extends Controller
             ->groupBy('module')
             ->map(fn ($group, $module) => [
                 'module' => $module ?: 'geral',
+                'module_label' => \App\Support\PermissionLabels::moduleName($module ?: 'geral'),
                 'items' => $group->map(fn (Permission $p) => [
                     'id' => $p->id,
                     'name' => $p->name,
-                    'description' => $p->description,
+                    'label' => \App\Support\PermissionLabels::label($p->name),
+                    'description' => $p->description ?: \App\Support\PermissionLabels::description($p->name),
                 ])->values(),
             ])->values();
 

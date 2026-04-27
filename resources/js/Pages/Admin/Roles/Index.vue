@@ -140,29 +140,33 @@ const isSystemEditing = computed(() => {
 
                 <div>
                     <label class="form-label">Permissões</label>
-                    <p class="form-help mb-3">Escolha quais ações este perfil pode executar.</p>
+                    <p class="form-help mb-3">
+                        Escolha quais ações este perfil pode executar.
+                        Marque o cabeçalho do módulo para conceder/revogar TUDO daquela área de uma vez.
+                    </p>
                     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         <div v-for="mod in permissions" :key="mod.module"
                              class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                            <label class="flex items-center gap-2 font-semibold text-sm text-slate-800 mb-2 pb-2 border-b border-slate-200">
+                            <label class="flex items-center gap-2 font-semibold text-sm text-slate-800 mb-3 pb-2 border-b border-slate-200 cursor-pointer">
                                 <input type="checkbox"
                                        :checked="allChecked(mod)"
                                        :indeterminate.prop="someChecked(mod)"
                                        @change="toggleAll(mod, $event.target.checked)"
                                        :disabled="isAdminMaster"
                                        class="rounded">
-                                {{ moduleLabels[mod.module] ?? mod.module }}
+                                {{ mod.module_label || moduleLabels[mod.module] || mod.module }}
                             </label>
                             <div class="space-y-1.5">
                                 <label v-for="p in mod.items" :key="p.id"
-                                       class="flex items-start gap-2 text-xs text-slate-700 cursor-pointer hover:text-slate-900">
+                                       class="flex items-start gap-2 text-sm text-slate-700 cursor-pointer hover:bg-white hover:text-slate-900 rounded px-1 py-0.5"
+                                       :title="p.description || p.name">
                                     <input type="checkbox" :value="p.name"
                                            v-model="form.permissions"
                                            :disabled="isAdminMaster"
-                                           class="mt-0.5 rounded">
+                                           class="mt-1 rounded flex-shrink-0">
                                     <span class="flex-1 min-w-0">
-                                        <span class="font-mono text-[11px]">{{ p.name }}</span>
-                                        <span v-if="p.description" class="block text-slate-500 text-[11px]">{{ p.description }}</span>
+                                        <span class="block">{{ p.label }}</span>
+                                        <span v-if="p.description" class="block text-xs text-slate-500 mt-0.5">{{ p.description }}</span>
                                     </span>
                                 </label>
                             </div>

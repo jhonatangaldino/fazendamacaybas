@@ -19,6 +19,19 @@ const props = defineProps({
 
 const usersLocal = ref([...props.users]);
 
+// Filtro client-side de busca (sem ida ao backend porque a lista do tenant
+// é pequena por natureza — dezenas de usuários, não centenas).
+const searchTerm = ref('');
+const usersFiltrados = computed(() => {
+    const v = (searchTerm.value || '').trim().toLowerCase();
+    if (v.length < 3) return usersLocal.value;
+    return usersLocal.value.filter(u =>
+        (u.name || '').toLowerCase().includes(v)
+        || (u.email || '').toLowerCase().includes(v)
+        || (u.roles || []).some(r => (r || '').toLowerCase().includes(v))
+    );
+});
+
 // Resultado do último usuário criado — senha temporária aparece UMA vez
 const novoCriado = ref(null);
 
@@ -158,12 +171,36 @@ function doToggle() {
             </div>
         </div>
 
-        <!-- Toolbar com botão "Novo usuário" -->
-        <div class="mb-4 flex justify-end">
-            <button type="button" @click="novoUser.abrir()" class="btn-primary">
+        <!-- Toolbar: busca + Novo usuário -->
+        <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="relative w-full sm:max-w-md">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input
+                    v-model="searchTerm"
+                    type="search"
+                    placeholder="Buscar por nome, e-mail ou papel (3+ caracteres)"
+                    class="w-full pl-10 pr-10 py-2 rounded-lg ring-1 ring-slate-200 bg-white text-sm focus:ring-2 focus:ring-macaybas-primary-500 focus:outline-none"
+                >
+                <button
+                    v-if="searchTerm"
+                    type="button"
+                    @click="searchTerm = ''"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm"
+                    title="Limpar busca"
+                >✕</button>
+            </div>
+            <button type="button" @click="novoUser.abrir()" class="btn-primary whitespace-nowrap">
                 + Novo usuário
             </button>
         </div>
+        <p v-if="searchTerm && searchTerm.length > 0 && searchTerm.length < 3" class="-mt-2 mb-3 text-xs text-slate-500">
+            Digite mais {{ 3 - searchTerm.length }} {{ (3 - searchTerm.length) === 1 ? 'caractere' : 'caracteres' }} para filtrar
+        </p>
+        <p v-else-if="searchTerm" class="-mt-2 mb-3 text-xs text-slate-500">
+            Mostrando {{ usersFiltrados.length }} de {{ usersLocal.length }} usuário{{ usersLocal.length === 1 ? '' : 's' }}
+        </p>
 
         <!-- Lista -->
         <div class="card">
@@ -184,7 +221,12 @@ function doToggle() {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        <tr v-for="u in usersLocal" :key="u.id" :class="!u.is_active ? 'opacity-50' : ''">
+                        <tr v-if="!usersFiltrados.length && searchTerm">
+                            <td colspan="7" class="text-center py-8 text-slate-500 text-sm">
+                                Nenhum usuário encontrado para "{{ searchTerm }}"
+                            </td>
+                        </tr>
+                        <tr v-for="u in usersFiltrados" :key="u.id" :class="!u.is_active ? 'opacity-50' : ''">
                             <td class="font-medium">{{ u.name }}</td>
                             <td class="font-mono text-xs">{{ u.email }}</td>
                             <td>
