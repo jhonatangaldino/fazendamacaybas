@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import Icon from '@/Components/Icon.vue';
@@ -10,9 +10,33 @@ import OverflowMenuDivider from '@/Components/OverflowMenuDivider.vue';
 import { useToast } from '@/composables/useToast.js';
 import { useConfirm } from '@/composables/useConfirm.js';
 
-defineProps({
+const props = defineProps({
     tenants: { type: Array, default: () => [] },
+    filters: { type: Object, default: () => ({ search: '' }) },
 });
+
+// Filtro de busca — auto-pesquisa a partir de 3 caracteres digitados.
+// Debounce de 350ms evita disparar 1 request por tecla.
+const searchTerm = ref(props.filters?.search ?? '');
+let searchTimer = null;
+
+watch(searchTerm, (val) => {
+    clearTimeout(searchTimer);
+    const v = (val ?? '').trim();
+    // Se < 3 chars E não está limpando um filtro ativo, ignora
+    if (v.length > 0 && v.length < 3) return;
+    searchTimer = setTimeout(() => {
+        router.get(route('master.tenants.index'), v ? { search: v } : {}, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    }, 350);
+});
+
+function limparBusca() {
+    searchTerm.value = '';
+}
 
 const { toast } = useToast();
 const { confirm } = useConfirm();
@@ -46,6 +70,33 @@ async function toggle(tenant) {
     if (! ok) return;
 
     router.post(route('master.tenants.toggle', tenant.id), {}, {
+        preserveScroll: true,
+    });
+}
+
+async function toggleMaster(tenant) {
+    if (tenant.is_master_tenant) {
+        const ok = await confirm({
+            title: `Desmarcar ${tenant.nome} como Master?`,
+            message: `O cliente NÃO será mais o "master" da plataforma. A landing pública (fazendamacaybas.com.br) pode parar de renderizar até você marcar outro cliente como master.`,
+            confirmText: 'Desmarcar',
+            cancelText: 'Cancelar',
+            variant: 'danger',
+            icon: 'warning',
+        });
+        if (! ok) return;
+    } else {
+        const ok = await confirm({
+            title: `Tornar ${tenant.nome} o Master?`,
+            message: `Este cliente passará a ser o "master" da plataforma. A landing pública de fazendamacaybas.com.br renderizará o CMS deste cliente. Apenas 1 cliente pode ser master — se houver outro, será desmarcado automaticamente.`,
+            confirmText: 'Tornar Master',
+            cancelText: 'Cancelar',
+            variant: 'primary',
+            icon: 'question',
+        });
+        if (! ok) return;
+    }
+    router.post(route('master.tenants.toggle-master', tenant.id), {}, {
         preserveScroll: true,
     });
 }
@@ -204,6 +255,34 @@ async function copyDeliveryMessage() {
             </Link>
         </div>
 
+        <!-- Filtro de busca · auto-search a partir de 3 caracteres -->
+        <div class="mb-4 max-w-md">
+            <div class="relative">
+                <Icon name="search" :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                    v-model="searchTerm"
+                    type="search"
+                    placeholder="Buscar cliente por nome, identificador ou e-mail (digite 3+ caracteres)"
+                    class="w-full pl-10 pr-10 py-2.5 rounded-lg ring-1 ring-slate-200 bg-white text-sm focus:ring-2 focus:ring-macaybas-primary-500 focus:outline-none"
+                >
+                <button
+                    v-if="searchTerm"
+                    type="button"
+                    @click="limparBusca"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    title="Limpar busca"
+                >
+                    ✕
+                </button>
+            </div>
+            <p v-if="searchTerm && searchTerm.length > 0 && searchTerm.length < 3" class="mt-1 text-xs text-slate-500">
+                Digite mais {{ 3 - searchTerm.length }} {{ (3 - searchTerm.length) === 1 ? 'caractere' : 'caracteres' }} para buscar
+            </p>
+            <p v-else-if="filters?.search" class="mt-1 text-xs text-slate-500">
+                Mostrando resultados para <strong>"{{ filters.search }}"</strong> · {{ tenants.length }} {{ tenants.length === 1 ? 'cliente' : 'clientes' }}
+            </p>
+        </div>
+
         <!-- Listagem vazia -->
         <div v-if="tenants.length === 0" class="rounded-2xl bg-white ring-1 ring-slate-200 p-10 text-center">
             <div class="h-12 w-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
@@ -228,9 +307,18 @@ async function copyDeliveryMessage() {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        <tr v-for="t in tenants" :key="t.id" class="hover:bg-slate-50/60">
+                        <tr v-for="t in tenants" :key="t.id" class="hover:bg-slate-50/60" :class="t.is_master_tenant ? 'bg-amber-50/40' : ''">
                             <td class="px-4 py-3">
-                                <div class="font-medium text-slate-900">{{ t.nome }}</div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-slate-900">{{ t.nome }}</span>
+                                    <span
+                                        v-if="t.is_master_tenant"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-white"
+                                        title="Cliente master da plataforma — sua landing pública renderiza no domínio raiz"
+                                    >
+                                        ⭐ Master
+                                    </span>
+                                </div>
                                 <div class="text-xs text-slate-500 md:hidden">{{ t.created_at }}</div>
                             </td>
                             <td class="px-4 py-3">
@@ -337,6 +425,14 @@ async function copyDeliveryMessage() {
                                             Mensagem de entrega
                                         </OverflowMenuItem>
                                         <OverflowMenuDivider />
+                                        <OverflowMenuItem
+                                            icon="star"
+                                            :success="! t.is_master_tenant"
+                                            :danger="t.is_master_tenant"
+                                            @click="toggleMaster(t)"
+                                        >
+                                            {{ t.is_master_tenant ? 'Desmarcar como Master' : 'Tornar este o Master' }}
+                                        </OverflowMenuItem>
                                         <OverflowMenuItem
                                             :icon="t.is_active ? 'power' : 'check-circle'"
                                             :danger="t.is_active"

@@ -108,6 +108,8 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
     Route::get('tenants/{tenant}/editar', [TenantController::class, 'edit'])->name('tenants.edit');
     Route::put('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
     Route::post('tenants/{tenant}/toggle', [TenantController::class, 'toggle'])->name('tenants.toggle');
+    // Marcar/desmarcar como tenant master único da plataforma (constraint unique no banco)
+    Route::post('tenants/{tenant}/toggle-master', [TenantController::class, 'toggleMaster'])->name('tenants.toggle-master');
 
     // Gestão de usuários do tenant pelo master — valor operacional: liga
     // cliente reclamando de senha, master reseta direto sem impersonar.

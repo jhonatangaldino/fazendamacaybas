@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Hash;
  *
  * Ações:
  *   1. Cria o tenant com is_master_tenant=true
- *   2. Atribui plano (default: profissional, ou --plan=slug)
+ *   2. Atribui plano (default: essencial, ou --plan=slug)
  *   3. Cria farm dentro do tenant
  *   4. Cria user dono com role 'dono_fazenda'
  *   5. Inicializa páginas CMS default (clone da landing template)
@@ -42,7 +42,7 @@ class CreateMasterTenant extends Command
         {--owner-email=}
         {--owner-nome=}
         {--owner-senha=}
-        {--plan=profissional}
+        {--plan=essencial}
         {--force}';
 
     protected $description = 'Cria o tenant master "Fazenda Macaybas" + dono';

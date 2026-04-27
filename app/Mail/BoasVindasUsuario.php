@@ -42,7 +42,7 @@ class BoasVindasUsuario extends Mailable
                 'senha' => $this->senhaTemporaria,
                 'expira_em' => $this->user->password_expires_at?->setTimezone('America/Sao_Paulo')
                     ?->format('d/m/Y \à\s H:i') ?? '2 horas',
-                'urlLogin' => url('/login'),
+                'urlLogin' => $this->user->loginUrl(),
             ],
         );
     }

@@ -69,6 +69,54 @@ class User extends Authenticatable
     }
 
     /**
+     * URL de login específica para este usuário, baseada no contexto:
+     *
+     *   Master admin (tenant_id NULL)   → https://app.{host}/login
+     *   User do tenant master           → https://{host}/login         (raiz)
+     *   User de tenant comum
+     *     com domínio próprio           → https://{primeiro-dominio}/login
+     *     sem domínio próprio           → https://app.{host}/c/{slug}/login
+     *
+     * Usado em emails (Mailables) e em qualquer lugar que precisar gerar
+     * um link absoluto correto para o user. Em desenvolvimento (APP_URL
+     * apontando para localhost), retorna sempre /login da raiz.
+     */
+    public function loginUrl(): string
+    {
+        $appUrl = rtrim((string) config('app.url'), '/');
+        $host = parse_url($appUrl, PHP_URL_HOST);
+        if (! $host) return $appUrl . '/login';
+
+        // Dev/local: APP_URL com localhost ou IP → não tem subdomínio app.*
+        if ($host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)) {
+            return $appUrl . '/login';
+        }
+
+        // Master admin (sem tenant)
+        if ($this->tenant_id === null) {
+            return 'https://app.' . $host . '/login';
+        }
+
+        // Carrega tenant relacionado (sem N+1 caso já esteja eager-loaded)
+        $tenant = $this->relationLoaded('tenant') ? $this->tenant : $this->tenant()->first();
+        if (! $tenant) return $appUrl . '/login';
+
+        // User do tenant master → raiz
+        if ($tenant->is_master_tenant) {
+            return 'https://' . $host . '/login';
+        }
+
+        // Tenant comum com domínio próprio configurado
+        $domains = is_array($tenant->domains) ? $tenant->domains : [];
+        if (! empty($domains[0])) {
+            return 'https://' . trim($domains[0]) . '/login';
+        }
+
+        // Tenant comum sem domínio próprio → /c/{slug} no app.*
+        return 'https://app.' . $host . '/c/' . $tenant->slug . '/login';
+    }
+
+    /**
      * Senha temporária está expirada?
      * Usado pelo LoginRequest e pelo TemporaryPasswordService para decidir
      * regeneração automática.

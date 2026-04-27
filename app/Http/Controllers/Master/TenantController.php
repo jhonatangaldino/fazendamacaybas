@@ -41,12 +41,21 @@ class TenantController extends Controller
      * Não pagina em M3 — lista total deve caber numa tela até atingirmos
      * dezenas de tenants; paginação entra quando isso virar realidade.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        // Filtro de busca — ativa a partir de 3 caracteres digitados
+        $search = trim((string) $request->query('search', ''));
+
         $tenants = Tenant::query()
+            ->when(strlen($search) >= 3, fn ($q) => $q->where(function ($w) use ($search) {
+                $w->where('nome', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            }))
+            ->orderByDesc('is_master_tenant') // master tenant SEMPRE no topo
             ->orderByDesc('is_active')
             ->orderBy('nome')
-            ->get(['id', 'nome', 'slug', 'is_active', 'created_at', 'updated_at']);
+            ->get(['id', 'nome', 'slug', 'is_active', 'is_master_tenant', 'created_at', 'updated_at']);
 
         // Status "pronto para uso" por tenant: tem mapa (qualquer dos 4 campos
         // landing.map.*) OU site.descricao configurado como OVERRIDE do
@@ -75,12 +84,43 @@ class TenantController extends Controller
                 'nome' => $t->nome,
                 'slug' => $t->slug,
                 'is_active' => (bool) $t->is_active,
+                'is_master_tenant' => (bool) $t->is_master_tenant,
                 'is_ready' => isset($readyTenantIds[$t->id]),
                 'landing_url' => url('/c/' . $t->slug),
                 'created_at' => $t->created_at?->format('d/m/Y H:i'),
                 'updated_at' => $t->updated_at?->format('d/m/Y H:i'),
             ])->values(),
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
+    }
+
+    /**
+     * Marca/desmarca tenant como master único da plataforma.
+     * Constraint do banco garante que só 1 tenant tem is_master_tenant=true;
+     * se houver outro, é desmarcado dentro da mesma transação.
+     */
+    public function toggleMaster(Tenant $tenant): RedirectResponse
+    {
+        if ($tenant->is_master_tenant) {
+            // Desmarcar — sistema fica SEM master, landing pública pode quebrar.
+            // Aceitar mas avisar.
+            $tenant->update(['is_master_tenant' => false]);
+            Tenant::clearMasterCache();
+            return back()->with('warning', "Cliente \"{$tenant->nome}\" não é mais o master. A landing pública (fazendamacaybas.com.br) pode parar de funcionar até outro cliente ser marcado como master.");
+        }
+
+        // Marcar — desmarca o anterior atomicamente
+        DB::transaction(function () use ($tenant) {
+            Tenant::where('is_master_tenant', true)
+                ->where('id', '!=', $tenant->id)
+                ->update(['is_master_tenant' => false]);
+            $tenant->update(['is_master_tenant' => true]);
+        });
+        Tenant::clearMasterCache();
+
+        return back()->with('success', "Cliente \"{$tenant->nome}\" agora é o MASTER da plataforma. A landing pública renderizará o CMS deste cliente.");
     }
 
     /**
