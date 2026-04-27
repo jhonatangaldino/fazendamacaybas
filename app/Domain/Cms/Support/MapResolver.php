@@ -51,16 +51,14 @@ class MapResolver
             $latNum = (float) str_replace(',', '.', $lat);
             $lngNum = (float) str_replace(',', '.', $lng);
 
-            // Sintaxe `q=lat,lng (Label)` faz o Google Maps exibir o nome do
-            // local como rótulo do pin no embed (sem precisar de API key paga).
-            // Encoda parênteses pra não confundir o parser de URL.
-            $q = "{$latNum},{$lngNum}";
-            if ($nomeLocal !== '') {
-                $q .= ' (' . $nomeLocal . ')';
-            }
-
+            // Pin no ponto EXATO que o master cadastrou — sem label no pin.
+            // Tentamos antes a sintaxe `q=lat,lng (Label)` mas Google fazia
+            // snap pro place registrado mais próximo (que pode estar a
+            // ~280m das coords do master), gerando pino fora do ponto. O nome
+            // do tenant aparece no card de contato ao lado do mapa, então
+            // não precisa de label no pin.
             return [
-                'iframe_src' => 'https://maps.google.com/maps?q=' . rawurlencode($q) . '&z=16&hl=pt-BR&output=embed',
+                'iframe_src' => "https://maps.google.com/maps?q={$latNum},{$lngNum}&z=16&hl=pt-BR&output=embed",
                 'nome_local' => $nomeLocal ?: null,
             ];
         }
