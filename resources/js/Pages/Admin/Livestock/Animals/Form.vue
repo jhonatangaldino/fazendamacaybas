@@ -557,7 +557,7 @@ onMounted(() => {
                         <div class="form-input bg-slate-50 text-slate-700 font-mono flex items-center justify-between">
                             <span v-if="animal?.peso_atual">{{ Number(animal.peso_atual).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }} kg</span>
                             <span v-else class="text-slate-400">Sem pesagem</span>
-                            <Link :href="route('admin.rebanho.animais.show', animal.id)" class="text-xs text-macaybas-primary hover:underline">Ver histórico →</Link>
+                            <Link :href="route('admin.rebanho.animais.show', animal.id)" class="inline-flex items-center min-h-9 px-3 py-2 text-xs text-macaybas-primary hover:bg-macaybas-primary-50 rounded-md font-medium">Ver histórico →</Link>
                         </div>
                         <p class="text-xs text-slate-400 mt-1">Derivado da última pesagem — não é editável aqui.</p>
                     </div>

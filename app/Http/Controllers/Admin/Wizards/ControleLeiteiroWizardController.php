@@ -38,7 +38,7 @@ class ControleLeiteiroWizardController extends Controller
         // realidade da produção (litros > 0) já filtra naturalmente.
         $vacas = Animal::ativos()
             ->where('sexo', 'F')
-            ->whereHas('species', fn ($q) => $q->where('slug', 'bovino')->orWhere('slug', 'bovino-leite'))
+            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->whereIn('slug', ['bovino', 'bovino-leite']))
             ->with(['species:id,nome,slug', 'breed:id,nome', 'lot:id,nome'])
             ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'breed_id', 'lot_id', 'data_nascimento')
             ->orderBy('identificacao')

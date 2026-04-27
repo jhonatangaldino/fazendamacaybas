@@ -128,8 +128,8 @@ function comparacao(linha) {
 
             <!-- Lista de vacas -->
             <div v-if="linhas.length === 0" class="rounded-xl bg-amber-50 ring-1 ring-amber-200 p-6 text-center">
-                <p class="text-amber-900">Nenhuma vaca em lactação encontrada.</p>
-                <p class="mt-1 text-xs text-amber-700">São fêmeas bovinas com ≥24 meses, ativas, ainda não secas.</p>
+                <p class="text-amber-900">Nenhuma vaca encontrada.</p>
+                <p class="mt-1 text-xs text-amber-700">Cadastre fêmeas bovinas no rebanho para começar a registrar produção.</p>
             </div>
 
             <div v-else class="space-y-3">

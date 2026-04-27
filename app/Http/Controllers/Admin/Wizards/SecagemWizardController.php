@@ -27,7 +27,7 @@ class SecagemWizardController extends Controller
         // Mostra TODAS as vacas (fêmeas bovinas ativas) — sem filtro de idade.
         $vacas = Animal::ativos()
             ->where('sexo', 'F')
-            ->whereHas('species', fn ($q) => $q->where('slug', 'bovino')->orWhere('slug', 'bovino-leite'))
+            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->whereIn('slug', ['bovino', 'bovino-leite']))
             ->with(['lot:id,nome'])
             ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'lot_id', 'data_nascimento')
             ->orderBy('identificacao')
