@@ -175,14 +175,14 @@ function submit() {
 
         <!-- Cabeçalho -->
         <div class="flex items-start justify-between gap-4 mb-6">
-            <div>
-                <div class="flex items-center gap-3">
-                    <h2 class="text-xl font-serif font-bold text-slate-900">
+            <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <h2 class="text-lg sm:text-xl font-serif font-bold text-slate-900 break-words">
                         {{ isEdit ? `Editar "${tenant.nome}"` : 'Cadastrar novo cliente' }}
                     </h2>
                     <span
                         v-if="isMaster"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider bg-amber-500 text-white shadow-sm"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-white shadow-sm"
                         title="Este é o cliente master da plataforma — sua landing pública renderiza no domínio raiz"
                     >
                         ⭐ Cliente Master
@@ -217,14 +217,14 @@ function submit() {
                         Apenas 1 cliente pode ser master por vez. O master controla a landing pública institucional
                         e tem domínios reservados que são gerenciados automaticamente pelo sistema:
                     </p>
-                    <ul class="space-y-1.5 text-amber-900">
-                        <li class="flex items-center gap-2">
-                            <span class="font-mono bg-white px-2 py-0.5 rounded ring-1 ring-amber-300">{{ hostRaiz }}</span>
-                            <span class="text-xs">— landing pública (CMS deste cliente)</span>
+                    <ul class="space-y-2 text-amber-900">
+                        <li class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <span class="font-mono text-xs bg-white px-2 py-0.5 rounded ring-1 ring-amber-300 break-all w-fit">{{ hostRaiz }}</span>
+                            <span class="text-xs">landing pública (CMS deste cliente)</span>
                         </li>
-                        <li class="flex items-center gap-2">
-                            <span class="font-mono bg-white px-2 py-0.5 rounded ring-1 ring-amber-300">{{ hostApp }}</span>
-                            <span class="text-xs">— ERP completo (login + admin + master)</span>
+                        <li class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <span class="font-mono text-xs bg-white px-2 py-0.5 rounded ring-1 ring-amber-300 break-all w-fit">{{ hostApp }}</span>
+                            <span class="text-xs">ERP completo (login + admin + master)</span>
                         </li>
                     </ul>
                     <p class="mt-3 text-xs text-amber-700">

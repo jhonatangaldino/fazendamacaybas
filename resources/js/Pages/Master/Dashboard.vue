@@ -89,7 +89,7 @@ function brl(v) {
                 <div class="lg:col-span-2 rounded-xl bg-white ring-1 ring-slate-200 p-5">
                     <div class="flex items-center justify-between mb-4">
                         <div class="text-xs uppercase tracking-wider font-semibold text-slate-500">Últimos clientes cadastrados</div>
-                        <Link :href="route('master.tenants.index')" class="text-xs text-slate-500 hover:underline">Ver todos</Link>
+                        <Link :href="route('master.tenants.index')" class="inline-flex items-center px-3 py-2 min-h-[36px] text-xs font-medium text-slate-700 rounded-md hover:bg-slate-100">Ver todos →</Link>
                     </div>
                     <div v-if="ultimosTenants.length === 0" class="text-sm text-slate-500 py-6 text-center">
                         Nenhum cliente cadastrado ainda. <Link :href="route('master.tenants.create')" class="text-emerald-700 hover:underline">Cadastrar o primeiro</Link>.
@@ -100,7 +100,7 @@ function brl(v) {
                                 {{ t.nome.charAt(0).toUpperCase() }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <Link :href="route('master.tenants.edit', t.id)" class="font-medium text-slate-900 hover:underline truncate block">
+                                <Link :href="route('master.tenants.edit', t.id)" class="block py-1 font-medium text-slate-900 hover:underline truncate">
                                     {{ t.nome }}
                                 </Link>
                                 <div class="text-xs text-slate-500 font-mono">{{ t.slug }}</div>

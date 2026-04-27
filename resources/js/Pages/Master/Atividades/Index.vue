@@ -122,7 +122,7 @@ function eventBadge(ev) {
             </div>
             <div class="mt-3 flex items-center justify-between">
                 <span class="text-xs text-slate-500">Total filtrado: <strong>{{ atividades.total }}</strong></span>
-                <button @click="limparFiltros" class="text-xs text-slate-700 hover:underline">Limpar filtros</button>
+                <button @click="limparFiltros" class="inline-flex items-center px-3 py-2 min-h-[40px] text-xs font-medium text-slate-700 rounded-lg ring-1 ring-slate-200 hover:bg-slate-50">Limpar filtros</button>
             </div>
         </div>
 
@@ -164,7 +164,7 @@ function eventBadge(ev) {
                                 <div v-if="a.description" class="text-xs text-slate-500 mt-0.5">{{ a.description }}</div>
                             </td>
                             <td class="px-4 py-2.5 text-right">
-                                <Link :href="route('master.atividades.show', a.id)" class="text-xs text-emerald-700 hover:underline">Detalhes →</Link>
+                                <Link :href="route('master.atividades.show', a.id)" class="inline-flex items-center px-3 py-2 min-h-[36px] text-xs font-semibold text-emerald-700 rounded-md hover:bg-emerald-50">Detalhes →</Link>
                             </td>
                         </tr>
                         <tr v-if="!atividades.data.length">
@@ -196,7 +196,7 @@ function eventBadge(ev) {
                         <span class="font-mono">{{ a.subject_type }}{{ a.subject_id ? '#' + a.subject_id : '' }}</span>
                     </div>
                     <div v-if="a.description" class="text-xs text-slate-500">{{ a.description }}</div>
-                    <Link :href="route('master.atividades.show', a.id)" class="text-xs text-emerald-700 hover:underline">Detalhes →</Link>
+                    <Link :href="route('master.atividades.show', a.id)" class="inline-flex items-center px-3 py-2 min-h-[40px] text-xs font-semibold text-emerald-700 rounded-md ring-1 ring-emerald-100 hover:bg-emerald-50">Detalhes →</Link>
                 </div>
                 <div v-if="!atividades.data.length" class="p-12 text-center text-sm text-slate-500">
                     Nenhuma atividade encontrada.
