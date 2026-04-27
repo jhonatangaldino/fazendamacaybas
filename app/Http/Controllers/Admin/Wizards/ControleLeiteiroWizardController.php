@@ -78,6 +78,7 @@ class ControleLeiteiroWizardController extends Controller
             'vacas.*.animal_id' => ['required', 'exists:animals,id'],
             'vacas.*.ordenhas' => ['required', 'array', 'min:1', 'max:6'],
             'vacas.*.ordenhas.*.label' => ['required', 'string', 'max:20'],
+            'vacas.*.ordenhas.*.hora' => ['nullable', 'string', 'max:5'], // formato HH:MM
             'vacas.*.ordenhas.*.litros' => ['required', 'numeric', 'min:0', 'max:99.99'],
         ]);
 
@@ -85,8 +86,14 @@ class ControleLeiteiroWizardController extends Controller
         DB::transaction(function () use ($validated, $request, &$count) {
             foreach ($validated['vacas'] as $vaca) {
                 // Filtra ordenhas com 0 litros (vaca não foi ordenhada nessa)
+                // Mantém label + hora + litros no JSON
                 $ordenhas = collect($vaca['ordenhas'])
                     ->filter(fn ($o) => (float) $o['litros'] > 0)
+                    ->map(fn ($o) => [
+                        'label' => $o['label'],
+                        'hora' => $o['hora'] ?? null,
+                        'litros' => (float) $o['litros'],
+                    ])
                     ->values()
                     ->all();
 

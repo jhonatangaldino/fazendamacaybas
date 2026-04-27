@@ -321,7 +321,7 @@ function logout() {
                         <div v-else class="h-8 w-8 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center text-sm font-semibold">
                             {{ user?.name?.[0]?.toUpperCase() }}
                         </div>
-                        <span class="text-sm font-medium text-slate-700 hidden xl:block max-w-[140px] truncate whitespace-nowrap">{{ user?.name }}</span>
+                        <span class="text-sm font-medium text-slate-700 hidden xl:block whitespace-nowrap">{{ (user?.name || '').split(' ')[0] }}</span>
                         <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
 
