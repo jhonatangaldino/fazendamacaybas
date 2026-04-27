@@ -246,6 +246,8 @@ class TenantController extends Controller
                 'cidade' => $tenant->cidade,
                 'estado' => $tenant->estado,
                 'is_active' => (bool) $tenant->is_active,
+                'is_master_tenant' => (bool) $tenant->is_master_tenant,
+                'domains' => $tenant->domains ?? [],
             ],
         ]);
     }
@@ -422,13 +424,13 @@ class TenantController extends Controller
      */
     private function validatePayload(Request $request, ?Tenant $tenant = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'nome' => ['required', 'string', 'max:255'],
             'slug' => [
                 'required',
                 'string',
                 'max:120',
-                'alpha_dash', // a-z0-9_- (Str::slug normaliza acentos depois)
+                'alpha_dash',
                 Rule::unique('tenants', 'slug')->ignore($tenant?->id),
             ],
             'email' => ['nullable', 'email', 'max:150'],
@@ -436,6 +438,18 @@ class TenantController extends Controller
             'cidade' => ['nullable', 'string', 'max:100'],
             'estado' => ['nullable', 'string', 'size:2'],
             'is_active' => ['sometimes', 'boolean'],
+            // Domínios próprios (whitelabel). Lista de hosts aceitos pelo middleware
+            // RouteByHost. Cada item: domínio sem protocolo nem path.
+            'domains' => ['nullable', 'array', 'max:10'],
+            'domains.*' => [
+                'string',
+                'max:200',
+                'regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i',
+                'not_regex:/^https?:\/\//i',
+                'not_regex:/\//',
+                // Não pode ser sub/super domínio reservado da plataforma
+                'not_in:fazendamacaybas.com.br,app.fazendamacaybas.com.br,www.fazendamacaybas.com.br',
+            ],
         ], [
             'nome.required' => 'Informe o nome do cliente.',
             'slug.required' => 'Informe o slug.',
@@ -443,7 +457,38 @@ class TenantController extends Controller
             'slug.unique' => 'Já existe um cliente com esse slug.',
             'email.email' => 'E-mail inválido.',
             'estado.size' => 'UF deve ter 2 letras (ex.: MG).',
+            'domains.*.regex' => 'Domínio inválido (informe apenas o host, sem http:// nem caminho).',
+            'domains.*.not_regex' => 'Não inclua protocolo nem caminho — apenas o domínio.',
+            'domains.*.not_in' => 'Domínio reservado da plataforma — não pode ser usado por cliente.',
         ]);
+
+        // Normaliza domínios: lowercase, trim, remove duplicatas, descarta vazios.
+        if (isset($validated['domains']) && is_array($validated['domains'])) {
+            $validated['domains'] = array_values(array_unique(array_filter(
+                array_map(fn ($d) => strtolower(trim((string) $d)), $validated['domains'])
+            )));
+            // Se array vazio, salva como NULL (mais limpo que [])
+            if (empty($validated['domains'])) {
+                $validated['domains'] = null;
+            } else {
+                // Verifica se algum domínio já está em outro tenant
+                $emUso = Tenant::query()
+                    ->when($tenant, fn ($q) => $q->where('id', '!=', $tenant->id))
+                    ->whereNotNull('domains')
+                    ->get(['id', 'nome', 'domains'])
+                    ->flatMap(fn ($t) => array_map(fn ($d) => ['tenant' => $t->nome, 'domain' => $d], $t->domains ?? []))
+                    ->filter(fn ($r) => in_array($r['domain'], $validated['domains'], true));
+
+                if ($emUso->isNotEmpty()) {
+                    $primeiro = $emUso->first();
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'domains' => "O domínio '{$primeiro['domain']}' já está cadastrado em outro cliente ({$primeiro['tenant']}).",
+                    ]);
+                }
+            }
+        }
+
+        return $validated;
     }
 
     /**

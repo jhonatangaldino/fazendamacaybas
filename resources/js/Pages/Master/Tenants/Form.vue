@@ -10,6 +10,13 @@ const props = defineProps({
 
 const isEdit = computed(() => !!props.tenant?.id);
 
+// Domínios próprios são guardados como JSON array no backend.
+// No form usamos textarea com 1 domínio por linha (mais natural que tags).
+function domainsArrayToText(arr) {
+    if (! Array.isArray(arr)) return '';
+    return arr.join('\n');
+}
+
 const form = useForm({
     nome: props.tenant?.nome ?? '',
     slug: props.tenant?.slug ?? '',
@@ -18,6 +25,7 @@ const form = useForm({
     cidade: props.tenant?.cidade ?? '',
     estado: props.tenant?.estado ?? '',
     is_active: props.tenant ? Boolean(props.tenant.is_active) : true,
+    domains_text: domainsArrayToText(props.tenant?.domains),
 });
 
 /**
@@ -73,7 +81,31 @@ function onEstadoInput() {
     form.estado = (form.estado || '').toUpperCase().slice(0, 2);
 }
 
+// Validação client-side de domínios: 1 por linha, regex básica.
+// Aceita www., subdomínios e domínios com hífen. Rejeita protocolo e path.
+const dominiosErrosClient = computed(() => {
+    const linhas = (form.domains_text || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const erros = [];
+    for (const d of linhas) {
+        if (/^https?:\/\//i.test(d)) erros.push(`"${d}" — não inclua http:// ou https://`);
+        else if (d.includes('/')) erros.push(`"${d}" — informe apenas o domínio, sem caminho`);
+        else if (! /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(d)) {
+            erros.push(`"${d}" — formato inválido`);
+        } else if (/fazendamacaybas\.com\.br$/i.test(d)) {
+            erros.push(`"${d}" — domínio reservado da plataforma`);
+        }
+    }
+    return erros;
+});
+
 function submit() {
+    // Backend espera 'domains' como array. Convertemos antes de enviar.
+    const dominios = (form.domains_text || '').split('\n').map(s => s.trim()).filter(Boolean);
+    form.transform(data => ({
+        ...data,
+        domains: dominios,
+    }));
+
     if (isEdit.value) {
         form.put(route('master.tenants.update', props.tenant.id));
     } else {
@@ -233,6 +265,49 @@ function submit() {
                         </select>
                         <p v-if="form.errors.estado" class="mt-1 text-xs text-red-600">{{ form.errors.estado }}</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- ============ DOMÍNIOS PRÓPRIOS (whitelabel) ============ -->
+            <div class="mt-6 rounded-2xl bg-white ring-1 ring-slate-200 p-6 space-y-4">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-900 mb-0.5">Domínios próprios <span class="font-normal text-slate-500">(opcional)</span></h3>
+                    <p class="text-xs text-slate-500">
+                        Se este cliente comprou um domínio próprio (ex.: <code>fazendadojoao.com.br</code>),
+                        cadastre aqui. O sistema do cliente passa a rodar nesse domínio (whitelabel) e
+                        os emails de boas-vindas usam essa URL no link de login.
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                        Domínios aceitos
+                        <span class="ml-1 text-xs font-normal text-slate-500">(1 por linha, sem http://)</span>
+                    </label>
+                    <textarea
+                        v-model="form.domains_text"
+                        rows="3"
+                        placeholder="fazendadojoao.com.br&#10;www.fazendadojoao.com.br"
+                        class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm font-mono"
+                        :class="(form.errors.domains || dominiosErrosClient.length) ? 'ring-red-400' : ''"
+                    ></textarea>
+                    <p v-if="form.errors.domains" class="mt-1 text-xs text-red-600">{{ form.errors.domains }}</p>
+                    <ul v-if="dominiosErrosClient.length" class="mt-1 text-xs text-red-600 space-y-0.5">
+                        <li v-for="erro in dominiosErrosClient" :key="erro">⚠ {{ erro }}</li>
+                    </ul>
+                    <p v-else-if="!form.domains_text" class="mt-1 text-xs text-slate-500">
+                        Sem domínio próprio: cliente acessa via <code>app.fazendamacaybas.com.br/c/{{ form.slug || 'slug-do-cliente' }}/login</code>
+                    </p>
+                    <p v-else class="mt-1 text-xs text-emerald-700">
+                        ✓ Login do cliente vai em
+                        <code>https://{{ (form.domains_text || '').split('\n').map(s => s.trim()).filter(Boolean)[0] }}/login</code>
+                    </p>
+                </div>
+
+                <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                    <strong>⚠️ Pré-requisito do cliente:</strong> o domínio precisa estar apontando
+                    para a Hostinger (DNS A) e estar cadastrado como "domínio adicional" no hPanel.
+                    SSL via Let's Encrypt é provisionado automaticamente após apontamento.
                 </div>
             </div>
 

@@ -71,15 +71,17 @@ class User extends Authenticatable
     /**
      * URL de login específica para este usuário, baseada no contexto:
      *
-     *   Master admin (tenant_id NULL)   → https://app.{host}/login
+     *   Master admin (tenant_id NULL)   → https://{host}/login         (raiz)
      *   User do tenant master           → https://{host}/login         (raiz)
      *   User de tenant comum
      *     com domínio próprio           → https://{primeiro-dominio}/login
      *     sem domínio próprio           → https://app.{host}/c/{slug}/login
      *
-     * Usado em emails (Mailables) e em qualquer lugar que precisar gerar
-     * um link absoluto correto para o user. Em desenvolvimento (APP_URL
-     * apontando para localhost), retorna sempre /login da raiz.
+     * Master admin loga na raiz porque ele é o "dono da plataforma" e a raiz
+     * é a casa institucional. Master admin tb pode logar em qualquer outro
+     * contexto (regra do PO), mas o email convidativo aponta para raiz.
+     *
+     * Em desenvolvimento (APP_URL com localhost), retorna sempre /login da raiz.
      */
     public function loginUrl(): string
     {
@@ -92,9 +94,9 @@ class User extends Authenticatable
             return $appUrl . '/login';
         }
 
-        // Master admin (sem tenant)
+        // Master admin (sem tenant) → raiz
         if ($this->tenant_id === null) {
-            return 'https://app.' . $host . '/login';
+            return 'https://' . $host . '/login';
         }
 
         // Carrega tenant relacionado (sem N+1 caso já esteja eager-loaded)
