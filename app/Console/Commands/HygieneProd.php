@@ -2,209 +2,398 @@
 
 namespace App\Console\Commands;
 
-use App\Domain\Billing\Models\Plan;
 use App\Domain\Billing\Models\Tenant;
+use App\Models\Farm;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * macaybas:hygiene-prod
+ * macaybas:hygiene-prod {--dry-run} {--force}
  *
- * DESTRUTIVO — apaga todos os dados de teste de produção e deixa o sistema
- * em estado "pristine" comercializável. Mantém:
- *   - Schema (todas migrations)
- *   - Master admins (users com tenant_id NULL)
- *   - Plans (catálogo de planos comerciais)
- *   - Roles + Permissions (catálogo Spatie)
- *   - Settings globais
- *   - Tutorials (catálogo, sem o estado de leitura)
+ * DESTRUTIVO — limpa produção e deixa o sistema em estado pristine
+ * comercializável, **preservando o tenant master e seus dados estruturais**:
  *
- * Apaga:
- *   - Todos os tenants e dados associados (animais, transações, etc.)
- *   - Sessions, jobs, activity_log, tenancy_detector_log
- *   - User tutorial states
+ * MANTÉM:
+ *   - Tenant master existente (id=1, nome "Fazenda Macaybas", marcado is_master_tenant=true)
+ *   - 1 farm do master ("Fazenda Macaybas")
+ *   - User dono do master (Antônio Galdino) com senha redefinida
+ *   - Master admins reais (você)
+ *   - CMS do tenant master (páginas, seções, menus) — vira landing pública
+ *   - BAU global: animal_species, animal_breeds (catálogo compartilhado)
+ *   - Catálogo: plans, roles, permissions, settings, tutorials
  *
- * Uso:
- *   php artisan macaybas:hygiene-prod --dry-run
- *   php artisan macaybas:hygiene-prod --force
- *
- * --dry-run apenas LISTA o que seria apagado, sem deletar.
- * --force confirma que você quer rodar em produção.
+ * APAGA:
+ *   - Outros tenants e tudo associado (users, farms, dados operacionais)
+ *   - Dados operacionais do master (animais, transações, estoque, etc.)
+ *   - Categorias financeiras (não há BAU global; cada tenant cria as suas)
+ *   - Faturas e assinaturas (vão ser geradas conforme uso)
+ *   - Master admins de teste (qa_saas@*.test)
+ *   - Farms extras do master (mantém só a sede)
+ *   - Sessions, jobs, activity_log, tutorial_states
+ *   - CMS dos OUTROS tenants
  */
 class HygieneProd extends Command
 {
-    protected $signature = 'macaybas:hygiene-prod {--dry-run} {--force}';
-    protected $description = 'DESTRUTIVO — apaga dados de teste e prepara base limpa';
+    protected $signature = 'macaybas:hygiene-prod
+        {--dry-run}
+        {--force}
+        {--master-tenant-id=1}
+        {--master-farm-name=Fazenda Macaybas}
+        {--master-owner-email=antonio.galdino90@gmail.com}
+        {--master-owner-name=Antônio Galdino}
+        {--master-owner-password=}
+        {--master-tenant-slug=fazenda-macaybas}';
 
-    /**
-     * Tabelas a TRUNCATE em ordem (FK-safe).
-     * Cada item: ['tabela', 'descrição'].
-     */
-    private array $tabelasParaApagar = [
-        // Sessões / fila / telemetria
-        ['sessions', 'sessões web'],
-        ['jobs', 'fila de jobs pendentes'],
-        ['failed_jobs', 'jobs falhados'],
-        ['activity_log', 'auditoria Spatie'],
-        ['tenancy_detector_logs', 'logs do detector R2.5'],
-        ['user_tutorial_states', 'estado dos tutoriais por user'],
-        ['impersonation_audits', 'audit de impersonação'],
+    protected $description = 'DESTRUTIVO — reseta produção, preserva tenant master + dados estruturais';
 
-        // Operacional · agrícola
-        ['agricultural_applications', 'aplicações agrícolas'],
-        ['agricultural_harvests', 'colheitas'],
-        ['agricultural_plantings', 'plantios'],
-        ['agricultural_crops', 'culturas'],
-        ['agricultural_fields', 'talhões'],
-
-        // Operacional · estoque
-        ['stock_movements', 'movimentações de estoque'],
-        ['stock_items', 'itens de estoque'],
-        ['warehouses', 'armazéns'],
-
-        // Operacional · veículos
-        ['vehicle_maintenances', 'manutenções'],
-        ['vehicles', 'veículos/máquinas'],
-
-        // Operacional · rebanho
-        ['animal_events', 'eventos do rebanho'],
-        ['animal_lots_history', 'histórico de movimentação de lotes'],
-        ['animals', 'animais'],
-        ['animal_lots', 'lotes'],
-        ['animal_locations', 'locais (pastos)'],
-        ['animal_breeds', 'raças'],
-        ['animal_species', 'espécies'],
-
-        // Operacional · gestão
-        ['tasks', 'tarefas'],
-        ['documents', 'documentos'],
-        ['document_categories', 'categorias de documento'],
-
-        // Operacional · pessoas
-        ['employees', 'funcionários'],
-        ['partners', 'parceiros'],
-
-        // Operacional · financeiro
-        ['financial_transaction_attachments', 'anexos de transações'],
-        ['financial_transactions', 'transações financeiras'],
-        ['financial_accounts', 'contas financeiras'],
-        ['categories', 'categorias financeiras'],
-        ['cost_centers', 'centros de custo'],
-
-        // CMS dos tenants
-        ['cms_blocks', 'blocos CMS'],
-        ['cms_sections', 'seções CMS'],
-        ['cms_pages', 'páginas CMS'],
-        ['cms_menu_items', 'itens de menu CMS'],
-        ['cms_menus', 'menus CMS'],
-        ['cms_settings', 'settings CMS por tenant'],
-        ['media', 'mídias (Spatie medialibrary)'],
-
-        // Billing · invoices e subscriptions são de tenants
-        ['invoices', 'faturas'],
-        ['subscriptions', 'assinaturas'],
-
-        // Identidade do tenant
-        ['farms', 'fazendas'],
-
-        // Pivot users-roles dos não-master (limpeza preventiva)
-        // Pivots Spatie limpos seletivamente — model_has_roles + model_has_permissions
-    ];
+    private bool $dry;
 
     public function handle(): int
     {
-        $dryRun = $this->option('dry-run');
-        $force = $this->option('force');
+        $this->dry = (bool) $this->option('dry-run');
+        $force = (bool) $this->option('force');
 
-        if (! $dryRun && ! $force) {
-            $this->error('Operação destrutiva. Use --dry-run para listar ou --force para executar.');
+        if (! $this->dry && ! $force) {
+            $this->error('Use --dry-run para listar ou --force para executar.');
             return 1;
         }
 
-        $this->info('═══ Macaybas · Higienização de produção ═══');
-        $this->info($dryRun ? 'MODO: DRY-RUN (nada será apagado)' : 'MODO: EXECUÇÃO REAL');
+        $masterId = (int) $this->option('master-tenant-id');
+        $masterFarmName = (string) $this->option('master-farm-name');
+        $ownerEmail = (string) $this->option('master-owner-email');
+        $ownerName = (string) $this->option('master-owner-name');
+        $ownerPassword = (string) $this->option('master-owner-password');
+        $masterSlug = (string) $this->option('master-tenant-slug');
+
+        $this->info('═══ Macaybas · Higienização Pristine ═══');
+        $this->info($this->dry ? 'MODO: DRY-RUN' : 'MODO: EXECUÇÃO REAL');
         $this->newLine();
 
-        // ─── Snapshot pré-higienização ───
-        $masterAdmins = User::whereNull('tenant_id')->count();
-        $tenants = Tenant::count();
-        $plans = Plan::count();
-        $this->info("Snapshot atual:");
-        $this->info("  Master admins (preservados): {$masterAdmins}");
-        $this->info("  Tenants (serão apagados): {$tenants}");
-        $this->info("  Planos (preservados): {$plans}");
+        // Validações
+        $masterTenant = Tenant::find($masterId);
+        if (! $masterTenant) {
+            $this->error("Tenant master id={$masterId} não encontrado.");
+            return 1;
+        }
+        $this->info("Tenant master: #{$masterTenant->id} {$masterTenant->nome} (slug: {$masterTenant->slug})");
+
+        $owner = User::where('email', $ownerEmail)->first();
+        if (! $owner) {
+            $this->error("Owner email '{$ownerEmail}' não encontrado.");
+            return 1;
+        }
+        $this->info("Owner: #{$owner->id} {$owner->name} <{$owner->email}> (tenant_id={$owner->tenant_id})");
+
+        $masterFarm = Farm::where('tenant_id', $masterId)->where('nome', $masterFarmName)->first();
+        if (! $masterFarm) {
+            $this->error("Farm '{$masterFarmName}' não encontrada no tenant master.");
+            return 1;
+        }
+        $this->info("Master farm: #{$masterFarm->id} {$masterFarm->nome}");
+
+        $this->newLine();
+        $this->info('═══ Plano de execução ═══');
+
+        // ============================================================
+        // 1. Coletar IDs de tenants/farms/users para apagar
+        // ============================================================
+        $tenantsToDelete = Tenant::where('id', '!=', $masterId)->pluck('id')->toArray();
+        $farmsToDelete = array_merge(
+            Farm::where('tenant_id', '!=', $masterId)->pluck('id')->toArray(),
+            Farm::where('tenant_id', $masterId)->where('id', '!=', $masterFarm->id)->pluck('id')->toArray()
+        );
+        $usersToDelete = User::query()
+            ->where(function ($q) use ($masterId, $owner) {
+                // Users de outros tenants
+                $q->where('tenant_id', '!=', $masterId)->orWhereNull('tenant_id');
+            })
+            ->where('id', '!=', 1) // mantém você (id=1)
+            ->where('id', '!=', $owner->id) // mantém Antônio
+            ->where(function ($q) {
+                // Apaga users de teste e users de tenants apagados
+                $q->where('email', 'like', '%@fazendamacaybas.test')
+                  ->orWhere('email', 'like', '%@*.test')
+                  ->orWhereNotNull('tenant_id');
+            })
+            ->pluck('id')->toArray();
+
+        $this->info('Tenants a apagar: ' . count($tenantsToDelete));
+        $this->info('Farms a apagar: ' . count($farmsToDelete) . ' (inclui farms extras do master)');
+        $this->info('Users a apagar: ' . count($usersToDelete));
         $this->newLine();
 
-        // ─── Listar tabelas e seus counts ───
-        $totalRecordsToDrop = 0;
-        $this->info("Tabelas afetadas:");
-        foreach ($this->tabelasParaApagar as [$tabela, $desc]) {
+        // ============================================================
+        // 2. Tabelas operacionais — TRUNCATE total (apaga master tb)
+        // ============================================================
+        $tabelasTruncate = [
+            // Sessões / fila / telemetria — apaga geral
+            ['sessions', 'sessões web'],
+            ['jobs', 'fila de jobs'],
+            ['failed_jobs', 'jobs falhados'],
+            ['activity_log', 'auditoria Spatie'],
+            ['user_tutorial_states', 'estado dos tutoriais por user'],
+
+            // Operacional · estoque (master também recomeça do zero)
+            ['stock_movements', 'movimentações de estoque'],
+            ['stock_items', 'itens de estoque'],
+            ['warehouses', 'armazéns'],
+
+            // Operacional · veículos
+            ['vehicles', 'veículos/máquinas'],
+
+            // Operacional · rebanho dados (mantém species/breeds = BAU)
+            ['animal_events', 'eventos do rebanho'],
+            ['animals', 'animais'],
+            ['animal_lots', 'lotes'],
+            ['animal_locations', 'locais (pastos)'],
+
+            // Operacional · gestão
+            ['tasks', 'tarefas'],
+            ['documents', 'documentos'],
+            ['document_categories', 'categorias de documento'],
+
+            // Operacional · pessoas
+            ['employees', 'funcionários'],
+            ['partners', 'parceiros'],
+
+            // Operacional · financeiro (sem BAU global → apaga tudo)
+            ['financial_transaction_attachments', 'anexos de transações'],
+            ['financial_transactions', 'transações financeiras'],
+            ['financial_accounts', 'contas financeiras'],
+            ['categories', 'categorias financeiras'],
+            ['cost_centers', 'centros de custo'],
+
+            // Billing
+            ['invoices', 'faturas'],
+            ['subscriptions', 'assinaturas'],
+
+            // Mídia
+            ['media', 'mídias (Spatie)'],
+        ];
+
+        foreach ($tabelasTruncate as [$tabela, $desc]) {
             if (! Schema::hasTable($tabela)) {
-                $this->line("  • {$tabela} ({$desc}): TABELA NÃO EXISTE — pulando");
+                $this->line("  • {$tabela}: NÃO EXISTE — pulando");
                 continue;
             }
             $count = DB::table($tabela)->count();
-            $totalRecordsToDrop += $count;
-            $this->line("  • {$tabela} ({$desc}): {$count} registros");
+            $this->line("  • {$tabela} ({$desc}): TRUNCATE · {$count} registros");
         }
 
-        // Tenants e users serão tratados separadamente
-        $usersToDrop = User::whereNotNull('tenant_id')->count();
-        $totalRecordsToDrop += $usersToDrop + $tenants;
-        $this->line("  • users (tenant_id != NULL): {$usersToDrop} registros");
-        $this->line("  • tenants: {$tenants} registros");
+        // ============================================================
+        // 3. CMS — apaga apenas dos outros tenants (mantém master)
+        // ============================================================
+        $tabelasCmsDelete = [
+            ['cms_blocks', 'blocos CMS'],
+            ['cms_sections', 'seções CMS'],
+            ['cms_pages', 'páginas CMS'],
+            ['cms_menu_items', 'itens menu CMS'],
+            ['cms_menus', 'menus CMS'],
+            ['cms_settings', 'settings CMS'],
+        ];
+        $this->info('CMS — DELETE WHERE tenant_id != ' . $masterId . ' (preserva master):');
+        foreach ($tabelasCmsDelete as [$tabela, $desc]) {
+            if (! Schema::hasTable($tabela)) {
+                $this->line("  • {$tabela}: NÃO EXISTE — pulando");
+                continue;
+            }
+            $hasTenantCol = Schema::hasColumn($tabela, 'tenant_id');
+            if (! $hasTenantCol) {
+                // cms_blocks/cms_sections podem ser por page_id, não por tenant_id direto
+                $this->line("  • {$tabela}: SEM tenant_id — usando JOIN com cms_pages");
+            } else {
+                $count = DB::table($tabela)->where('tenant_id', '!=', $masterId)->count();
+                $this->line("  • {$tabela} ({$desc}): {$count} registros de outros tenants");
+            }
+        }
 
+        // ============================================================
+        // 4. Users / Farms / Tenants — DELETE seletivo
+        // ============================================================
         $this->newLine();
-        $this->info("Total: {$totalRecordsToDrop} registros para apagar");
-        $this->newLine();
+        $this->info('Apagar seletivo:');
+        $this->line("  • {$this->countMaster($usersToDelete)} users (mantém você + Antônio + outros master admins reais)");
+        $this->line("  • {$this->countMaster($farmsToDelete)} farms (mantém só '{$masterFarmName}' do master)");
+        $this->line("  • {$this->countMaster($tenantsToDelete)} tenants (mantém apenas master id={$masterId})");
 
-        if ($dryRun) {
-            $this->info('DRY-RUN concluído. Nenhuma alteração feita.');
+        // ============================================================
+        // 5. Atualizar tenant master (slug, is_master_tenant)
+        // ============================================================
+        $this->newLine();
+        $this->info('Atualizar tenant master:');
+        $this->line("  • slug: '{$masterTenant->slug}' → '{$masterSlug}' (se diferente)");
+        $this->line("  • is_master_tenant: false → true");
+
+        // ============================================================
+        // 6. Atualizar owner (Antônio Galdino)
+        // ============================================================
+        $this->newLine();
+        $this->info('Atualizar owner:');
+        $this->line("  • name: '{$owner->name}' → '{$ownerName}'");
+        $this->line("  • password: redefinida (must_change_password=true)");
+        $this->line("  • is_active: true");
+
+        if ($this->dry) {
+            $this->newLine();
+            $this->info('DRY-RUN concluído. Use --force para executar.');
             return 0;
         }
 
-        // ─── Confirmação dupla ───
-        if (! $this->confirm("CONFIRMAR? Esta ação é IRREVERSÍVEL. Você fez backup recente?")) {
-            $this->info('Cancelado pelo usuário.');
+        if (! $force) {
+            $this->error('Sem --force, abortando.');
             return 1;
         }
 
-        // ─── Execução ───
+        // Confirmação dupla em modo execução
+        if (! $this->confirm("CONFIRMAR? Backup pré-higienização foi feito? Esta ação é IRREVERSÍVEL.")) {
+            return 1;
+        }
+
+        $this->newLine();
+        $this->info('═══ Executando ═══');
+
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         try {
-            // Apaga tabelas listadas
-            foreach ($this->tabelasParaApagar as [$tabela, $desc]) {
+            // 1. Truncate tabelas operacionais
+            foreach ($tabelasTruncate as [$tabela, $desc]) {
                 if (! Schema::hasTable($tabela)) continue;
                 DB::table($tabela)->truncate();
-                $this->line("  ✓ {$tabela} truncado");
+                $this->line("  ✓ TRUNCATE {$tabela}");
             }
 
-            // Apaga users de tenants (preserva master admins)
-            $usersDropped = User::whereNotNull('tenant_id')->delete();
-            $this->line("  ✓ users (tenant_id != NULL): {$usersDropped} apagados");
+            // 2. CMS dos outros tenants — ordem FK-safe (filhos antes)
+            // cms_blocks e cms_sections referenciam cms_pages
+            // cms_menu_items referenciam cms_menus
+            $masterPageIds = DB::table('cms_pages')->where('tenant_id', $masterId)->pluck('id')->toArray();
+            $masterMenuIds = DB::table('cms_menus')->where('tenant_id', $masterId)->pluck('id')->toArray();
 
-            // Apaga tenants
-            $tenantsDropped = Tenant::query()->delete();
-            $this->line("  ✓ tenants: {$tenantsDropped} apagados");
+            if (Schema::hasTable('cms_blocks')) {
+                if (Schema::hasColumn('cms_blocks', 'tenant_id')) {
+                    DB::table('cms_blocks')->where('tenant_id', '!=', $masterId)->delete();
+                } else {
+                    // por page_id
+                    DB::table('cms_blocks')->whereNotIn('page_id', $masterPageIds)->delete();
+                }
+                $this->line('  ✓ cms_blocks (outros tenants)');
+            }
+            if (Schema::hasTable('cms_sections')) {
+                if (Schema::hasColumn('cms_sections', 'tenant_id')) {
+                    DB::table('cms_sections')->where('tenant_id', '!=', $masterId)->delete();
+                } else {
+                    DB::table('cms_sections')->whereNotIn('page_id', $masterPageIds)->delete();
+                }
+                $this->line('  ✓ cms_sections (outros tenants)');
+            }
+            if (Schema::hasTable('cms_pages')) {
+                DB::table('cms_pages')->where('tenant_id', '!=', $masterId)->delete();
+                $this->line('  ✓ cms_pages (outros tenants)');
+            }
+            if (Schema::hasTable('cms_menu_items')) {
+                if (Schema::hasColumn('cms_menu_items', 'tenant_id')) {
+                    DB::table('cms_menu_items')->where('tenant_id', '!=', $masterId)->delete();
+                } else {
+                    DB::table('cms_menu_items')->whereNotIn('menu_id', $masterMenuIds)->delete();
+                }
+                $this->line('  ✓ cms_menu_items (outros tenants)');
+            }
+            if (Schema::hasTable('cms_menus')) {
+                DB::table('cms_menus')->where('tenant_id', '!=', $masterId)->delete();
+                $this->line('  ✓ cms_menus (outros tenants)');
+            }
+            if (Schema::hasTable('cms_settings')) {
+                DB::table('cms_settings')->where('tenant_id', '!=', $masterId)->delete();
+                $this->line('  ✓ cms_settings (outros tenants)');
+            }
 
-            // Limpa pivots Spatie órfãos (model_has_roles, model_has_permissions
-            // que apontam para users apagados)
-            DB::table('model_has_roles')
-                ->whereNotIn('model_id', User::pluck('id'))
+            // 3. Pivots Spatie órfãos preventivos (antes de apagar users)
+            // 4. Apagar users (exceto master admins reais e Antônio)
+            $usersDeletados = User::query()
+                ->where(function ($q) use ($masterId, $owner) {
+                    $q->where(function ($q) use ($masterId) {
+                        $q->where('tenant_id', '!=', $masterId)->orWhereNull('tenant_id');
+                    });
+                })
+                ->where('id', '!=', 1)
+                ->where('id', '!=', $owner->id)
+                ->where(function ($q) {
+                    $q->where('email', 'like', '%fazendamacaybas.test')
+                      ->orWhereNotNull('tenant_id');
+                })
                 ->delete();
-            DB::table('model_has_permissions')
-                ->whereNotIn('model_id', User::pluck('id'))
+            $this->line("  ✓ users apagados: {$usersDeletados}");
+
+            // 5. Apagar farms (de outros tenants + extras do master)
+            $farmsDeletados = Farm::query()
+                ->where(function ($q) use ($masterId, $masterFarm) {
+                    $q->where('tenant_id', '!=', $masterId)
+                      ->orWhere(function ($q) use ($masterId, $masterFarm) {
+                          $q->where('tenant_id', $masterId)
+                            ->where('id', '!=', $masterFarm->id);
+                      });
+                })
                 ->delete();
-            $this->line("  ✓ pivots Spatie órfãos limpos");
+            $this->line("  ✓ farms apagadas: {$farmsDeletados}");
+
+            // 6. Apagar outros tenants
+            $tenantsDeletados = Tenant::where('id', '!=', $masterId)->delete();
+            $this->line("  ✓ tenants apagados: {$tenantsDeletados}");
+
+            // 7. Limpar pivots Spatie órfãos (model_has_roles, model_has_permissions)
+            $remainingUserIds = User::pluck('id')->toArray();
+            DB::table('model_has_roles')->whereNotIn('model_id', $remainingUserIds)->delete();
+            DB::table('model_has_permissions')->whereNotIn('model_id', $remainingUserIds)->delete();
+            $this->line('  ✓ pivots Spatie órfãos limpos');
+
+            // 8. Atualizar tenant master
+            $masterTenant->refresh();
+            $changes = ['is_master_tenant' => true, 'is_active' => true, 'status' => 'active'];
+            if ($masterTenant->slug !== $masterSlug) {
+                $changes['slug'] = $masterSlug;
+            }
+            $masterTenant->update($changes);
+            $this->line("  ✓ tenant master atualizado (slug={$masterTenant->slug}, is_master_tenant=true)");
+
+            // 9. Atualizar owner
+            $ownerUpdates = [
+                'name' => $ownerName,
+                'is_active' => true,
+                'tenant_id' => $masterId,
+            ];
+            if (! empty($ownerPassword)) {
+                $ownerUpdates['password'] = Hash::make($ownerPassword);
+                $ownerUpdates['must_change_password'] = true;
+            }
+            $owner->update($ownerUpdates);
+
+            // Garantir role dono_fazenda
+            if (\Spatie\Permission\Models\Role::where('name', 'dono_fazenda')->exists()) {
+                $owner->syncRoles(['dono_fazenda']);
+            }
+            $this->line('  ✓ owner Antônio atualizado (senha redefinida, must_change_password=true)');
+
+            Tenant::clearMasterCache();
         } finally {
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
         }
 
         $this->newLine();
-        $this->info('✓ Higienização concluída.');
-        $this->info('Próximo passo: criar tenant master via macaybas:create-master-tenant');
+        $this->info('═══ Higienização concluída ═══');
+        $this->info('Estado atual:');
+        $this->info('  Tenants: ' . Tenant::count() . ' (deve ser 1: master)');
+        $this->info('  Farms: ' . Farm::count() . ' (deve ser 1: Fazenda Macaybas)');
+        $this->info('  Users: ' . User::count() . ' (você + Antônio = 2)');
+        $this->info('  Animais: ' . DB::table('animals')->count() . ' (deve ser 0)');
+        $this->info('  Categorias: ' . DB::table('categories')->count() . ' (deve ser 0)');
+        $this->info('  Espécies: ' . DB::table('animal_species')->count() . ' (BAU preservado)');
+        $this->info('  Raças: ' . DB::table('animal_breeds')->count() . ' (BAU preservado)');
         return 0;
+    }
+
+    private function countMaster(array $arr): int
+    {
+        return count($arr);
     }
 }

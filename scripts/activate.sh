@@ -54,6 +54,15 @@ echo "==> Linkando public/storage para storage/app/public"
 rm -rf public/storage
 ln -sf "${SHARED_DIR}/storage/app/public" public/storage
 
+# Reestruturação 2026-04-27: subdomínio app.fazendamacaybas.com.br aponta
+# para public_html/sistema/. Como public_html é symlink → releases/current/public/,
+# precisamos public_html/sistema/ resolver para a mesma pasta. Símlink auto-
+# referência (sistema → .) faz public_html/sistema/index.php apontar para
+# o próprio Laravel, com __DIR__ resolvendo corretamente no realpath.
+echo "==> Garantindo symlink public/sistema → . (subdomínio app.*)"
+rm -f public/sistema
+ln -sfn . public/sistema
+
 echo "==> Rodando migrations"
 php artisan migrate --force --no-interaction
 
