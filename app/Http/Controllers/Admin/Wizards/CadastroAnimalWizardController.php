@@ -78,6 +78,12 @@ class CadastroAnimalWizardController extends Controller
     {
         $modo = in_array($modo, ['cadastro', 'compra', 'nascimento'], true) ? $modo : 'cadastro';
 
+        // Auditoria 2026-04-27 — modo agregado (lote em massa) para aves/peixes.
+        // Detectado pelo flag 'agregado' no payload (vindo do front quando species.gestao=lote).
+        if ($request->boolean('agregado')) {
+            return $this->storeAggregated($request, $modo);
+        }
+
         $rules = [
             'species_id' => ['required', 'exists:animal_species,id'],
             'breed_id' => ['nullable', 'exists:animal_breeds,id'],
@@ -143,6 +149,72 @@ class CadastroAnimalWizardController extends Controller
             'compra' => 'Animal comprado e adicionado ao rebanho.',
             'nascimento' => 'Nascimento registrado — cria entrou no rebanho.',
             default => 'Animal cadastrado.',
+        });
+    }
+
+    /**
+     * Cadastro agregado — lote em massa (aves, peixes, abelhas).
+     *
+     * NÃO cria 1 row por animal. Cria/atualiza um AnimalLot com:
+     *   gestao_modo = 'agregada'
+     *   quantidade_inicial / quantidade_atual = N
+     *   peso_medio_kg = peso médio (opcional)
+     *
+     * Cenários:
+     *   - cadastro: lote interno, sem fornecedor (ex.: pintinhos cedidos)
+     *   - compra:   lote vindo de fornecedor com NF + valor de aquisição
+     *
+     * Sempre cria UM lote novo (não soma em existente, para preservar histórico
+     * de rastreabilidade). Master pode mesclar manualmente depois se quiser.
+     */
+    private function storeAggregated(Request $request, string $modo): RedirectResponse
+    {
+        $rules = [
+            'species_id' => ['required', 'exists:animal_species,id'],
+            'breed_id' => ['nullable', 'exists:animal_breeds,id'],
+            'lot_nome' => ['required', 'string', 'max:120'],
+            'quantidade' => ['required', 'numeric', 'min:1'],
+            'peso_medio_kg' => ['nullable', 'numeric', 'min:0'],
+            'location_id' => ['nullable', 'exists:animal_locations,id'],
+            'data_inicio' => ['nullable', 'date'],
+            'finalidade' => ['nullable', 'in:engorda,postura,reproducao,recria,corte,leite,outros'],
+            'observacoes' => ['nullable', 'string'],
+        ];
+
+        if ($modo === 'compra') {
+            $rules['partner_id'] = ['required', 'exists:partners,id'];
+            $rules['data_aquisicao'] = ['required', 'date'];
+            $rules['valor_aquisicao'] = ['required', 'numeric', 'min:0'];
+        }
+
+        $data = $request->validate($rules);
+
+        $codigo = 'L' . substr((string) (microtime(true) * 1000), -6);
+        $custoUnit = null;
+        if ($modo === 'compra' && ! empty($data['valor_aquisicao']) && ! empty($data['quantidade']) && $data['quantidade'] > 0) {
+            $custoUnit = $data['valor_aquisicao'] / $data['quantidade'];
+        }
+
+        $lote = AnimalLot::create([
+            'farm_id' => app('farm_id'),
+            'codigo' => $codigo,
+            'nome' => $data['lot_nome'],
+            'descricao' => $data['observacoes'] ?? null,
+            'finalidade' => $data['finalidade'] ?? null,
+            'is_active' => true,
+            'gestao_modo' => 'agregada',
+            'quantidade_inicial' => $data['quantidade'],
+            'quantidade_atual' => $data['quantidade'],
+            'peso_medio_kg' => $data['peso_medio_kg'] ?? null,
+            'data_inicio' => $data['data_inicio'] ?? now()->toDateString(),
+            'partner_id_aquisicao' => $modo === 'compra' ? $data['partner_id'] : null,
+            'valor_aquisicao' => $modo === 'compra' ? $data['valor_aquisicao'] : null,
+            'custo_unitario' => $custoUnit,
+        ]);
+
+        return back()->with('success', match ($modo) {
+            'compra' => "Lote \"{$lote->nome}\" comprado com {$data['quantidade']} unidades.",
+            default => "Lote \"{$lote->nome}\" cadastrado com {$data['quantidade']} unidades.",
         });
     }
 }

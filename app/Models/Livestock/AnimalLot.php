@@ -20,12 +20,20 @@ class AnimalLot extends Model
         'farm_id', 'codigo', 'nome', 'descricao', 'finalidade', 'is_active', 'tenant_id',
         // RN4 · gestão agregada (aves/peixes/abelhas)
         'gestao_modo', 'quantidade_inicial', 'quantidade_atual',
+        // Auditoria 2026-04-27 · campos do lote agregado (massa)
+        'peso_medio_kg', 'data_inicio', 'data_fim',
+        'partner_id_aquisicao', 'valor_aquisicao', 'custo_unitario',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'quantidade_inicial' => 'decimal:2',
         'quantidade_atual' => 'decimal:2',
+        'peso_medio_kg' => 'decimal:2',
+        'data_inicio' => 'date',
+        'data_fim' => 'date',
+        'valor_aquisicao' => 'decimal:2',
+        'custo_unitario' => 'decimal:4',
     ];
 
     /** Helper: este lote é gerido como agregado (sem 1 row por animal)? */

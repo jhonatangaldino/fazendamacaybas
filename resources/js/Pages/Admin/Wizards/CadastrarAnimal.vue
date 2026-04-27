@@ -78,11 +78,37 @@ const form = useForm({
     // nascimento
     mae_id: null,
     peso_nascimento: 0,
+    // ─── Auditoria 2026-04-27: cadastro AGREGADO (lote em massa) ────────
+    // Ativado automaticamente quando species.gestao = "lote" (ave, peixe, abelha)
+    agregado: false,
+    lot_nome: '',
+    quantidade: 0,
+    peso_medio_kg: 0,
+    data_inicio: hojeBR(),
+    finalidade: null,
 });
 
 const speciesSelecionada = computed(() => props.species.find(s => s.id === form.species_id));
 const racas = computed(() => speciesSelecionada.value?.breeds ?? []);
 const lotesFiltrados = computed(() => lotsLocal.value);
+
+// Detecta automaticamente espécies de gestão por LOTE (aves, peixes, abelhas)
+// e ativa o fluxo agregado que NÃO cadastra 1 row por animal.
+const isGestaoLote = computed(() => speciesSelecionada.value?.gestao === 'lote');
+
+// Quando o usuário escolhe espécie de lote, garante que o flag agregado
+// fique sincronizado com a escolha. Senão limpa o flag.
+import { watch as _watch } from 'vue';
+_watch(isGestaoLote, (novo) => {
+    form.agregado = novo;
+    if (novo) {
+        // sugere finalidade default por profile
+        const p = speciesSelecionada.value?.profile;
+        if (p === 'ave_postura') form.finalidade = 'postura';
+        else if (p === 'aquicultura_lote') form.finalidade = 'engorda';
+        else form.finalidade = 'engorda';
+    }
+});
 
 const novoLote = useInlineCreate({
     endpoint: route('admin.rebanho.lotes.inline'),
@@ -102,7 +128,13 @@ const novoLocal = useInlineCreate({
 });
 
 const podeAvancar1 = computed(() => !!form.species_id);
-const podeAvancar2 = computed(() => !!form.identificacao && !!form.sexo);
+const podeAvancar2 = computed(() => {
+    // Modo agregado: passo 2 pede nome do lote + quantidade (não brinco/sexo)
+    if (isGestaoLote.value) {
+        return form.lot_nome.trim().length > 1 && form.quantidade >= 1;
+    }
+    return !!form.identificacao && !!form.sexo;
+});
 const podeAvancar3 = computed(() => true); // lote/local opcionais
 const podeAvancar4 = computed(() => {
     if (props.modo === 'compra') return !!form.partner_id && form.valor_aquisicao > 0;
@@ -118,12 +150,14 @@ function voltar()  { if (passo.value > 1) passo.value--; }
 function confirmar() {
     const snap = {
         especie: speciesSelecionada.value?.nome,
-        identificacao: form.identificacao,
-        nome: form.nome,
+        identificacao: isGestaoLote.value ? form.lot_nome : form.identificacao,
+        nome: isGestaoLote.value ? `${form.quantidade} unidades` : form.nome,
         sexo: form.sexo === 'F' ? 'Fêmea' : 'Macho',
         modo: props.modo,
         valor: form.valor_aquisicao,
         peso: form.peso_nascimento,
+        agregado: isGestaoLote.value,
+        quantidade: form.quantidade,
         emoji: emojiEspecie(speciesSelecionada.value?.nome),
     };
     const url = route('admin.fluxos.cadastrar-animal.store', { modo: props.modo });
@@ -183,36 +217,88 @@ function reiniciar() {
         <!-- PASSO 2 — Identificação -->
         <div v-if="passo === 2" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">
-                    <span v-if="modo === 'nascimento'">Como vai chamar a cria?</span>
-                    <span v-else>Como identificar o animal?</span>
-                </h2>
-
-                <div>
-                    <InputLabel value="Brinco / identificação *" />
-                    <input v-model="form.identificacao" data-cy="input-identificacao"
-                        class="form-input text-lg py-3" placeholder="Ex.: 12345" />
-                </div>
-                <div>
-                    <InputLabel value="Nome (opcional)" />
-                    <input v-model="form.nome" class="form-input" placeholder="Ex.: Mimosa" />
-                </div>
-
-                <div>
-                    <InputLabel value="Sexo *" />
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" @click="form.sexo = 'F'" data-sexo="F"
-                            class="rounded-lg border-2 p-3 text-base font-medium"
-                            :class="form.sexo === 'F' ? 'border-pink-400 bg-pink-50 text-pink-900' : 'border-slate-200'">
-                            ♀ Fêmea
-                        </button>
-                        <button type="button" @click="form.sexo = 'M'" data-sexo="M"
-                            class="rounded-lg border-2 p-3 text-base font-medium"
-                            :class="form.sexo === 'M' ? 'border-blue-400 bg-blue-50 text-blue-900' : 'border-slate-200'">
-                            ♂ Macho
-                        </button>
+                <!-- ─── MODO AGREGADO (aves, peixes, abelhas) ─────────────────── -->
+                <template v-if="isGestaoLote">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-slate-900">Quantos animais? Sem identificação individual.</h2>
+                        <p class="text-base text-slate-600 mt-1">
+                            Para <strong>{{ speciesSelecionada?.nome?.toLowerCase() }}</strong>, o sistema gerencia o
+                            lote em massa — não precisa cadastrar 1 a 1 nem usar brinco.
+                        </p>
                     </div>
-                </div>
+
+                    <div>
+                        <InputLabel value="Nome do lote *" />
+                        <input v-model="form.lot_nome" type="text" maxlength="120"
+                               class="form-input text-lg py-3"
+                               :placeholder="speciesSelecionada?.profile === 'aquicultura_lote' ? 'Ex.: Tanque 1 — Tilápias' : 'Ex.: Galpão Norte — Frangos lote 5'" />
+                        <p class="text-xs text-slate-500 mt-1">
+                            Ajuda você a identificar este grupo no sistema (galpão, tanque, baia, etc.).
+                        </p>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <InputLabel value="Quantidade *" />
+                            <input v-model.number="form.quantidade" type="number" step="1" min="1"
+                                   class="form-input text-2xl py-3 font-mono font-bold" placeholder="500" />
+                            <p class="text-xs text-slate-500 mt-1">Total de cabeças/cabecinhas/peixes/aves do lote.</p>
+                        </div>
+                        <div>
+                            <InputLabel value="Peso médio em kg (opcional)" />
+                            <input v-model.number="form.peso_medio_kg" type="number" step="0.001" min="0"
+                                   class="form-input py-3 font-mono" placeholder="0,045" />
+                            <p class="text-xs text-slate-500 mt-1">Peso por unidade. Ex.: pintinho 45g = 0,045.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <InputLabel value="Finalidade do lote" />
+                        <select v-model="form.finalidade" class="form-select py-3">
+                            <option value="engorda">Engorda</option>
+                            <option value="postura">Postura (ovos)</option>
+                            <option value="reproducao">Reprodução / matrizeiro</option>
+                            <option value="recria">Recria</option>
+                            <option value="leite">Leite</option>
+                            <option value="corte">Corte</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
+                </template>
+
+                <!-- ─── MODO INDIVIDUAL (bovinos, equinos, suínos, ovinos, caprinos) ─── -->
+                <template v-else>
+                    <h2 class="text-2xl font-semibold text-slate-900">
+                        <span v-if="modo === 'nascimento'">Como vai chamar a cria?</span>
+                        <span v-else>Como identificar o animal?</span>
+                    </h2>
+
+                    <div>
+                        <InputLabel value="Brinco / identificação *" />
+                        <input v-model="form.identificacao" data-cy="input-identificacao"
+                            class="form-input text-lg py-3" placeholder="Ex.: 12345" />
+                    </div>
+                    <div>
+                        <InputLabel value="Nome (opcional)" />
+                        <input v-model="form.nome" class="form-input" placeholder="Ex.: Mimosa" />
+                    </div>
+
+                    <div>
+                        <InputLabel value="Sexo *" />
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" @click="form.sexo = 'F'" data-sexo="F"
+                                class="rounded-lg border-2 p-3 text-base font-medium"
+                                :class="form.sexo === 'F' ? 'border-pink-400 bg-pink-50 text-pink-900' : 'border-slate-200'">
+                                ♀ Fêmea
+                            </button>
+                            <button type="button" @click="form.sexo = 'M'" data-sexo="M"
+                                class="rounded-lg border-2 p-3 text-base font-medium"
+                                :class="form.sexo === 'M' ? 'border-blue-400 bg-blue-50 text-blue-900' : 'border-slate-200'">
+                                ♂ Macho
+                            </button>
+                        </div>
+                    </div>
+                </template>
 
                 <div v-if="racas.length" class="grid sm:grid-cols-2 gap-4">
                     <div>
