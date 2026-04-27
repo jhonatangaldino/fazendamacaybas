@@ -44,6 +44,8 @@ function mdToHtml(md) {
         s = s.replace(/`([^`]+)`/g, (_, c) => `<code>${escapeHtml(c)}</code>`);
         s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
         s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        // Imagens ANTES de links (senão `![alt](src)` vira `!<a>`)
+        s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
         s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
         return s;
     }
@@ -197,6 +199,16 @@ function buildHtml(bodyHtml, title = 'Documento') {
     color: #475569;
     margin: 8pt 0;
   }
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 10pt auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 4pt;
+    page-break-inside: avoid;
+  }
+  p:has(> img:only-child) { margin: 14pt 0; text-align: center; }
   .emoji { font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; }
   h1, h2, h3 { page-break-after: avoid; }
   table, pre, ul { page-break-inside: avoid; }
