@@ -12,12 +12,29 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import { hojeBR, dataBR, brl } from '@/utils/format.js';
+import { useInlineCreate } from '@/composables/useInlineCreate.js';
 
 const props = defineProps({
     itens: { type: Array, required: true },
     armazens: { type: Array, required: true },
     fornecedores: { type: Array, required: true },
 });
+
+// Lista local — recebe novos itens criados inline
+const itensLocal = ref([...props.itens]);
+
+const novoItem = useInlineCreate({
+    endpoint: route('admin.estoque.itens.inline'),
+    initialForm: { nome: '', tipo: 'insumo', unidade: 'un' },
+    onCreated: (i) => {
+        itensLocal.value = [...itensLocal.value, i];
+        form.item_id = i.id;
+    },
+});
+
+function abrirNovoItem() {
+    novoItem.abrir();
+}
 
 const PASSOS = [
     { n: 1, titulo: 'O que chegou', icon: '📦' },
@@ -40,7 +57,7 @@ const form = useForm({
     observacoes: '',
 });
 
-const itemAtual = computed(() => props.itens.find(i => i.id === form.item_id));
+const itemAtual = computed(() => itensLocal.value.find(i => i.id === form.item_id));
 const armazemAtual = computed(() => props.armazens.find(a => a.id === form.warehouse_id));
 const fornecedorAtual = computed(() => props.fornecedores.find(f => f.id === form.partner_id));
 
@@ -106,9 +123,12 @@ function reiniciar() {
 
         <WizardStepper :passos="PASSOS" :passo="passo" />
 
-        <div v-if="itens.length === 0" class="max-w-2xl mx-auto card border-amber-300 bg-amber-50 p-4 mb-4">
-            <div class="font-semibold text-amber-900">Cadastre um item de estoque primeiro</div>
-            <Link :href="route('admin.estoque.itens.index')" class="btn-outline mt-3">Ir para itens</Link>
+        <!-- Aviso visível só se NÃO houver nenhum item.
+             Não bloqueia mais o wizard — basta usar "+ Cadastrar produto novo" inline. -->
+        <div v-if="itensLocal.length === 0" class="max-w-2xl mx-auto card border-amber-300 bg-amber-50 p-4 mb-4">
+            <div class="font-semibold text-amber-900">Nenhum produto cadastrado ainda</div>
+            <p class="text-sm text-amber-800 mt-1">Você pode cadastrar agora mesmo, sem sair daqui — use o botão abaixo.</p>
+            <button type="button" @click="abrirNovoItem" class="btn-primary mt-3">+ Cadastrar produto novo</button>
         </div>
 
         <template v-else>
@@ -120,8 +140,16 @@ function reiniciar() {
                     <InputLabel value="Qual produto chegou?" />
                     <select v-model="form.item_id" data-cy="select-item" class="form-select text-base py-3">
                         <option :value="null">— Escolha o produto —</option>
-                        <option v-for="i in itens" :key="i.id" :value="i.id">{{ i.nome }} ({{ i.unidade }})</option>
+                        <option v-for="i in itensLocal" :key="i.id" :value="i.id">{{ i.nome }} ({{ i.unidade }})</option>
                     </select>
+                    <div class="mt-1 flex items-center gap-2">
+                        <button type="button" @click="abrirNovoItem" class="text-sm text-macaybas-primary hover:underline">
+                            + Cadastrar produto novo
+                        </button>
+                        <span v-if="itensLocal.length === 0" class="text-xs text-amber-700">
+                            Nenhum produto cadastrado ainda — cadastre aqui sem sair do assistente.
+                        </span>
+                    </div>
                 </div>
 
                 <div>
@@ -246,5 +274,42 @@ function reiniciar() {
             </div>
         </div>
         </template>
+
+        <!-- Modal inline: cadastrar produto novo sem sair do assistente -->
+        <Teleport to="body">
+            <div v-if="novoItem.modalAberto.value" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="novoItem.fechar"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-semibold mb-1">Novo produto de estoque</h3>
+                    <p class="text-xs text-slate-500 mb-3">Cadastro rápido sem sair do assistente.</p>
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Nome *" />
+                            <input v-model="novoItem.form.value.nome" data-cy="item-nome"
+                                class="form-input" placeholder="Ex.: Ração bovino" />
+                        </div>
+                        <div>
+                            <InputLabel value="Unidade *" />
+                            <select v-model="novoItem.form.value.unidade" class="form-select">
+                                <option value="un">unidade</option>
+                                <option value="kg">kg</option>
+                                <option value="L">litro</option>
+                                <option value="sc">saca</option>
+                                <option value="cx">caixa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p v-if="novoItem.erro.value" class="mt-3 text-xs text-red-700">{{ novoItem.erro.value }}</p>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button @click="novoItem.fechar" class="btn-outline">Cancelar</button>
+                        <button @click="novoItem.salvar" data-cy="item-salvar"
+                                :disabled="novoItem.salvando.value || !novoItem.form.value.nome?.trim()"
+                                class="btn-primary">
+                            {{ novoItem.salvando.value ? 'Salvando…' : 'Cadastrar' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AdminLayout>
 </template>
