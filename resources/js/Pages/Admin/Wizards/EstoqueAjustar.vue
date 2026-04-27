@@ -51,12 +51,13 @@ const MOTIVOS = [
 const passo = ref(1);
 const sucesso = ref(null);
 
+// `data` colide com método data() do useForm (Inertia). Usamos data_movimento.
 const form = useForm({
     item_id: null,
     warehouse_id: props.armazens[0]?.id ?? null,
     quantidade: '',           // pode ser negativa (diferença)
     motivo: 'contagem',
-    data: hojeBR(),
+    data_movimento: hojeBR(),
     observacoes: '',
 });
 
@@ -74,20 +75,23 @@ function voltar() { if (passo.value > 1) passo.value--; }
 function irPara(n) { passo.value = n; }
 
 function confirmar() {
-    form.quantidade = parseFloat(String(form.quantidade).replace(',', '.'));
-
-    // Snapshot ANTES do post (porque o redirect pode recriar o componente
-    // e computed's derivados do form ficariam vazios)
     const snapshot = {
         item: itemAtual.value?.nome,
-        quantidade: form.quantidade,
+        quantidade: parseFloat(String(form.quantidade).replace(',', '.')),
         unidade: itemAtual.value?.unidade,
     };
 
-    // Avança OTIMISTA para passo 4 antes do post.
-    // Se der erro de validação, onError reverte pra conferência.
     sucesso.value = snapshot;
     passo.value = 4;
+
+    form.transform((d) => ({
+        item_id: d.item_id,
+        warehouse_id: d.warehouse_id,
+        quantidade: parseFloat(String(d.quantidade).replace(',', '.')),
+        motivo: d.motivo,
+        data: d.data_movimento, // backend espera 'data'
+        observacoes: d.observacoes,
+    }));
 
     form.post(route('admin.fluxos.ajustar-estoque.store'), {
         preserveScroll: false,
@@ -110,7 +114,7 @@ function reiniciar() {
     form.reset();
     form.warehouse_id = props.armazens[0]?.id ?? null;
     form.motivo = 'contagem';
-    form.data = hojeBR();
+    form.data_movimento = hojeBR();
     sucesso.value = null;
     passo.value = 1;
 }

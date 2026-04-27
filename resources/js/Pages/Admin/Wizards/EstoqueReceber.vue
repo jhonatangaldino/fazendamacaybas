@@ -55,11 +55,13 @@ const PASSOS = [
 const passo = ref(1);
 const sucesso = ref(null);
 
+// Não usamos `data` como nome de field — colide com o método `data()` do useForm
+// do Inertia e quebra o submit ("this.data is not a function").
 const form = useForm({
     warehouse_id: props.armazens[0]?.id ?? null,
     partner_id: null,
     numero_documento: '',
-    data: hojeBR(),
+    data_recebimento: hojeBR(),
     observacoes: '',
     items: [{ item_id: null, quantidade: '', valor_unitario: '' }],
 });
@@ -104,15 +106,6 @@ function voltar() { if (passo.value > 1) passo.value--; }
 function irPara(n) { passo.value = n; }
 
 function confirmar() {
-    // Normaliza vírgula → ponto em todas as linhas antes de submeter
-    form.items = form.items.map(row => ({
-        ...row,
-        quantidade: parseFloat(String(row.quantidade).replace(',', '.')),
-        valor_unitario: row.valor_unitario === '' || row.valor_unitario == null
-            ? 0
-            : parseFloat(String(row.valor_unitario).replace(',', '.')),
-    }));
-
     const snapshot = {
         qtdItens: form.items.length,
         valorTotal: valorTotal.value,
@@ -122,6 +115,22 @@ function confirmar() {
 
     sucesso.value = snapshot;
     passo.value = 4;
+
+    form.transform((d) => ({
+        warehouse_id: d.warehouse_id,
+        partner_id: d.partner_id,
+        numero_documento: d.numero_documento,
+        data: d.data_recebimento, // backend espera 'data'
+        observacoes: d.observacoes,
+        items: (d.items || []).map((row) => ({
+            ...row,
+            quantidade: parseFloat(String(row.quantidade).replace(',', '.')),
+            valor_unitario:
+                row.valor_unitario === '' || row.valor_unitario == null
+                    ? 0
+                    : parseFloat(String(row.valor_unitario).replace(',', '.')),
+        })),
+    }));
 
     form.post(route('admin.fluxos.receber-mercadoria.store'), {
         preserveScroll: false,
@@ -135,7 +144,7 @@ function confirmar() {
 function reiniciar() {
     form.reset();
     form.warehouse_id = props.armazens[0]?.id ?? null;
-    form.data = hojeBR();
+    form.data_recebimento = hojeBR();
     form.items = [{ item_id: null, quantidade: '', valor_unitario: '' }];
     sucesso.value = null;
     passo.value = 1;
@@ -276,7 +285,7 @@ function reiniciar() {
 
                 <div>
                     <InputLabel value="Quando chegou?" />
-                    <InputDate v-model="form.data" :max="hojeBR()" />
+                    <InputDate v-model="form.data_recebimento" :max="hojeBR()" />
                 </div>
 
                 <div>
@@ -311,7 +320,7 @@ function reiniciar() {
                             <div class="font-semibold mt-1">Armazém: {{ armazemAtual?.nome }}</div>
                             <div v-if="fornecedorAtual" class="text-sm text-slate-600">Fornecedor: {{ fornecedorAtual.nome }}</div>
                             <div v-if="form.numero_documento" class="text-sm text-slate-600">Nº documento: {{ form.numero_documento }}</div>
-                            <div class="text-sm text-slate-600">Data: {{ dataBR(form.data) }}</div>
+                            <div class="text-sm text-slate-600">Data: {{ dataBR(form.data_recebimento) }}</div>
                         </div>
                         <button @click="irPara(2)" class="text-sm text-macaybas-primary hover:underline">Trocar</button>
                     </div>

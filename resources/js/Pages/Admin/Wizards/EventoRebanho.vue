@@ -26,6 +26,7 @@ const props = defineProps({
     animais: { type: Array, required: true },
     lotes: { type: Array, required: true },
     locais: { type: Array, default: () => [] },
+    lotesAgregados: { type: Array, default: () => [] },
 });
 
 // Metadados por tipo — tudo que muda entre os 6 cards.
@@ -585,7 +586,7 @@ function reiniciar() {
                         <option v-for="l in lotesLocal" :key="l.id" :value="l.id">{{ l.nome }}</option>
                     </select>
                     <div v-if="loteFiltroId" class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded p-3">
-                        <strong>{{ animaisDoFiltro.length }}</strong> animal{{ animaisDoFiltro.length === 1 ? '' : 'is' }} ativo{{ animaisDoFiltro.length === 1 ? '' : 's' }} nesse lote vão receber o evento.
+                        <strong>{{ animaisDoFiltro.length }}</strong> {{ animaisDoFiltro.length === 1 ? 'animal' : 'animais' }} ativo{{ animaisDoFiltro.length === 1 ? '' : 's' }} nesse lote vão receber o evento.
                     </div>
                 </template>
 
@@ -599,7 +600,7 @@ function reiniciar() {
                         </option>
                     </select>
                     <div v-if="localFiltroId" class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded p-3">
-                        <strong>{{ animaisDoFiltro.length }}</strong> animal{{ animaisDoFiltro.length === 1 ? '' : 'is' }} no pasto vão receber o evento.
+                        <strong>{{ animaisDoFiltro.length }}</strong> {{ animaisDoFiltro.length === 1 ? 'animal' : 'animais' }} no pasto vão receber o evento.
                     </div>
                 </template>
 
@@ -640,7 +641,7 @@ function reiniciar() {
                         Animal: <strong>{{ selecionado.identificacao }}</strong><span v-if="selecionado.nome"> · {{ selecionado.nome }}</span>
                     </template>
                     <template v-else>
-                        <strong>{{ animaisDoFiltro.length }}</strong> animal{{ animaisDoFiltro.length === 1 ? '' : 'is' }} receberão este evento
+                        <strong>{{ animaisDoFiltro.length }}</strong> {{ animaisDoFiltro.length === 1 ? 'animal' : 'animais' }} receberão este evento
                         <template v-if="modo === 'lote_grupo'"> (lote inteiro)</template>
                         <template v-else-if="modo === 'lote_pasto'"> (pasto inteiro)</template>
                     </template>
@@ -755,7 +756,7 @@ function reiniciar() {
                                 {{ selecionado.identificacao }}<span v-if="selecionado.nome" class="text-slate-600"> · {{ selecionado.nome }}</span>
                             </div>
                             <div v-else class="font-semibold text-slate-900 mt-1">
-                                {{ animaisDoFiltro.length }} animal{{ animaisDoFiltro.length === 1 ? '' : 'is' }}
+                                {{ animaisDoFiltro.length }} {{ animaisDoFiltro.length === 1 ? 'animal' : 'animais' }}
                                 <span v-if="modo === 'lote_grupo'" class="text-sm text-slate-500"> (lote inteiro)</span>
                                 <span v-else-if="modo === 'lote_pasto'" class="text-sm text-slate-500"> (pasto inteiro)</span>
                                 <span v-else-if="modo === 'selecao'" class="text-sm text-slate-500"> (selecionados)</span>
@@ -841,12 +842,12 @@ function reiniciar() {
                         <li v-if="sucesso._contexto.animais_no_lote_destino !== undefined">
                             🐄 O lote <strong>{{ sucesso._contexto.lote_nome }}</strong> agora tem
                             <strong>{{ sucesso._contexto.animais_no_lote_destino }}</strong>
-                            animal{{ sucesso._contexto.animais_no_lote_destino === 1 ? '' : 'is' }} ativo{{ sucesso._contexto.animais_no_lote_destino === 1 ? '' : 's' }}.
+                            {{ sucesso._contexto.animais_no_lote_destino === 1 ? 'animal ativo' : 'animais ativos' }}.
                         </li>
                         <li v-if="sucesso._contexto.animais_no_local_destino !== undefined">
                             📍 O pasto <strong>{{ sucesso._contexto.local_nome }}</strong> agora tem
                             <strong>{{ sucesso._contexto.animais_no_local_destino }}</strong>
-                            animal{{ sucesso._contexto.animais_no_local_destino === 1 ? '' : 'is' }}.
+                            {{ sucesso._contexto.animais_no_local_destino === 1 ? 'animal' : 'animais' }}.
                         </li>
                         <li v-if="sucesso._contexto.receita_gerada">
                             💰 Receita de <strong class="text-emerald-700">R$ {{ Number(sucesso._contexto.receita_gerada).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }}</strong>
@@ -858,7 +859,7 @@ function reiniciar() {
                         </li>
                         <li v-if="sucesso._contexto.total_ativos_restantes !== undefined">
                             Rebanho ativo agora: <strong>{{ sucesso._contexto.total_ativos_restantes }}</strong>
-                            animal{{ sucesso._contexto.total_ativos_restantes === 1 ? '' : 'is' }}.
+                            {{ sucesso._contexto.total_ativos_restantes === 1 ? 'animal' : 'animais' }}.
                         </li>
                     </ul>
                 </div>

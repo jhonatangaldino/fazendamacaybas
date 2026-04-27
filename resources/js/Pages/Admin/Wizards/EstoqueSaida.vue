@@ -39,12 +39,13 @@ const sucesso = ref(null);
 const itensLocal = ref([...props.itens]);
 const armazensLocal = ref([...props.armazens]);
 
+// `data` colide com método data() do useForm Inertia. Usamos data_movimento.
 const form = useForm({
     item_id: null,
     warehouse_id: props.armazens[0]?.id ?? null,
     quantidade: 0,
     motivo: 'uso',
-    data: hojeBR(),
+    data_movimento: hojeBR(),
     observacoes: '',
 });
 
@@ -66,7 +67,7 @@ const novoItem = useInlineCreate({
 });
 
 const podeAvancar1 = computed(() => !!form.item_id && !!form.warehouse_id);
-const podeAvancar2 = computed(() => parseFloat(form.quantidade) > 0 && !!form.motivo && !!form.data);
+const podeAvancar2 = computed(() => parseFloat(form.quantidade) > 0 && !!form.motivo && !!form.data_movimento);
 
 function avancar() { if (passo.value < 4) passo.value++; }
 function voltar()  { if (passo.value > 1) passo.value--; }
@@ -81,6 +82,15 @@ function confirmar() {
         saldoAntes: saldoAntes.value,
         saldoDepois: saldoDepois.value,
     };
+    form.transform((d) => ({
+        item_id: d.item_id,
+        warehouse_id: d.warehouse_id,
+        quantidade: parseFloat(d.quantidade),
+        motivo: d.motivo,
+        data: d.data_movimento, // backend espera 'data'
+        observacoes: d.observacoes,
+    }));
+
     form.post(route('admin.fluxos.saida-estoque.store'), {
         preserveScroll: false,
         onSuccess: () => {
@@ -94,7 +104,7 @@ function reiniciar() {
     form.reset();
     form.warehouse_id = props.armazens[0]?.id ?? null;
     form.motivo = 'uso';
-    form.data = hojeBR();
+    form.data_movimento = hojeBR();
     sucesso.value = null;
     passo.value = 1;
 }
@@ -177,7 +187,7 @@ function reiniciar() {
                     </div>
                     <div>
                         <InputLabel value="Data" />
-                        <InputDate v-model="form.data" :max="hojeBR()" />
+                        <InputDate v-model="form.data_movimento" :max="hojeBR()" />
                     </div>
                 </div>
 
@@ -221,7 +231,7 @@ function reiniciar() {
                     <ul class="text-emerald-900 space-y-1.5">
                         <li>📦 <strong>{{ form.quantidade }} {{ itemSelecionado?.unidade }}</strong> de {{ itemSelecionado?.nome }}</li>
                         <li>{{ motivoSelecionado?.emoji }} Motivo: <strong>{{ motivoSelecionado?.rotulo }}</strong></li>
-                        <li>📅 {{ dataBR(form.data) }}</li>
+                        <li>📅 {{ dataBR(form.data_movimento) }}</li>
                         <li v-if="armazemSelecionado">📍 De: {{ armazemSelecionado.nome }}</li>
                     </ul>
                 </div>

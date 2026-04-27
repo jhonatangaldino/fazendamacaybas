@@ -44,7 +44,7 @@ class EventoRebanhoWizardController extends Controller
 
         $animais = Animal::ativos()
             ->with(['species:id,nome', 'breed:id,nome', 'lot:id,nome'])
-            ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'breed_id', 'lot_id', 'peso_atual', 'data_nascimento', 'photo_path', 'updated_at')
+            ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'breed_id', 'lot_id', 'location_id', 'peso_atual', 'data_nascimento', 'photo_path', 'updated_at')
             ->orderByDesc('updated_at')
             ->orderBy('identificacao')
             ->limit(200)
@@ -60,6 +60,7 @@ class EventoRebanhoWizardController extends Controller
                 'species' => $a->species ? ['id' => $a->species->id, 'nome' => $a->species->nome] : null,
                 'breed' => $a->breed ? ['id' => $a->breed->id, 'nome' => $a->breed->nome] : null,
                 'lot' => $a->lot ? ['id' => $a->lot->id, 'nome' => $a->lot->nome] : null,
+                'location_id' => $a->location_id,
             ]);
 
         // Auditoria 2026-04-27 — eventos AGREGADOS para lotes de aves/peixes
