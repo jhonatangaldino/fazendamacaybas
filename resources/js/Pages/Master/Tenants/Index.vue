@@ -451,10 +451,22 @@ async function copyDeliveryMessage() {
         <!-- BLOCO 4.3/4.4 — MOBILE/iPad cards (< xl) — todas as ações visíveis, sem scroll horizontal -->
         <div v-if="tenants.length" class="xl:hidden space-y-2.5">
             <div v-for="t in tenants" :key="t.id"
-                 class="rounded-xl bg-white ring-1 ring-slate-200 p-3.5 shadow-sm">
+                 class="rounded-xl bg-white ring-1 p-3.5 shadow-sm"
+                 :class="t.is_master_tenant
+                    ? 'ring-2 ring-amber-400 bg-amber-50/40'
+                    : 'ring-slate-200'">
                 <div class="flex items-start justify-between gap-2 mb-2">
-                    <div class="min-w-0">
-                        <div class="font-semibold text-slate-900 truncate">{{ t.nome }}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-semibold text-slate-900 truncate">{{ t.nome }}</span>
+                            <span
+                                v-if="t.is_master_tenant"
+                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-white shadow-sm flex-shrink-0"
+                                title="Cliente master da plataforma"
+                            >
+                                ⭐ Master
+                            </span>
+                        </div>
                         <div class="text-xs text-slate-500 font-mono">{{ t.slug }}</div>
                     </div>
                     <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 flex-shrink-0"
@@ -496,6 +508,13 @@ async function copyDeliveryMessage() {
                         <OverflowMenuItem icon="invoice" :href="route('master.tenants.subscription.show', t.id)">Assinatura</OverflowMenuItem>
                         <OverflowMenuItem icon="copy" @click="openDeliveryDialog(t)">Mensagem de entrega</OverflowMenuItem>
                         <OverflowMenuDivider />
+                        <OverflowMenuItem
+                            icon="star"
+                            :success="! t.is_master_tenant"
+                            :danger="t.is_master_tenant"
+                            @click="toggleMaster(t)">
+                            {{ t.is_master_tenant ? 'Desmarcar como Master' : 'Tornar este o Master' }}
+                        </OverflowMenuItem>
                         <OverflowMenuItem
                             :icon="t.is_active ? 'power' : 'check-circle'"
                             :danger="t.is_active"
