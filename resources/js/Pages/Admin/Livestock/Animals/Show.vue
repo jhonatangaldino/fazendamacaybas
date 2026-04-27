@@ -65,12 +65,40 @@ const eventForm = useForm({
     location_origem_id: null,
     location_destino_id: null,
     observacoes: '',
+    // Ordenha: array dinâmico de ordenhas {hora, litros} + total auto
+    ordenhas: [{ hora: '08:00', litros: '' }],
+    producao_litros: '',
+    // Exame de toque
+    gestacao_status: '',
+    gestacao_dias: 0,
+    data_prevista_parto: '',
 });
+
+// Helper para o modal de ordenha
+const HORAS_PADRAO_MODAL = ['08:00', '15:00', '20:00', '04:00', '12:00', '18:00'];
+const LABELS_ORDENHA = ['1ª', '2ª', '3ª', '4ª', '5ª', '6ª'];
+
+function adicionarOrdenhaModal() {
+    if (eventForm.ordenhas.length >= 6) return;
+    eventForm.ordenhas.push({
+        hora: HORAS_PADRAO_MODAL[eventForm.ordenhas.length] || '',
+        litros: '',
+    });
+}
+function removerOrdenhaModal(idx) {
+    if (eventForm.ordenhas.length <= 1) return;
+    eventForm.ordenhas.splice(idx, 1);
+}
+const totalOrdenhasModal = computed(() =>
+    eventForm.ordenhas.reduce((acc, o) => acc + (parseFloat(o.litros) || 0), 0)
+);
 
 function abrirEvento(tipo = 'pesagem') {
     eventForm.reset();
     eventForm.tipo = tipo;
     eventForm.data_evento = hojeBR();
+    // Ordenha inicia com 1ª ordenha às 08:00
+    eventForm.ordenhas = [{ hora: '08:00', litros: '' }];
     novoEvento.value = true;
 }
 
@@ -104,7 +132,33 @@ function salvarEvento() {
         .transform((d) => {
             // Renomeia data_evento → data para o backend (que espera 'data')
             const { data_evento, ...rest } = d;
-            return { ...rest, data: data_evento };
+            const payload = { ...rest, data: data_evento };
+
+            // Tipo ordenha: filtra ordenhas com litros > 0, calcula total auto
+            if (rest.tipo === 'ordenha') {
+                const ordenhasValidas = rest.ordenhas
+                    .map((o, idx) => ({
+                        label: LABELS_ORDENHA[idx] || `${idx+1}ª`,
+                        hora: o.hora || null,
+                        litros: parseFloat(o.litros) || 0,
+                    }))
+                    .filter(o => o.litros > 0);
+                payload.ordenhas = ordenhasValidas;
+                payload.producao_litros = ordenhasValidas.reduce((acc, o) => acc + o.litros, 0).toFixed(2);
+            } else {
+                // Não-ordenha: limpa campos pra não enviar lixo
+                delete payload.ordenhas;
+                delete payload.producao_litros;
+            }
+
+            // Não-exame_toque: limpa campos de gestação
+            if (rest.tipo !== 'exame_toque') {
+                delete payload.gestacao_status;
+                delete payload.gestacao_dias;
+                delete payload.data_prevista_parto;
+            }
+
+            return payload;
         })
         .post(route('admin.rebanho.animais.eventos.store', props.animal.id), {
             preserveScroll: true,
@@ -815,21 +869,33 @@ const eventoLabel = (tipo) => ({
                             <p v-if="eventForm.errors.peso" class="text-xs text-red-600 mt-1">{{ eventForm.errors.peso }}</p>
                         </div>
 
-                        <!-- Ordenha — registra litros produzidos desta vaca neste dia -->
-                        <div v-if="eventForm.tipo === 'ordenha'" class="sm:col-span-2">
-                            <InputLabel value="Litros produzidos *" />
-                            <div class="relative">
-                                <input
-                                    type="number" step="0.1" min="0" max="99.99"
-                                    v-model="eventForm.producao_litros"
-                                    class="form-input pr-10"
-                                    placeholder="Ex: 12.5"
-                                    required
-                                >
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">L</span>
+                        <!-- Ordenha — array dinâmico de ordenhas (hora + litros) -->
+                        <div v-if="eventForm.tipo === 'ordenha'" class="sm:col-span-2 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <InputLabel :value="`Ordenhas do dia (${eventForm.ordenhas.length})`" />
+                                <span class="text-sm font-bold text-emerald-700">
+                                    Total: {{ totalOrdenhasModal.toFixed(1) }} L
+                                </span>
                             </div>
-                            <p class="mt-1 text-xs text-slate-500">Total do dia (soma de todas as ordenhas).</p>
-                            <p v-if="eventForm.errors.producao_litros" class="text-xs text-red-600 mt-1">{{ eventForm.errors.producao_litros }}</p>
+                            <div v-for="(o, idx) in eventForm.ordenhas" :key="idx" class="flex gap-2 items-end">
+                                <div class="flex-shrink-0 w-9 text-center pb-2 text-sm font-semibold text-slate-600">
+                                    {{ LABELS_ORDENHA[idx] || `${idx+1}ª` }}
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Hora</label>
+                                    <input v-model="o.hora" type="time" class="px-2 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-sm font-mono w-[100px]">
+                                </div>
+                                <div class="flex-1 relative">
+                                    <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Litros</label>
+                                    <input v-model="o.litros" type="number" step="0.1" min="0" max="99.99" placeholder="0.0" class="w-full px-3 py-2 pr-8 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-sm font-mono text-right">
+                                    <span class="absolute right-3 top-7 text-xs text-slate-400">L</span>
+                                </div>
+                                <button v-if="eventForm.ordenhas.length > 1" type="button" @click="removerOrdenhaModal(idx)" class="flex-shrink-0 w-9 h-10 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center" title="Remover">×</button>
+                            </div>
+                            <button v-if="eventForm.ordenhas.length < 6" type="button" @click="adicionarOrdenhaModal" class="inline-flex items-center min-h-9 px-3 py-2 text-xs text-macaybas-primary hover:bg-macaybas-primary-50 rounded-md font-medium">
+                                + adicionar ordenha (2ª, 3ª…)
+                            </button>
+                            <p class="text-xs text-slate-500 mt-1">Cada ordenha tem horário próprio. Total do dia é calculado automaticamente.</p>
                         </div>
 
                         <!-- Exame de toque — diagnóstico de gestação -->
