@@ -781,9 +781,20 @@ const eventoLabel = (tipo) => ({
                             <InputLabel value="Tipo de evento *" />
                             <select v-model="eventForm.tipo" class="form-select">
                                 <option value="pesagem">⚖️ Pesagem</option>
+                                <option value="ordenha">🥛 Ordenha (litros produzidos)</option>
                                 <option value="vacinacao">💉 Vacinação</option>
                                 <option value="medicacao">💊 Medicação</option>
-                                <option value="reproducao">❤️ Reprodução</option>
+                                <option value="vermifugacao">🧴 Vermifugação</option>
+                                <option value="reproducao">❤️ Cobertura (cruzamento ou IA)</option>
+                                <option value="exame_toque">🩺 Exame de toque (palpação)</option>
+                                <option value="secagem">💧 Secagem</option>
+                                <option value="ferrageamento">🐎 Ferrageamento</option>
+                                <option value="tosquia">✂️ Tosquia</option>
+                                <option value="castracao">🔪 Castração</option>
+                                <option value="biometria_amostral">🐟 Biometria amostral</option>
+                                <option value="qualidade_agua">💧 Qualidade da água</option>
+                                <option value="alimentacao">🌾 Alimentação</option>
+                                <option value="postura_diaria">🥚 Postura</option>
                                 <option value="movimentacao">🔄 Mudar de lote (grupo)</option>
                                 <option value="movimentacao_local">📍 Mover de pasto (local físico)</option>
                                 <option value="venda">💰 Venda (encerra ciclo · gera receita)</option>
@@ -803,6 +814,68 @@ const eventoLabel = (tipo) => ({
                             <input type="number" step="0.01" min="0" v-model="eventForm.peso" class="form-input" required>
                             <p v-if="eventForm.errors.peso" class="text-xs text-red-600 mt-1">{{ eventForm.errors.peso }}</p>
                         </div>
+
+                        <!-- Ordenha — registra litros produzidos desta vaca neste dia -->
+                        <div v-if="eventForm.tipo === 'ordenha'" class="sm:col-span-2">
+                            <InputLabel value="Litros produzidos *" />
+                            <div class="relative">
+                                <input
+                                    type="number" step="0.1" min="0" max="99.99"
+                                    v-model="eventForm.producao_litros"
+                                    class="form-input pr-10"
+                                    placeholder="Ex: 12.5"
+                                    required
+                                >
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">L</span>
+                            </div>
+                            <p class="mt-1 text-xs text-slate-500">Total do dia (soma de todas as ordenhas).</p>
+                            <p v-if="eventForm.errors.producao_litros" class="text-xs text-red-600 mt-1">{{ eventForm.errors.producao_litros }}</p>
+                        </div>
+
+                        <!-- Exame de toque — diagnóstico de gestação -->
+                        <template v-if="eventForm.tipo === 'exame_toque'">
+                            <div class="sm:col-span-2">
+                                <InputLabel value="Resultado *" />
+                                <div class="grid grid-cols-3 gap-2 mt-1">
+                                    <button type="button" @click="eventForm.gestacao_status = 'prenhe'"
+                                        class="px-3 py-2 rounded-lg ring-2 text-sm font-semibold transition"
+                                        :class="eventForm.gestacao_status === 'prenhe' ? 'bg-emerald-100 ring-emerald-300 text-emerald-900' : 'bg-white ring-slate-200 text-slate-600'">
+                                        🤰 Prenhe
+                                    </button>
+                                    <button type="button" @click="eventForm.gestacao_status = 'vazia'"
+                                        class="px-3 py-2 rounded-lg ring-2 text-sm font-semibold transition"
+                                        :class="eventForm.gestacao_status === 'vazia' ? 'bg-slate-100 ring-slate-400 text-slate-900' : 'bg-white ring-slate-200 text-slate-600'">
+                                        ⚪ Vazia
+                                    </button>
+                                    <button type="button" @click="eventForm.gestacao_status = 'duvida'"
+                                        class="px-3 py-2 rounded-lg ring-2 text-sm font-semibold transition"
+                                        :class="eventForm.gestacao_status === 'duvida' ? 'bg-amber-100 ring-amber-300 text-amber-900' : 'bg-white ring-slate-200 text-slate-600'">
+                                        ⚠️ Em dúvida
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-if="eventForm.gestacao_status === 'prenhe'">
+                                <InputLabel value="Dias de gestação" />
+                                <input type="number" min="0" max="340" v-model.number="eventForm.gestacao_dias" class="form-input" placeholder="Ex: 60">
+                                <p class="text-xs text-slate-500 mt-1">Sistema calcula DPP automaticamente.</p>
+                            </div>
+                            <div v-if="eventForm.gestacao_status === 'prenhe'">
+                                <InputLabel value="Data prevista parto" />
+                                <input type="date" v-model="eventForm.data_prevista_parto" class="form-input">
+                            </div>
+                        </template>
+
+                        <!-- Secagem — sem campo extra além de obs e medicamento (opcional) -->
+                        <div v-if="eventForm.tipo === 'secagem'" class="sm:col-span-2">
+                            <InputLabel value="Medicamento aplicado (opcional)" />
+                            <input v-model="eventForm.medicamento" class="form-input" placeholder="Ex: Mamivete LA, Cefalonium...">
+                        </div>
+
+                        <!-- Vermifugação -->
+                        <template v-if="eventForm.tipo === 'vermifugacao'">
+                            <div class="sm:col-span-2"><InputLabel value="Vermífugo" /><input v-model="eventForm.medicamento" class="form-input" placeholder="Ex: Ivermectina"></div>
+                            <div><InputLabel value="Dose (ml)" /><input type="number" step="0.01" v-model="eventForm.dose" class="form-input"></div>
+                        </template>
 
                         <!-- Vacinação -->
                         <template v-if="eventForm.tipo === 'vacinacao'">

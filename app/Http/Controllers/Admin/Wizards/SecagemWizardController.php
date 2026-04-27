@@ -81,6 +81,10 @@ class SecagemWizardController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        // Vue renomeou 'data' pra 'data_secagem' (palavra reservada). Mapeia de volta.
+        if ($request->has('data_secagem') && ! $request->has('data')) {
+            $request->merge(['data' => $request->input('data_secagem')]);
+        }
         $validated = $request->validate([
             'animal_id' => ['required', 'exists:animals,id'],
             'data' => ['required', 'date', 'before_or_equal:today'],

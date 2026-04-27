@@ -109,6 +109,10 @@ class ExameToqueWizardController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        // Vue renomeou 'data' pra 'data_exame' (palavra reservada). Mapeia.
+        if ($request->has('data_exame') && ! $request->has('data')) {
+            $request->merge(['data' => $request->input('data_exame')]);
+        }
         $validated = $request->validate([
             'animal_ids' => ['required', 'array', 'min:1'],
             'animal_ids.*' => ['exists:animals,id'],

@@ -38,9 +38,10 @@ function hojeLocal() {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+// `data` é palavra reservada do Vue Options API → bug no useForm. Renomeado.
 const form = useForm({
     animal_ids: [],
-    data: props.data_hoje || hojeLocal(),
+    data_exame: props.data_hoje || hojeLocal(),
     partner_id: '',
     gestacao_status: 'prenhe',
     gestacao_dias: 0,
@@ -50,9 +51,9 @@ const form = useForm({
 });
 
 // Calcula DPP automaticamente sempre que muda gestacao_dias OU data
-watch([() => form.gestacao_dias, () => form.data, () => form.gestacao_status, selecionadas], () => {
-    if (form.gestacao_status !== 'prenhe' || ! form.gestacao_dias || ! form.data) {
-        form.data_prevista_parto = '';
+watch([() => form.gestacao_dias, () => form.data_exame, () => form.gestacao_status, selecionadas], () => {
+    if (form.gestacao_status !== 'prenhe' || ! form.gestacao_dias || ! form.data_exame) {
+        form.data_exame_prevista_parto = '';
         return;
     }
     // Pega a primeira fêmea selecionada para descobrir gestacao_dias_padrao
@@ -61,9 +62,9 @@ watch([() => form.gestacao_dias, () => form.data, () => form.gestacao_status, se
     const primeira = props.femeas.find(f => f.id === ids[0]);
     if (! primeira) return;
     const gestacaoTotal = primeira.gestacao_dias_padrao || 280;
-    const dataExame = new Date(form.data + 'T12:00:00');
+    const dataExame = new Date(form.data_exame + 'T12:00:00');
     const dpp = new Date(dataExame.getTime() + (gestacaoTotal - form.gestacao_dias) * 86400000);
-    form.data_prevista_parto = dpp.toISOString().slice(0, 10);
+    form.data_exame_prevista_parto = dpp.toISOString().slice(0, 10);
 }, { deep: true });
 
 const totalSelecionadas = computed(() => selecionadas.value.size);
@@ -107,8 +108,8 @@ const statusLabel = {
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Data do exame</label>
                         <input
-                            :value="form.data"
-                            @input="form.data = $event.target.value"
+                            :value="form.data_exame"
+                            @input="form.data_exame = $event.target.value"
                             type="date"
                             class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
                         >
@@ -156,7 +157,7 @@ const statusLabel = {
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Data prevista do parto</label>
                         <input
-                            v-model="form.data_prevista_parto"
+                            v-model="form.data_exame_prevista_parto"
                             type="date"
                             class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
                         >
