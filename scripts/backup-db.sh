@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # backup-db.sh — Backup diário do MySQL via cron.
-# Mantém SOMENTE os 3 últimos backups bem-sucedidos.
+# Mantém SOMENTE os 5 últimos backups bem-sucedidos.
 #
 # Cron sugerido (também dispara o snapshot da ordem do menu):
 #   0 3 * * * /home/u931382046/domains/fazendamacaybas.com.br/shared/scripts/backup-db.sh
@@ -10,7 +10,7 @@ set -euo pipefail
 
 DEPLOY_BASE="/home/u931382046/domains/fazendamacaybas.com.br"
 BACKUP_DIR="${DEPLOY_BASE}/backups"
-KEEP=3
+KEEP=5
 STAMP=$(date +%Y-%m-%d_%H%M%S)
 
 # Lê credenciais do .env
@@ -43,15 +43,22 @@ else
     exit 1
 fi
 
-# Rotação: mantém apenas os 3 mais recentes que foram promovidos (.sql.gz finais).
-# Ordena por data de modificação desc, pula os 3 primeiros, remove o resto.
+# Rotação: mantém apenas os ${KEEP} mais recentes que foram promovidos (.sql.gz finais).
+# Ordena por data de modificação desc, pula os ${KEEP} primeiros, remove o resto.
 ls -1t "${BACKUP_DIR}"/macaybas-*.sql.gz 2>/dev/null \
     | tail -n +$((KEEP + 1)) \
     | xargs -r rm -f --
 
+# Limpeza de arquivos órfãos: .err vazios, .tmp incompletos, qualquer .sql não comprimido
+# (backups manuais antigos pré-rotação) — mantém só os .sql.gz dentro do KEEP.
+find "${BACKUP_DIR}" -maxdepth 1 -type f \( -name '*.err' -o -name '*.tmp' \) -delete 2>/dev/null || true
+
 # Relatório de backups retidos
 echo "📦 Backups retidos (mantém ${KEEP} mais recentes):"
 ls -1t "${BACKUP_DIR}"/macaybas-*.sql.gz 2>/dev/null | head -n ${KEEP} | sed 's/^/   - /'
+
+# Tamanho total da pasta de backups (visibilidade do uso de disco)
+echo "💾 Tamanho total: $(du -sh "${BACKUP_DIR}" | cut -f1)"
 
 # Dispara o snapshot da ordem do menu (via artisan do release atual)
 if [ -d "${DEPLOY_BASE}/releases/current" ]; then
