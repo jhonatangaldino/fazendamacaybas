@@ -183,6 +183,14 @@ class TaskController extends Controller
 
     public function complete(Task $task)
     {
+        // Se a tarefa tem auto_action, em vez de simplesmente fechar, redireciona
+        // para o wizard correspondente (que vai fechar a tarefa após o submit).
+        // Caso de uso: tarefa "Registrar parto" com auto_action='parto' criada
+        // pelo ExameToqueController → abre wizard pra cadastrar filhotes.
+        if ($task->auto_action === 'parto' && $task->status !== 'concluida') {
+            return redirect()->route('admin.fluxos.registrar-parto', ['task_id' => $task->id]);
+        }
+
         $task->update(['status' => 'concluida', 'concluida_em' => now()]);
 
         return back()->with('success', 'Tarefa concluída.');

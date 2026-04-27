@@ -170,12 +170,14 @@ class ExameToqueWizardController extends Controller
                 'data_vencimento' => $dpp->copy()->subDays(60),
                 'descricao' => "Secagem programada — 60 dias antes do parto previsto em " . $dpp->format('d/m/Y') . ".",
                 'prioridade' => 'alta',
+                'auto_action' => null, // não dispara wizard, é manual
             ],
             [
-                'titulo' => "Preparar maternidade · {$animal->identificacao}" . ($animal->nome ? " ({$animal->nome})" : ''),
-                'data_vencimento' => $dpp->copy()->subDays(15),
-                'descricao' => "Mover para piquete maternidade — parto previsto em " . $dpp->format('d/m/Y') . ".",
-                'prioridade' => 'media',
+                'titulo' => "Registrar parto · {$animal->identificacao}" . ($animal->nome ? " ({$animal->nome})" : ''),
+                'data_vencimento' => $dpp->copy(),
+                'descricao' => "Parto previsto em " . $dpp->format('d/m/Y') . ". Ao concluir esta tarefa, o sistema vai abrir o wizard para cadastrar o(s) filhote(s) automaticamente como filho(s) da " . ($animal->nome ?: $animal->identificacao) . ".",
+                'prioridade' => 'alta',
+                'auto_action' => 'parto', // dispara wizard ao concluir
             ],
         ];
 
@@ -197,6 +199,7 @@ class ExameToqueWizardController extends Controller
                 'status' => 'pendente',
                 'data_vencimento' => $t['data_vencimento']->toDateString(),
                 'modulo' => 'rebanho',
+                'auto_action' => $t['auto_action'] ?? null,
                 'related_type' => \App\Models\Livestock\Animal::class,
                 'related_id' => $animal->id,
                 'created_by' => $userId,

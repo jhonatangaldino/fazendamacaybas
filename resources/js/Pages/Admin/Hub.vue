@@ -33,9 +33,29 @@
  *   marcado com `destaque: true`). Os outros linkam pras telas de módulo
  *   existentes; conforme wizards forem criados, só a `rota` do card muda.
  */
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+
+// Busca incremental — filtra cards do Hub a partir de 3+ caracteres digitados
+// Sem reload de página, sem requisição ao backend (filtragem 100% client-side
+// já que o catálogo de ações já está carregado).
+const busca = ref('');
+function normalizar(s) {
+    return (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, ''); // remove acentos
+}
+const buscaAtiva = computed(() => normalizar(busca.value).length >= 3);
+const termoNormalizado = computed(() => normalizar(busca.value));
+function matchItem(item) {
+    if (! buscaAtiva.value) return true;
+    const t = termoNormalizado.value;
+    return normalizar(item.nome).includes(t)
+        || normalizar(item.desc).includes(t)
+        || normalizar(item.id).includes(t);
+}
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user ?? null);
@@ -157,11 +177,19 @@ const BADGE_POR_TIPO = {
     acao:   { texto: 'AÇÃO',          classe: 'badge-acao' },
 };
 
-// Filtragem por permissão, preservando estrutura dos grupos
+// Filtragem por permissão E pela busca textual (≥3 chars)
 const gruposVisiveis = computed(() =>
     grupos
-        .map((g) => ({ ...g, itens: g.itens.filter((i) => !i.perm || can(i.perm)) }))
+        .map((g) => ({
+            ...g,
+            itens: g.itens.filter((i) => (!i.perm || can(i.perm)) && matchItem(i)),
+        }))
         .filter((g) => g.itens.length > 0)
+);
+
+// Quantos cards estão sendo mostrados após filtros
+const totalCardsVisiveis = computed(() =>
+    gruposVisiveis.value.reduce((acc, g) => acc + g.itens.length, 0)
 );
 
 const semAcoes = computed(() => gruposVisiveis.value.length === 0);
@@ -224,12 +252,44 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
         <template #page-title>Início</template>
 
         <!-- Saudação -->
-        <div class="mb-8 sm:mb-10">
+        <div class="mb-6">
             <h1 class="text-2xl sm:text-3xl font-serif font-bold text-slate-900">
                 {{ cumprimento }}<template v-if="primeiroNome">, {{ primeiroNome }}</template>!
             </h1>
             <p class="mt-1 text-base sm:text-lg text-slate-600">
                 O que você quer fazer agora?
+            </p>
+        </div>
+
+        <!-- Busca rápida — filtra cards a partir de 3 caracteres -->
+        <div class="mb-6 sm:mb-8">
+            <div class="relative max-w-2xl">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </span>
+                <input
+                    v-model="busca"
+                    type="search"
+                    placeholder="Buscar atalho — digite pelo menos 3 letras (ex: leite, vacina, despesa)"
+                    class="w-full pl-12 pr-12 py-4 rounded-xl bg-white ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base shadow-sm"
+                >
+                <button
+                    v-if="busca"
+                    type="button"
+                    @click="busca = ''"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"
+                    title="Limpar busca"
+                >×</button>
+            </div>
+            <p v-if="buscaAtiva" class="mt-2 text-xs text-slate-500">
+                <span v-if="totalCardsVisiveis === 0" class="text-amber-700 font-medium">
+                    Nenhum atalho encontrado para "{{ busca }}". Tente outra palavra.
+                </span>
+                <span v-else>
+                    Mostrando <strong class="text-slate-900">{{ totalCardsVisiveis }}</strong> atalho(s) para "<strong class="text-slate-900">{{ busca }}</strong>"
+                </span>
             </p>
         </div>
 
@@ -244,8 +304,8 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
             </div>
         </div>
 
-        <!-- Seção "Você usa mais" (só aparece se houver histórico) -->
-        <section v-if="maisUsados.length > 0" class="mb-8 sm:mb-10">
+        <!-- Seção "Você usa mais" — oculta durante busca pra não confundir -->
+        <section v-if="maisUsados.length > 0 && ! buscaAtiva" class="mb-8 sm:mb-10">
             <div class="flex items-center gap-3 mb-3 sm:mb-4">
                 <span class="text-2xl sm:text-3xl" aria-hidden="true">⭐</span>
                 <div>

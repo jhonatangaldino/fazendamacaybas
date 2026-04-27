@@ -397,6 +397,12 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
             ->middleware('permission:operational.rebanho.eventos.create')->name('exame-toque');
         Route::post('exame-toque', [\App\Http\Controllers\Admin\Wizards\ExameToqueWizardController::class, 'store'])
             ->middleware('permission:operational.rebanho.eventos.create')->name('exame-toque.store');
+
+        // Disparado pela conclusão de tarefa com auto_action='parto'
+        Route::get('registrar-parto', [\App\Http\Controllers\Admin\Wizards\RegistrarPartoWizardController::class, 'create'])
+            ->middleware('permission:operational.rebanho.animais.create')->name('registrar-parto');
+        Route::post('registrar-parto', [\App\Http\Controllers\Admin\Wizards\RegistrarPartoWizardController::class, 'store'])
+            ->middleware('permission:operational.rebanho.animais.create')->name('registrar-parto.store');
     });
 
     // ------- FAZENDA (seleção e troca) -------

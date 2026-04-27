@@ -23,6 +23,7 @@ class Task extends Model
     protected $fillable = [
         'farm_id', 'titulo', 'descricao', 'prioridade', 'status',
         'data_inicio', 'data_vencimento', 'concluida_em', 'modulo',
+        'auto_action',
         'related_type', 'related_id', 'created_by',
         'tenant_id',
     ];
