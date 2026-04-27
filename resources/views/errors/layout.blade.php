@@ -101,7 +101,12 @@
         <h1>{{ $titulo }}</h1>
         <p>{{ $mensagem }}</p>
         <div class="actions">
-            @if (auth()->check())
+            @php
+                // Auth check pode falhar se DB estiver fora (ex.: limite de conexões esgotado).
+                // Try/catch garante que a página 500 SEMPRE renderize, mesmo sem banco.
+                try { $logado = auth()->check(); } catch (\Throwable $e) { $logado = false; }
+            @endphp
+            @if ($logado)
                 <a href="{{ url('/admin/inicio') }}" class="btn btn-primary">Voltar para o Início</a>
                 <a href="{{ url()->previous() }}" class="btn btn-outline">Página anterior</a>
             @else

@@ -60,9 +60,9 @@ function toggleActive(section) {
 </script>
 
 <template>
-    <Head :title="`CMS — Cliente: ${cliente.nome} · ${page.titulo}`" />
+    <Head :title="`Site — Cliente: ${cliente.nome} · ${page.titulo}`" />
     <MasterLayout>
-        <template #page-title>CMS — {{ cliente.nome }}</template>
+        <template #page-title>Site — {{ cliente.nome }}</template>
 
         <ClientCmsHeader :cliente="cliente" :section="`Página: ${page.titulo}`" />
 

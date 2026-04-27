@@ -146,6 +146,8 @@ function reiniciar() {
                 <div class="grid gap-3 sm:grid-cols-2">
                     <button v-for="f in FINALIDADES" :key="f.id" type="button"
                             @click="form.tipo = f.id"
+                            data-cy="card-finalidade"
+                            :data-finalidade="f.id"
                             class="rounded-xl border-2 p-4 text-left transition-all hover:border-macaybas-primary"
                             :class="form.tipo === f.id ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200 bg-white'">
                         <div class="flex items-start gap-3">
@@ -173,7 +175,7 @@ function reiniciar() {
 
                 <div>
                     <InputLabel value="Em qual talhão?" />
-                    <select v-model="form.field_id" class="form-select text-base py-3">
+                    <select v-model="form.field_id" data-cy="select-talhao" class="form-select text-base py-3">
                         <option :value="null">— Escolha o talhão —</option>
                         <option v-for="t in talhoes" :key="t.id" :value="t.id">
                             {{ t.nome }} ({{ t.area_ha }} ha)
@@ -195,6 +197,7 @@ function reiniciar() {
                     <InputLabel value="Nome do produto" />
                     <input v-model="form.produto" type="text" maxlength="200"
                            list="produtos-estoque"
+                           data-cy="input-produto"
                            placeholder="Ex: Ureia, Glifosato, Calcário dolomítico…"
                            class="form-input text-lg py-3">
                     <datalist id="produtos-estoque">
@@ -209,6 +212,7 @@ function reiniciar() {
                     <div>
                         <InputLabel value="Quantidade" />
                         <input v-model="form.quantidade" type="number" step="0.1" min="0" inputmode="decimal"
+                               data-cy="input-quantidade"
                                placeholder="Ex: 100"
                                class="form-input text-xl py-3 font-mono">
                     </div>
@@ -279,7 +283,7 @@ function reiniciar() {
 
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
-                    <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
+                    <button @click="confirmar" :disabled="form.processing" data-cy="confirmar" class="btn-primary px-8 py-3 text-base">
                         {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
@@ -287,7 +291,7 @@ function reiniciar() {
         </div>
 
         <!-- PASSO 4 · Sucesso -->
-        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto">
+        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto" data-cy="passo-sucesso">
             <div class="card-body text-center space-y-5 py-8">
                 <div class="text-6xl" aria-hidden="true">🌾</div>
                 <div>

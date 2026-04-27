@@ -135,7 +135,7 @@ function reiniciar() {
                 <h2 class="text-2xl font-semibold text-slate-900">Qual produto precisa ajustar?</h2>
                 <div>
                     <InputLabel value="Produto" />
-                    <select v-model="form.item_id" class="form-select text-base py-3">
+                    <select v-model="form.item_id" data-cy="select-item" class="form-select text-base py-3">
                         <option :value="null">Escolha…</option>
                         <option v-for="i in itensLocal" :key="i.id" :value="i.id">{{ i.nome }} ({{ i.unidade }})</option>
                     </select>
@@ -171,6 +171,7 @@ function reiniciar() {
                 <div>
                     <InputLabel :value="`Diferença em ${itemAtual?.unidade || 'un'} (use negativo se faltou)`" />
                     <input v-model="form.quantidade" type="number" step="0.01" inputmode="decimal"
+                           data-cy="input-quantidade"
                            placeholder="Ex: 5 ou -3"
                            class="form-input text-2xl py-4 font-mono">
                 </div>
@@ -180,6 +181,7 @@ function reiniciar() {
                     <div class="grid gap-2">
                         <button v-for="m in MOTIVOS" :key="m.id" type="button"
                                 @click="form.motivo = m.id"
+                                :data-motivo="m.id"
                                 class="text-left rounded-lg border-2 p-3 transition-all"
                                 :class="form.motivo === m.id ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200'">
                             {{ m.nome }}
@@ -223,14 +225,14 @@ function reiniciar() {
                 </div>
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
-                    <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
+                    <button @click="confirmar" :disabled="form.processing" data-cy="confirmar" class="btn-primary px-8 py-3 text-base">
                         {{ form.processing ? 'Salvando…' : 'Confirmar ✓' }}
                     </button>
                 </div>
             </div>
         </div>
 
-        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto">
+        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto" data-cy="passo-sucesso">
             <div class="card-body text-center space-y-5 py-8">
                 <div class="text-6xl">🔢</div>
                 <h2 class="text-2xl font-semibold text-slate-900">Estoque ajustado!</h2>

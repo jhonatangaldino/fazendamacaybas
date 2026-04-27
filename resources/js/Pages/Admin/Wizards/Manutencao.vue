@@ -149,6 +149,8 @@ function emojiVeiculo(tipo) {
                 <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <button v-for="v in veiculos" :key="v.id" type="button"
                             @click="selecionarVeiculo(v)"
+                            data-cy="card-veiculo"
+                            :data-veiculo-id="v.id"
                             class="rounded-xl border-2 p-4 text-left transition-all hover:border-macaybas-primary"
                             :class="veiculoSelecionado?.id === v.id ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200 bg-white'">
                         <div class="flex items-start gap-3">
@@ -180,6 +182,7 @@ function emojiVeiculo(tipo) {
                     <div class="grid gap-2 sm:grid-cols-3">
                         <button v-for="t in TIPOS" :key="t.id" type="button"
                                 @click="form.tipo = t.id"
+                                :data-tipo="t.id"
                                 class="rounded-xl border-2 p-3 text-left transition-all"
                                 :class="form.tipo === t.id ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200'">
                             <div class="font-semibold text-sm">{{ t.emoji }} {{ t.nome }}</div>
@@ -191,6 +194,7 @@ function emojiVeiculo(tipo) {
                 <div>
                     <InputLabel value="O que foi feito?" />
                     <textarea v-model="form.descricao" rows="3" maxlength="500"
+                              data-cy="input-descricao"
                               placeholder="Ex: Troca de óleo do motor + filtro de ar"
                               class="form-input text-base"></textarea>
                 </div>
@@ -287,7 +291,7 @@ function emojiVeiculo(tipo) {
 
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
-                    <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
+                    <button @click="confirmar" :disabled="form.processing" data-cy="confirmar" class="btn-primary px-8 py-3 text-base">
                         {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
@@ -295,7 +299,7 @@ function emojiVeiculo(tipo) {
         </div>
 
         <!-- PASSO 4 · Sucesso -->
-        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto">
+        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto" data-cy="passo-sucesso">
             <div class="card-body text-center space-y-5 py-8">
                 <div class="text-6xl" aria-hidden="true">🔧</div>
                 <div>

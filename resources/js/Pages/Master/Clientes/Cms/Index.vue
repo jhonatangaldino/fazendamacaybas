@@ -11,9 +11,9 @@ defineProps({
 </script>
 
 <template>
-    <Head :title="`CMS — Cliente: ${cliente.nome}`" />
+    <Head :title="`Site — Cliente: ${cliente.nome}`" />
     <MasterLayout>
-        <template #page-title>CMS — {{ cliente.nome }}</template>
+        <template #page-title>Site — {{ cliente.nome }}</template>
 
         <ClientCmsHeader :cliente="cliente" section="Páginas" />
 

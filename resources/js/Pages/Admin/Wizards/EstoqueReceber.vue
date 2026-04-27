@@ -118,7 +118,7 @@ function reiniciar() {
 
                 <div>
                     <InputLabel value="Qual produto chegou?" />
-                    <select v-model="form.item_id" class="form-select text-base py-3">
+                    <select v-model="form.item_id" data-cy="select-item" class="form-select text-base py-3">
                         <option :value="null">— Escolha o produto —</option>
                         <option v-for="i in itens" :key="i.id" :value="i.id">{{ i.nome }} ({{ i.unidade }})</option>
                     </select>
@@ -126,13 +126,13 @@ function reiniciar() {
 
                 <div>
                     <InputLabel value="Onde você guardou?" />
-                    <select v-model="form.warehouse_id" class="form-select text-base py-3">
+                    <select v-model="form.warehouse_id" data-cy="select-armazem" class="form-select text-base py-3">
                         <option v-for="a in armazens" :key="a.id" :value="a.id">{{ a.nome }}</option>
                     </select>
                 </div>
 
                 <div class="flex justify-end pt-4">
-                    <button @click="avancar" :disabled="!podeAvancar1" class="btn-primary px-8 py-3 text-base">Continuar →</button>
+                    <button @click="avancar" :disabled="!podeAvancar1" data-cy="btn-continuar" class="btn-primary px-8 py-3 text-base">Continuar →</button>
                 </div>
             </div>
         </div>
@@ -146,6 +146,7 @@ function reiniciar() {
                     <div>
                         <InputLabel :value="`Quantidade (${itemAtual?.unidade || 'un'})`" />
                         <input v-model="form.quantidade" type="number" step="0.01" min="0" inputmode="decimal"
+                               data-cy="input-quantidade"
                                class="form-input text-xl py-3 font-mono">
                     </div>
                     <div>
@@ -180,7 +181,7 @@ function reiniciar() {
 
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
-                    <button @click="avancar" :disabled="!podeAvancar2" class="btn-primary px-8 py-3 text-base">Continuar →</button>
+                    <button @click="avancar" :disabled="!podeAvancar2" data-cy="btn-continuar" class="btn-primary px-8 py-3 text-base">Continuar →</button>
                 </div>
             </div>
         </div>
@@ -216,14 +217,14 @@ function reiniciar() {
 
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
-                    <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
+                    <button @click="confirmar" :disabled="form.processing" data-cy="confirmar" class="btn-primary px-8 py-3 text-base">
                         {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
             </div>
         </div>
 
-        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto">
+        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto" data-cy="passo-sucesso">
             <div class="card-body text-center space-y-5 py-8">
                 <div class="text-6xl">📦</div>
                 <h2 class="text-2xl font-semibold text-slate-900">Mercadoria recebida!</h2>

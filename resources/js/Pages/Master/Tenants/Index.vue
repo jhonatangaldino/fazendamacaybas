@@ -299,14 +299,14 @@ async function copyDeliveryMessage() {
                                         <span class="hidden sm:inline">Ver página</span>
                                     </a>
 
-                                    <!-- Ação secundária visível: CMS do cliente -->
+                                    <!-- Ação secundária visível: editor de Site do cliente -->
                                     <Link
                                         :href="route('master.clientes.cms.index', t.id)"
-                                        v-tooltip="`Abrir CMS de ${t.nome}`"
+                                        v-tooltip="`Editar site de ${t.nome}`"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:ring-macaybas-primary-300 hover:text-macaybas-primary-800"
                                     >
                                         <Icon name="globe" :size="14" />
-                                        <span class="hidden sm:inline">CMS</span>
+                                        <span class="hidden sm:inline">Site</span>
                                     </Link>
 
                                     <!-- BLOCO 4.3 — Impersonar saiu do ⋯ pra ação secundária visível
@@ -391,7 +391,7 @@ async function copyDeliveryMessage() {
                     </button>
                     <Link :href="route('master.clientes.cms.index', t.id)"
                           class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 min-w-[100px]">
-                        <Icon name="globe" :size="14" />CMS
+                        <Icon name="globe" :size="14" />Site
                     </Link>
                 </div>
                 <!-- Ações secundárias em ⋯ -->

@@ -105,9 +105,9 @@ async function removeItem(item) {
 </script>
 
 <template>
-    <Head :title="`CMS — Cliente: ${cliente.nome} · Menus`" />
+    <Head :title="`Site — Cliente: ${cliente.nome} · Menus`" />
     <MasterLayout>
-        <template #page-title>CMS — {{ cliente.nome }}</template>
+        <template #page-title>Site — {{ cliente.nome }}</template>
 
         <ClientCmsHeader :cliente="cliente" section="Menus" />
 

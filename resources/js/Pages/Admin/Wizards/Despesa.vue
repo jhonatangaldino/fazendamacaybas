@@ -399,7 +399,7 @@ function reiniciar() {
         </div>
 
         <!-- PASSO 4 · Sucesso -->
-        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto">
+        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto" data-cy="passo-sucesso">
             <div class="card-body text-center space-y-5 py-8">
                 <div class="text-6xl" aria-hidden="true">✅</div>
                 <div>

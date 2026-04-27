@@ -144,6 +144,7 @@ function reiniciar() {
                 <div>
                     <InputLabel value="O que precisa ser feito?" />
                     <input v-model="form.titulo" type="text" maxlength="200"
+                           data-cy="input-titulo"
                            placeholder="Ex: Capinar pasto 2, Trocar óleo do trator"
                            class="form-input text-lg py-3">
                 </div>
@@ -288,7 +289,7 @@ function reiniciar() {
 
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
-                    <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
+                    <button @click="confirmar" :disabled="form.processing" data-cy="confirmar" class="btn-primary px-8 py-3 text-base">
                         {{ form.processing ? 'Salvando…' : 'Criar tarefa' }}
                     </button>
                 </div>
@@ -296,7 +297,7 @@ function reiniciar() {
         </div>
 
         <!-- PASSO 5 · Sucesso -->
-        <div v-if="passo === 5 && sucesso" class="card max-w-2xl mx-auto">
+        <div v-if="passo === 5 && sucesso" class="card max-w-2xl mx-auto" data-cy="passo-sucesso">
             <div class="card-body text-center space-y-5 py-8">
                 <div class="text-6xl">📋</div>
                 <h2 class="text-2xl font-semibold text-slate-900">Tarefa criada!</h2>

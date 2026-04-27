@@ -26,9 +26,9 @@ function brl(v) {
 </script>
 
 <template>
-    <Head title="Dashboard · Plataforma" />
+    <Head title="Painel · Plataforma" />
     <MasterLayout>
-        <template #page-title>Dashboard</template>
+        <template #page-title>Painel</template>
 
         <div class="max-w-6xl mx-auto">
             <div class="mb-6">

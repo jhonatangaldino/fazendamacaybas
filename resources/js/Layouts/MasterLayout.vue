@@ -65,7 +65,7 @@ function logout() {
 // Item "Configurações" (M8) removido para não exibir placeholder "em breve"
 // em produto comercial. Quando tiver tela real, basta readicionar com route:'master.cms.settings'.
 const menu = [
-    { label: 'Dashboard', route: 'master.dashboard', phase: null, icon: 'dashboard' },
+    { label: 'Painel', route: 'master.dashboard', phase: null, icon: 'dashboard' },
     { label: 'Clientes', route: 'master.tenants.index', phase: null, icon: 'building' },
     { label: 'Planos', route: 'master.planos.index', phase: null, icon: 'card' },
     { label: 'Cobranças', route: 'master.cobrancas.index', phase: null, icon: 'invoice' },

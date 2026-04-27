@@ -378,9 +378,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Head :title="`CMS — Cliente: ${cliente.nome} · Configurações`" />
+    <Head :title="`Site — Cliente: ${cliente.nome} · Configurações`" />
     <MasterLayout>
-        <template #page-title>CMS — {{ cliente.nome }}</template>
+        <template #page-title>Site — {{ cliente.nome }}</template>
 
         <ClientCmsHeader :cliente="cliente" section="Configurações" />
 

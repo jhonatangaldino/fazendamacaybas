@@ -306,7 +306,7 @@ function reiniciar() {
              Não é só "registrado" — mostra o que mudou: peso anterior → novo,
              variação e interpretação humana. Dados vêm do snapshot gravado
              antes do submit (pesoAnterior) + pesoRegistrado. -->
-        <div v-if="passo === 4" class="card max-w-2xl mx-auto">
+        <div v-if="passo === 4" class="card max-w-2xl mx-auto" data-cy="passo-sucesso">
             <div class="card-body text-center space-y-5 py-8">
                 <div class="text-6xl" aria-hidden="true">⚖️</div>
                 <div>

@@ -448,6 +448,8 @@ function reiniciar() {
                     <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 max-h-[55vh] overflow-y-auto pr-1">
                         <button v-for="a in animaisFiltrados" :key="a.id" type="button"
                                 @click="selecionado = a"
+                                data-cy="card-animal"
+                                :data-animal-id="a.id"
                                 class="text-left rounded-xl border-2 p-4 transition-all hover:border-macaybas-primary"
                                 :class="selecionado?.id === a.id ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200 bg-white'">
                             <div class="flex items-start gap-3">
@@ -547,7 +549,7 @@ function reiniciar() {
                 <!-- Campo: medicamento -->
                 <div v-if="mostraCampo('medicamento')">
                     <InputLabel :value="tipoAtivo === 'vermifugacao' ? 'Nome do vermífugo' : 'Nome do medicamento'" />
-                    <input v-model="form.medicamento" type="text" maxlength="150"
+                    <input v-model="form.medicamento" type="text" maxlength="150" data-cy="input-medicamento"
                            :placeholder="tipoAtivo === 'vermifugacao' ? 'Ex: Ivermectina, Albendazol' : 'Ex: Antibiótico, Anti-inflamatório'"
                            class="form-input text-base py-3">
                 </div>
@@ -613,7 +615,7 @@ function reiniciar() {
                 <!-- Observações -->
                 <div v-if="mostraCampo('observacoes')">
                     <InputLabel :value="tipoAtivo === 'observacao' ? 'O que você quer anotar?' : 'Observação (opcional)'" />
-                    <textarea v-model="form.observacoes" rows="3"
+                    <textarea v-model="form.observacoes" rows="3" data-cy="input-observacoes"
                               :placeholder="tipoAtivo === 'observacao' ? 'Ex: Cio detectado, cobertura feita, sinal clínico observado' : ''"
                               class="form-input text-base"></textarea>
                 </div>
@@ -681,7 +683,7 @@ function reiniciar() {
 
                 <div class="flex justify-between pt-4">
                     <button @click="voltar" class="btn-outline">← Voltar</button>
-                    <button @click="confirmar" :disabled="form.processing" class="btn-primary px-8 py-3 text-base">
+                    <button @click="confirmar" :disabled="form.processing" data-cy="confirmar" class="btn-primary px-8 py-3 text-base">
                         {{ form.processing ? 'Salvando…' : 'Salvar' }}
                     </button>
                 </div>
@@ -693,7 +695,7 @@ function reiniciar() {
              neutras (slate) em vez do verde celebratório. CTA "Registrar outro"
              também é substituída por "Voltar ao início" como ação primária — seria
              insensível oferecer "Registrar outro [óbito]" como primeiro clique. -->
-        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto">
+        <div v-if="passo === 4 && sucesso" class="card max-w-2xl mx-auto" data-cy="passo-sucesso">
             <div class="card-body text-center space-y-5 py-8">
                 <div class="text-6xl">{{ meta.emoji }}</div>
                 <h2 class="text-2xl font-semibold text-slate-900">{{ meta.tituloSucesso }}</h2>
