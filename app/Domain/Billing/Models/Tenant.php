@@ -33,6 +33,9 @@ class Tenant extends Model
         'telefone',
         'cidade',
         'estado',
+        'endereco',
+        'latitude',
+        'longitude',
         'plan_id',
         'status',
         'trial_ends_at',
@@ -46,6 +49,8 @@ class Tenant extends Model
         'is_active' => 'boolean',
         'is_master_tenant' => 'boolean',
         'domains' => 'array',
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
     ];
 
     /* ───── Relacionamentos ───── */

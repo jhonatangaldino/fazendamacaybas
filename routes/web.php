@@ -31,6 +31,7 @@ use App\Http\Controllers\Master\InvoiceController;
 use App\Http\Controllers\Master\InvoiceWizardController;
 use App\Http\Controllers\Master\BillingConfigController;
 use App\Http\Controllers\Master\MasterDashboardController;
+use App\Http\Controllers\Master\ActivityLogController;
 use App\Http\Controllers\Master\PlanController;
 use App\Http\Controllers\Master\SubscriptionController;
 use App\Http\Controllers\Master\TenantController;
@@ -100,6 +101,10 @@ Route::middleware('auth')->group(function () {
 // para evitar loops com o tenant.user.only do grupo admin).
 Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')->group(function () {
     Route::get('dashboard', [MasterDashboardController::class, 'index'])->name('dashboard');
+
+    // Auditoria · activity_log com filtros (visibilidade master sobre todos os clientes)
+    Route::get('atividades', [ActivityLogController::class, 'index'])->name('atividades.index');
+    Route::get('atividades/{atividade}', [ActivityLogController::class, 'show'])->name('atividades.show');
 
     // M3 — CRUD de tenants (clientes do SaaS)
     Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');

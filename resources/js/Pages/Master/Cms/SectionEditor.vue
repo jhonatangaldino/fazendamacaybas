@@ -83,7 +83,7 @@ const fields = computed(() => {
             { key: 'subtitulo', label: 'Subtítulo / chamada', type: 'textarea' },
             {
                 key: '__info', label: '', type: 'info',
-                message: 'Endereço, e-mail e telefone exibidos nesta seção vêm de Admin → Configurações do site → Contato. Alterações lá refletem no mapa e nas informações de contato automaticamente.',
+                message: 'Endereço, e-mail e telefone exibidos vêm do cadastro do cliente (Master → Clientes → Editar) e dos settings de mapa (Configurações do site → Mapa/Localização). Para zona rural, preencha latitude/longitude — endereço de fazenda raramente cai no ponto certo do mapa.',
             },
         ],
     };

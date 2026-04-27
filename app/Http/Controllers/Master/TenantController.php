@@ -208,6 +208,9 @@ class TenantController extends Controller
             return $tenant;
         });
 
+        // Espelha lat/lng/endereco do cadastro nos settings de mapa do CMS landing
+        $this->syncMapSettings($tenant);
+
         return redirect()
             ->route('master.tenants.index')
             ->with('created_tenant', [
@@ -264,9 +267,51 @@ class TenantController extends Controller
 
         $tenant->update($validated);
 
+        // Sync para os settings de mapa: se o cliente tem latitude/longitude/endereco
+        // no cadastro, espelha em settings.landing.map.* para que a landing pública
+        // do CMS use as coordenadas. Cria override por tenant_id quando necessário.
+        $this->syncMapSettings($tenant);
+
         return redirect()
             ->route('master.tenants.index')
             ->with('success', 'Tenant "'.$tenant->nome.'" atualizado.');
+    }
+
+    /**
+     * Espelha lat/lng/endereco do tenant nos settings.landing.map.* — assim a
+     * landing pública renderiza o mapa corretamente sem o usuário ter que
+     * preencher 2 lugares. Override por tenant (mesma chave, tenant_id != null).
+     *
+     * Idempotente. Se o usuário JÁ preencheu manualmente um valor diferente
+     * em /master/cms/configuracoes, **não sobrescreve** — só preenche valores
+     * que estiverem nulos/vazios.
+     */
+    private function syncMapSettings(\App\Domain\Billing\Models\Tenant $tenant): void
+    {
+        $mapping = [
+            'landing.map.latitude'  => $tenant->latitude !== null ? (string) $tenant->latitude : null,
+            'landing.map.longitude' => $tenant->longitude !== null ? (string) $tenant->longitude : null,
+            'landing.map.endereco'  => $tenant->endereco ?: null,
+            'landing.map.nome_local' => $tenant->nome ?: null,
+        ];
+
+        foreach ($mapping as $key => $value) {
+            if ($value === null || $value === '') continue;
+
+            $existente = \App\Models\Setting::where('tenant_id', $tenant->id)->where('key', $key)->first();
+            // Se já existe override do cliente E não é vazio, respeita.
+            if ($existente && ! empty($existente->value)) continue;
+
+            \App\Models\Setting::updateOrCreate(
+                ['tenant_id' => $tenant->id, 'key' => $key],
+                [
+                    'value' => $value,
+                    'type' => $key === 'landing.map.endereco' ? 'text' : 'string',
+                    'group' => 'localizacao',
+                    'is_public' => true,
+                ]
+            );
+        }
     }
 
     /**
@@ -447,6 +492,10 @@ class TenantController extends Controller
             'telefone' => ['nullable', 'string', 'max:20'],
             'cidade' => ['nullable', 'string', 'max:100'],
             'estado' => ['nullable', 'string', 'size:2'],
+            // Geolocalização (zona rural não tem rua/número confiável; coords são essenciais)
+            'endereco' => ['nullable', 'string', 'max:500'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'is_active' => ['sometimes', 'boolean'],
             // Domínios próprios (whitelabel). Lista de hosts aceitos pelo middleware
             // RouteByHost. Cada item: domínio sem protocolo nem path.

@@ -40,8 +40,46 @@ const form = useForm({
     telefone: props.tenant?.telefone ?? '',
     cidade: props.tenant?.cidade ?? '',
     estado: props.tenant?.estado ?? '',
+    endereco: props.tenant?.endereco ?? '',
+    latitude: props.tenant?.latitude ?? '',
+    longitude: props.tenant?.longitude ?? '',
     is_active: props.tenant ? Boolean(props.tenant.is_active) : true,
     domains_text: domainsArrayToText(props.tenant?.domains),
+});
+
+const geoStatus = ref(null); // null | 'pedindo' | 'ok' | 'erro'
+function usarMinhaLocalizacao() {
+    if (! navigator.geolocation) {
+        geoStatus.value = 'erro';
+        return;
+    }
+    geoStatus.value = 'pedindo';
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            form.latitude = pos.coords.latitude.toFixed(7);
+            form.longitude = pos.coords.longitude.toFixed(7);
+            geoStatus.value = 'ok';
+        },
+        () => { geoStatus.value = 'erro'; },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}
+
+// Validação simples de range das coords
+const coordsErro = computed(() => {
+    const lat = parseFloat(form.latitude);
+    const lng = parseFloat(form.longitude);
+    if (form.latitude !== '' && (isNaN(lat) || lat < -90 || lat > 90)) return 'Latitude deve estar entre -90 e 90.';
+    if (form.longitude !== '' && (isNaN(lng) || lng < -180 || lng > 180)) return 'Longitude deve estar entre -180 e 180.';
+    if ((form.latitude && !form.longitude) || (form.longitude && !form.latitude)) return 'Informe latitude e longitude juntas, ou nenhuma das duas.';
+    return null;
+});
+
+const mapaUrl = computed(() => {
+    const lat = parseFloat(form.latitude);
+    const lng = parseFloat(form.longitude);
+    if (isNaN(lat) || isNaN(lng)) return null;
+    return `https://www.google.com/maps?q=${lat},${lng}&z=15`;
 });
 
 /**
@@ -262,7 +300,10 @@ function submit() {
             <div class="mt-6 rounded-2xl bg-white ring-1 ring-slate-200 p-6 space-y-5">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-900 mb-0.5">Contato e localização</h3>
-                    <p class="text-xs text-slate-500">Opcional. Facilita o contato com o cliente — não aparece na landing pública.</p>
+                    <p class="text-xs text-slate-500">
+                        E-mail/telefone são internos. <strong>Endereço, latitude e longitude</strong>
+                        são usados na landing pública (mapa "Onde estamos").
+                    </p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -318,6 +359,92 @@ function submit() {
                         </select>
                         <p v-if="form.errors.estado" class="mt-1 text-xs text-red-600">{{ form.errors.estado }}</p>
                     </div>
+                </div>
+
+                <!-- Endereço completo (texto livre — útil em zona rural sem rua/número padrão) -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                        Endereço completo
+                        <span class="ml-1 text-xs font-normal text-slate-500">(zona rural: descreva como chegar)</span>
+                    </label>
+                    <textarea
+                        v-model="form.endereco"
+                        rows="2"
+                        maxlength="500"
+                        autocomplete="off"
+                        class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm"
+                        :class="form.errors.endereco ? 'ring-red-400' : ''"
+                        placeholder="Ex.: Rod. MG-262, km 12 — Bairro Boa Vista, próximo à igreja Sta. Rita"
+                    ></textarea>
+                    <p v-if="form.errors.endereco" class="mt-1 text-xs text-red-600">{{ form.errors.endereco }}</p>
+                </div>
+
+                <!-- Lat/Lng com botão "usar minha localização" -->
+                <div class="rounded-xl bg-emerald-50/40 border border-emerald-200 p-4 space-y-4">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl flex-shrink-0">📍</span>
+                        <div class="text-xs text-emerald-900 leading-relaxed">
+                            <strong>Coordenadas geográficas (essencial para zona rural)</strong><br>
+                            Endereço de fazenda raramente cai no ponto certo do mapa. Use <strong>latitude e longitude</strong>
+                            para o pin aparecer exatamente na sede.<br>
+                            Você pode <strong>abrir o sistema na sede da fazenda</strong> e clicar em
+                            "Usar minha localização" — o navegador captura as coordenadas automaticamente.
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            @click="usarMinhaLocalizacao"
+                            :disabled="geoStatus === 'pedindo'"
+                            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                            <span>📡</span>
+                            <span v-if="geoStatus === 'pedindo'">Capturando…</span>
+                            <span v-else>Usar minha localização</span>
+                        </button>
+                        <span v-if="geoStatus === 'ok'" class="text-xs text-emerald-700">✓ Coordenadas capturadas</span>
+                        <span v-if="geoStatus === 'erro'" class="text-xs text-red-700">⚠ Não foi possível obter localização — preencha manualmente</span>
+                        <a
+                            v-if="mapaUrl"
+                            :href="mapaUrl"
+                            target="_blank"
+                            rel="noopener"
+                            class="ml-auto text-xs text-emerald-700 hover:underline"
+                        >
+                            Ver no Google Maps ↗
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">Latitude</label>
+                            <input
+                                v-model="form.latitude"
+                                type="text"
+                                inputmode="decimal"
+                                autocomplete="off"
+                                class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm font-mono"
+                                :class="(form.errors.latitude || coordsErro) ? 'ring-red-400' : ''"
+                                placeholder="-20.2567000"
+                            >
+                            <p v-if="form.errors.latitude" class="mt-1 text-xs text-red-600">{{ form.errors.latitude }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">Longitude</label>
+                            <input
+                                v-model="form.longitude"
+                                type="text"
+                                inputmode="decimal"
+                                autocomplete="off"
+                                class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm font-mono"
+                                :class="(form.errors.longitude || coordsErro) ? 'ring-red-400' : ''"
+                                placeholder="-43.8042000"
+                            >
+                            <p v-if="form.errors.longitude" class="mt-1 text-xs text-red-600">{{ form.errors.longitude }}</p>
+                        </div>
+                    </div>
+                    <p v-if="coordsErro" class="text-xs text-red-700 -mt-2">⚠ {{ coordsErro }}</p>
                 </div>
             </div>
 
@@ -428,7 +555,7 @@ function submit() {
                 >Cancelar</Link>
                 <button
                     type="submit"
-                    :disabled="form.processing || !! slugClientError"
+                    :disabled="form.processing || !! slugClientError || !! coordsErro"
                     class="px-4 py-2 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800 shadow-sm disabled:opacity-60 disabled:cursor-wait"
                 >
                     {{ form.processing
