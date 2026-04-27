@@ -7,6 +7,7 @@
 import { ref, computed } from 'vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import PageHeader from '@/Components/PageHeader.vue';
 
 const props = defineProps({
     vacas: Array,
@@ -53,13 +54,18 @@ function diasParaPartoLabel(d) {
 <template>
     <Head title="Secar vaca" />
     <AdminLayout>
-        <div class="max-w-2xl mx-auto pb-32">
-            <div class="mb-6">
-                <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">💧 Secar vaca</h1>
-                <p class="mt-1 text-sm text-slate-600">
-                    A vaca deve ser secada <strong>2 meses antes do parto</strong> ou se estiver dando pouco leite.
-                </p>
-            </div>
+        <template #page-title>Assistente · Secar vaca</template>
+
+        <PageHeader
+            title="💧 Secar vaca"
+            subtitle="A vaca deve ser secada 2 meses antes do parto ou se estiver dando pouco leite."
+        >
+            <template #actions>
+                <Link :href="returnTo || route('admin.inicio')" class="btn-outline">← Voltar</Link>
+            </template>
+        </PageHeader>
+
+        <div class="max-w-2xl mx-auto pb-8">
 
             <!-- Sem vacas -->
             <div v-if="vacas.length === 0" class="rounded-xl bg-amber-50 ring-1 ring-amber-200 p-6 text-center">
@@ -162,20 +168,18 @@ function diasParaPartoLabel(d) {
             </div>
         </div>
 
-        <!-- Footer fixo -->
-        <div v-if="vacaSelecionada" class="fixed bottom-0 left-0 right-0 lg:left-64 bg-white ring-1 ring-slate-200 p-4 z-20">
-            <div class="max-w-2xl mx-auto flex items-center gap-3">
-                <Link :href="route('admin.inicio')" class="inline-flex items-center min-h-12 px-4 py-3 rounded-lg bg-slate-100 text-slate-700 font-medium hover:bg-slate-200">
-                    ← Voltar
-                </Link>
+        <!-- Botão Confirmar dentro do conteúdo (segue padrão dos outros wizards) -->
+        <div v-if="vacaSelecionada" class="card max-w-2xl mx-auto mt-4">
+            <div class="card-body flex items-center justify-end gap-3">
+                <Link :href="returnTo || route('admin.inicio')" class="btn-outline">Cancelar</Link>
                 <button
                     type="button"
                     @click="submit"
                     :disabled="form.processing"
-                    class="flex-1 inline-flex items-center justify-center min-h-12 px-6 py-3 rounded-lg bg-macaybas-primary text-white font-semibold hover:bg-macaybas-primary-700 disabled:opacity-50 text-base"
+                    class="btn-primary"
                 >
                     <span v-if="form.processing">Salvando…</span>
-                    <span v-else>Confirmar secagem</span>
+                    <span v-else>✓ Confirmar secagem</span>
                 </button>
             </div>
         </div>

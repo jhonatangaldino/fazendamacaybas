@@ -110,7 +110,7 @@ function comparacao(linha) {
             subtitle="Registre quantos litros cada vaca produziu hoje. Só a 1ª ordenha é obrigatória — adicione 2ª/3ª se a vaca produzir mais vezes no dia."
         >
             <template #actions>
-                <Link :href="route('admin.inicio')" class="btn-outline">← Voltar</Link>
+                <Link :href="returnTo || route('admin.inicio')" class="btn-outline">← Voltar</Link>
             </template>
         </PageHeader>
 
@@ -230,7 +230,7 @@ function comparacao(linha) {
             <!-- Botão Salvar (segue padrão do sistema — dentro do card, não fixed) -->
             <div class="card max-w-3xl mx-auto">
                 <div class="card-body flex items-center justify-end gap-3">
-                    <Link :href="route('admin.inicio')" class="btn-outline">Cancelar</Link>
+                    <Link :href="returnTo || route('admin.inicio')" class="btn-outline">Cancelar</Link>
                     <button
                         type="button"
                         @click="submit"

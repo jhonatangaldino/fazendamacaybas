@@ -8,6 +8,7 @@
 import { ref, computed, watch } from 'vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import PageHeader from '@/Components/PageHeader.vue';
 
 const props = defineProps({
     femeas: Array,
@@ -77,13 +78,18 @@ const statusLabel = {
 <template>
     <Head title="Exame de toque" />
     <AdminLayout>
-        <div class="max-w-3xl mx-auto pb-32">
-            <div class="mb-6">
-                <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">🩺 Exame de toque</h1>
-                <p class="mt-1 text-sm text-slate-600">
-                    Diagnóstico de gestação (palpação retal). Selecione as fêmeas examinadas, depois informe o resultado.
-                </p>
-            </div>
+        <template #page-title>Assistente · Exame de toque</template>
+
+        <PageHeader
+            title="🩺 Exame de toque"
+            subtitle="Diagnóstico de gestação (palpação retal). Selecione as fêmeas examinadas e informe o resultado."
+        >
+            <template #actions>
+                <Link :href="returnTo || route('admin.inicio')" class="btn-outline">← Voltar</Link>
+            </template>
+        </PageHeader>
+
+        <div class="max-w-3xl mx-auto pb-8">
 
             <div v-if="femeas.length === 0" class="rounded-xl bg-amber-50 ring-1 ring-amber-200 p-6 text-center">
                 <p class="text-amber-900">Nenhuma fêmea em idade reprodutiva encontrada.</p>
@@ -206,21 +212,19 @@ const statusLabel = {
             </div>
         </div>
 
-        <!-- Footer fixo -->
-        <div v-if="femeas.length > 0" class="fixed bottom-0 left-0 right-0 lg:left-64 bg-white ring-1 ring-slate-200 p-4 z-20">
-            <div class="max-w-3xl mx-auto flex items-center gap-3">
-                <Link :href="route('admin.inicio')" class="inline-flex items-center min-h-12 px-4 py-3 rounded-lg bg-slate-100 text-slate-700 font-medium hover:bg-slate-200">
-                    ← Voltar
-                </Link>
+        <!-- Botão Salvar dentro do conteúdo (segue padrão dos outros wizards) -->
+        <div v-if="femeas.length > 0" class="card max-w-3xl mx-auto mt-4">
+            <div class="card-body flex items-center justify-end gap-3">
+                <Link :href="returnTo || route('admin.inicio')" class="btn-outline">Cancelar</Link>
                 <button
                     type="button"
                     @click="submit"
                     :disabled="totalSelecionadas === 0 || form.processing"
-                    class="flex-1 inline-flex items-center justify-center min-h-12 px-6 py-3 rounded-lg bg-macaybas-primary text-white font-semibold hover:bg-macaybas-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                    class="btn-primary"
                 >
                     <span v-if="form.processing">Salvando…</span>
                     <span v-else-if="totalSelecionadas === 0">Selecione 1+ fêmea</span>
-                    <span v-else>Salvar exame de {{ totalSelecionadas }} fêmea(s)</span>
+                    <span v-else>✓ Salvar exame de {{ totalSelecionadas }} fêmea(s)</span>
                 </button>
             </div>
         </div>
