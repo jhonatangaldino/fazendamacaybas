@@ -492,6 +492,18 @@ class TenantController extends Controller
     }
 
     /**
+     * Confirma que o host raiz da plataforma e o subdomínio app.* sempre
+     * resolvem para o tenant master atual (decisão arquitetural — não
+     * editável por tenant). Esses 2 hosts NÃO podem aparecer em tenants.domains
+     * (já bloqueado em validatePayload via not_in), e a constraint
+     * is_master_tenant unique garante que só 1 tenant é o master.
+     *
+     * Se você quiser inspecionar os hosts reservados em runtime, use:
+     *   $hostRaiz = parse_url(config('app.url'), PHP_URL_HOST);
+     *   $hostApp = 'app.' . $hostRaiz;
+     */
+
+    /**
      * Texto padrão de entrega — inclui credenciais de primeiro acesso
      * quando disponíveis. Formato whatsapp-ready (plain text, copiar-colar).
      *

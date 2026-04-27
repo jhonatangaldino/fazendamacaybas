@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import InputMasked from '@/Components/InputMasked.vue';
 
@@ -9,6 +9,22 @@ const props = defineProps({
 });
 
 const isEdit = computed(() => !!props.tenant?.id);
+const isMaster = computed(() => !!props.tenant?.is_master_tenant);
+
+// Host raiz da plataforma (ex.: fazendamacaybas.com.br) — extraído de APP_URL
+// compartilhado pelo Inertia. Usado para mostrar o domínio reservado do master.
+const page = usePage();
+const hostRaiz = computed(() => {
+    const url = page.props.app?.url ?? '';
+    try { return new URL(url).host; } catch { return 'fazendamacaybas.com.br'; }
+});
+const hostApp = computed(() => 'app.' + hostRaiz.value);
+
+// Placeholder do textarea de domínios — usa \n real (não entity &#10;)
+// porque o Vue compiler não interpreta entity em string JS literal.
+const placeholderDominios = computed(() => isMaster.value
+    ? 'www.fazendamacaybas.com.br\nwww2.fazendamacaybas.com.br'
+    : 'fazendadojoao.com.br\nwww.fazendadojoao.com.br');
 
 // Domínios próprios são guardados como JSON array no backend.
 // No form usamos textarea com 1 domínio por linha (mais natural que tags).
@@ -122,9 +138,18 @@ function submit() {
         <!-- Cabeçalho -->
         <div class="flex items-start justify-between gap-4 mb-6">
             <div>
-                <h2 class="text-xl font-serif font-bold text-slate-900">
-                    {{ isEdit ? `Editar "${tenant.nome}"` : 'Cadastrar novo cliente' }}
-                </h2>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-serif font-bold text-slate-900">
+                        {{ isEdit ? `Editar "${tenant.nome}"` : 'Cadastrar novo cliente' }}
+                    </h2>
+                    <span
+                        v-if="isMaster"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider bg-amber-500 text-white shadow-sm"
+                        title="Este é o cliente master da plataforma — sua landing pública renderiza no domínio raiz"
+                    >
+                        ⭐ Cliente Master
+                    </span>
+                </div>
                 <p class="mt-1 text-sm text-slate-600">
                     <template v-if="isEdit">
                         Atualize os dados de cadastro deste cliente.
@@ -142,6 +167,34 @@ function submit() {
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Voltar
             </Link>
+        </div>
+
+        <!-- Banner explicativo do master tenant -->
+        <div v-if="isMaster" class="mb-6 rounded-2xl bg-amber-50 border border-amber-300 p-5">
+            <div class="flex items-start gap-3">
+                <span class="text-3xl">⭐</span>
+                <div class="flex-1 text-sm">
+                    <p class="font-semibold text-amber-900 mb-2">Este é o Cliente Master da plataforma</p>
+                    <p class="text-amber-800 mb-3">
+                        Apenas 1 cliente pode ser master por vez. O master controla a landing pública institucional
+                        e tem domínios reservados que são gerenciados automaticamente pelo sistema:
+                    </p>
+                    <ul class="space-y-1.5 text-amber-900">
+                        <li class="flex items-center gap-2">
+                            <span class="font-mono bg-white px-2 py-0.5 rounded ring-1 ring-amber-300">{{ hostRaiz }}</span>
+                            <span class="text-xs">— landing pública (CMS deste cliente)</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="font-mono bg-white px-2 py-0.5 rounded ring-1 ring-amber-300">{{ hostApp }}</span>
+                            <span class="text-xs">— ERP completo (login + admin + master)</span>
+                        </li>
+                    </ul>
+                    <p class="mt-3 text-xs text-amber-700">
+                        Para transferir o status de Master para outro cliente, use a opção
+                        <strong>"Tornar este o Master"</strong> na lista de clientes (menu <strong>⋯</strong>).
+                    </p>
+                </div>
+            </div>
         </div>
 
         <!-- Form -->
@@ -268,26 +321,59 @@ function submit() {
                 </div>
             </div>
 
-            <!-- ============ DOMÍNIOS PRÓPRIOS (whitelabel) ============ -->
+            <!-- ============ DOMÍNIOS — comportamento depende se é master ============ -->
             <div class="mt-6 rounded-2xl bg-white ring-1 ring-slate-200 p-6 space-y-4">
                 <div>
-                    <h3 class="text-sm font-semibold text-slate-900 mb-0.5">Domínios próprios <span class="font-normal text-slate-500">(opcional)</span></h3>
+                    <h3 class="text-sm font-semibold text-slate-900 mb-0.5">
+                        {{ isMaster ? 'Domínios deste cliente Master' : 'Domínios próprios' }}
+                        <span v-if="!isMaster" class="font-normal text-slate-500">(opcional)</span>
+                    </h3>
                     <p class="text-xs text-slate-500">
-                        Se este cliente comprou um domínio próprio (ex.: <code>fazendadojoao.com.br</code>),
-                        cadastre aqui. O sistema do cliente passa a rodar nesse domínio (whitelabel) e
-                        os emails de boas-vindas usam essa URL no link de login.
+                        <template v-if="isMaster">
+                            O master tem 2 domínios reservados pela plataforma (mostrados abaixo, inalteráveis).
+                            Você pode adicionar domínios EXTRAS opcionais (ex.: <code>www.fazendamacaybas.com.br</code>).
+                        </template>
+                        <template v-else>
+                            Se este cliente comprou um domínio próprio (ex.: <code>fazendadojoao.com.br</code>),
+                            cadastre aqui. O sistema do cliente passa a rodar nesse domínio (whitelabel) e
+                            os emails de boas-vindas usam essa URL no link de login.
+                        </template>
                     </p>
                 </div>
 
+                <!-- Domínios reservados do master (read-only) -->
+                <div v-if="isMaster" class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-4 space-y-2">
+                    <div class="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Domínios reservados (automáticos · inalteráveis)
+                    </div>
+                    <div class="grid gap-2 text-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="text-emerald-600">🔒</span>
+                            <code class="font-mono bg-white px-2 py-1 rounded ring-1 ring-slate-300 flex-1">{{ hostRaiz }}</code>
+                            <span class="text-xs text-slate-500">landing pública</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-emerald-600">🔒</span>
+                            <code class="font-mono bg-white px-2 py-1 rounded ring-1 ring-slate-300 flex-1">{{ hostApp }}</code>
+                            <span class="text-xs text-slate-500">ERP completo</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 italic">
+                        Estes domínios pertencem automaticamente ao cliente master. Quando você transferir
+                        o status de master para outro cliente, esses domínios passam junto.
+                    </p>
+                </div>
+
+                <!-- Textarea para domínios EXTRAS (ambos master e comum) -->
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">
-                        Domínios aceitos
+                        {{ isMaster ? 'Domínios extras (opcional)' : 'Domínios aceitos' }}
                         <span class="ml-1 text-xs font-normal text-slate-500">(1 por linha, sem http://)</span>
                     </label>
                     <textarea
                         v-model="form.domains_text"
                         rows="3"
-                        placeholder="fazendadojoao.com.br&#10;www.fazendadojoao.com.br"
+                        :placeholder="placeholderDominios"
                         class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm font-mono"
                         :class="(form.errors.domains || dominiosErrosClient.length) ? 'ring-red-400' : ''"
                     ></textarea>
@@ -295,8 +381,14 @@ function submit() {
                     <ul v-if="dominiosErrosClient.length" class="mt-1 text-xs text-red-600 space-y-0.5">
                         <li v-for="erro in dominiosErrosClient" :key="erro">⚠ {{ erro }}</li>
                     </ul>
+
+                    <!-- Preview da URL de login no email -->
+                    <p v-if="isMaster" class="mt-1 text-xs text-emerald-700">
+                        ✓ Login dos usuários deste cliente vai em
+                        <code>https://{{ hostRaiz }}/login</code>
+                    </p>
                     <p v-else-if="!form.domains_text" class="mt-1 text-xs text-slate-500">
-                        Sem domínio próprio: cliente acessa via <code>app.fazendamacaybas.com.br/c/{{ form.slug || 'slug-do-cliente' }}/login</code>
+                        Sem domínio próprio: cliente acessa via <code>https://{{ hostApp }}/c/{{ form.slug || 'slug-do-cliente' }}/login</code>
                     </p>
                     <p v-else class="mt-1 text-xs text-emerald-700">
                         ✓ Login do cliente vai em
@@ -304,7 +396,7 @@ function submit() {
                     </p>
                 </div>
 
-                <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                <div v-if="!isMaster" class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
                     <strong>⚠️ Pré-requisito do cliente:</strong> o domínio precisa estar apontando
                     para a Hostinger (DNS A) e estar cadastrado como "domínio adicional" no hPanel.
                     SSL via Let's Encrypt é provisionado automaticamente após apontamento.
