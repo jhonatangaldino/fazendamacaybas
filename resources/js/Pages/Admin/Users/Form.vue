@@ -6,7 +6,6 @@ import PageHeader from '@/Components/PageHeader.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
-import PasswordInput from '@/Components/PasswordInput.vue';
 import InputMasked from '@/Components/InputMasked.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
 
@@ -15,17 +14,16 @@ const props = defineProps({
     roles: Array,
 });
 
-// Em CADASTRO novo, a senha NÃO é coletada — sistema gera automaticamente
-// e envia por email. Em EDIÇÃO, mantém o campo opcional para reset manual.
+// Senha NUNCA é coletada — sistema gera automaticamente em todo cadastro novo
+// e a regeneração é via botão "Reenviar credenciais" na lista. Admin não tem
+// como digitar senha manual em nenhum fluxo.
 const form = useForm({
     name: props.user?.name ?? '',
     email: props.user?.email ?? '',
     cpf: props.user?.cpf ?? '',
     telefone: props.user?.telefone ?? '',
     cargo: props.user?.cargo ?? '',
-    password: '',
     is_active: props.user?.is_active ?? true,
-    must_change_password: props.user?.must_change_password ?? false,
     roles: props.user?.roles ?? [],
 });
 
@@ -106,25 +104,27 @@ function submit() {
                             <span class="text-2xl">📧</span>
                             <div class="text-sm text-emerald-900">
                                 <p class="font-semibold mb-1">Senha gerada automaticamente</p>
-                                <p>O sistema cria uma senha temporária de 8 caracteres e envia para o e-mail informado.
-                                   No primeiro acesso, o usuário será obrigado a definir uma nova senha.
-                                   A senha temporária expira em 2 horas.</p>
+                                <p>O sistema cria uma senha temporária de 8 caracteres, envia por e-mail e
+                                   força troca no primeiro acesso. A senha fica visível na lista de usuários
+                                   até que ela seja trocada. Validade: 2 horas.</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- EDIÇÃO: campo opcional para reset manual (admin pode digitar senha custom se quiser) -->
-                    <div v-if="isEdit">
-                        <InputLabel value="Nova senha (deixe em branco para manter a atual)" />
-                        <PasswordInput v-model="form.password" autocomplete="new-password" />
-                        <InputError :message="form.errors.password" />
-                        <p class="form-help">Mínimo 8 caracteres, com letras, números e símbolos. Deixe em branco para manter a senha atual.</p>
+                    <!-- EDIÇÃO: sem campo de senha. Para resetar/regenerar a senha,
+                         use o botão "Reenviar credenciais" na lista de usuários. -->
+                    <div v-if="isEdit" class="rounded-lg bg-slate-50 border border-slate-200 p-4">
+                        <div class="flex items-start gap-3">
+                            <span class="text-2xl">🔑</span>
+                            <div class="text-sm text-slate-700">
+                                <p class="font-semibold mb-1">Senha gerenciada pelo sistema</p>
+                                <p>Para gerar uma nova senha temporária e reenviar por e-mail, use o
+                                   botão <strong>"Reenviar credenciais"</strong> na lista de usuários.
+                                   O administrador não define senhas manualmente.</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <label v-if="isEdit" class="flex items-center gap-2 text-sm text-slate-700">
-                        <input type="checkbox" v-model="form.must_change_password" class="rounded border-slate-300 text-macaybas-primary focus:ring-macaybas-primary">
-                        Forçar troca de senha no próximo login
-                    </label>
                     <label class="flex items-center gap-2 text-sm text-slate-700">
                         <input type="checkbox" v-model="form.is_active" class="rounded border-slate-300 text-macaybas-primary focus:ring-macaybas-primary">
                         Usuário ativo

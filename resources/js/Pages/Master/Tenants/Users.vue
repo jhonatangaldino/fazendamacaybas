@@ -86,9 +86,10 @@ function doToggle() {
             <div class="flex items-start gap-3">
                 <span class="text-3xl flex-shrink-0" aria-hidden="true">🔐</span>
                 <div class="flex-1 min-w-0">
-                    <div class="font-semibold text-amber-900">Senha temporária gerada — guarde agora</div>
+                    <div class="font-semibold text-amber-900">Nova senha temporária gerada</div>
                     <div class="text-sm text-amber-800 mt-0.5">
-                        Envie estas informações para {{ resetResult.user_email }}. Ela só aparece UMA vez.
+                        📧 Enviada automaticamente por e-mail para {{ resetResult.user_email }}.
+                        Fica visível na tabela abaixo até o usuário trocar. Validade: 2 horas.
                     </div>
                     <dl class="mt-3 grid gap-1.5 text-sm">
                         <div class="flex flex-wrap gap-2">
@@ -112,7 +113,8 @@ function doToggle() {
                         </div>
                     </dl>
                     <p class="mt-2 text-xs text-slate-600">
-                        No próximo login, o sistema pedirá ao usuário para trocar esta senha por uma definitiva.
+                        No próximo login o sistema força o usuário a definir uma senha definitiva.
+                        Se a senha expirar antes (2h), o sistema gera uma nova e reenvia por e-mail.
                     </p>
                 </div>
                 <button
@@ -129,7 +131,11 @@ function doToggle() {
             <div class="flex items-start gap-3">
                 <span class="text-3xl flex-shrink-0" aria-hidden="true">✓</span>
                 <div class="flex-1 min-w-0">
-                    <div class="font-semibold text-emerald-900">Usuário criado — guarde a senha agora</div>
+                    <div class="font-semibold text-emerald-900">Usuário criado · senha enviada por e-mail</div>
+                    <div class="text-sm text-emerald-800 mt-0.5">
+                        📧 E-mail de boas-vindas com a senha temporária foi enviado para {{ novoCriado.email }}.
+                        Senha visível também na tabela até ser trocada (validade 2h).
+                    </div>
                     <dl class="mt-3 grid gap-1.5 text-sm">
                         <div class="flex flex-wrap gap-2">
                             <dt class="text-slate-500 w-24">Painel:</dt>
@@ -231,10 +237,12 @@ function doToggle() {
             <div v-if="confirmReset" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="confirmReset = null"></div>
                 <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-                    <h3 class="text-lg font-semibold mb-2">Resetar senha de {{ confirmReset.name }}?</h3>
+                    <h3 class="text-lg font-semibold mb-2">Reenviar credenciais de {{ confirmReset.name }}?</h3>
                     <p class="text-sm text-slate-600 mb-5">
-                        Uma nova senha temporária será gerada. Ela será exibida <strong>apenas uma vez</strong>
-                        aqui para você copiar e enviar ao usuário. No próximo login ele será obrigado a trocar.
+                        Uma nova senha temporária de 8 caracteres será gerada e <strong>enviada
+                        automaticamente por e-mail</strong> para o usuário. A senha anterior deixa
+                        de funcionar imediatamente. A nova fica visível na tabela ao lado até que
+                        o usuário troque.
                     </p>
                     <div class="flex justify-end gap-2">
                         <button @click="confirmReset = null" class="btn-outline">Cancelar</button>
@@ -275,8 +283,9 @@ function doToggle() {
                 <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
                     <h3 class="text-lg font-semibold mb-1">Novo usuário de {{ tenant.nome }}</h3>
                     <p class="text-sm text-slate-500 mb-4">
-                        Uma senha temporária será gerada. Ela aparece aqui <strong>uma vez</strong> para você
-                        copiar e enviar ao usuário. No primeiro login ele troca a senha.
+                        Uma senha temporária de 8 caracteres é gerada e <strong>enviada por e-mail</strong>
+                        ao usuário. Ela fica visível na tabela ao lado até ser trocada (validade 2h).
+                        No primeiro acesso o sistema força a troca.
                     </p>
                     <div class="space-y-3">
                         <div>

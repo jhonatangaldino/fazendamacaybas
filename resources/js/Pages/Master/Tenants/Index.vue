@@ -175,32 +175,30 @@ async function copyDeliveryMessage() {
                 Compartilhe as informações abaixo com o cliente.
             </p>
 
-            <!-- Credenciais de primeiro acesso (destaque quando há user criado).
-                 Senha é one-shot — só aparece AQUI porque acabou de ser gerada;
-                 não é persistida em texto plano em lugar algum. Se master fechar
-                 a página antes de copiar, precisa resetar via /admin/usuarios. -->
+            <!-- Credenciais de primeiro acesso. A senha foi enviada por email
+                 automaticamente para o dono. Fica também visível na ficha de
+                 usuários do tenant (em /master/tenants/{id}/usuarios) ATÉ que
+                 o usuário troque a senha no primeiro acesso. -->
             <div v-if="createdTenant.senha_temporaria" class="mt-4 p-4 rounded-lg bg-white ring-1 ring-emerald-300">
                 <div class="text-xs uppercase tracking-wider text-emerald-700 font-semibold mb-2">
-                    🔐 Acesso ao painel (guarde agora — só aparece uma vez)
+                    🔐 Acesso ao painel
                 </div>
                 <dl class="grid gap-1.5 text-sm">
-                    <div class="flex flex-wrap gap-2">
-                        <dt class="text-slate-500 w-24">Painel:</dt>
-                        <dd class="font-mono text-slate-900 break-all">{{ createdTenant.admin_url }}</dd>
-                    </div>
                     <div class="flex flex-wrap gap-2">
                         <dt class="text-slate-500 w-24">E-mail:</dt>
                         <dd class="font-mono text-slate-900 break-all">{{ createdTenant.dono_email }}</dd>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <dt class="text-slate-500 w-24">Senha:</dt>
+                        <dt class="text-slate-500 w-24">Senha temp:</dt>
                         <dd class="font-mono text-slate-900 font-semibold bg-amber-50 px-2 py-0.5 rounded ring-1 ring-amber-200">
                             {{ createdTenant.senha_temporaria }}
                         </dd>
                     </div>
                 </dl>
                 <p class="mt-2 text-xs text-slate-500">
-                    No primeiro acesso o sistema pede para o cliente trocar a senha.
+                    📧 Senha enviada automaticamente para o e-mail do cliente. Expira em 2 horas.
+                    Se não trocar a tempo, sistema gera uma nova e reenvia.
+                    A senha fica visível na ficha de usuários do cliente até ser trocada.
                 </p>
             </div>
 

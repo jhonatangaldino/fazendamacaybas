@@ -140,15 +140,14 @@ class UserController extends Controller
             return back()->with('error', 'Você não tem permissão para editar este usuário.');
         }
 
+        // Edição NÃO aceita senha. Para reset/regen, usar resetPassword endpoint.
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users')->ignore($user->id)],
             'cpf' => ['nullable', 'string', 'max:14'],
             'telefone' => ['nullable', 'string', 'max:20'],
             'cargo' => ['nullable', 'string', 'max:100'],
-            'password' => ['nullable', Password::defaults()],
             'is_active' => ['boolean'],
-            'must_change_password' => ['boolean'],
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
@@ -157,12 +156,7 @@ class UserController extends Controller
             return back()->with('error', 'Você não tem permissão para atribuir o perfil Admin Master.');
         }
 
-        $payload = collect($data)->except('password', 'roles')->all();
-        if (! empty($data['password'])) {
-            $payload['password'] = Hash::make($data['password']);
-        }
-
-        $user->update($payload);
+        $user->update(collect($data)->except('roles')->all());
         $user->syncRoles($data['roles'] ?? []);
 
         return redirect()->route('admin.users.index')->with('success', 'Usuário atualizado.');
