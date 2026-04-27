@@ -37,11 +37,15 @@ class Tenant extends Model
         'status',
         'trial_ends_at',
         'is_active',
+        'is_master_tenant',
+        'domains',
     ];
 
     protected $casts = [
         'trial_ends_at' => 'datetime',
         'is_active' => 'boolean',
+        'is_master_tenant' => 'boolean',
+        'domains' => 'array',
     ];
 
     /* ───── Relacionamentos ───── */
@@ -81,6 +85,70 @@ class Tenant extends Model
     public function menus(): HasMany
     {
         return $this->hasMany(CmsMenu::class, 'tenant_id');
+    }
+
+    /* ───── Multi-host (reestruturação 2026-04-27) ───── */
+
+    /**
+     * Tenant marcado como "master" — único na base. A landing pública do
+     * domínio raiz (fazendamacaybas.com.br) renderiza o CMS desse tenant.
+     *
+     * Usar via Tenant::master() para obter a instância. Cache estático
+     * para evitar query repetida no mesmo request.
+     */
+    private static ?self $masterCache = null;
+
+    public static function master(): ?self
+    {
+        if (self::$masterCache !== null) return self::$masterCache;
+        self::$masterCache = static::query()->where('is_master_tenant', true)->first();
+        return self::$masterCache;
+    }
+
+    /**
+     * Reset do cache (útil entre testes ou após mudança via Artisan).
+     */
+    public static function clearMasterCache(): void
+    {
+        self::$masterCache = null;
+    }
+
+    /**
+     * Scope: tenants com domínio próprio cadastrado.
+     */
+    public function scopeWithDomains($query)
+    {
+        return $query->whereNotNull('domains')->where('domains', '!=', '[]');
+    }
+
+    /**
+     * Verifica se este tenant aceita requests de um host específico.
+     * Compara case-insensitive e ignora "www." se aplicável.
+     */
+    public function acceptsHost(string $host): bool
+    {
+        $domains = $this->domains ?? [];
+        if (empty($domains)) return false;
+        $host = strtolower(trim($host));
+        $hostNoWww = preg_replace('/^www\./', '', $host);
+        foreach ($domains as $d) {
+            $d = strtolower(trim($d));
+            if ($d === $host || $d === $hostNoWww) return true;
+            if (preg_replace('/^www\./', '', $d) === $hostNoWww) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Encontra um tenant que aceite o host dado (por domínio próprio).
+     * Retorna null se nenhum tenant tem esse host nas suas listas.
+     */
+    public static function findByDomain(string $host): ?self
+    {
+        $host = strtolower(trim($host));
+        // MySQL JSON_CONTAINS é razoavelmente rápido com índice em column
+        // mas a base atualmente é pequena; query sequencial é suficiente.
+        return static::withDomains()->get()->first(fn ($t) => $t->acceptsHost($host));
     }
 
     /* ───── Features comerciais (catálogo PlanFeatures) ───── */

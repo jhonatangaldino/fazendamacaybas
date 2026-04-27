@@ -7,6 +7,7 @@ use App\Domain\Tenancy\Middleware\EnsureTenantUser;
 use App\Domain\Tenancy\Middleware\ResolveTenant;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\QueryCounter;
+use App\Http\Middleware\RouteByHost;
 use App\Http\Middleware\SetLocaleTimezone;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(prepend: [
+            // Reestruturação 2026-04-27: detecta o Host HTTP e popula
+            // request.attributes.{request_context, expected_tenant_id}.
+            // Roda ANTES de tudo: outras camadas (auth, login isolation,
+            // route groups) consomem esses atributos para tomar decisão.
+            RouteByHost::class,
+        ]);
+
         $middleware->web(append: [
             // Query probe — ativo apenas com APP_DEBUG=true OU header X-Query-Probe:1
             QueryCounter::class,
@@ -55,6 +64,11 @@ return Application::configure(basePath: dirname(__DIR__))
             // Bloqueia rotas /admin/* cujo módulo não está no plano do tenant.
             // Master puro ignora; impersonando respeita o plano do tenant alvo.
             'enforce.feature' => \App\Http\Middleware\EnforceFeature::class,
+            // Reestruturação 2026-04-27: aplicado em route groups específicos
+            // para forçar contexto. Ex.: rota só pode ser acessada se
+            // request_context = 'master_landing'. Útil para impedir que
+            // /admin/* seja acessível pela raiz após a reestruturação.
+            'route.host' => \App\Http\Middleware\RouteHostGate::class,
         ]);
 
         // M0 — Usuário já logado tentando acessar rota guest (ex.: /login):
