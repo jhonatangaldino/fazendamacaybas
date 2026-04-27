@@ -450,6 +450,7 @@ class AnimalController extends Controller
     private const ACOES_CATALOGO = [
         // ── Tudo que cabe no modal in-page (single animal, sem complexidade)
         'pesagem'             => ['emoji' => '⚖️', 'label' => 'Pesar', 'desc' => 'Registrar peso atual', 'wizard' => null],
+        'ordenha'             => ['emoji' => '🥛', 'label' => 'Registrar ordenha', 'desc' => 'Litros desta vaca neste dia', 'wizard' => null, 'sexo' => 'F'],
         'vacinacao'           => ['emoji' => '💉', 'label' => 'Vacinar', 'desc' => 'Vacina aplicada', 'wizard' => null],
         'medicacao'           => ['emoji' => '💊', 'label' => 'Medicar', 'desc' => 'Medicamento aplicado', 'wizard' => null],
         'vermifugacao'        => ['emoji' => '🧴', 'label' => 'Vermifugar', 'desc' => 'Vermífugo aplicado', 'wizard' => null],
@@ -470,10 +471,8 @@ class AnimalController extends Controller
         'mortalidade'         => ['emoji' => '⚰️', 'label' => 'Mortalidade', 'desc' => 'Registrar morte', 'wizard' => null],
 
         // ── Wizards externos (fluxo complexo ou multi-vaca)
-        'controle_leiteiro' => [
-            'emoji' => '🥛', 'label' => 'Registrar leite', 'desc' => 'Litros produzidos por ordenha (1ª, 2ª…)',
-            'wizard' => 'admin.fluxos.controle-leiteiro', 'sexo' => 'F',
-        ],
+        // controle_leiteiro REMOVIDO daqui — pra single-vaca usa-se 'ordenha'
+        // (modal in-page). Controle leiteiro multi-vaca permanece no Hub.
         'exame_toque' => [
             'emoji' => '🩺', 'label' => 'Exame de toque', 'desc' => 'Palpação · DPP automática',
             'wizard' => 'admin.fluxos.exame-toque', 'sexo' => 'F',

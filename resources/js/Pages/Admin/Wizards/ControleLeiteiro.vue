@@ -25,11 +25,15 @@ const vacasFiltradas = props.preselectId
 // Inicializa com APENAS 1 ordenha (1ª às 08:00). Botão "+ ordenha extra" pra
 // adicionar 2ª, 3ª, etc — só a 1ª é obrigatória, vacas que produzem só 1 vez
 // no dia não precisam de campo vazio na 2ª.
+// Labels e horas padrão calculados POR POSIÇÃO no array, não armazenados.
+// Antes: cada ordenha guardava o label "1ª"/"2ª"/etc — bug: ao remover do meio,
+// novas adições reciclavam o mesmo label baseado em array.length.
+// Agora: label = LABELS[idx do v-for], sempre correto.
+const LABELS = ['1ª', '2ª', '3ª', '4ª', '5ª', '6ª'];
 const HORAS_PADRAO = ['08:00', '15:00', '20:00', '04:00', '12:00', '18:00'];
+
 function ordenhaInicial(idx) {
-    const labels = ['1ª', '2ª', '3ª', '4ª', '5ª', '6ª'];
     return {
-        label: labels[idx],
         hora: HORAS_PADRAO[idx] || '',
         litros: '',
     };
@@ -44,9 +48,8 @@ const linhas = ref(vacasFiltradas.map(v => ({
 })));
 
 function adicionarOrdenha(linha) {
-    const proximo = linha.ordenhas.length;
-    if (proximo >= 6) return;
-    linha.ordenhas.push(ordenhaInicial(proximo));
+    if (linha.ordenhas.length >= 6) return;
+    linha.ordenhas.push(ordenhaInicial(linha.ordenhas.length));
 }
 function removerOrdenha(linha, idx) {
     if (linha.ordenhas.length <= 1) return;
@@ -63,27 +66,33 @@ const totalGeral = computed(() => linhasComProducao.value.reduce((acc, l) => acc
 // Lê return_to da URL pra voltar pra origem após salvar
 const returnTo = new URLSearchParams(window.location.search).get('return_to') || null;
 
+// Data de hoje em formato YYYY-MM-DD respeitando fuso local (não UTC).
+// `toISOString()` retorna UTC e pode dar dia anterior se for tarde da noite no Brasil.
+function hojeLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// `data` é palavra reservada do Vue Options API e gera bug bizarro no useForm
+// (renderiza código JS no value do input). Renomeado pra data_controle.
+// Backend já aceita ambas as keys via fallback no controller.
 const form = useForm({
-    data: props.data_hoje || new Date().toISOString().slice(0, 10),
+    data_controle: props.data_hoje || hojeLocal(),
     vacas: [],
     return_to: returnTo,
 });
 
-// Garantia adicional caso props.data_hoje não chegue por algum motivo
+// Garantia: se por qualquer motivo form.data_controle ficar vazio, força hoje
 onMounted(() => {
-    if (! form.data) form.data = new Date().toISOString().slice(0, 10);
+    if (! form.data_controle) form.data_controle = hojeLocal();
 });
 
 function submit() {
     form.vacas = linhasComProducao.value.map(l => ({
         animal_id: l.animal_id,
         ordenhas: l.ordenhas
-            .filter(o => parseFloat(o.litros) > 0)
-            .map(o => ({
-                label: o.label,
-                hora: o.hora || null,
-                litros: parseFloat(o.litros),
-            })),
+            .map((o, idx) => ({ label: LABELS[idx] || `${idx+1}ª`, hora: o.hora || null, litros: parseFloat(o.litros) }))
+            .filter(o => o.litros > 0),
     }));
     form.post(route('admin.fluxos.controle-leiteiro.store'));
 }
@@ -120,7 +129,8 @@ function comparacao(linha) {
             <div class="rounded-xl bg-white ring-1 ring-slate-200 p-4 mb-4">
                 <label class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Data do controle</label>
                 <input
-                    v-model="form.data"
+                    :value="form.data_controle"
+                    @input="form.data_controle = $event.target.value"
                     type="date"
                     class="mt-2 w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
                 >
@@ -167,7 +177,7 @@ function comparacao(linha) {
                              class="flex gap-2 items-end">
                             <!-- Label da ordenha (1ª, 2ª...) -->
                             <div class="flex-shrink-0 w-9 text-center pb-3 text-sm font-semibold text-slate-600">
-                                {{ o.label }}
+                                {{ LABELS[idx] || `${idx+1}ª` }}
                             </div>
                             <!-- Hora -->
                             <div class="flex-shrink-0">
@@ -193,7 +203,7 @@ function comparacao(linha) {
                                 <span class="absolute right-3 top-7 text-xs text-slate-400">L</span>
                             </div>
                             <button
-                                v-if="idx >= 2"
+                                v-if="linha.ordenhas.length > 1"
                                 type="button"
                                 @click="removerOrdenha(linha, idx)"
                                 class="flex-shrink-0 w-9 h-10 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center"

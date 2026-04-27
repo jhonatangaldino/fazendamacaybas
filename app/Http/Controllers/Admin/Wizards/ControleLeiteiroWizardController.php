@@ -74,6 +74,10 @@ class ControleLeiteiroWizardController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Aceita 'data' OU 'data_controle' (Vue renomeou pra evitar conflito com palavra reservada)
+        if ($request->has('data_controle') && ! $request->has('data')) {
+            $request->merge(['data' => $request->input('data_controle')]);
+        }
         $validated = $request->validate([
             'data' => ['required', 'date', 'before_or_equal:today'],
             'vacas' => ['required', 'array', 'min:1'],

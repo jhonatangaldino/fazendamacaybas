@@ -33,9 +33,14 @@ const isSelected = (id) => selecionadas.value.has(id);
 
 const returnTo = new URLSearchParams(window.location.search).get('return_to') || null;
 
+function hojeLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 const form = useForm({
     animal_ids: [],
-    data: props.data_hoje,
+    data: props.data_hoje || hojeLocal(),
     partner_id: '',
     gestacao_status: 'prenhe',
     gestacao_dias: 0,
@@ -102,7 +107,8 @@ const statusLabel = {
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Data do exame</label>
                         <input
-                            v-model="form.data"
+                            :value="form.data"
+                            @input="form.data = $event.target.value"
                             type="date"
                             class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
                         >
