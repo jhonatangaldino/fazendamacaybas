@@ -50,7 +50,7 @@ function salvar() {
                         Estes dados aparecem no QR Code e no copia-e-cola enviados aos clientes.
                     </p>
                 </div>
-                <Link :href="route('master.cobrancas.index')" class="text-sm text-slate-600 hover:text-slate-900">
+                <Link :href="route('master.cobrancas.index')" class="inline-flex items-center min-h-9 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg">
                     ← Cobranças
                 </Link>
             </div>

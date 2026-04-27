@@ -145,14 +145,14 @@ async function marcarPendente(invoice) {
             <span class="text-xs uppercase tracking-wider text-slate-500 font-semibold mr-2">Status:</span>
             <button
                 @click="filtrar(null)"
-                class="px-3 py-1 rounded-full text-xs ring-1 transition"
+                class="inline-flex items-center px-3 py-2 min-h-[36px] rounded-full text-xs ring-1 transition"
                 :class="! filter_status ? 'bg-slate-900 text-white ring-slate-900' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'"
             >Todas</button>
             <button
                 v-for="(lbl, st) in statusLabel"
                 :key="st"
                 @click="filtrar(st)"
-                class="px-3 py-1 rounded-full text-xs ring-1 transition"
+                class="inline-flex items-center px-3 py-2 min-h-[36px] rounded-full text-xs ring-1 transition"
                 :class="filter_status === st ? 'bg-slate-900 text-white ring-slate-900' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'"
             >{{ lbl.text }}</button>
             <span v-if="filter_q" class="ml-2 text-xs text-slate-600">

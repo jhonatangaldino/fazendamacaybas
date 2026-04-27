@@ -48,7 +48,7 @@
                                 </div>
                                 <div>
                                     <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">E-mail</div>
-                                    <a href="mailto:{{ $email }}" class="text-slate-900 font-medium hover:text-macaybas-primary">{{ $email }}</a>
+                                    <a href="mailto:{{ $email }}" class="inline-flex items-center min-h-9 py-1 text-slate-900 font-medium hover:text-macaybas-primary break-all">{{ $email }}</a>
                                 </div>
                             </div>
                         @endif
@@ -60,7 +60,7 @@
                                 </div>
                                 <div>
                                     <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Telefone</div>
-                                    <a href="tel:{{ apenasDigitos($telefone) }}" class="text-slate-900 font-medium hover:text-macaybas-primary">{{ telefoneMask($telefone) }}</a>
+                                    <a href="tel:{{ apenasDigitos($telefone) }}" class="inline-flex items-center min-h-9 py-1 text-slate-900 font-medium hover:text-macaybas-primary">{{ telefoneMask($telefone) }}</a>
                                 </div>
                             </div>
                         @endif

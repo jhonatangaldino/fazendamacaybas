@@ -501,7 +501,7 @@ onMounted(() => {
                         </select>
                         <div class="mt-1 flex items-center gap-2">
                             <button type="button" @click="abrirNovoLote"
-                                    class="text-xs text-macaybas-primary hover:underline">
+                                    class="inline-flex items-center min-h-9 px-3 py-2 text-xs text-macaybas-primary hover:bg-macaybas-primary-50 rounded-md">
                                 + Criar lote novo
                             </button>
                             <span v-if="lotsLocal.length === 0" class="text-xs text-amber-700">
@@ -528,7 +528,7 @@ onMounted(() => {
                         <InputError :message="form.errors.location_id" />
                         <div class="mt-1 flex items-center gap-2">
                             <button type="button" @click="abrirNovoLocal"
-                                    class="text-xs text-macaybas-primary hover:underline">
+                                    class="inline-flex items-center min-h-9 px-3 py-2 text-xs text-macaybas-primary hover:bg-macaybas-primary-50 rounded-md">
                                 + Criar pasto/local novo
                             </button>
                             <span v-if="locationsLocal.length === 0" class="text-xs text-amber-700">

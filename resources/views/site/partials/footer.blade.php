@@ -32,8 +32,8 @@
                 <h3 class="text-white font-semibold mb-4">Contato</h3>
                 <ul class="space-y-2 text-sm">
                     @if($endereco)<li class="flex gap-2"><span>📍</span><span>{{ $endereco }}</span></li>@endif
-                    @if($email)<li class="flex gap-2"><span>✉️</span><a href="mailto:{{ $email }}" class="hover:text-white">{{ $email }}</a></li>@endif
-                    @if($telefone)<li class="flex gap-2"><span>📞</span><a href="tel:{{ apenasDigitos($telefone) }}" class="hover:text-white">{{ telefoneMask($telefone) }}</a></li>@endif
+                    @if($email)<li class="flex gap-2"><span>✉️</span><a href="mailto:{{ $email }}" class="inline-flex items-center min-h-9 py-1 hover:text-white break-all">{{ $email }}</a></li>@endif
+                    @if($telefone)<li class="flex gap-2"><span>📞</span><a href="tel:{{ apenasDigitos($telefone) }}" class="inline-flex items-center min-h-9 py-1 hover:text-white">{{ telefoneMask($telefone) }}</a></li>@endif
                 </ul>
             </div>
 
@@ -43,7 +43,7 @@
                     @if($footerMenu)
                         @foreach($footerMenu->rootItems as $item)
                             @if($item->is_active)
-                                <li><a href="{{ $item->url }}" class="hover:text-white">{{ $item->label }}</a></li>
+                                <li><a href="{{ $item->url }}" class="inline-flex items-center min-h-9 py-1 hover:text-white">{{ $item->label }}</a></li>
                             @endif
                         @endforeach
                     @endif
@@ -78,7 +78,7 @@
         <div class="mt-12 pt-8 border-t border-white/10 text-center text-xs text-slate-400">
             &copy; {{ $ano }} {{ $siteNome }} — Todos os direitos reservados.
             <span class="mx-2">•</span>
-            <a href="{{ route('login') }}" class="hover:text-white">Área restrita</a>
+            <a href="{{ route('login') }}" class="inline-flex items-center min-h-9 px-3 py-1.5 hover:text-white hover:bg-white/5 rounded">Área restrita</a>
         </div>
     </div>
 </footer>

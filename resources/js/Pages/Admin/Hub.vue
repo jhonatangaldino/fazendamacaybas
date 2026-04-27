@@ -317,7 +317,7 @@ const temDashboard = computed(() => can('operational.dashboard.view'));
         <div v-if="temDashboard" class="mt-10 text-center">
             <Link
                 :href="route('admin.dashboard')"
-                class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-macaybas-primary transition-colors"
+                class="inline-flex items-center gap-2 px-3 py-2 min-h-[40px] text-sm text-slate-500 hover:text-macaybas-primary hover:bg-slate-50 rounded-lg transition-colors"
             >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

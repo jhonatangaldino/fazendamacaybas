@@ -215,7 +215,7 @@ function eventBadge(ev) {
                         :href="link.url || '#'"
                         v-html="link.label"
                         :class="[
-                            'px-3 py-1 rounded text-xs',
+                            'inline-flex items-center justify-center min-h-9 min-w-9 px-3 py-2 rounded text-xs',
                             link.active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700',
                             !link.url ? 'opacity-40 pointer-events-none' : ''
                         ]"

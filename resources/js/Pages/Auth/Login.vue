@@ -44,7 +44,7 @@ function submit() {
                     <input type="checkbox" v-model="form.remember" class="rounded border-slate-300 text-macaybas-primary focus:ring-macaybas-primary">
                     Lembrar-me
                 </label>
-                <Link v-if="canResetPassword" :href="route('password.request')" class="text-sm text-macaybas-primary hover:underline">
+                <Link v-if="canResetPassword" :href="route('password.request')" class="inline-flex items-center min-h-9 px-2 py-1 text-sm text-macaybas-primary hover:underline rounded">
                     Esqueci a senha
                 </Link>
             </div>

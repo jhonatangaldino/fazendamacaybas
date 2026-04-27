@@ -51,7 +51,7 @@ async function excluir(l) {
         <div class="card mb-6 bg-slate-50 border border-slate-200">
             <div class="card-body text-sm text-slate-700 space-y-1">
                 <div>🐄 <strong>Lote</strong> = grupo lógico: "vacas leiteiras", "engorda 2026/Q1", "descarte"…</div>
-                <div>📍 <strong>Local</strong> = lugar físico (pasto, piquete): abra em <Link :href="route('admin.rebanho.locais.index')" class="underline">Locais</Link>.</div>
+                <div>📍 <strong>Local</strong> = lugar físico (pasto, piquete): abra em <Link :href="route('admin.rebanho.locais.index')" class="inline-flex items-center align-middle min-h-[32px] px-2 py-1 underline rounded">Locais</Link>.</div>
                 <div class="text-slate-500 text-xs mt-1">
                     Um mesmo lote pode estar em locais diferentes. Um local pode receber animais de vários lotes.
                 </div>

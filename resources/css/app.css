@@ -79,8 +79,8 @@
     /* btn-sm só existe em desktop. Em mobile, colapsa para tamanho padrão
        para não virar alvo de toque impossível. */
     .btn-sm {
-        @apply px-5 py-3 text-base
-               md:px-3 md:py-1.5 md:text-xs;
+        @apply inline-flex items-center justify-center px-5 py-3 text-base min-h-9 min-w-9
+               md:px-3 md:py-2 md:text-xs;
     }
     .btn-lg {
         @apply px-6 py-3.5 text-base

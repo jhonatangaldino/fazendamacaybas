@@ -309,7 +309,7 @@ function logout() {
                     </div>
 
                     <a href="/" target="_blank" title="Ver site público"
-                       class="hidden sm:flex items-center gap-2 whitespace-nowrap text-sm text-slate-600 hover:text-macaybas-primary">
+                       class="hidden sm:inline-flex items-center min-h-9 gap-2 px-3 py-2 whitespace-nowrap text-sm text-slate-600 hover:text-macaybas-primary hover:bg-slate-50 rounded-lg">
                         <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                         <span class="hidden xl:inline">Ver site público</span>
                     </a>

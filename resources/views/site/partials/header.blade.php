@@ -35,7 +35,7 @@
                 @foreach($headerMenu->rootItems as $item)
                     @if($item->is_active)
                         <a href="{{ $item->url }}" target="{{ $item->target }}"
-                           class="text-sm font-medium text-slate-700 hover:text-macaybas-primary transition-colors">
+                           class="inline-flex items-center min-h-9 px-3 py-2 text-sm font-medium text-slate-700 hover:text-macaybas-primary hover:bg-slate-50 rounded-lg transition-colors">
                             {{ $item->label }}
                         </a>
                     @endif
@@ -125,7 +125,7 @@
             @else
                 <div class="h-9 w-9 rounded-full bg-macaybas-primary text-white flex items-center justify-center font-serif font-bold flex-shrink-0">M</div>
             @endif
-            <span class="font-serif font-bold text-macaybas-primary-900 truncate">{{ $siteNome }}</span>
+            <span class="font-serif font-bold text-macaybas-primary-900 break-words">{{ $siteNome }}</span>
         </div>
         <button type="button" data-menu-close
                 class="h-10 w-10 flex items-center justify-center rounded-full hover:bg-slate-100 flex-shrink-0"

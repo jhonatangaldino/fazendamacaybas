@@ -142,7 +142,7 @@ onMounted(() => {
                         </div>
                         <button @click="fechar"
                                 aria-label="Fechar tutorial"
-                                class="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100">
+                                class="inline-flex items-center justify-center min-h-9 min-w-9 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
@@ -161,15 +161,15 @@ onMounted(() => {
                         <div class="flex items-center gap-2">
                             <button v-if="passoIdx > 0"
                                     @click="anterior"
-                                    class="text-xs text-slate-600 hover:text-slate-900 px-2 py-1.5 rounded-md hover:bg-slate-100">
+                                    class="text-xs text-slate-600 hover:text-slate-900 px-3 py-2 min-h-9 rounded-md hover:bg-slate-100">
                                 Anterior
                             </button>
                             <button @click="pular"
-                                    class="text-xs text-slate-500 hover:text-slate-700 px-2 py-1.5 rounded-md hover:bg-slate-100">
+                                    class="text-xs text-slate-500 hover:text-slate-700 px-3 py-2 min-h-9 rounded-md hover:bg-slate-100">
                                 Pular
                             </button>
                             <button @click="proximo"
-                                    class="inline-flex items-center gap-1 text-xs font-semibold text-white bg-macaybas-primary hover:bg-macaybas-primary-900 px-3 py-1.5 rounded-md">
+                                    class="inline-flex items-center gap-1 min-h-9 px-3 py-2 text-xs font-semibold text-white bg-macaybas-primary hover:bg-macaybas-primary-900 rounded-md">
                                 {{ ultimoPasso ? 'Entendi!' : 'Próximo →' }}
                             </button>
                         </div>

@@ -144,7 +144,7 @@ function reiniciar() {
                         <option v-for="i in itensLocal" :key="i.id" :value="i.id">{{ i.nome }} ({{ i.unidade }})</option>
                     </select>
                     <div class="mt-1 flex items-center gap-2">
-                        <button type="button" @click="novoItem.abrir()" class="text-sm text-macaybas-primary hover:underline">
+                        <button type="button" @click="novoItem.abrir()" class="inline-flex items-center min-h-9 px-3 py-2 text-sm text-macaybas-primary hover:bg-macaybas-primary-50 rounded-md">
                             + Cadastrar produto novo
                         </button>
                         <span v-if="itensLocal.length === 0" class="text-xs text-amber-700">

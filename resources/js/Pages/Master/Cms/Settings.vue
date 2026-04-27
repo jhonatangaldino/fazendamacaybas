@@ -162,7 +162,7 @@ function cacheBusted(path) {
                                 <img :src="cacheBusted(s.value)"
                                      class="h-20 rounded-lg ring-1 ring-slate-200 object-contain bg-slate-50 px-3 py-1">
                                 <button type="button" @click="removeImage(s)"
-                                        class="text-sm text-red-600 hover:underline">Remover</button>
+                                        class="inline-flex items-center px-3 py-2 min-h-[36px] text-sm text-red-600 hover:bg-red-50 rounded-md">Remover</button>
                             </div>
                             <input type="file"
                                    :disabled="uploadLoading[s.key]"

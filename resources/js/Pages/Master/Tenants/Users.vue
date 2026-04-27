@@ -83,9 +83,9 @@ function doToggle() {
         <template #page-title>Usuários do cliente</template>
 
         <!-- Breadcrumb simples -->
-        <div class="mb-4 text-sm text-slate-500">
-            <Link :href="route('master.tenants.index')" class="hover:underline">Clientes</Link>
-            <span class="mx-2">›</span>
+        <div class="mb-4 text-sm text-slate-500 flex flex-wrap items-center">
+            <Link :href="route('master.tenants.index')" class="inline-flex items-center min-h-[36px] px-2 py-1 hover:underline rounded">Clientes</Link>
+            <span class="mx-1">›</span>
             <span class="text-slate-700 font-medium">{{ tenant.nome }}</span>
             <span class="mx-2">›</span>
             <span>Usuários</span>
@@ -262,13 +262,13 @@ function doToggle() {
                             <td class="text-right whitespace-nowrap">
                                 <button
                                     @click="confirmReset = u"
-                                    class="text-xs text-amber-700 hover:underline mr-3"
+                                    class="inline-flex items-center min-h-9 px-3 py-2 mr-2 text-xs text-amber-700 hover:bg-amber-50 rounded-md"
                                     title="Gerar nova senha temporária"
                                 >🔑 Resetar</button>
                                 <button
                                     @click="confirmToggle = u"
-                                    class="text-xs hover:underline"
-                                    :class="u.is_active ? 'text-red-700' : 'text-emerald-700'"
+                                    class="inline-flex items-center min-h-9 px-3 py-2 text-xs rounded-md"
+                                    :class="u.is_active ? 'text-red-700 hover:bg-red-50' : 'text-emerald-700 hover:bg-emerald-50'"
                                     :title="u.is_active ? 'Bloquear acesso' : 'Reativar acesso'"
                                 >{{ u.is_active ? '⛔ Desativar' : '✓ Reativar' }}</button>
                             </td>
@@ -287,8 +287,8 @@ function doToggle() {
                          :class="!u.is_active ? 'opacity-60 bg-slate-50' : 'bg-white'">
                         <div class="flex items-start justify-between gap-2 mb-2">
                             <div class="min-w-0 flex-1">
-                                <div class="font-semibold text-slate-900 truncate">{{ u.name }}</div>
-                                <div class="text-xs font-mono text-slate-500 truncate">{{ u.email }}</div>
+                                <div class="font-semibold text-slate-900 break-words">{{ u.name }}</div>
+                                <div class="text-xs font-mono text-slate-500 break-all">{{ u.email }}</div>
                             </div>
                             <div class="flex flex-col items-end gap-1 flex-shrink-0">
                                 <span v-if="u.is_active" class="badge-green text-[10px]">Ativo</span>

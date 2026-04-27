@@ -367,7 +367,7 @@ async function copyDeliveryMessage() {
                                     <Link
                                         :href="route('master.tenants.edit', t.id)"
                                         v-tooltip="`Editar dados de ${t.nome}`"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-macaybas-primary-700 text-white hover:bg-macaybas-primary-800 shadow-sm"
+                                        class="inline-flex items-center gap-1.5 px-3 py-2 min-h-9 rounded-lg text-xs font-medium bg-macaybas-primary-700 text-white hover:bg-macaybas-primary-800 shadow-sm"
                                     >
                                         <Icon name="edit" :size="14" />
                                         <span class="hidden sm:inline">Editar</span>
@@ -379,7 +379,7 @@ async function copyDeliveryMessage() {
                                         target="_blank"
                                         rel="noopener"
                                         v-tooltip="`Abrir ${t.landing_url}`"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:ring-macaybas-primary-300 hover:text-macaybas-primary-800"
+                                        class="inline-flex items-center gap-1.5 px-3 py-2 min-h-9 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:ring-macaybas-primary-300 hover:text-macaybas-primary-800"
                                     >
                                         <Icon name="external-link" :size="14" />
                                         <span class="hidden sm:inline">Ver página</span>
@@ -389,7 +389,7 @@ async function copyDeliveryMessage() {
                                     <Link
                                         :href="route('master.clientes.cms.index', t.id)"
                                         v-tooltip="`Editar site de ${t.nome}`"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:ring-macaybas-primary-300 hover:text-macaybas-primary-800"
+                                        class="inline-flex items-center gap-1.5 px-3 py-2 min-h-9 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50 hover:ring-macaybas-primary-300 hover:text-macaybas-primary-800"
                                     >
                                         <Icon name="globe" :size="14" />
                                         <span class="hidden sm:inline">Site</span>
@@ -402,7 +402,7 @@ async function copyDeliveryMessage() {
                                         @click="impersonate(t)"
                                         :disabled="! t.is_active"
                                         v-tooltip="t.is_active ? `Acessar como ${t.nome}` : 'Cliente desativado — ative antes de impersonar'"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-100 text-amber-900 ring-1 ring-amber-200 hover:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        class="inline-flex items-center gap-1.5 px-3 py-2 min-h-9 rounded-lg text-xs font-medium bg-amber-100 text-amber-900 ring-1 ring-amber-200 hover:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Icon name="user" :size="14" />
                                         <span class="hidden sm:inline">Impersonar</span>

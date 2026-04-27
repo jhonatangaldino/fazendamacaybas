@@ -116,7 +116,7 @@
         </div>
         <div class="footer">
             Se o problema persistir, entre em contato pelo suporte.<br>
-            <a href="{{ url('/') }}">Fazenda Macaybas</a>
+            <a href="{{ url('/') }}" style="display:inline-block;padding:8px 12px;min-height:36px;line-height:1.4;border-radius:6px">Fazenda Macaybas</a>
         </div>
     </div>
 </body>

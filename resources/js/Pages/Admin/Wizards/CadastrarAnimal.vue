@@ -334,7 +334,7 @@ function reiniciar() {
                         <option v-for="l in lotesFiltrados" :key="l.id" :value="l.id">{{ l.nome }}</option>
                     </select>
                     <button type="button" @click="novoLote.abrir()" data-cy="abrir-lote"
-                        class="text-xs text-macaybas-primary hover:underline mt-1">
+                        class="inline-flex items-center min-h-9 px-3 py-2 mt-1 text-xs text-macaybas-primary hover:bg-macaybas-primary-50 rounded-md">
                         + Criar lote novo
                     </button>
                 </div>
@@ -346,7 +346,7 @@ function reiniciar() {
                         <option v-for="l in locationsLocal" :key="l.id" :value="l.id">{{ l.nome }}</option>
                     </select>
                     <button type="button" @click="novoLocal.abrir()" data-cy="abrir-local"
-                        class="text-xs text-macaybas-primary hover:underline mt-1">
+                        class="inline-flex items-center min-h-9 px-3 py-2 mt-1 text-xs text-macaybas-primary hover:bg-macaybas-primary-50 rounded-md">
                         + Criar pasto/local novo
                     </button>
                 </div>

@@ -101,7 +101,7 @@ const prioridadeBadge = (p) => ({
                 </div>
 
                 <p class="mt-4 text-xs text-slate-500">
-                    Prefere ver tudo organizado por categoria? Vai em <Link :href="route('admin.inicio')" class="text-macaybas-primary-700 font-medium hover:underline">Início</Link>.
+                    Prefere ver tudo organizado por categoria? Vai em <Link :href="route('admin.inicio')" class="inline-flex items-center align-middle min-h-[32px] px-2 py-1 text-macaybas-primary-700 font-medium hover:underline rounded">Início</Link>.
                 </p>
             </div>
         </div>

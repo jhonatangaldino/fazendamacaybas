@@ -3,8 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+    html {
+        @apply overflow-x-hidden;
+    }
     body.site {
-        @apply text-slate-800 bg-white antialiased;
+        @apply text-slate-800 bg-white antialiased overflow-x-hidden;
         font-family: 'Inter', system-ui, sans-serif;
     }
 
