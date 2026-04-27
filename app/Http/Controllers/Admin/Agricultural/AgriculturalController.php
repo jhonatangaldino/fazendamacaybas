@@ -367,8 +367,15 @@ class AgriculturalController extends Controller
      */
     public function applicationStore(Request $request, FieldApplicationToStockMovementService $stockBaixa)
     {
+        // Auditoria 2026-04-27 — A2 multi-talhão.
+        // Aceita `field_ids[]` (array — wizard) OU `field_id` (legado — index page).
+        // Quando array, cria 1 FieldApplication por talhão com quantidade
+        // PROPORCIONAL À ÁREA (real do dia a dia: 1000kg de adubo num talhão
+        // de 10ha + outro de 30ha → 250kg + 750kg).
         $data = $request->validate([
-            'field_id' => ['required', 'exists:fields,id'],
+            'field_id' => ['nullable', 'exists:fields,id'],
+            'field_ids' => ['nullable', 'array'],
+            'field_ids.*' => ['integer', 'exists:fields,id'],
             'planting_id' => ['nullable', 'exists:plantings,id'],
             'data_aplicacao' => ['required', 'date'],
             'tipo' => ['required', 'in:adubacao,herbicida,fungicida,inseticida,calagem,irrigacao,outros'],
@@ -380,21 +387,76 @@ class AgriculturalController extends Controller
             'observacoes' => ['nullable', 'string'],
         ]);
 
-        // D7 · Coerência — fertilizante/corretivo exigem produto no estoque
-        if ($err = $this->validateApplicationCoherence($data)) {
+        $fieldIds = ! empty($data['field_ids'])
+            ? array_values(array_unique($data['field_ids']))
+            : (! empty($data['field_id']) ? [$data['field_id']] : []);
+
+        if (empty($fieldIds)) {
+            return back()->withInput()->with('error', 'Informe pelo menos um talhão.');
+        }
+
+        // Carrega áreas dos talhões selecionados para distribuir proporcionalmente
+        $fields = \App\Models\Agricultural\Field::whereIn('id', $fieldIds)->get(['id', 'nome', 'area_ha']);
+        $areaTotal = (float) $fields->sum('area_ha');
+
+        // D7 · Coerência — valida UMA vez (mesmo produto vai pra todos)
+        $coerenciaCheck = array_merge($data, ['field_id' => $fieldIds[0]]);
+        if ($err = $this->validateApplicationCoherence($coerenciaCheck)) {
             return back()->withInput()->with('error', $err);
         }
 
-        // Atomicidade: aplicação + baixa de estoque (quando aplicável)
-        // rodam na mesma transação. Se a baixa falhar (improvável pois D7
-        // já validou produto), a aplicação é revertida.
-        DB::transaction(function () use ($data, $stockBaixa) {
-            $app = FieldApplication::create($data);
-            // F2.3: service decide se gera (só adubacao/calagem geram baixa)
-            $stockBaixa->generateForApplication($app);
+        DB::transaction(function () use ($data, $fields, $areaTotal, $stockBaixa) {
+            $multi = $fields->count() > 1;
+            $valorTotalGeral = (float) ($data['valor_total'] ?? 0);
+            $quantidadeTotalGeral = (float) $data['quantidade'];
+
+            $somaQtd = 0.0;
+            $somaValor = 0.0;
+            $idx = 0;
+            foreach ($fields as $field) {
+                $idx++;
+                $proporcao = $areaTotal > 0
+                    ? ((float) $field->area_ha) / $areaTotal
+                    : 1.0 / $fields->count();
+
+                if ($multi && $idx < $fields->count()) {
+                    $qtdField = round($quantidadeTotalGeral * $proporcao, 4);
+                    $valorField = $valorTotalGeral > 0 ? round($valorTotalGeral * $proporcao, 2) : null;
+                    $somaQtd += $qtdField;
+                    if ($valorField !== null) $somaValor += $valorField;
+                } elseif ($multi) {
+                    // Última: absorve diferença de arredondamento
+                    $qtdField = round($quantidadeTotalGeral - $somaQtd, 4);
+                    $valorField = $valorTotalGeral > 0 ? round($valorTotalGeral - $somaValor, 2) : null;
+                } else {
+                    // Single: usa valores cheios
+                    $qtdField = $quantidadeTotalGeral;
+                    $valorField = $valorTotalGeral > 0 ? $valorTotalGeral : null;
+                }
+
+                $payload = [
+                    'field_id' => $field->id,
+                    'planting_id' => $data['planting_id'] ?? null,
+                    'data_aplicacao' => $data['data_aplicacao'],
+                    'tipo' => $data['tipo'],
+                    'produto' => $data['produto'],
+                    'quantidade' => $qtdField,
+                    'unidade' => $data['unidade'],
+                    'valor_total' => $valorField,
+                    'responsavel' => $data['responsavel'] ?? null,
+                    'observacoes' => $data['observacoes'] ?? null,
+                ];
+
+                $app = FieldApplication::create($payload);
+                $stockBaixa->generateForApplication($app);
+            }
         });
 
-        return back()->with('success', 'Aplicação registrada.');
+        $msg = count($fieldIds) > 1
+            ? 'Aplicação registrada em ' . count($fieldIds) . ' talhões (proporcional à área).'
+            : 'Aplicação registrada.';
+
+        return back()->with('success', $msg);
     }
 
     public function applicationDestroy(FieldApplication $application)

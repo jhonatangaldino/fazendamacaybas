@@ -659,8 +659,13 @@ class AnimalController extends Controller
      */
     public function storeEventBatch(Request $request)
     {
+        // Auditoria 2026-04-27 — A4 movimentação em lote inteiro.
+        // storeEventBatch agora aceita `movimentacao` (mudança de LOTE/grupo)
+        // e `movimentacao_local` (mudança de pasto/piquete). Cenário real:
+        // rotação de pastagem move 50 vacas de uma vez de um pasto para outro.
+        // mortalidade entra em massa para registrar abate ou perda em lote.
         $data = $request->validate([
-            'tipo' => ['required', 'in:vacinacao,medicacao,vermifugacao,observacao'],
+            'tipo' => ['required', 'in:vacinacao,medicacao,vermifugacao,observacao,movimentacao,movimentacao_local,mortalidade'],
             'data' => ['required', 'date', 'before_or_equal:today'],
             'vacina' => ['nullable', 'string', 'max:120'],
             'medicamento' => ['nullable', 'string', 'max:120'],
@@ -674,6 +679,9 @@ class AnimalController extends Controller
             'lot_id' => ['nullable', 'exists:animal_lots,id'],
             'location_id' => ['nullable', 'exists:animal_locations,id'],
             'species_id' => ['nullable', 'exists:animal_species,id'],
+            // Destino para movimentação
+            'lot_destino_id' => ['nullable', 'exists:animal_lots,id'],
+            'location_destino_id' => ['nullable', 'exists:animal_locations,id'],
         ]);
 
         // Regras por tipo
@@ -685,6 +693,21 @@ class AnimalController extends Controller
         }
         if ($data['tipo'] === 'observacao' && empty($data['observacoes'])) {
             return back()->with('error', 'Escreva a observação.');
+        }
+        if ($data['tipo'] === 'movimentacao' && empty($data['lot_destino_id'])) {
+            return back()->with('error', 'Informe para qual lote os animais vão.');
+        }
+        if ($data['tipo'] === 'movimentacao_local' && empty($data['location_destino_id'])) {
+            return back()->with('error', 'Informe para qual pasto/local os animais vão.');
+        }
+        // Garante que origem ≠ destino para movimentação por filtro
+        if ($data['tipo'] === 'movimentacao' && ! empty($data['lot_id'])
+            && (int) $data['lot_id'] === (int) $data['lot_destino_id']) {
+            return back()->with('error', 'O lote de origem é o mesmo do destino — nada a mover.');
+        }
+        if ($data['tipo'] === 'movimentacao_local' && ! empty($data['location_id'])
+            && (int) $data['location_id'] === (int) $data['location_destino_id']) {
+            return back()->with('error', 'O pasto de origem é o mesmo do destino — nada a mover.');
         }
 
         // Resolver animais-alvo
@@ -707,12 +730,11 @@ class AnimalController extends Controller
         }
 
         // Valida contra allowed_events por espécie (universais passam sempre)
-        $eventosUniversais = ['vacinacao', 'medicacao', 'vermifugacao', 'observacao'];
-        // observacao é universal; vacinacao/medicacao devem estar em allowed_events
-        // ou ser bloqueadas pra espécies sem manejo individual (ex.: peixe não toma vacina tradicional).
+        // Movimentação e observação são universais — qualquer espécie pode mover/anotar.
+        $eventosUniversais = ['observacao', 'movimentacao', 'movimentacao_local', 'mortalidade'];
         $animaisIncompativeis = [];
         foreach ($animais as $a) {
-            if ($data['tipo'] === 'observacao') continue;
+            if (in_array($data['tipo'], $eventosUniversais, true)) continue;
             $allowed = $a->species?->allowed_events;
             if (is_array($allowed) && count($allowed) > 0 && ! in_array($data['tipo'], $allowed, true)) {
                 $animaisIncompativeis[] = $a->identificacao;
@@ -726,7 +748,8 @@ class AnimalController extends Controller
                 . ' Remova-os do filtro ou escolha outro tipo de evento.');
         }
 
-        // Cria eventos em transação
+        // Cria eventos em transação. Para movimentação, ALÉM de criar o evento,
+        // também atualiza o lot_id/location_id de cada animal para o destino.
         DB::transaction(function () use ($animais, $data, $request) {
             foreach ($animais as $animal) {
                 $animal->events()->create([
@@ -739,8 +762,19 @@ class AnimalController extends Controller
                     'responsavel' => $data['responsavel'] ?? null,
                     'observacoes' => $data['observacoes'] ?? null,
                     'lot_id' => $animal->lot_id,
+                    'lot_destino_id' => $data['lot_destino_id'] ?? null,
+                    'location_destino_id' => $data['location_destino_id'] ?? null,
                     'created_by' => $request->user()?->id,
                 ]);
+
+                // Aplica efeito colateral por tipo
+                if ($data['tipo'] === 'movimentacao') {
+                    $animal->update(['lot_id' => $data['lot_destino_id']]);
+                } elseif ($data['tipo'] === 'movimentacao_local') {
+                    $animal->update(['location_id' => $data['location_destino_id']]);
+                } elseif ($data['tipo'] === 'mortalidade') {
+                    $animal->update(['status' => 'morto']);
+                }
             }
         });
 
@@ -750,6 +784,9 @@ class AnimalController extends Controller
             'medicacao' => "{$n} animais medicados com {$data['medicamento']}.",
             'vermifugacao' => "{$n} animais vermifugados.",
             'observacao' => "Observação registrada em {$n} animais.",
+            'movimentacao' => "{$n} animais movidos para o lote de destino.",
+            'movimentacao_local' => "{$n} animais movidos para o pasto/local de destino.",
+            'mortalidade' => "Baixa de {$n} animais registrada.",
         };
 
         // Contexto pro wizard mostrar impacto na tela de sucesso

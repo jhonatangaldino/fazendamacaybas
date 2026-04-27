@@ -23,6 +23,7 @@ class FinancialTransaction extends Model
 
     protected $fillable = [
         'account_id', 'category_id', 'cost_center_id', 'partner_id', 'recurrence_id',
+        'parent_transaction_id', 'parcela_atual', 'total_parcelas',
         'tipo', 'descricao', 'observacoes', 'valor', 'data_vencimento', 'data_pagamento',
         'status', 'forma_pagamento', 'numero_documento', 'created_by',
         'tenant_id', 'farm_id',
@@ -32,6 +33,8 @@ class FinancialTransaction extends Model
         'valor' => 'decimal:2',
         'data_vencimento' => 'date',
         'data_pagamento' => 'date',
+        'parcela_atual' => 'integer',
+        'total_parcelas' => 'integer',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -70,6 +73,21 @@ class FinancialTransaction extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(FinancialTransactionAttachment::class, 'transaction_id');
+    }
+
+    public function parcelaPai(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_transaction_id');
+    }
+
+    public function parcelas(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_transaction_id');
+    }
+
+    public function isParcelado(): bool
+    {
+        return ! is_null($this->total_parcelas) && $this->total_parcelas > 1;
     }
 
     public function tenant(): BelongsTo

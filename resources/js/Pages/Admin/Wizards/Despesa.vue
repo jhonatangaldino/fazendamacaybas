@@ -98,12 +98,29 @@ const form = useForm({
     status: 'pago',                     // default: pago (cenário mais comum)
     account_id: props.contas[0]?.id ?? null,
     observacoes: '',
+    // A1 — Parcelamento (default: à vista)
+    parcelado: false,
+    total_parcelas: 2,
 });
 
 const podeAvancar1 = computed(() => form.descricao.trim().length >= 2);
 const podeAvancar2 = computed(() => {
     const v = parseFloat(String(form.valor).replace(',', '.'));
-    return !isNaN(v) && v > 0 && !!form.data_vencimento && !!form.account_id;
+    if (isNaN(v) || v <= 0) return false;
+    if (! form.data_vencimento || ! form.account_id) return false;
+    if (form.parcelado) {
+        const n = parseInt(form.total_parcelas, 10);
+        if (isNaN(n) || n < 2 || n > 60) return false;
+    }
+    return true;
+});
+
+const valorPorParcela = computed(() => {
+    if (! form.parcelado) return 0;
+    const v = parseFloat(String(form.valor).replace(',', '.')) || 0;
+    const n = parseInt(form.total_parcelas, 10) || 1;
+    if (n < 1) return 0;
+    return v / n;
 });
 
 const categoriaNome = computed(() =>
@@ -149,6 +166,12 @@ function confirmar() {
         form.data_pagamento = '';
     }
     form.valor = parseFloat(String(form.valor).replace(',', '.'));
+    if (form.parcelado) {
+        form.total_parcelas = parseInt(form.total_parcelas, 10);
+    } else {
+        // Garante que campos de parcelamento não vão sujar o backend quando à vista.
+        form.total_parcelas = null;
+    }
 
     form.post(route('admin.fluxos.registrar-despesa.store'), {
         preserveScroll: false,
@@ -160,6 +183,9 @@ function confirmar() {
                 descricao: form.descricao,
                 valor: form.valor,
                 status: form.status,
+                parcelado: form.parcelado,
+                total_parcelas: form.parcelado ? form.total_parcelas : 1,
+                valor_parcela: form.parcelado ? valorPorParcela.value : form.valor,
                 ctx,
             };
             passo.value = 4;
@@ -173,6 +199,8 @@ function reiniciar() {
     form.status = 'pago';
     form.data_vencimento = hojeBR();
     form.account_id = props.contas[0]?.id ?? null;
+    form.parcelado = false;
+    form.total_parcelas = 2;
     sucesso.value = null;
     passo.value = 1;
 }
@@ -276,23 +304,61 @@ function reiniciar() {
                 <div>
                     <InputLabel value="Já foi pago ou é pra pagar ainda?" />
                     <div class="grid grid-cols-2 gap-3">
-                        <button type="button" @click="form.status = 'pago'"
+                        <button type="button" @click="form.status = 'pago'; form.parcelado = false"
                                 class="rounded-xl border-2 p-4 text-left transition-all"
-                                :class="form.status === 'pago' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'">
+                                :class="form.status === 'pago' && !form.parcelado ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'">
                             <div class="font-semibold text-slate-900">✅ Já paguei</div>
                             <div class="text-xs text-slate-600 mt-1">Sai do caixa agora</div>
                         </button>
-                        <button type="button" @click="form.status = 'pendente'"
+                        <button type="button" @click="form.status = 'pendente'; form.parcelado = false"
                                 class="rounded-xl border-2 p-4 text-left transition-all"
-                                :class="form.status === 'pendente' ? 'border-amber-500 bg-amber-50' : 'border-slate-200'">
+                                :class="form.status === 'pendente' && !form.parcelado ? 'border-amber-500 bg-amber-50' : 'border-slate-200'">
                             <div class="font-semibold text-slate-900">⏳ Vou pagar depois</div>
                             <div class="text-xs text-slate-600 mt-1">Entra como conta a pagar</div>
                         </button>
                     </div>
+                    <button type="button" @click="form.parcelado = true; form.status = 'pendente'"
+                            class="mt-3 w-full rounded-xl border-2 p-4 text-left transition-all"
+                            :class="form.parcelado ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200'">
+                        <div class="font-semibold text-slate-900">💳 Parcelar em várias vezes</div>
+                        <div class="text-xs text-slate-600 mt-1">
+                            Para compras grandes (maquinário, ração em volume) — gera N contas a pagar.
+                        </div>
+                    </button>
+                </div>
+
+                <!-- A1 — Configuração das parcelas -->
+                <div v-if="form.parcelado"
+                     class="rounded-xl border-2 border-indigo-200 bg-indigo-50/50 p-4 space-y-3">
+                    <div class="text-sm font-semibold text-indigo-900">Em quantas vezes?</div>
+                    <div class="flex flex-wrap gap-2">
+                        <button v-for="n in [2, 3, 6, 10, 12, 24]" :key="n" type="button"
+                                @click="form.total_parcelas = n"
+                                class="px-4 py-2 rounded-lg border-2 text-sm font-semibold transition-all"
+                                :class="form.total_parcelas === n
+                                    ? 'border-indigo-500 bg-indigo-100 text-indigo-900'
+                                    : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'">
+                            {{ n }}x
+                        </button>
+                        <input v-model.number="form.total_parcelas" type="number" min="2" max="60"
+                               class="w-24 px-3 py-2 rounded-lg border-2 border-slate-200 text-sm text-center font-mono"
+                               placeholder="N">
+                    </div>
+                    <div v-if="valorPorParcela > 0"
+                         class="text-sm text-indigo-900 bg-white border border-indigo-200 rounded-lg p-3">
+                        <div>{{ form.total_parcelas }} parcelas de
+                            <strong class="text-base">{{ brl(valorPorParcela) }}</strong></div>
+                        <div class="text-xs text-slate-600 mt-1">
+                            Vencimentos mensais a partir de {{ dataBR(form.data_vencimento) }}.
+                            Você pode marcar parcelas como pagas conforme forem sendo quitadas.
+                        </div>
+                    </div>
                 </div>
 
                 <div>
-                    <InputLabel :value="form.status === 'pago' ? 'Quando foi pago?' : 'Até quando precisa pagar?'" />
+                    <InputLabel :value="form.parcelado
+                            ? 'Vencimento da 1ª parcela'
+                            : (form.status === 'pago' ? 'Quando foi pago?' : 'Até quando precisa pagar?')" />
                     <InputDate v-model="form.data_vencimento" />
                     <p v-if="form.errors.data_vencimento" class="text-sm text-red-700 mt-1">{{ form.errors.data_vencimento }}</p>
                 </div>
@@ -380,7 +446,15 @@ function reiniciar() {
                         <div class="min-w-0">
                             <div class="text-xs uppercase tracking-wider text-slate-500">Valor</div>
                             <div class="text-2xl font-bold text-red-700 mt-1">{{ brl(parseFloat(String(form.valor).replace(',', '.')) || 0) }}</div>
-                            <div class="text-sm text-slate-500 mt-1">
+                            <div v-if="form.parcelado" class="mt-2 text-sm">
+                                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-xs font-semibold">
+                                    💳 {{ form.total_parcelas }}x de {{ brl(valorPorParcela) }}
+                                </div>
+                                <div class="text-slate-500 mt-1">
+                                    1ª parcela em {{ dataBR(form.data_vencimento) }} · {{ contaNome }}
+                                </div>
+                            </div>
+                            <div v-else class="text-sm text-slate-500 mt-1">
                                 <span v-if="form.status === 'pago'">✅ Pago em {{ dataBR(form.data_vencimento) }} · saindo de {{ contaNome }}</span>
                                 <span v-else>⏳ A pagar até {{ dataBR(form.data_vencimento) }} · {{ contaNome }}</span>
                             </div>
@@ -413,8 +487,14 @@ function reiniciar() {
                 <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-left">
                     <div class="text-sm font-semibold text-emerald-900 mb-2">O que vai acontecer:</div>
                     <ul class="text-sm text-emerald-800 space-y-1">
-                        <li v-if="sucesso.status === 'pago'">✓ Saldo da conta foi reduzido em {{ brl(sucesso.valor) }}</li>
+                        <li v-if="sucesso.parcelado">
+                            ✓ {{ sucesso.total_parcelas }} parcelas geradas de
+                            <strong>{{ brl(sucesso.valor_parcela) }}</strong> cada,
+                            uma por mês a partir de hoje
+                        </li>
+                        <li v-else-if="sucesso.status === 'pago'">✓ Saldo da conta foi reduzido em {{ brl(sucesso.valor) }}</li>
                         <li v-else>✓ Entrou na sua lista de contas a pagar</li>
+                        <li v-if="sucesso.parcelado">✓ Você pode marcar cada parcela como paga conforme for quitando</li>
                         <li>✓ Entrou no fluxo de caixa / relatório de despesas do mês</li>
                     </ul>
                 </div>

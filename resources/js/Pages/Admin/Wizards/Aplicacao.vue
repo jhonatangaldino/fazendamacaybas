@@ -44,9 +44,11 @@ const FINALIDADES = [
 const passo = ref(1);
 const sucesso = ref(null);
 
+// A2 — multi-talhão: form usa `field_ids[]` (array). Backend distribui
+// quantidade proporcional à área de cada talhão.
 const form = useForm({
     tipo: 'adubacao',
-    field_id: null,
+    field_ids: [],
     planting_id: null,
     produto: '',
     quantidade: '',
@@ -57,6 +59,14 @@ const form = useForm({
     observacoes: '',
 });
 
+function toggleField(id) {
+    const idx = form.field_ids.indexOf(id);
+    if (idx === -1) form.field_ids.push(id);
+    else form.field_ids.splice(idx, 1);
+    // Quando troca os talhões, plantio do antigo pode não fazer sentido — limpa.
+    form.planting_id = null;
+}
+
 onMounted(() => {
     const qs = new URLSearchParams(window.location.search);
     const tipo = qs.get('tipo');
@@ -65,17 +75,35 @@ onMounted(() => {
 
 const finalidadeAtual = computed(() => FINALIDADES.find(f => f.id === form.tipo));
 
-const plantiosDoTalhao = computed(() => {
-    if (!form.field_id) return [];
-    return props.plantios.filter(p => p.field_id === form.field_id);
+const talhoesSelecionados = computed(() =>
+    props.talhoes.filter(t => form.field_ids.includes(t.id)));
+const areaTotalSelecionada = computed(() =>
+    talhoesSelecionados.value.reduce((acc, t) => acc + parseFloat(t.area_ha || 0), 0));
+
+const plantiosDosTalhoes = computed(() => {
+    if (form.field_ids.length === 0) return [];
+    return props.plantios.filter(p => form.field_ids.includes(p.field_id));
 });
 
-const talhaoSelecionado = computed(() => props.talhoes.find(t => t.id === form.field_id));
+const distribuicaoPorTalhao = computed(() => {
+    const qtdTotal = parseFloat(String(form.quantidade).replace(',', '.')) || 0;
+    const areaTot = areaTotalSelecionada.value;
+    if (qtdTotal <= 0 || areaTot <= 0) return [];
+    return talhoesSelecionados.value.map(t => {
+        const proporcao = parseFloat(t.area_ha || 0) / areaTot;
+        return {
+            id: t.id,
+            nome: t.nome,
+            area_ha: parseFloat(t.area_ha || 0),
+            quantidade: qtdTotal * proporcao,
+        };
+    });
+});
 
 const podeAvancar1 = computed(() => !!form.tipo);
 const podeAvancar2 = computed(() => {
     const q = parseFloat(String(form.quantidade).replace(',', '.'));
-    return !!form.field_id && !!form.produto && !isNaN(q) && q > 0 && !!form.data_aplicacao;
+    return form.field_ids.length > 0 && !!form.produto && !isNaN(q) && q > 0 && !!form.data_aplicacao;
 });
 
 function avancar() { if (passo.value < PASSOS.length) passo.value++; }
@@ -88,15 +116,21 @@ function confirmar() {
         form.valor_total = parseFloat(String(form.valor_total).replace(',', '.'));
     }
 
+    const qtdSnap = form.quantidade;
+    const totalTalhoes = form.field_ids.length;
+    const nomesTalhoes = talhoesSelecionados.value.map(t => t.nome);
+
     form.post(route('admin.agricola.aplicacoes.store'), {
         preserveScroll: false,
         onSuccess: () => {
             sucesso.value = {
                 finalidade: finalidadeAtual.value.nome,
-                talhao: talhaoSelecionado.value?.nome,
+                totalTalhoes,
+                nomesTalhoes,
                 produto: form.produto,
-                quantidade: form.quantidade,
+                quantidade: qtdSnap,
                 unidade: form.unidade,
+                areaTotal: areaTotalSelecionada.value,
             };
             passo.value = 4;
         },
@@ -106,6 +140,7 @@ function confirmar() {
 function reiniciar() {
     form.reset();
     form.tipo = 'adubacao';
+    form.field_ids = [];
     form.unidade = 'kg';
     form.data_aplicacao = hojeBR();
     sucesso.value = null;
@@ -167,27 +202,47 @@ function reiniciar() {
         </div>
 
         <!-- PASSO 2 · Onde e o quê -->
-        <div v-if="passo === 2" class="card max-w-2xl mx-auto">
+        <div v-if="passo === 2" class="card max-w-3xl mx-auto">
             <div class="card-body space-y-5">
                 <h2 class="text-2xl font-semibold text-slate-900">
                     Onde e com o quê você vai {{ finalidadeAtual?.nome?.toLowerCase() }}?
                 </h2>
 
                 <div>
-                    <InputLabel value="Em qual talhão?" />
-                    <select v-model="form.field_id" data-cy="select-talhao" class="form-select text-base py-3">
-                        <option :value="null">— Escolha o talhão —</option>
-                        <option v-for="t in talhoes" :key="t.id" :value="t.id">
-                            {{ t.nome }} ({{ t.area_ha }} ha)
-                        </option>
-                    </select>
+                    <div class="flex items-center justify-between mb-2">
+                        <InputLabel value="Em qual(is) talhão(ões)?" class="!mb-0" />
+                        <span class="text-xs text-slate-500">Toque para selecionar — pode marcar vários</span>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-2">
+                        <button v-for="t in talhoes" :key="t.id" type="button"
+                                @click="toggleField(t.id)"
+                                :data-cy="`card-talhao-${t.id}`"
+                                class="rounded-lg border-2 p-3 text-left transition-all"
+                                :class="form.field_ids.includes(t.id)
+                                    ? 'border-emerald-500 bg-emerald-50'
+                                    : 'border-slate-200 bg-white hover:border-emerald-300'">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" :checked="form.field_ids.includes(t.id)"
+                                       class="w-4 h-4 accent-emerald-600 pointer-events-none" tabindex="-1">
+                                <div>
+                                    <div class="font-semibold text-sm">{{ t.nome }}</div>
+                                    <div class="text-xs text-slate-500">{{ t.area_ha }} ha</div>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                    <div v-if="form.field_ids.length > 1"
+                         class="mt-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+                        <strong>{{ form.field_ids.length }} talhões</strong> · {{ areaTotalSelecionada.toFixed(2) }} ha no total —
+                        a quantidade do produto será dividida proporcional à área de cada um.
+                    </div>
                 </div>
 
-                <div v-if="plantiosDoTalhao.length > 0">
+                <div v-if="plantiosDosTalhoes.length > 0">
                     <InputLabel value="Qual plantação (opcional)?" />
                     <select v-model="form.planting_id" class="form-select text-base py-3">
                         <option :value="null">— Aplicar no talhão inteiro —</option>
-                        <option v-for="p in plantiosDoTalhao" :key="p.id" :value="p.id">
+                        <option v-for="p in plantiosDosTalhoes" :key="p.id" :value="p.id">
                             {{ p.crop?.nome }} — plantado em {{ dataBR(p.data_plantio) }}
                         </option>
                     </select>
@@ -210,7 +265,7 @@ function reiniciar() {
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <InputLabel value="Quantidade" />
+                        <InputLabel :value="form.field_ids.length > 1 ? 'Quantidade total' : 'Quantidade'" />
                         <input v-model="form.quantidade" type="number" step="0.1" min="0" inputmode="decimal"
                                data-cy="input-quantidade"
                                placeholder="Ex: 100"
@@ -228,6 +283,23 @@ function reiniciar() {
                             <option value="ha">ha (hectares)</option>
                         </select>
                     </div>
+                </div>
+
+                <!-- A2 — preview da distribuição quando há mais de 1 talhão -->
+                <div v-if="form.field_ids.length > 1 && distribuicaoPorTalhao.length > 0"
+                     class="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+                    <div class="text-xs uppercase tracking-wider text-emerald-800 font-semibold mb-2">
+                        Distribuição prevista
+                    </div>
+                    <ul class="text-sm space-y-1">
+                        <li v-for="d in distribuicaoPorTalhao" :key="d.id"
+                            class="flex justify-between gap-2 text-slate-700">
+                            <span class="truncate">{{ d.nome }} ({{ d.area_ha.toFixed(2) }} ha)</span>
+                            <span class="font-mono font-semibold text-emerald-800">
+                                {{ d.quantidade.toFixed(2) }} {{ form.unidade }}
+                            </span>
+                        </li>
+                    </ul>
                 </div>
 
                 <div>
@@ -269,11 +341,24 @@ function reiniciar() {
                     </div>
 
                     <div class="p-4 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-3">
-                        <div class="min-w-0">
+                        <div class="min-w-0 flex-1">
                             <div class="text-xs uppercase tracking-wider text-slate-500">Onde e o quê</div>
-                            <div class="font-semibold text-slate-900 mt-1">{{ talhaoSelecionado?.nome }}</div>
-                            <div class="text-sm text-slate-600 mt-0.5">
-                                {{ form.produto }} · {{ form.quantidade }} {{ form.unidade }}
+                            <div v-if="talhoesSelecionados.length === 1" class="font-semibold text-slate-900 mt-1">
+                                {{ talhoesSelecionados[0].nome }}
+                            </div>
+                            <div v-else class="mt-1">
+                                <div class="font-semibold text-slate-900">
+                                    {{ talhoesSelecionados.length }} talhões ({{ areaTotalSelecionada.toFixed(2) }} ha)
+                                </div>
+                                <ul class="text-xs text-slate-600 mt-1 space-y-0.5">
+                                    <li v-for="d in distribuicaoPorTalhao" :key="d.id">
+                                        • {{ d.nome }}: {{ d.quantidade.toFixed(2) }} {{ form.unidade }}
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="text-sm text-slate-600 mt-1">
+                                {{ form.produto }} · <strong>{{ form.quantidade }} {{ form.unidade }}</strong>
+                                <span v-if="talhoesSelecionados.length > 1" class="text-xs text-slate-500"> (total)</span>
                             </div>
                             <div class="text-sm text-slate-500 mt-0.5">Em {{ dataBR(form.data_aplicacao) }}</div>
                         </div>
@@ -297,15 +382,27 @@ function reiniciar() {
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">Aplicação registrada!</h2>
                     <p class="text-base text-slate-600 mt-2">
-                        <strong>{{ sucesso.finalidade }}</strong> em <strong>{{ sucesso.talhao }}</strong><br>
+                        <strong>{{ sucesso.finalidade }}</strong>
+                        <span v-if="sucesso.totalTalhoes === 1">
+                            em <strong>{{ sucesso.nomesTalhoes[0] }}</strong>
+                        </span>
+                        <span v-else>
+                            em <strong>{{ sucesso.totalTalhoes }} talhões</strong>
+                            ({{ sucesso.areaTotal.toFixed(2) }} ha)
+                        </span>
+                        <br>
                         {{ sucesso.produto }} · {{ sucesso.quantidade }} {{ sucesso.unidade }}
+                        <span v-if="sucesso.totalTalhoes > 1" class="text-xs text-slate-500">(total)</span>
                     </p>
                 </div>
 
                 <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-left">
                     <div class="text-sm font-semibold text-emerald-900 mb-2">O que vai acontecer:</div>
                     <ul class="text-sm text-emerald-800 space-y-1">
-                        <li>✓ Aplicação entrou no histórico do talhão</li>
+                        <li v-if="sucesso.totalTalhoes > 1">
+                            ✓ {{ sucesso.totalTalhoes }} aplicações criadas — uma por talhão, proporcional à área
+                        </li>
+                        <li v-else>✓ Aplicação entrou no histórico do talhão</li>
                         <li>✓ Se o produto estava no estoque, foi dado baixa automaticamente</li>
                         <li>✓ Carência e rastreabilidade ficam registradas</li>
                     </ul>

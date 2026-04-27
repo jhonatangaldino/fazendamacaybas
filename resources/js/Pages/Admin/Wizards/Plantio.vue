@@ -34,8 +34,10 @@ const sucesso = ref(null);
 const cropsLocal = ref([...props.crops]);
 const fieldsLocal = ref([...props.fields]);
 
+// A3 — multi-talhão: form usa `field_ids[]`. Quando 1 talhão, área editável.
+// Quando >1, cada talhão usa sua área completa.
 const form = useForm({
-    field_id: null,
+    field_ids: [],
     crop_id: null,
     season_id: null,
     data_plantio: hojeBR(),
@@ -46,7 +48,17 @@ const form = useForm({
 });
 
 const cropSelecionada = computed(() => cropsLocal.value.find(c => c.id === form.crop_id));
-const fieldSelecionado = computed(() => fieldsLocal.value.find(f => f.id === form.field_id));
+const fieldsSelecionados = computed(() =>
+    fieldsLocal.value.filter(f => form.field_ids.includes(f.id)));
+const isMulti = computed(() => form.field_ids.length > 1);
+const areaTotalSelecionada = computed(() =>
+    fieldsSelecionados.value.reduce((acc, f) => acc + parseFloat(f.area_ha || 0), 0));
+
+function toggleField(id) {
+    const idx = form.field_ids.indexOf(id);
+    if (idx === -1) form.field_ids.push(id);
+    else form.field_ids.splice(idx, 1);
+}
 
 // Auto-sugere previsão de colheita pelo ciclo da cultura
 watch(() => [form.crop_id, form.data_plantio], ([_, dt]) => {
@@ -57,12 +69,17 @@ watch(() => [form.crop_id, form.data_plantio], ([_, dt]) => {
     }
 });
 
-// Auto-sugere área plantada = área total do talhão
-watch(() => form.field_id, () => {
-    if (fieldSelecionado.value && !form.area_plantada_ha) {
-        form.area_plantada_ha = parseFloat(fieldSelecionado.value.area_ha);
+// Auto-sugere área plantada quando talhão único, ou força área total quando multi
+watch(() => form.field_ids.slice(), () => {
+    if (form.field_ids.length === 1) {
+        const f = fieldsSelecionados.value[0];
+        form.area_plantada_ha = parseFloat(f.area_ha || 0);
+    } else if (form.field_ids.length > 1) {
+        form.area_plantada_ha = areaTotalSelecionada.value;
+    } else {
+        form.area_plantada_ha = 0;
     }
-});
+}, { deep: true });
 
 // Inline create
 const novaCultura = useInlineCreate({
@@ -79,12 +96,13 @@ const novoTalhao = useInlineCreate({
     initialForm: { nome: '', area_ha: '', descricao: '' },
     onCreated: (f) => {
         fieldsLocal.value = [...fieldsLocal.value, f];
-        form.field_id = f.id;
+        // Adiciona o novo talhão à seleção (não substitui se já tem outros)
+        if (! form.field_ids.includes(f.id)) form.field_ids.push(f.id);
     },
 });
 
 const podeAvancar1 = computed(() => !!form.crop_id);
-const podeAvancar2 = computed(() => !!form.field_id && form.area_plantada_ha > 0);
+const podeAvancar2 = computed(() => form.field_ids.length > 0 && form.area_plantada_ha > 0);
 const podeAvancar3 = computed(() => !!form.data_plantio);
 const podeAvancar4 = computed(() => true); // custo opcional
 
@@ -94,7 +112,8 @@ function voltar()  { if (passo.value > 1) passo.value--; }
 function confirmar() {
     const snap = {
         cultura: cropSelecionada.value?.nome,
-        talhao: fieldSelecionado.value?.nome,
+        talhoes: fieldsSelecionados.value.map(f => f.nome),
+        totalTalhoes: form.field_ids.length,
         area: form.area_plantada_ha,
         data: form.data_plantio,
         previsao: form.previsao_colheita,
@@ -110,6 +129,7 @@ function confirmar() {
 
 function reiniciar() {
     form.reset();
+    form.field_ids = [];
     form.data_plantio = hojeBR();
     sucesso.value = null;
     passo.value = 1;
@@ -167,11 +187,13 @@ function reiniciar() {
             </div>
         </div>
 
-        <!-- PASSO 2 — Talhão -->
+        <!-- PASSO 2 — Talhão (multi) -->
         <div v-if="passo === 2" class="card max-w-3xl mx-auto">
             <div class="card-body space-y-5">
-                <h2 class="text-2xl font-semibold text-slate-900">Em qual talhão e quanto da área?</h2>
-                <p class="text-base text-slate-600">Talhão = área de cultivo. Pode plantar parte dele.</p>
+                <h2 class="text-2xl font-semibold text-slate-900">Em qual(is) talhão(ões)?</h2>
+                <p class="text-base text-slate-600">
+                    Pode plantar a mesma cultura em vários talhões de uma vez. Selecione os que vão receber.
+                </p>
 
                 <div v-if="fieldsLocal.length === 0" class="rounded-xl border-2 border-amber-200 bg-amber-50 p-5">
                     <div class="font-semibold text-amber-900">Nenhum talhão cadastrado ainda</div>
@@ -180,12 +202,18 @@ function reiniciar() {
                 </div>
 
                 <div v-else class="grid gap-3 sm:grid-cols-2">
-                    <button v-for="f in fieldsLocal" :key="f.id" type="button" @click="form.field_id = f.id"
+                    <button v-for="f in fieldsLocal" :key="f.id" type="button" @click="toggleField(f.id)"
                         :data-field-id="f.id"
                         class="text-left rounded-xl border-2 p-4 transition-all hover:border-macaybas-primary"
-                        :class="form.field_id === f.id ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200 bg-white'">
-                        <div class="font-bold text-slate-900">🗺️ {{ f.nome }}</div>
-                        <div class="text-sm text-slate-600 mt-1">{{ f.area_ha }} ha de área total</div>
+                        :class="form.field_ids.includes(f.id) ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200 bg-white'">
+                        <div class="flex items-start gap-2">
+                            <input type="checkbox" :checked="form.field_ids.includes(f.id)"
+                                   class="w-4 h-4 mt-1 accent-emerald-600 pointer-events-none" tabindex="-1">
+                            <div>
+                                <div class="font-bold text-slate-900">🗺️ {{ f.nome }}</div>
+                                <div class="text-sm text-slate-600 mt-1">{{ f.area_ha }} ha de área total</div>
+                            </div>
+                        </div>
                     </button>
                 </div>
 
@@ -195,14 +223,29 @@ function reiniciar() {
                     </button>
                 </div>
 
-                <div v-if="form.field_id" class="max-w-md">
+                <div v-if="form.field_ids.length === 1" class="max-w-md">
                     <InputLabel value="Área plantada (ha) *" />
                     <input v-model="form.area_plantada_ha" type="number" step="0.01" min="0.01"
-                        :max="fieldSelecionado?.area_ha"
+                        :max="fieldsSelecionados[0]?.area_ha"
                         data-cy="input-area"
                         class="form-input text-lg font-mono py-3" />
                     <p class="text-xs text-slate-500 mt-1">
-                        Talhão tem {{ fieldSelecionado?.area_ha }} ha — pode plantar parte dele.
+                        Talhão tem {{ fieldsSelecionados[0]?.area_ha }} ha — pode plantar parte dele.
+                    </p>
+                </div>
+
+                <div v-else-if="form.field_ids.length > 1"
+                     class="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3 text-sm">
+                    <div class="font-semibold text-emerald-900">
+                        {{ form.field_ids.length }} talhões · {{ areaTotalSelecionada.toFixed(2) }} ha total
+                    </div>
+                    <ul class="text-xs text-slate-700 mt-1 space-y-0.5">
+                        <li v-for="f in fieldsSelecionados" :key="f.id">
+                            • {{ f.nome }}: {{ parseFloat(f.area_ha).toFixed(2) }} ha
+                        </li>
+                    </ul>
+                    <p class="text-xs text-emerald-800 mt-2">
+                        Cada talhão será plantado com sua área completa. O custo previsto será dividido proporcional.
                     </p>
                 </div>
 
@@ -268,12 +311,23 @@ function reiniciar() {
                 <div class="rounded-xl border-2 border-emerald-200 bg-emerald-50 p-4 text-sm">
                     <div class="font-semibold text-emerald-900 mb-2">Conferência:</div>
                     <ul class="text-emerald-900 space-y-1">
-                        <li>🌾 <strong>{{ cropSelecionada?.nome }}</strong> em <strong>{{ fieldSelecionado?.nome }}</strong></li>
-                        <li>📐 <strong>{{ form.area_plantada_ha }} ha</strong> plantados</li>
+                        <li v-if="!isMulti">
+                            🌾 <strong>{{ cropSelecionada?.nome }}</strong> em
+                            <strong>{{ fieldsSelecionados[0]?.nome }}</strong>
+                        </li>
+                        <li v-else>
+                            🌾 <strong>{{ cropSelecionada?.nome }}</strong> em
+                            <strong>{{ form.field_ids.length }} talhões</strong>
+                            ({{ fieldsSelecionados.map(f => f.nome).join(', ') }})
+                        </li>
+                        <li>📐 <strong>{{ form.area_plantada_ha }} ha</strong> plantados<span v-if="isMulti"> (total)</span></li>
                         <li>📅 Plantio em <strong>{{ dataBR(form.data_plantio) }}</strong>
                             <span v-if="form.previsao_colheita"> · colheita prevista <strong>{{ dataBR(form.previsao_colheita) }}</strong></span>
                         </li>
-                        <li v-if="form.custo_previsto > 0">💰 Custo previsto: <strong>{{ brl(form.custo_previsto) }}</strong></li>
+                        <li v-if="form.custo_previsto > 0">
+                            💰 Custo previsto: <strong>{{ brl(form.custo_previsto) }}</strong>
+                            <span v-if="isMulti" class="text-xs text-emerald-700">(será dividido proporcional à área)</span>
+                        </li>
                     </ul>
                 </div>
 
@@ -293,9 +347,14 @@ function reiniciar() {
                 <div class="text-5xl">🌱</div>
                 <h2 class="text-2xl font-semibold text-slate-900">Plantio registrado!</h2>
                 <p class="text-slate-700">
-                    <strong>{{ sucesso.area }} ha de {{ sucesso.cultura }}</strong> em {{ sucesso.talhao }}
+                    <strong>{{ sucesso.area }} ha de {{ sucesso.cultura }}</strong>
+                    <span v-if="sucesso.totalTalhoes === 1">em {{ sucesso.talhoes[0] }}</span>
+                    <span v-else>em <strong>{{ sucesso.totalTalhoes }} talhões</strong></span>
                 </p>
                 <div class="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-left text-sm">
+                    <p v-if="sucesso.totalTalhoes > 1">
+                        ✓ {{ sucesso.totalTalhoes }} plantios criados — um por talhão ({{ sucesso.talhoes.join(', ') }})
+                    </p>
                     <p>✓ Plantio em <strong>{{ dataBR(sucesso.data) }}</strong></p>
                     <p v-if="sucesso.previsao">✓ Colheita prevista em <strong>{{ dataBR(sucesso.previsao) }}</strong></p>
                     <p>✓ Pode aplicar adubo/defensivo neste plantio agora</p>

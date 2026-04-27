@@ -216,7 +216,12 @@ const animaisFiltrados = computed(() => {
 //   - lote_pasto    → todos os animais com location_id = X
 //   - selecao       → seleção múltipla manual
 //   - lote_agregado → N de M animais de um lote AGREGADO (aves/peixes/abelhas)
-const TIPOS_LOTE_OK = ['vacinacao', 'medicacao', 'vermifugacao', 'observacao', 'mortalidade'];
+// A4 — movimentacao e movimentacao_local entram nos modos lote.
+// Cenário real: rotação de pasto move 50 vacas de uma vez para outro lote/pasto.
+const TIPOS_LOTE_OK = [
+    'vacinacao', 'medicacao', 'vermifugacao', 'observacao',
+    'mortalidade', 'movimentacao', 'movimentacao_local',
+];
 const TIPOS_AGREGADO_OK = ['vacinacao', 'medicacao', 'vermifugacao', 'mortalidade', 'observacao'];
 const permiteLote = computed(() => TIPOS_LOTE_OK.includes(tipoAtivo.value));
 const permiteAgregado = computed(() =>
@@ -376,6 +381,12 @@ function confirmarLoteAgregado() {
 function confirmarEmLote() {
     erroServidor.value = null;
 
+    // Mortalidade em lote: causa anexada às observações
+    let observacoesFinal = form.observacoes || null;
+    if (tipoAtivo.value === 'mortalidade' && form.causa) {
+        observacoesFinal = form.causa + (form.observacoes ? ` · ${form.observacoes}` : '');
+    }
+
     const payload = {
         tipo: tipoAtivo.value,
         data: form.data_evento,
@@ -384,7 +395,10 @@ function confirmarEmLote() {
         dose: form.dose || null,
         via_aplicacao: form.via_aplicacao || null,
         responsavel: form.responsavel || null,
-        observacoes: form.observacoes || null,
+        observacoes: observacoesFinal,
+        // A4 — destinos de movimentação (backend valida obrigatórios por tipo)
+        lot_destino_id: form.lot_destino_id || null,
+        location_destino_id: form.location_destino_id || null,
     };
     if (modo.value === 'lote_grupo')  payload.lot_id = loteFiltroId.value;
     if (modo.value === 'lote_pasto')  payload.location_id = localFiltroId.value;
