@@ -432,7 +432,7 @@ class AnimalController extends Controller
     public function storeEvent(Request $request, Animal $animal, AnimalSaleToRevenueService $sale)
     {
         $data = $request->validate([
-            'tipo' => ['required', 'in:pesagem,vacinacao,medicacao,vermifugacao,reproducao,movimentacao,movimentacao_local,observacao,ordenha,tosquia,ferrageamento,castracao,postura_diaria,biometria_amostral,qualidade_agua,alimentacao,mortalidade,venda,compra,secagem'],
+            'tipo' => ['required', 'in:pesagem,vacinacao,medicacao,vermifugacao,reproducao,movimentacao,movimentacao_local,observacao,ordenha,tosquia,ferrageamento,castracao,postura_diaria,biometria_amostral,qualidade_agua,alimentacao,mortalidade,venda,compra,secagem,controle_leiteiro,exame_toque'],
             'data' => ['required', 'date', 'before_or_equal:today'],
             'peso' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
             'vacina' => ['nullable', 'string', 'max:120'],
@@ -447,6 +447,15 @@ class AnimalController extends Controller
             'location_origem_id' => ['nullable', 'exists:animal_locations,id'],
             'location_destino_id' => ['nullable', 'exists:animal_locations,id'],
             'observacoes' => ['nullable', 'string'],
+            // Novos · controle leiteiro
+            'ordenhas' => ['nullable', 'array', 'max:6'],
+            'ordenhas.*.label' => ['nullable', 'string', 'max:20'],
+            'ordenhas.*.litros' => ['nullable', 'numeric', 'min:0', 'max:99.99'],
+            'producao_litros' => ['nullable', 'numeric', 'min:0', 'max:299.99'],
+            // Novos · exame de toque (palpação)
+            'gestacao_status' => ['nullable', 'in:prenhe,vazia,duvida'],
+            'gestacao_dias' => ['nullable', 'integer', 'min:0', 'max:340'],
+            'data_prevista_parto' => ['nullable', 'date'],
         ], [
             'data.before_or_equal' => 'A data do evento não pode ser futura.',
             'tipo.required' => 'Informe o tipo de evento.',

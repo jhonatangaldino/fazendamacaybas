@@ -379,6 +379,24 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
         Route::post('cadastrar-animal', function (Request $request, CadastroAnimalWizardController $c) {
             return $c->store($request, $request->query('modo', 'cadastro'));
         })->middleware('permission:operational.rebanho.animais.create')->name('cadastrar-animal.store');
+
+        // ═════════════════════════════════════════════════════════════════
+        // Onda 3 — Pecuária leiteira (controle leiteiro, secagem, exame de toque)
+        // ═════════════════════════════════════════════════════════════════
+        Route::get('controle-leiteiro', [\App\Http\Controllers\Admin\Wizards\ControleLeiteiroWizardController::class, 'create'])
+            ->middleware('permission:operational.rebanho.eventos.create')->name('controle-leiteiro');
+        Route::post('controle-leiteiro', [\App\Http\Controllers\Admin\Wizards\ControleLeiteiroWizardController::class, 'store'])
+            ->middleware('permission:operational.rebanho.eventos.create')->name('controle-leiteiro.store');
+
+        Route::get('secar-vaca', [\App\Http\Controllers\Admin\Wizards\SecagemWizardController::class, 'create'])
+            ->middleware('permission:operational.rebanho.eventos.create')->name('secar-vaca');
+        Route::post('secar-vaca', [\App\Http\Controllers\Admin\Wizards\SecagemWizardController::class, 'store'])
+            ->middleware('permission:operational.rebanho.eventos.create')->name('secar-vaca.store');
+
+        Route::get('exame-toque', [\App\Http\Controllers\Admin\Wizards\ExameToqueWizardController::class, 'create'])
+            ->middleware('permission:operational.rebanho.eventos.create')->name('exame-toque');
+        Route::post('exame-toque', [\App\Http\Controllers\Admin\Wizards\ExameToqueWizardController::class, 'store'])
+            ->middleware('permission:operational.rebanho.eventos.create')->name('exame-toque.store');
     });
 
     // ------- FAZENDA (seleção e troca) -------

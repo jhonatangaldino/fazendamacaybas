@@ -1,0 +1,175 @@
+<script setup>
+/**
+ * Wizard "Secar vaca" — registra secagem (cessação da lactação) antes do parto.
+ *
+ * Sugere automaticamente vacas com data prevista de parto a ≤75 dias.
+ */
+import { ref, computed } from 'vue';
+import { Head, useForm, Link } from '@inertiajs/vue3';
+import AdminLayout from '@/Layouts/AdminLayout.vue';
+
+const props = defineProps({
+    vacas: Array,
+    data_hoje: String,
+});
+
+const vacaSelecionada = ref(null);
+
+const form = useForm({
+    animal_id: null,
+    data: props.data_hoje,
+    medicamento: '',
+    observacoes: '',
+});
+
+function selecionar(vaca) {
+    vacaSelecionada.value = vaca;
+    form.animal_id = vaca.id;
+}
+
+const sugeridas = computed(() => props.vacas.filter(v => v.sugerida));
+const demais = computed(() => props.vacas.filter(v => ! v.sugerida));
+
+function submit() {
+    form.post(route('admin.fluxos.secar-vaca.store'));
+}
+
+function diasParaPartoLabel(d) {
+    if (d === null || d === undefined) return null;
+    if (d < 0) return 'parto previsto passou';
+    if (d === 0) return 'parto hoje!';
+    return `parto em ${d} dias`;
+}
+</script>
+
+<template>
+    <Head title="Secar vaca" />
+    <AdminLayout>
+        <div class="max-w-2xl mx-auto pb-32">
+            <div class="mb-6">
+                <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">💧 Secar vaca</h1>
+                <p class="mt-1 text-sm text-slate-600">
+                    A vaca deve ser secada <strong>2 meses antes do parto</strong> ou se estiver dando pouco leite.
+                </p>
+            </div>
+
+            <!-- Sem vacas -->
+            <div v-if="vacas.length === 0" class="rounded-xl bg-amber-50 ring-1 ring-amber-200 p-6 text-center">
+                <p class="text-amber-900">Nenhuma vaca em lactação encontrada.</p>
+            </div>
+
+            <!-- Passo 1: Escolha a vaca -->
+            <div v-if="! vacaSelecionada">
+                <div v-if="sugeridas.length > 0" class="mb-4">
+                    <h2 class="text-sm font-bold text-emerald-800 mb-2 uppercase tracking-wider">⭐ Sugeridas (parto próximo)</h2>
+                    <div class="space-y-2">
+                        <button
+                            v-for="vaca in sugeridas"
+                            :key="vaca.id"
+                            type="button"
+                            @click="selecionar(vaca)"
+                            class="w-full text-left rounded-xl bg-white ring-2 ring-emerald-300 p-4 hover:bg-emerald-50 transition"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-slate-900">
+                                        {{ vaca.identificacao }}<span v-if="vaca.nome" class="font-normal text-slate-600"> — {{ vaca.nome }}</span>
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-1">
+                                        <span v-if="vaca.lote">📋 {{ vaca.lote }}</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-block px-2 py-1 rounded-full bg-emerald-200 text-emerald-900 text-xs font-semibold">
+                                        🤰 {{ diasParaPartoLabel(vaca.dias_para_parto) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 v-if="sugeridas.length > 0" class="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Demais vacas em lactação</h2>
+                    <div class="space-y-2">
+                        <button
+                            v-for="vaca in demais"
+                            :key="vaca.id"
+                            type="button"
+                            @click="selecionar(vaca)"
+                            class="w-full text-left rounded-xl bg-white ring-1 ring-slate-200 p-4 hover:ring-macaybas-primary transition"
+                        >
+                            <div class="font-bold text-slate-900">
+                                {{ vaca.identificacao }}<span v-if="vaca.nome" class="font-normal text-slate-600"> — {{ vaca.nome }}</span>
+                            </div>
+                            <div class="text-xs text-slate-500 mt-1">
+                                <span v-if="vaca.lote">📋 {{ vaca.lote }}</span>
+                                <span v-if="vaca.ultima_secagem" class="ml-2">· última secagem: {{ vaca.ultima_secagem }}</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 2: Detalhes da secagem -->
+            <div v-else class="rounded-xl bg-white ring-1 ring-slate-200 p-5 space-y-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Vaca selecionada</div>
+                        <div class="text-lg font-bold text-slate-900 mt-1">
+                            {{ vacaSelecionada.identificacao }}<span v-if="vacaSelecionada.nome" class="font-normal text-slate-600"> — {{ vacaSelecionada.nome }}</span>
+                        </div>
+                    </div>
+                    <button type="button" @click="vacaSelecionada = null; form.animal_id = null" class="text-sm text-macaybas-primary hover:underline">Trocar</button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Data da secagem</label>
+                    <input
+                        v-model="form.data"
+                        type="date"
+                        class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Medicamento aplicado <span class="text-slate-400 normal-case">(opcional)</span></label>
+                    <input
+                        v-model="form.medicamento"
+                        type="text"
+                        placeholder="Ex.: Mamivete LA, Cefalonium, etc"
+                        class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Observações <span class="text-slate-400 normal-case">(opcional)</span></label>
+                    <textarea
+                        v-model="form.observacoes"
+                        rows="3"
+                        placeholder="Tratamento efetuado, dose, etc"
+                        class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
+                    ></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer fixo -->
+        <div v-if="vacaSelecionada" class="fixed bottom-0 left-0 right-0 lg:left-64 bg-white ring-1 ring-slate-200 p-4 z-20">
+            <div class="max-w-2xl mx-auto flex items-center gap-3">
+                <Link :href="route('admin.inicio')" class="inline-flex items-center min-h-12 px-4 py-3 rounded-lg bg-slate-100 text-slate-700 font-medium hover:bg-slate-200">
+                    ← Voltar
+                </Link>
+                <button
+                    type="button"
+                    @click="submit"
+                    :disabled="form.processing"
+                    class="flex-1 inline-flex items-center justify-center min-h-12 px-6 py-3 rounded-lg bg-macaybas-primary text-white font-semibold hover:bg-macaybas-primary-700 disabled:opacity-50 text-base"
+                >
+                    <span v-if="form.processing">Salvando…</span>
+                    <span v-else>Confirmar secagem</span>
+                </button>
+            </div>
+        </div>
+    </AdminLayout>
+</template>

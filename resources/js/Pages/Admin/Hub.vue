@@ -113,6 +113,10 @@ const grupos = [
             { id: 'mover-lote',           tipo: 'wizard', nome: 'Mover animal de lote',       desc: 'Muda o grupo lógico — registra origem e destino',      emoji: '🐄', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'movimentacao' }, perm: 'operational.rebanho.eventos.create' },
             { id: 'mover-pasto',          tipo: 'wizard', nome: 'Mover animal de pasto',      desc: 'Atualiza o local físico (pasto/curral/tanque)',        emoji: '📍', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'movimentacao_local' }, perm: 'operational.rebanho.eventos.create' },
             { id: 'observar-animal',      tipo: 'wizard', nome: 'Registrar observação',       desc: 'Anota mancando, brigando, com bicheira, etc.',         emoji: '📝', rota: 'admin.fluxos.evento-rebanho',    query: { tipo: 'observacao' },  perm: 'operational.rebanho.eventos.create' },
+            // Onda 3 — Pecuária leiteira
+            { id: 'controle-leiteiro',    tipo: 'wizard', nome: 'Controle do leite',          desc: 'Quantos litros cada vaca produziu — 1× por mês',       emoji: '🥛', rota: 'admin.fluxos.controle-leiteiro', perm: 'operational.rebanho.eventos.create' },
+            { id: 'secar-vaca',           tipo: 'wizard', nome: 'Secar vaca',                 desc: 'Cessa lactação 60 dias antes do parto previsto',       emoji: '💧', rota: 'admin.fluxos.secar-vaca',        perm: 'operational.rebanho.eventos.create' },
+            { id: 'exame-toque',          tipo: 'wizard', nome: 'Exame de toque',             desc: 'Palpação · prenhe/vazia + cria tarefas automáticas',   emoji: '🩺', rota: 'admin.fluxos.exame-toque',       perm: 'operational.rebanho.eventos.create' },
         ],
     },
     {

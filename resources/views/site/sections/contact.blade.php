@@ -5,7 +5,11 @@
     // $data controla apenas título/subtítulo do bloco.
     $mapa = $map ?? null;
     $nomeLocal = $mapa['nome_local'] ?? null;
-    $enderecoLegenda = $nomeLocal ?: \App\Models\Setting::getValue('contato.endereco', '');
+    // Mostra ENDEREÇO COMPLETO se preenchido — fallback para nome_local ou setting de contato.
+    // O endereço vem do form de tenant (Master → Clientes → Editar) e é replicado em
+    // settings.landing.map.endereco. Sempre prefere o mais detalhado.
+    $enderecoCompleto = trim((string) \App\Models\Setting::getValue('landing.map.endereco', ''));
+    $enderecoLegenda = $enderecoCompleto ?: ($nomeLocal ?: \App\Models\Setting::getValue('contato.endereco', ''));
     $email = \App\Models\Setting::getValue('contato.email');
     $telefone = \App\Models\Setting::getValue('contato.telefone');
 
