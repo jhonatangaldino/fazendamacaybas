@@ -298,7 +298,7 @@ class TenantController extends Controller
     public function users(Tenant $tenant): Response
     {
         $users = User::where('tenant_id', $tenant->id)
-            ->with('roles:id,name')
+            ->with('roles:id,name,short_name,description')
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->get()
@@ -309,7 +309,12 @@ class TenantController extends Controller
                 'is_active' => (bool) $u->is_active,
                 'must_change_password' => (bool) $u->must_change_password,
                 'last_login_at' => $u->last_login_at?->format('d/m/Y H:i'),
-                'roles' => $u->roles->pluck('name')->all(),
+                // Cada role agora vem com nome técnico + short_name amigável + descrição
+                'roles' => $u->roles->map(fn ($r) => [
+                    'name' => $r->name,
+                    'short_name' => $r->short_name ?: ucfirst(str_replace('_', ' ', $r->name)),
+                    'description' => $r->description,
+                ])->all(),
                 // Senha temp visível enquanto user não trocou
                 'temp_password' => $u->temporaryPasswordIsVisible() ? $u->temp_password_plaintext : null,
                 'temp_password_expired' => $u->temporaryPasswordIsExpired(),
@@ -318,8 +323,13 @@ class TenantController extends Controller
 
         // Papéis disponíveis para atribuir — exclui admin_master (só master real)
         $rolesDisponiveis = \Spatie\Permission\Models\Role::where('name', '!=', 'admin_master')
-            ->orderBy('name')
-            ->pluck('name');
+            ->orderBy('short_name')
+            ->get(['name', 'short_name', 'description'])
+            ->map(fn ($r) => [
+                'name' => $r->name,
+                'short_name' => $r->short_name ?: ucfirst(str_replace('_', ' ', $r->name)),
+                'description' => $r->description,
+            ]);
 
         return Inertia::render('Master/Tenants/Users', [
             'tenant' => [

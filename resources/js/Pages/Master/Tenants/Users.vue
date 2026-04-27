@@ -208,7 +208,10 @@ function doToggle() {
                 <div v-if="!usersLocal.length" class="text-center text-slate-500 py-10">
                     Este cliente ainda não tem usuários cadastrados. Clique em "+ Novo usuário" para criar o primeiro.
                 </div>
-                <table v-else class="table-base">
+
+                <!-- Tabela DESKTOP (xl+) — scroll horizontal se preciso -->
+                <div v-else class="hidden xl:block overflow-x-auto">
+                <table class="table-base">
                     <thead>
                         <tr>
                             <th>Nome</th>
@@ -230,9 +233,10 @@ function doToggle() {
                             <td class="font-medium">{{ u.name }}</td>
                             <td class="font-mono text-xs">{{ u.email }}</td>
                             <td>
-                                <span v-for="r in u.roles" :key="r"
-                                      class="inline-block text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 mr-1">
-                                    {{ r }}
+                                <span v-for="r in u.roles" :key="r.name"
+                                      class="inline-block text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 mr-1"
+                                      :title="r.description || r.name">
+                                    {{ r.short_name }}
                                 </span>
                                 <span v-if="!u.roles.length" class="text-xs text-slate-400">sem papel</span>
                             </td>
@@ -254,13 +258,13 @@ function doToggle() {
                                 </span>
                                 <span v-else class="text-xs text-slate-400">—</span>
                             </td>
-                            <td class="text-xs text-slate-500">{{ u.last_login_at ?? '—' }}</td>
-                            <td class="text-right">
+                            <td class="text-xs text-slate-500 whitespace-nowrap">{{ u.last_login_at ?? '—' }}</td>
+                            <td class="text-right whitespace-nowrap">
                                 <button
                                     @click="confirmReset = u"
                                     class="text-xs text-amber-700 hover:underline mr-3"
                                     title="Gerar nova senha temporária"
-                                >🔑 Resetar senha</button>
+                                >🔑 Resetar</button>
                                 <button
                                     @click="confirmToggle = u"
                                     class="text-xs hover:underline"
@@ -271,6 +275,64 @@ function doToggle() {
                         </tr>
                     </tbody>
                 </table>
+                </div>
+
+                <!-- Cards MOBILE/iPad (< xl) — sem tabela cortando -->
+                <div v-if="usersLocal.length" class="xl:hidden space-y-3">
+                    <div v-if="!usersFiltrados.length && searchTerm" class="text-center py-8 text-slate-500 text-sm">
+                        Nenhum usuário encontrado para "{{ searchTerm }}"
+                    </div>
+                    <div v-for="u in usersFiltrados" :key="u.id"
+                         class="rounded-xl ring-1 ring-slate-200 p-3.5"
+                         :class="!u.is_active ? 'opacity-60 bg-slate-50' : 'bg-white'">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="font-semibold text-slate-900 truncate">{{ u.name }}</div>
+                                <div class="text-xs font-mono text-slate-500 truncate">{{ u.email }}</div>
+                            </div>
+                            <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                                <span v-if="u.is_active" class="badge-green text-[10px]">Ativo</span>
+                                <span v-else class="badge-slate text-[10px]">Inativo</span>
+                                <span v-if="u.must_change_password" class="badge-yellow text-[10px]" title="Forçará troca no próximo login">Senha temp</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-1.5 mb-2">
+                            <span v-for="r in u.roles" :key="r.name"
+                                  class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700"
+                                  :title="r.description || r.name">
+                                {{ r.short_name }}
+                            </span>
+                            <span v-if="!u.roles.length" class="text-xs text-slate-400">sem papel</span>
+                        </div>
+
+                        <div v-if="u.temp_password && !u.temp_password_expired" class="mb-2">
+                            <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Senha temporária</div>
+                            <code class="inline-block px-2 py-1 rounded bg-amber-50 ring-1 ring-amber-200 text-amber-900 text-sm font-mono font-bold tracking-wider">{{ u.temp_password }}</code>
+                        </div>
+                        <div v-else-if="u.temp_password_expired" class="mb-2 text-xs text-rose-700">
+                            Senha temp expirada
+                        </div>
+
+                        <div class="text-xs text-slate-500 mb-3">
+                            Último login: {{ u.last_login_at ?? '—' }}
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <button @click="confirmReset = u"
+                                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-amber-100 text-amber-900 ring-1 ring-amber-200 hover:bg-amber-200">
+                                🔑 Reenviar credenciais
+                            </button>
+                            <button @click="confirmToggle = u"
+                                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium ring-1"
+                                    :class="u.is_active
+                                        ? 'bg-red-50 text-red-700 ring-red-200 hover:bg-red-100'
+                                        : 'bg-emerald-50 text-emerald-700 ring-emerald-200 hover:bg-emerald-100'">
+                                {{ u.is_active ? '⛔ Desativar' : '✓ Reativar' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -341,7 +403,9 @@ function doToggle() {
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Papel *</label>
                             <select v-model="novoUser.form.value.role" class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 text-sm">
-                                <option v-for="r in rolesDisponiveis" :key="r" :value="r">{{ r }}</option>
+                                <option v-for="r in rolesDisponiveis" :key="r.name || r" :value="r.name || r">
+                                    {{ r.short_name || r }}{{ r.description ? ' — ' + r.description : '' }}
+                                </option>
                             </select>
                         </div>
                     </div>
