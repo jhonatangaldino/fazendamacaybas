@@ -405,11 +405,16 @@ class AnimalController extends Controller
                 'peso' => (float) $e->peso,
             ]);
 
+        // Estado reprodutivo / produtivo derivado dos eventos — pra renderizar
+        // badges automáticos na ficha (prenhe, seca, última produção).
+        $statusReprodutivo = $this->calcularStatusReprodutivo($events);
+
         return Inertia::render('Admin/Livestock/Animals/Show', [
             'animal' => [
                 ...$animal->load(['species:id,nome', 'breed:id,nome', 'lot:id,nome', 'location:id,nome,tipo', 'farm:id,nome', 'fornecedor:id,nome'])->toArray(),
                 'photo_url' => $animal->photoUrl(),
                 'idade_em_meses' => $animal->data_nascimento?->diffInMonths(now()),
+                'status_reprodutivo' => $statusReprodutivo,
             ],
             'events' => $events,
             'pesagens' => $pesagens,
@@ -417,6 +422,90 @@ class AnimalController extends Controller
             'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome']),
             'locations' => AnimalLocation::ativos()->orderBy('tipo')->orderBy('nome')->get(['id', 'nome', 'tipo']),
         ]);
+    }
+
+    /**
+     * Resume o estado reprodutivo/produtivo do animal a partir dos eventos.
+     *
+     * Retorno:
+     *   {
+     *     prenhe: { status, dpp, dias_para_parto, data_exame } | null
+     *     secagem: { data, dias_atras } | null
+     *     producao_recente: { data, litros } | null
+     *     ultimo_toque: { data, status } | null
+     *   }
+     */
+    private function calcularStatusReprodutivo($events): array
+    {
+        $resultado = [
+            'prenhe' => null,
+            'secagem' => null,
+            'producao_recente' => null,
+            'ultimo_toque' => null,
+        ];
+
+        // Último exame de toque (qualquer status)
+        $ultimoToque = $events->where('tipo', 'exame_toque')->sortByDesc('data')->first();
+        if ($ultimoToque) {
+            $resultado['ultimo_toque'] = [
+                'data' => $ultimoToque->data?->toDateString(),
+                'data_br' => $ultimoToque->data?->format('d/m/Y'),
+                'status' => $ultimoToque->gestacao_status,
+            ];
+
+            // Se prenhe, verificar se NÃO houve parto/mortalidade depois
+            if ($ultimoToque->gestacao_status === 'prenhe' && $ultimoToque->data_prevista_parto) {
+                $partoDepois = $events
+                    ->where('tipo', 'reproducao')
+                    ->where('data', '>', $ultimoToque->data)
+                    ->where(fn ($e) => str_contains($e->observacoes ?? '', 'Parto'))
+                    ->first();
+                $morteDepois = $events
+                    ->where('tipo', 'mortalidade')
+                    ->where('data', '>', $ultimoToque->data)
+                    ->first();
+
+                if (! $partoDepois && ! $morteDepois) {
+                    $dpp = \Carbon\Carbon::parse($ultimoToque->data_prevista_parto);
+                    $resultado['prenhe'] = [
+                        'data_exame' => $ultimoToque->data?->toDateString(),
+                        'data_exame_br' => $ultimoToque->data?->format('d/m/Y'),
+                        'dpp' => $dpp->toDateString(),
+                        'dpp_br' => $dpp->format('d/m/Y'),
+                        'dias_para_parto' => (int) now()->startOfDay()->diffInDays($dpp, false),
+                        'gestacao_dias_no_exame' => $ultimoToque->gestacao_dias,
+                    ];
+                }
+            }
+        }
+
+        // Última secagem (verifica se NÃO houve novo controle leiteiro depois)
+        $ultimaSecagem = $events->where('tipo', 'secagem')->sortByDesc('data')->first();
+        if ($ultimaSecagem) {
+            $producaoDepois = $events
+                ->where('tipo', 'controle_leiteiro')
+                ->where('data', '>', $ultimaSecagem->data)
+                ->first();
+            if (! $producaoDepois) {
+                $resultado['secagem'] = [
+                    'data' => $ultimaSecagem->data?->toDateString(),
+                    'data_br' => $ultimaSecagem->data?->format('d/m/Y'),
+                    'dias_atras' => (int) $ultimaSecagem->data?->diffInDays(now()),
+                ];
+            }
+        }
+
+        // Última produção leiteira (último controle_leiteiro)
+        $ultimaProducao = $events->where('tipo', 'controle_leiteiro')->sortByDesc('data')->first();
+        if ($ultimaProducao) {
+            $resultado['producao_recente'] = [
+                'data' => $ultimaProducao->data?->toDateString(),
+                'data_br' => $ultimaProducao->data?->format('d/m/Y'),
+                'litros' => (float) ($ultimaProducao->producao_litros ?? 0),
+            ];
+        }
+
+        return $resultado;
     }
 
     /**

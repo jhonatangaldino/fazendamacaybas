@@ -31,6 +31,10 @@ class ControleLeiteiroWizardController extends Controller
 {
     public function create(): Response
     {
+        // Mostra TODAS as vacas (fêmeas bovinas ativas) — sem filtro de idade.
+        // Motivo: idade mínima virou um filtro frustrante para fazendas que não
+        // têm data_nascimento de animais comprados adultos. Mostra todas; a
+        // realidade da produção (litros > 0) já filtra naturalmente.
         $vacas = Animal::ativos()
             ->where('sexo', 'F')
             ->whereHas('species', fn ($q) => $q->where('slug', 'bovino')->orWhere('slug', 'bovino-leite'))
@@ -38,10 +42,6 @@ class ControleLeiteiroWizardController extends Controller
             ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'breed_id', 'lot_id', 'data_nascimento')
             ->orderBy('identificacao')
             ->get()
-            ->filter(function ($a) {
-                // Idade mínima 24 meses (vaca adulta em lactação)
-                return $a->data_nascimento && $a->data_nascimento->diffInMonths(now()) >= 24;
-            })
             ->map(function ($a) {
                 // Última produção registrada (pra mostrar referência "mês passado")
                 $ultimaProducao = DB::table('animal_events')

@@ -23,6 +23,7 @@ class SecagemWizardController extends Controller
 {
     public function create(): Response
     {
+        // Mostra TODAS as vacas (fêmeas bovinas ativas) — sem filtro de idade.
         $vacas = Animal::ativos()
             ->where('sexo', 'F')
             ->whereHas('species', fn ($q) => $q->where('slug', 'bovino')->orWhere('slug', 'bovino-leite'))
@@ -30,7 +31,6 @@ class SecagemWizardController extends Controller
             ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'lot_id', 'data_nascimento')
             ->orderBy('identificacao')
             ->get()
-            ->filter(fn ($a) => $a->data_nascimento && $a->data_nascimento->diffInMonths(now()) >= 24)
             ->map(function ($a) {
                 // Última secagem
                 $ultimaSecagem = DB::table('animal_events')

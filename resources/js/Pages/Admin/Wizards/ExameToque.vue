@@ -181,7 +181,10 @@ const statusLabel = {
                                     {{ f.identificacao }}<span v-if="f.nome" class="font-normal text-slate-600"> — {{ f.nome }}</span>
                                 </div>
                                 <div class="text-xs text-slate-500 mt-0.5">
-                                    {{ f.idade_meses }} meses
+                                    <span v-if="f.especie">{{ f.especie }}</span>
+                                    <span v-if="f.idade_meses !== null" class="ml-1">· {{ f.idade_meses }} meses</span>
+                                    <span v-else-if="f.idade_desconhecida" class="ml-1 text-amber-700">· 📅 idade não cadastrada</span>
+                                    <span v-if="f.too_young" class="ml-1 text-amber-700">⚠ abaixo de {{ f.idade_min_meses }}m</span>
                                     <span v-if="f.lote" class="ml-2">· 📋 {{ f.lote }}</span>
                                     <span v-if="f.ultimo_toque?.gestacao_status" class="ml-2">
                                         · último toque: <strong>{{ statusLabel[f.ultimo_toque.gestacao_status]?.label || f.ultimo_toque.gestacao_status }}</strong>

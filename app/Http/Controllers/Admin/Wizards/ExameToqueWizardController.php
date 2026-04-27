@@ -52,17 +52,16 @@ class ExameToqueWizardController extends Controller
 
     public function create(): Response
     {
+        // Mostra TODAS as fêmeas ativas — filtro por idade vira soft warning
+        // (animal sem data_nascimento ou abaixo da idade mínima fica visível
+        // mas marcado com ⚠). Motivo: vaca comprada adulta sem data, novilha
+        // próxima da cobertura, situações reais que não podem ser escondidas.
         $femeas = Animal::ativos()
             ->where('sexo', 'F')
             ->with(['species:id,nome,slug', 'lot:id,nome'])
             ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'lot_id', 'data_nascimento')
             ->orderBy('identificacao')
             ->get()
-            ->filter(function ($a) {
-                if (! $a->data_nascimento || ! $a->species) return false;
-                $minMeses = self::IDADE_MIN_REPRODUTIVA_MESES[$a->species->slug] ?? 18;
-                return $a->data_nascimento->diffInMonths(now()) >= $minMeses;
-            })
             ->map(function ($a) {
                 // Último exame de toque
                 $ultimoToque = DB::table('animal_events')
@@ -71,14 +70,22 @@ class ExameToqueWizardController extends Controller
                     ->orderByDesc('data')
                     ->first(['data', 'gestacao_status', 'data_prevista_parto']);
 
+                $idadeMeses = $a->data_nascimento ? (int) $a->data_nascimento->diffInMonths(now()) : null;
+                $minMeses = self::IDADE_MIN_REPRODUTIVA_MESES[$a->species?->slug ?? 'bovino'] ?? 18;
+                $tooYoung = $idadeMeses !== null && $idadeMeses < $minMeses;
+
                 return [
                     'id' => $a->id,
                     'identificacao' => $a->identificacao,
                     'nome' => $a->nome,
+                    'especie' => $a->species?->nome,
                     'especie_slug' => $a->species?->slug,
                     'gestacao_dias_padrao' => self::GESTACAO_DIAS[$a->species?->slug ?? 'bovino'] ?? 280,
                     'lote' => $a->lot?->nome,
-                    'idade_meses' => (int) $a->data_nascimento->diffInMonths(now()),
+                    'idade_meses' => $idadeMeses,
+                    'idade_desconhecida' => $idadeMeses === null,
+                    'too_young' => $tooYoung,
+                    'idade_min_meses' => $minMeses,
                     'ultimo_toque' => $ultimoToque,
                 ];
             })

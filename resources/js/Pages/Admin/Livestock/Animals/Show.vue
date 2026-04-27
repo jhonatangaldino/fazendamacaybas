@@ -428,6 +428,94 @@ const eventoLabel = (tipo) => ({
             </div>
         </div>
 
+        <!-- ═══ BADGES REPRODUTIVO/PRODUTIVO · prenhe, seca, produção ═══ -->
+        <div v-if="animal.status_reprodutivo && (animal.status_reprodutivo.prenhe || animal.status_reprodutivo.secagem || animal.status_reprodutivo.producao_recente)"
+             class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+            <!-- Prenhez -->
+            <div v-if="animal.status_reprodutivo.prenhe"
+                 class="rounded-xl ring-2 ring-emerald-300 bg-gradient-to-br from-emerald-50 to-emerald-100 p-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🤰</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Prenhe</div>
+                        <div class="text-sm font-semibold text-emerald-900 mt-0.5">
+                            Parto previsto: <strong>{{ animal.status_reprodutivo.prenhe.dpp_br }}</strong>
+                        </div>
+                        <div class="text-xs text-emerald-700 mt-1">
+                            <template v-if="animal.status_reprodutivo.prenhe.dias_para_parto > 0">
+                                em <strong>{{ animal.status_reprodutivo.prenhe.dias_para_parto }} dias</strong>
+                            </template>
+                            <template v-else-if="animal.status_reprodutivo.prenhe.dias_para_parto === 0">
+                                <strong>HOJE!</strong>
+                            </template>
+                            <template v-else>
+                                parto previsto há {{ Math.abs(animal.status_reprodutivo.prenhe.dias_para_parto) }} dias — atrasado
+                            </template>
+                            · exame em {{ animal.status_reprodutivo.prenhe.data_exame_br }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vazia ou em dúvida -->
+            <div v-else-if="animal.status_reprodutivo.ultimo_toque?.status === 'vazia'"
+                 class="rounded-xl ring-1 ring-slate-200 bg-slate-50 p-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">⚪</span>
+                    <div class="flex-1">
+                        <div class="text-xs font-bold uppercase tracking-wider text-slate-700">Vazia</div>
+                        <div class="text-sm text-slate-700 mt-0.5">
+                            Último toque: {{ animal.status_reprodutivo.ultimo_toque.data_br }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-else-if="animal.status_reprodutivo.ultimo_toque?.status === 'duvida'"
+                 class="rounded-xl ring-2 ring-amber-300 bg-amber-50 p-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">⚠️</span>
+                    <div class="flex-1">
+                        <div class="text-xs font-bold uppercase tracking-wider text-amber-800">Em dúvida</div>
+                        <div class="text-sm text-amber-900 mt-0.5">Refazer exame</div>
+                        <div class="text-xs text-amber-700 mt-1">{{ animal.status_reprodutivo.ultimo_toque.data_br }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secagem ativa -->
+            <div v-if="animal.status_reprodutivo.secagem"
+                 class="rounded-xl ring-2 ring-sky-300 bg-gradient-to-br from-sky-50 to-sky-100 p-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">💧</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold uppercase tracking-wider text-sky-800">Vaca seca</div>
+                        <div class="text-sm font-semibold text-sky-900 mt-0.5">
+                            Secagem em <strong>{{ animal.status_reprodutivo.secagem.data_br }}</strong>
+                        </div>
+                        <div class="text-xs text-sky-700 mt-1">
+                            há {{ animal.status_reprodutivo.secagem.dias_atras }} dia(s)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Produção recente (só se NÃO está seca) -->
+            <div v-if="animal.status_reprodutivo.producao_recente && !animal.status_reprodutivo.secagem"
+                 class="rounded-xl ring-2 ring-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🥛</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold uppercase tracking-wider text-amber-800">Última produção</div>
+                        <div class="text-sm font-semibold text-amber-900 mt-0.5">
+                            <strong>{{ animal.status_reprodutivo.producao_recente.litros.toFixed(1) }} L</strong>
+                        </div>
+                        <div class="text-xs text-amber-700 mt-1">em {{ animal.status_reprodutivo.producao_recente.data_br }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ═══ VEREDITO · interpretação em linguagem natural ═══ -->
         <div v-if="interpretacao"
              class="mb-4 rounded-xl border-2 px-5 py-4 flex items-start gap-3"
