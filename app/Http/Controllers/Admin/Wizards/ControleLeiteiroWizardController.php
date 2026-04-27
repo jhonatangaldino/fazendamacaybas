@@ -29,8 +29,9 @@ use Inertia\Response;
  */
 class ControleLeiteiroWizardController extends Controller
 {
-    public function create(): Response
+    public function create(\Illuminate\Http\Request $request): Response
     {
+        $preselectId = (int) $request->query('animal_id');
         // Mostra TODAS as vacas (fêmeas bovinas ativas) — sem filtro de idade.
         // Motivo: idade mínima virou um filtro frustrante para fazendas que não
         // têm data_nascimento de animais comprados adultos. Mostra todas; a
@@ -63,6 +64,7 @@ class ControleLeiteiroWizardController extends Controller
         return Inertia::render('Admin/Wizards/ControleLeiteiro', [
             'vacas' => $vacas,
             'data_hoje' => now()->toDateString(),
+            'preselectId' => $preselectId ?: null,
         ]);
     }
 
@@ -113,8 +115,12 @@ class ControleLeiteiroWizardController extends Controller
             }
         });
 
-        return redirect()
-            ->route('admin.inicio')
-            ->with('success', "Controle leiteiro registrado para {$count} vaca(s).");
+        // return_to: caminho relativo passado pelo Animal show pra voltar pra ficha
+        $returnTo = $request->input('return_to');
+        $url = ($returnTo && str_starts_with($returnTo, '/admin/'))
+            ? $returnTo
+            : route('admin.inicio');
+
+        return redirect($url)->with('success', "Leite registrado para {$count} vaca(s).");
     }
 }

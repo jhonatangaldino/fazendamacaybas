@@ -409,12 +409,16 @@ class AnimalController extends Controller
         // badges automáticos na ficha (prenhe, seca, última produção).
         $statusReprodutivo = $this->calcularStatusReprodutivo($events);
 
+        $animal->load(['species:id,nome,slug,allowed_events', 'breed:id,nome', 'lot:id,nome', 'location:id,nome,tipo', 'farm:id,nome', 'fornecedor:id,nome']);
+        $acoesRapidas = $this->montarAcoesRapidas($animal);
+
         return Inertia::render('Admin/Livestock/Animals/Show', [
             'animal' => [
-                ...$animal->load(['species:id,nome', 'breed:id,nome', 'lot:id,nome', 'location:id,nome,tipo', 'farm:id,nome', 'fornecedor:id,nome'])->toArray(),
+                ...$animal->toArray(),
                 'photo_url' => $animal->photoUrl(),
                 'idade_em_meses' => $animal->data_nascimento?->diffInMonths(now()),
                 'status_reprodutivo' => $statusReprodutivo,
+                'acoes_rapidas' => $acoesRapidas,
             ],
             'events' => $events,
             'pesagens' => $pesagens,
@@ -422,6 +426,104 @@ class AnimalController extends Controller
             'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome']),
             'locations' => AnimalLocation::ativos()->orderBy('tipo')->orderBy('nome')->get(['id', 'nome', 'tipo']),
         ]);
+    }
+
+    /**
+     * Catálogo de ações rápidas disponíveis no detalhe do animal.
+     *
+     * Cada entrada tem:
+     *   - tipo: chave do tipo de evento (deve estar em species.allowed_events)
+     *   - emoji, label, desc: visual
+     *   - wizard: rota Laravel (Inertia link). Se null → abre modal in-page de evento.
+     *   - sexo: 'F' | 'M' | null (filtra por sexo do animal)
+     *   - idade_min_meses: int | null (filtra por idade)
+     */
+    /**
+     * REGRA SIMPLES: tudo que faz sentido pra UM animal abre o MODAL in-page
+     * (sem sair da tela). Só vai pra wizard externo quando o fluxo é
+     * intrinsecamente multi-animal (venda em massa) ou tem ações automáticas
+     * importantes (parto cria filhotes).
+     *
+     * `wizard => null` → ação rápida abre modal in-page com tipo pré-selecionado
+     * `wizard => '...'` → vai pra wizard externo (com ?animal_id e ?return_to)
+     */
+    private const ACOES_CATALOGO = [
+        // ── Tudo que cabe no modal in-page (single animal, sem complexidade)
+        'pesagem'             => ['emoji' => '⚖️', 'label' => 'Pesar', 'desc' => 'Registrar peso atual', 'wizard' => null],
+        'vacinacao'           => ['emoji' => '💉', 'label' => 'Vacinar', 'desc' => 'Vacina aplicada', 'wizard' => null],
+        'medicacao'           => ['emoji' => '💊', 'label' => 'Medicar', 'desc' => 'Medicamento aplicado', 'wizard' => null],
+        'vermifugacao'        => ['emoji' => '🧴', 'label' => 'Vermifugar', 'desc' => 'Vermífugo aplicado', 'wizard' => null],
+        'reproducao'          => ['emoji' => '💞', 'label' => 'Cobertura', 'desc' => 'Cruzamento com macho ou inseminação artificial', 'wizard' => null],
+        // ordenha removido — é o MESMO conceito de controle_leiteiro (registrar
+        // litros produzidos numa ordenha). Usuário não precisa decidir entre 2 cards.
+        'secagem'             => ['emoji' => '💧', 'label' => 'Secar', 'desc' => 'Cessar lactação antes do parto', 'wizard' => null, 'sexo' => 'F'],
+        'movimentacao'        => ['emoji' => '🐄', 'label' => 'Mudar de lote', 'desc' => 'Transferir entre grupos', 'wizard' => null],
+        'movimentacao_local'  => ['emoji' => '📍', 'label' => 'Mudar de pasto', 'desc' => 'Transferir entre locais', 'wizard' => null],
+        'observacao'          => ['emoji' => '📝', 'label' => 'Observação', 'desc' => 'Mancando, brigando, com bicheira…', 'wizard' => null],
+        'ferrageamento'       => ['emoji' => '🐎', 'label' => 'Ferrageamento', 'desc' => 'Troca de ferradura', 'wizard' => null],
+        'tosquia'             => ['emoji' => '✂️', 'label' => 'Tosquia', 'desc' => 'Corte da lã', 'wizard' => null],
+        'castracao'           => ['emoji' => '🔪', 'label' => 'Castração', 'desc' => 'Procedimento cirúrgico', 'wizard' => null],
+        'biometria_amostral'  => ['emoji' => '🐟', 'label' => 'Biometria', 'desc' => 'Pesagem amostral', 'wizard' => null],
+        'qualidade_agua'      => ['emoji' => '💧', 'label' => 'Qualidade da água', 'desc' => 'pH, O₂, temperatura', 'wizard' => null],
+        'alimentacao'         => ['emoji' => '🌾', 'label' => 'Alimentação', 'desc' => 'Ração fornecida', 'wizard' => null],
+        'postura_diaria'      => ['emoji' => '🥚', 'label' => 'Postura', 'desc' => 'Ovos coletados', 'wizard' => null],
+        'mortalidade'         => ['emoji' => '⚰️', 'label' => 'Mortalidade', 'desc' => 'Registrar morte', 'wizard' => null],
+
+        // ── Wizards externos (fluxo complexo ou multi-vaca)
+        'controle_leiteiro' => [
+            'emoji' => '🥛', 'label' => 'Registrar leite', 'desc' => 'Litros produzidos por ordenha (1ª, 2ª…)',
+            'wizard' => 'admin.fluxos.controle-leiteiro', 'sexo' => 'F',
+        ],
+        'exame_toque' => [
+            'emoji' => '🩺', 'label' => 'Exame de toque', 'desc' => 'Palpação · DPP automática',
+            'wizard' => 'admin.fluxos.exame-toque', 'sexo' => 'F',
+        ],
+        'venda' => [
+            'emoji' => '💰', 'label' => 'Vender', 'desc' => 'Saída + receita financeira',
+            'wizard' => 'admin.fluxos.venda-animal',
+        ],
+    ];
+
+    /**
+     * Filtra ACOES_CATALOGO pelo perfil do animal (espécie, sexo, idade).
+     * Cada ação retornada tem URL pronta com ?animal_id=X.
+     */
+    private function montarAcoesRapidas(Animal $animal): array
+    {
+        $allowed = $animal->species?->allowed_events;
+        if (! is_array($allowed) || count($allowed) === 0) return [];
+
+        $acoes = [];
+        foreach ($allowed as $tipo) {
+            $meta = self::ACOES_CATALOGO[$tipo] ?? null;
+            if (! $meta) continue;
+
+            // Filtro por sexo (ex.: exame_toque/secagem/controle_leiteiro só em F)
+            if (! empty($meta['sexo']) && $animal->sexo !== $meta['sexo']) continue;
+
+            // Monta URL final com return_to pra voltar pra ficha do animal
+            $url = null;
+            if (! empty($meta['wizard'])) {
+                $base = route($meta['wizard']);
+                $params = array_merge(
+                    $meta['query'] ?? [],
+                    [
+                        'animal_id' => $animal->id,
+                        'return_to' => '/admin/rebanho/animais/' . $animal->id,
+                    ]
+                );
+                $url = $base . '?' . http_build_query($params);
+            }
+
+            $acoes[] = [
+                'tipo' => $tipo,
+                'emoji' => $meta['emoji'],
+                'label' => $meta['label'],
+                'desc' => $meta['desc'],
+                'url' => $url, // null = abre modal in-page com tipo pré-selecionado
+            ];
+        }
+        return $acoes;
     }
 
     /**

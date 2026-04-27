@@ -5,18 +5,26 @@
  * Mobile-first: lista vertical, inputs grandes, botão "+ ordenha" pra fazendas
  * que ordenham mais de 2 vezes/dia. Total calculado automaticamente.
  */
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import PageHeader from '@/Components/PageHeader.vue';
 
 const props = defineProps({
     vacas: Array,
     data_hoje: String,
+    preselectId: { type: Number, default: null },
 });
 
+// Se chegou via Animal show com ?animal_id=X, mostra só aquela vaca
+const vacasFiltradas = props.preselectId
+    ? props.vacas.filter(v => v.id === props.preselectId)
+    : props.vacas;
+
 // Estado: cada vaca tem array de ordenhas (label, hora, litros) + total computado.
-// Inicializa com 2 ordenhas padrão (1ª às 08:00, 2ª às 15:00) zeradas.
-// Horários default seguem o padrão do mercado leiteiro brasileiro mas são editáveis.
+// Inicializa com APENAS 1 ordenha (1ª às 08:00). Botão "+ ordenha extra" pra
+// adicionar 2ª, 3ª, etc — só a 1ª é obrigatória, vacas que produzem só 1 vez
+// no dia não precisam de campo vazio na 2ª.
 const HORAS_PADRAO = ['08:00', '15:00', '20:00', '04:00', '12:00', '18:00'];
 function ordenhaInicial(idx) {
     const labels = ['1ª', '2ª', '3ª', '4ª', '5ª', '6ª'];
@@ -26,13 +34,13 @@ function ordenhaInicial(idx) {
         litros: '',
     };
 }
-const linhas = ref(props.vacas.map(v => ({
+const linhas = ref(vacasFiltradas.map(v => ({
     animal_id: v.id,
     identificacao: v.identificacao,
     nome: v.nome,
     lote: v.lote,
     producao_anterior: v.producao_anterior_litros,
-    ordenhas: [ordenhaInicial(0), ordenhaInicial(1)],
+    ordenhas: [ordenhaInicial(0)], // só a 1ª por default
 })));
 
 function adicionarOrdenha(linha) {
@@ -52,9 +60,18 @@ function totalLinha(linha) {
 const linhasComProducao = computed(() => linhas.value.filter(l => totalLinha(l) > 0));
 const totalGeral = computed(() => linhasComProducao.value.reduce((acc, l) => acc + totalLinha(l), 0));
 
+// Lê return_to da URL pra voltar pra origem após salvar
+const returnTo = new URLSearchParams(window.location.search).get('return_to') || null;
+
 const form = useForm({
-    data: props.data_hoje,
+    data: props.data_hoje || new Date().toISOString().slice(0, 10),
     vacas: [],
+    return_to: returnTo,
+});
+
+// Garantia adicional caso props.data_hoje não chegue por algum motivo
+onMounted(() => {
+    if (! form.data) form.data = new Date().toISOString().slice(0, 10);
 });
 
 function submit() {
@@ -86,13 +103,18 @@ function comparacao(linha) {
 <template>
     <Head title="Controle do leite" />
     <AdminLayout>
-        <div class="max-w-3xl mx-auto pb-32">
-            <div class="mb-6">
-                <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">🥛 Controle do leite</h1>
-                <p class="mt-1 text-sm text-slate-600">
-                    Registre quantos litros cada vaca produziu por ordenha. Os <strong>horários (8h e 15h)</strong> vêm preenchidos por padrão — edite se ordenhar em outros horários. Em vacas com mais de 2 ordenhas, use "+ ordenha extra".
-                </p>
-            </div>
+        <template #page-title>Assistente · Controle do leite</template>
+
+        <PageHeader
+            title="🥛 Controle do leite"
+            subtitle="Registre quantos litros cada vaca produziu hoje. Só a 1ª ordenha é obrigatória — adicione 2ª/3ª se a vaca produzir mais vezes no dia."
+        >
+            <template #actions>
+                <Link :href="route('admin.inicio')" class="btn-outline">← Voltar</Link>
+            </template>
+        </PageHeader>
+
+        <div class="max-w-3xl mx-auto pb-8 space-y-4">
 
             <!-- Data -->
             <div class="rounded-xl bg-white ring-1 ring-slate-200 p-4 mb-4">
@@ -204,24 +226,22 @@ function comparacao(linha) {
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Footer fixo: Salvar -->
-        <div class="fixed bottom-0 left-0 right-0 lg:left-64 bg-white ring-1 ring-slate-200 p-4 z-20">
-            <div class="max-w-3xl mx-auto flex items-center gap-3">
-                <Link :href="route('admin.inicio')" class="inline-flex items-center min-h-12 px-4 py-3 rounded-lg bg-slate-100 text-slate-700 font-medium hover:bg-slate-200">
-                    ← Voltar
-                </Link>
-                <button
-                    type="button"
-                    @click="submit"
-                    :disabled="linhasComProducao.length === 0 || form.processing"
-                    class="flex-1 inline-flex items-center justify-center min-h-12 px-6 py-3 rounded-lg bg-macaybas-primary text-white font-semibold hover:bg-macaybas-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-base"
-                >
-                    <span v-if="form.processing">Salvando…</span>
-                    <span v-else-if="linhasComProducao.length === 0">Preencha pelo menos 1 vaca</span>
-                    <span v-else>Salvar produção de {{ linhasComProducao.length }} vaca(s)</span>
-                </button>
+            <!-- Botão Salvar (segue padrão do sistema — dentro do card, não fixed) -->
+            <div class="card max-w-3xl mx-auto">
+                <div class="card-body flex items-center justify-end gap-3">
+                    <Link :href="route('admin.inicio')" class="btn-outline">Cancelar</Link>
+                    <button
+                        type="button"
+                        @click="submit"
+                        :disabled="linhasComProducao.length === 0 || form.processing"
+                        class="btn-primary"
+                    >
+                        <span v-if="form.processing">Salvando…</span>
+                        <span v-else-if="linhasComProducao.length === 0">Digite os litros de pelo menos 1 ordenha</span>
+                        <span v-else>✓ Salvar produção de {{ linhasComProducao.length }} vaca(s)</span>
+                    </button>
+                </div>
             </div>
         </div>
     </AdminLayout>

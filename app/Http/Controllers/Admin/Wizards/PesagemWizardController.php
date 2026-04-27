@@ -23,8 +23,9 @@ use Inertia\Response;
  */
 class PesagemWizardController extends Controller
 {
-    public function create(): Response
+    public function create(\Illuminate\Http\Request $request): Response
     {
+        $preselectId = (int) $request->query('animal_id');
         // photo_url NÃO é accessor via convenção — é método `photoUrl()` no model.
         // Por isso precisamos construir manualmente o payload pro Vue.
         $animais = Animal::ativos()
@@ -60,6 +61,7 @@ class PesagemWizardController extends Controller
         return Inertia::render('Admin/Wizards/Pesagem', [
             'animais' => $animais,
             'lotesAgregados' => $lotesAgregados,
+            'preselectId' => $preselectId ?: null,
         ]);
     }
 }

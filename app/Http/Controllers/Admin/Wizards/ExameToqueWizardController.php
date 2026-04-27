@@ -50,8 +50,9 @@ class ExameToqueWizardController extends Controller
         'suino'        => 8,
     ];
 
-    public function create(): Response
+    public function create(\Illuminate\Http\Request $request): Response
     {
+        $preselectId = (int) $request->query('animal_id');
         // Mostra TODAS as fêmeas ativas — filtro por idade vira soft warning
         // (animal sem data_nascimento ou abaixo da idade mínima fica visível
         // mas marcado com ⚠). Motivo: vaca comprada adulta sem data, novilha
@@ -102,6 +103,7 @@ class ExameToqueWizardController extends Controller
             'femeas' => $femeas,
             'veterinarios' => $veterinarios,
             'data_hoje' => now()->toDateString(),
+            'preselectId' => $preselectId ?: null,
         ]);
     }
 
@@ -160,7 +162,12 @@ class ExameToqueWizardController extends Controller
             $msg .= " {$tarefasCriadas} tarefa(s) automática(s) criada(s) (secagem + maternidade).";
         }
 
-        return redirect()->route('admin.inicio')->with('success', $msg);
+        $returnTo = $request->input('return_to');
+        $url = ($returnTo && str_starts_with($returnTo, '/admin/'))
+            ? $returnTo
+            : route('admin.inicio');
+
+        return redirect($url)->with('success', $msg);
     }
 
     /**

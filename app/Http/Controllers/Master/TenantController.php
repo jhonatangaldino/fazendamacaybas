@@ -8,6 +8,7 @@ use App\Domain\Cms\Services\LandingScaffoldService;
 use App\Http\Controllers\Controller;
 use App\Models\Farm;
 use App\Models\User;
+use App\Support\BillingCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -213,6 +214,9 @@ class TenantController extends Controller
         // Espelha lat/lng/endereco do cadastro nos settings de mapa do CMS landing
         $this->syncMapSettings($tenant);
 
+        // Invalida cache do master (KPIs incluem listagem de tenants)
+        BillingCache::forgetMaster();
+
         return redirect()
             ->route('master.tenants.index')
             ->with('created_tenant', [
@@ -276,6 +280,9 @@ class TenantController extends Controller
         // no cadastro, espelha em settings.landing.map.* para que a landing pública
         // do CMS use as coordenadas. Cria override por tenant_id quando necessário.
         $this->syncMapSettings($tenant);
+
+        // Invalida cache do master (KPIs incluem listagem de tenants)
+        BillingCache::forgetMaster();
 
         return redirect()
             ->route('master.tenants.index')
@@ -419,6 +426,9 @@ class TenantController extends Controller
     public function toggle(Tenant $tenant): RedirectResponse
     {
         $tenant->update(['is_active' => ! $tenant->is_active]);
+
+        // Invalida cache do master (KPIs ativos/inativos mudaram)
+        BillingCache::forgetMaster();
 
         $msg = $tenant->is_active
             ? 'Tenant "'.$tenant->nome.'" ativado.'

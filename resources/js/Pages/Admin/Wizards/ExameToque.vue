@@ -13,9 +13,15 @@ const props = defineProps({
     femeas: Array,
     veterinarios: Array,
     data_hoje: String,
+    preselectId: { type: Number, default: null },
 });
 
-const selecionadas = ref(new Set());
+// Pre-seleciona se veio via Animal show com ?animal_id=X
+const selecionadas = ref(new Set(
+    props.preselectId && props.femeas.find(f => f.id === props.preselectId)
+        ? [props.preselectId]
+        : []
+));
 function toggleAnimal(id) {
     if (selecionadas.value.has(id)) selecionadas.value.delete(id);
     else selecionadas.value.add(id);
@@ -23,6 +29,8 @@ function toggleAnimal(id) {
     selecionadas.value = new Set(selecionadas.value);
 }
 const isSelected = (id) => selecionadas.value.has(id);
+
+const returnTo = new URLSearchParams(window.location.search).get('return_to') || null;
 
 const form = useForm({
     animal_ids: [],
@@ -32,6 +40,7 @@ const form = useForm({
     gestacao_dias: 0,
     data_prevista_parto: '',
     observacoes: '',
+    return_to: returnTo,
 });
 
 // Calcula DPP automaticamente sempre que muda gestacao_dias OU data

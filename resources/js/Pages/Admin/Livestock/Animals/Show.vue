@@ -516,6 +516,50 @@ const eventoLabel = (tipo) => ({
             </div>
         </div>
 
+        <!-- ═══ AÇÕES RÁPIDAS · filtradas pela espécie ═══ -->
+        <div v-if="animal.acoes_rapidas && animal.acoes_rapidas.length > 0" class="mb-6 rounded-xl bg-white ring-1 ring-slate-200 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    ⚡ Ações rápidas para {{ animal.species?.nome?.toLowerCase() || 'este animal' }}
+                </h3>
+                <span class="text-xs text-slate-500">{{ animal.acoes_rapidas.length }} disponível(is)</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                <Link
+                    v-for="acao in animal.acoes_rapidas.filter(a => a.url)"
+                    :key="acao.tipo"
+                    :href="acao.url"
+                    class="block rounded-lg ring-1 ring-slate-200 hover:ring-macaybas-primary hover:bg-macaybas-primary-50 p-3 transition group"
+                >
+                    <div class="flex items-start gap-2">
+                        <span class="text-2xl flex-shrink-0">{{ acao.emoji }}</span>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-semibold text-sm text-slate-900 group-hover:text-macaybas-primary-900">{{ acao.label }}</div>
+                            <div class="text-xs text-slate-500 mt-0.5 line-clamp-2">{{ acao.desc }}</div>
+                        </div>
+                    </div>
+                </Link>
+                <button
+                    v-for="acao in animal.acoes_rapidas.filter(a => !a.url)"
+                    :key="`m-${acao.tipo}`"
+                    type="button"
+                    @click="abrirEvento(acao.tipo)"
+                    class="text-left block rounded-lg ring-1 ring-slate-200 hover:ring-macaybas-primary hover:bg-macaybas-primary-50 p-3 transition group"
+                >
+                    <div class="flex items-start gap-2">
+                        <span class="text-2xl flex-shrink-0">{{ acao.emoji }}</span>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-semibold text-sm text-slate-900 group-hover:text-macaybas-primary-900">{{ acao.label }}</div>
+                            <div class="text-xs text-slate-500 mt-0.5 line-clamp-2">{{ acao.desc }}</div>
+                        </div>
+                    </div>
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 mt-3">
+                💡 As ações disponíveis variam por espécie — peixe não vacina, cavalo não ordenha, e por aí vai.
+            </p>
+        </div>
+
         <!-- ═══ VEREDITO · interpretação em linguagem natural ═══ -->
         <div v-if="interpretacao"
              class="mb-4 rounded-xl border-2 px-5 py-4 flex items-start gap-3"

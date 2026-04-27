@@ -21,8 +21,9 @@ use Inertia\Response;
  */
 class SecagemWizardController extends Controller
 {
-    public function create(): Response
+    public function create(\Illuminate\Http\Request $request): Response
     {
+        $preselectId = (int) $request->query('animal_id');
         // Mostra TODAS as vacas (fêmeas bovinas ativas) — sem filtro de idade.
         $vacas = Animal::ativos()
             ->where('sexo', 'F')
@@ -74,6 +75,7 @@ class SecagemWizardController extends Controller
         return Inertia::render('Admin/Wizards/Secagem', [
             'vacas' => $vacas,
             'data_hoje' => now()->toDateString(),
+            'preselectId' => $preselectId ?: null,
         ]);
     }
 
@@ -96,8 +98,11 @@ class SecagemWizardController extends Controller
             'created_by' => $request->user()?->id,
         ]);
 
-        return redirect()
-            ->route('admin.inicio')
-            ->with('success', "Vaca {$animal->identificacao} marcada como SECA em " . \Carbon\Carbon::parse($validated['data'])->format('d/m/Y') . '.');
+        $returnTo = $request->input('return_to');
+        $url = ($returnTo && str_starts_with($returnTo, '/admin/'))
+            ? $returnTo
+            : route('admin.inicio');
+
+        return redirect($url)->with('success', "Vaca {$animal->identificacao} marcada como SECA em " . \Carbon\Carbon::parse($validated['data'])->format('d/m/Y') . '.');
     }
 }

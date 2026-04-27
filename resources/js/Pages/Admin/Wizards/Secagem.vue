@@ -11,15 +11,23 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 const props = defineProps({
     vacas: Array,
     data_hoje: String,
+    preselectId: { type: Number, default: null },
 });
 
-const vacaSelecionada = ref(null);
+// Se chegou via Animal show com ?animal_id=X, abre direto no passo 2 com a vaca
+const vacaPreSelected = props.preselectId
+    ? props.vacas.find(v => v.id === props.preselectId)
+    : null;
+const vacaSelecionada = ref(vacaPreSelected || null);
+
+const returnTo = new URLSearchParams(window.location.search).get('return_to') || null;
 
 const form = useForm({
-    animal_id: null,
+    animal_id: vacaPreSelected?.id ?? null,
     data: props.data_hoje,
     medicamento: '',
     observacoes: '',
+    return_to: returnTo,
 });
 
 function selecionar(vaca) {
