@@ -38,6 +38,14 @@ return [
             'timezone' => '-03:00',
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                // Persistent connections: cada worker PHP-FPM reusa a mesma
+                // conexão MySQL entre requests, em vez de abrir/fechar a cada
+                // hit. Reduz drasticamente o consumo de "max_connections_per_hour"
+                // do plano Hostinger Business (limite 500/hora).
+                //
+                // Opt-in via env DB_PERSISTENT=true para permitir desligar
+                // rapidamente em caso de problema (conexões zumbis, locks).
+                PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
             ]) : [],
         ],
 
