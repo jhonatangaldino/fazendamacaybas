@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Master;
 
+use App\Domain\Auth\Services\TemporaryPasswordService;
 use App\Domain\Billing\Models\Tenant;
 use App\Domain\Cms\Services\LandingScaffoldService;
 use App\Http\Controllers\Controller;
@@ -141,27 +142,27 @@ class TenantController extends Controller
             ]);
 
             // Usuário dono — usa o email informado no form como
-            // credencial de primeiro acesso. Senha temporária forte,
-            // forçada a troca no primeiro login (must_change_password).
+            // credencial de primeiro acesso. Senha temporária 8 chars
+            // alfanuméricos gerada pelo TemporaryPasswordService que
+            // também envia email de boas-vindas (noreply@) com a senha.
             if (! empty($tenant->email)) {
                 $donoEmail = $tenant->email;
-                $senhaTemporaria = $this->gerarSenhaTemporaria();
 
-                // User::create não aceita todos os campos em mass-assign
-                // (current_farm_id e email_verified_at não estão em fillable).
-                // Setamos atributos defensivamente e salvamos em 1 write.
                 $user = new User();
                 $user->tenant_id = $tenant->id;
                 $user->current_farm_id = $farm->id;
                 $user->name = $tenant->nome;
                 $user->email = $tenant->email;
-                $user->password = Hash::make($senhaTemporaria);
-                $user->must_change_password = true;
+                $user->password = Hash::make(Str::random(40)); // placeholder
                 $user->is_active = true;
                 $user->email_verified_at = now();
                 $user->save();
 
                 $user->assignRole('dono_fazenda');
+
+                // Service preenche password (hash da temp), temp_password_plaintext,
+                // password_expires_at e dispara email de boas-vindas.
+                $senhaTemporaria = app(TemporaryPasswordService::class)->issueWelcome($user);
             }
 
             return $tenant;
@@ -182,18 +183,12 @@ class TenantController extends Controller
     }
 
     /**
-     * Gera senha temporária forte e legível (12 caracteres, sem símbolos
-     * ambíguos). Evita caracteres que confundem o usuário ao ditar/copiar
-     * por WhatsApp: 0, O, 1, l, I.
+     * @deprecated Use TemporaryPasswordService::issueWelcome() ou regenerate().
+     * Mantido apenas como fallback histórico durante a transição.
      */
     private function gerarSenhaTemporaria(): string
     {
-        $alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-        $senha = '';
-        for ($i = 0; $i < 12; $i++) {
-            $senha .= $alfabeto[random_int(0, strlen($alfabeto) - 1)];
-        }
-        return $senha;
+        return \App\Support\PasswordGenerator::make();
     }
 
     /**
@@ -273,6 +268,10 @@ class TenantController extends Controller
                 'must_change_password' => (bool) $u->must_change_password,
                 'last_login_at' => $u->last_login_at?->format('d/m/Y H:i'),
                 'roles' => $u->roles->pluck('name')->all(),
+                // Senha temp visível enquanto user não trocou
+                'temp_password' => $u->temporaryPasswordIsVisible() ? $u->temp_password_plaintext : null,
+                'temp_password_expired' => $u->temporaryPasswordIsExpired(),
+                'temp_password_expires_at' => $u->password_expires_at?->setTimezone('America/Sao_Paulo')->format('d/m/Y H:i'),
             ]);
 
         // Papéis disponíveis para atribuir — exclui admin_master (só master real)
@@ -311,20 +310,21 @@ class TenantController extends Controller
         }
 
         $farmId = \App\Models\Farm::where('tenant_id', $tenant->id)->where('is_active', true)->value('id');
-        $senha = $this->gerarSenhaTemporaria();
 
         $user = new User();
         $user->tenant_id = $tenant->id;
         $user->current_farm_id = $farmId;
         $user->name = $data['name'];
         $user->email = $data['email'];
-        $user->password = Hash::make($senha);
-        $user->must_change_password = true;
+        $user->password = Hash::make(Str::random(40)); // placeholder
         $user->is_active = true;
         $user->email_verified_at = now();
         $user->save();
 
         $user->assignRole($data['role']);
+
+        // Service gera senha temp + envia email de boas-vindas
+        $senha = app(TemporaryPasswordService::class)->issueWelcome($user);
 
         return response()->json([
             'id' => $user->id,
@@ -349,13 +349,10 @@ class TenantController extends Controller
     {
         abort_if($user->tenant_id !== $tenant->id, 404);
 
-        $novaSenha = $this->gerarSenhaTemporaria();
+        // Regenera senha + envia email de "senha temporária atualizada"
+        $novaSenha = app(TemporaryPasswordService::class)->regenerate($user);
 
-        $user->password = Hash::make($novaSenha);
-        $user->must_change_password = true;
-        $user->save();
-
-        return back()->with('success', 'Senha resetada.')
+        return back()->with('success', 'Senha resetada e enviada por email.')
             ->with('reset_password_result', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,

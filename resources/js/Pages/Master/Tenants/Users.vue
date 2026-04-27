@@ -172,6 +172,7 @@ function doToggle() {
                             <th>E-mail</th>
                             <th>Papel</th>
                             <th>Acesso</th>
+                            <th>Senha temporária</th>
                             <th>Último login</th>
                             <th class="text-right">Ações</th>
                         </tr>
@@ -193,6 +194,17 @@ function doToggle() {
                                 <span v-if="u.must_change_password" class="ml-1 badge-yellow" title="Próximo login forçará troca de senha">
                                     Senha temp
                                 </span>
+                            </td>
+                            <td>
+                                <div v-if="u.temp_password && !u.temp_password_expired" class="inline-flex items-center gap-2">
+                                    <code class="px-2 py-1 rounded bg-amber-50 ring-1 ring-amber-200 text-amber-900 text-sm font-mono font-bold tracking-wider">
+                                        {{ u.temp_password }}
+                                    </code>
+                                </div>
+                                <span v-else-if="u.temp_password_expired" class="text-xs text-rose-700" :title="`Expirou em ${u.temp_password_expires_at}`">
+                                    Expirada
+                                </span>
+                                <span v-else class="text-xs text-slate-400">—</span>
                             </td>
                             <td class="text-xs text-slate-500">{{ u.last_login_at ?? '—' }}</td>
                             <td class="text-right">

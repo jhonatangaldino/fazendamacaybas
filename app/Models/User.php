@@ -41,11 +41,16 @@ class User extends Authenticatable
         'is_active',
         'avatar_path',
         'tenant_id',
+        'temp_password_plaintext',
+        'password_expires_at',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        // temp_password_plaintext NÃO está aqui — é visível para admin/master
+        // via API/Inertia ATÉ o user trocar a senha. A criptografia at-rest
+        // (cast 'encrypted') protege contra dump direto do banco.
     ];
 
     protected function casts(): array
@@ -56,7 +61,33 @@ class User extends Authenticatable
             'must_change_password' => 'boolean',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            // Cast 'encrypted' criptografa antes de gravar e descriptografa
+            // ao ler. Admin de banco com SELECT direto vê apenas ciphertext.
+            'temp_password_plaintext' => 'encrypted',
+            'password_expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Senha temporária está expirada?
+     * Usado pelo LoginRequest e pelo TemporaryPasswordService para decidir
+     * regeneração automática.
+     */
+    public function temporaryPasswordIsExpired(): bool
+    {
+        if (! $this->must_change_password) return false;
+        if (! $this->password_expires_at) return false;
+        return $this->password_expires_at->isPast();
+    }
+
+    /**
+     * Senha temporária ainda visível para admin/master?
+     * True quando user ainda não trocou a senha E o plaintext está disponível.
+     */
+    public function temporaryPasswordIsVisible(): bool
+    {
+        return $this->must_change_password
+            && ! empty($this->temp_password_plaintext);
     }
 
     public function getActivitylogOptions(): LogOptions

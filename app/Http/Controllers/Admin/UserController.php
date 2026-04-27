@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Auth\Services\TemporaryPasswordService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -42,6 +43,12 @@ class UserController extends Controller
                 'avatar_url' => $u->avatarUrl(),
                 'is_active' => $u->is_active,
                 'last_login_at' => $u->last_login_at,
+                // Senha temporária visível ATÉ o user trocar (must_change_password=true).
+                // Plaintext já vem descriptografado do cast 'encrypted'.
+                'temp_password' => $u->temporaryPasswordIsVisible() ? $u->temp_password_plaintext : null,
+                'temp_password_expired' => $u->temporaryPasswordIsExpired(),
+                'temp_password_expires_at' => $u->password_expires_at,
+                'must_change_password' => $u->must_change_password,
                 'roles' => $u->roles->map(fn ($r) => [
                     'name' => $r->name,
                     'short_name' => $r->short_name ?: ucfirst(str_replace('_', ' ', $r->name)),
@@ -61,17 +68,18 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, TemporaryPasswordService $tempPassword)
     {
+        // Cadastro de usuário NÃO recebe senha do form. Sistema gera senha
+        // temporária aleatória de 8 caracteres alfanuméricos, envia por email
+        // e força troca no primeiro login.
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc', 'max:255', 'unique:users,email'],
             'cpf' => ['nullable', 'string', 'max:14'],
             'telefone' => ['nullable', 'string', 'max:20'],
             'cargo' => ['nullable', 'string', 'max:100'],
-            'password' => ['required', Password::defaults()],
             'is_active' => ['boolean'],
-            'must_change_password' => ['boolean'],
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
@@ -81,26 +89,29 @@ class UserController extends Controller
             return back()->with('error', 'Você não tem permissão para atribuir o perfil Admin Master.');
         }
 
-        // BUG FIX: tenant_id e current_farm_id devem vir do user que CRIA, não do payload.
-        // Sem isso, novos users virariam "master órfãos" (tenant_id NULL) e login deles
-        // jogaria em /master/dashboard com 403 (não têm role admin_master).
-        // Master criando user de tenant deve usar /master/tenants/{id}/usuarios/inline.
-        // Aqui (admin area) o user atual SEMPRE é tenant user, então herdamos seu contexto.
         $criador = $request->user();
         if ($criador->tenant_id === null) {
             return back()->with('error', 'Master não pode criar usuários por esta tela. Use a tela de Usuários do cliente em /master/tenants/{id}/usuarios.');
         }
 
+        // Cria o user SEM senha definitiva. O service depois preenche password
+        // (hash), temp_password_plaintext e password_expires_at.
         $user = User::create([
-            ...collect($data)->except('password', 'roles')->all(),
-            'password' => Hash::make($data['password']),
+            ...collect($data)->except('roles')->all(),
+            'password' => Hash::make(\Illuminate\Support\Str::random(40)), // placeholder, será sobrescrito
             'tenant_id' => $criador->tenant_id,
             'current_farm_id' => $criador->current_farm_id,
         ]);
 
         $user->syncRoles($data['roles'] ?? []);
 
-        return redirect()->route('admin.users.index')->with('success', 'Usuário criado com sucesso.');
+        // Gera senha temporária + dispara email de boas-vindas.
+        // Falha de email é tolerada (admin vê senha em tela como fallback).
+        $senhaTemp = $tempPassword->issueWelcome($user);
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', "Usuário criado. Senha temporária: {$senhaTemp} — também enviada para {$user->email}. Expira em ".TemporaryPasswordService::VALIDITY_HOURS." horas.");
     }
 
     public function edit(User $user)
@@ -168,15 +179,18 @@ class UserController extends Controller
         return back()->with('success', 'Usuário excluído.');
     }
 
-    public function resetPassword(User $user)
+    /**
+     * Reset/regenera senha temporária — gera nova de 8 chars + reenvia email.
+     * Usado pelo botão "Reenviar credenciais" / "Regenerar senha" na UI.
+     */
+    public function resetPassword(User $user, TemporaryPasswordService $tempPassword)
     {
-        $novaSenha = 'Macaybas@'.now()->format('Y');
-        $user->update([
-            'password' => Hash::make($novaSenha),
-            'must_change_password' => true,
-        ]);
+        $novaSenha = $tempPassword->regenerate($user);
 
-        return back()->with('success', "Senha resetada. Senha temporária: {$novaSenha} — o usuário será obrigado a trocá-la no próximo login.");
+        return back()->with(
+            'success',
+            "Nova senha temporária: {$novaSenha} — também enviada para {$user->email}. Expira em ".TemporaryPasswordService::VALIDITY_HOURS." horas."
+        );
     }
 
     /**

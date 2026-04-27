@@ -15,6 +15,8 @@ const props = defineProps({
     roles: Array,
 });
 
+// Em CADASTRO novo, a senha NÃO é coletada — sistema gera automaticamente
+// e envia por email. Em EDIÇÃO, mantém o campo opcional para reset manual.
 const form = useForm({
     name: props.user?.name ?? '',
     email: props.user?.email ?? '',
@@ -98,13 +100,28 @@ function submit() {
             <div class="card">
                 <div class="card-header"><h2 class="card-title">Acesso</h2></div>
                 <div class="card-body space-y-4">
-                    <div>
-                        <InputLabel :value="isEdit ? 'Nova senha (deixe em branco para manter a atual)' : 'Senha'" />
-                        <PasswordInput v-model="form.password" :required="!isEdit" autocomplete="new-password" />
-                        <InputError :message="form.errors.password" />
-                        <p class="form-help">Mínimo 8 caracteres, com letras, números e símbolos.</p>
+                    <!-- CADASTRO NOVO: aviso explicando que senha é automática -->
+                    <div v-if="!isEdit" class="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+                        <div class="flex items-start gap-3">
+                            <span class="text-2xl">📧</span>
+                            <div class="text-sm text-emerald-900">
+                                <p class="font-semibold mb-1">Senha gerada automaticamente</p>
+                                <p>O sistema cria uma senha temporária de 8 caracteres e envia para o e-mail informado.
+                                   No primeiro acesso, o usuário será obrigado a definir uma nova senha.
+                                   A senha temporária expira em 2 horas.</p>
+                            </div>
+                        </div>
                     </div>
-                    <label class="flex items-center gap-2 text-sm text-slate-700">
+
+                    <!-- EDIÇÃO: campo opcional para reset manual (admin pode digitar senha custom se quiser) -->
+                    <div v-if="isEdit">
+                        <InputLabel value="Nova senha (deixe em branco para manter a atual)" />
+                        <PasswordInput v-model="form.password" autocomplete="new-password" />
+                        <InputError :message="form.errors.password" />
+                        <p class="form-help">Mínimo 8 caracteres, com letras, números e símbolos. Deixe em branco para manter a senha atual.</p>
+                    </div>
+
+                    <label v-if="isEdit" class="flex items-center gap-2 text-sm text-slate-700">
                         <input type="checkbox" v-model="form.must_change_password" class="rounded border-slate-300 text-macaybas-primary focus:ring-macaybas-primary">
                         Forçar troca de senha no próximo login
                     </label>

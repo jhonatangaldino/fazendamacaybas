@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Domain\Auth\Services\TemporaryPasswordService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class ChangePasswordController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, TemporaryPasswordService $tempPassword): RedirectResponse
     {
         $user = $request->user();
 
@@ -33,10 +34,13 @@ class ChangePasswordController extends Controller
 
         $request->validate($rules);
 
-        $user->update([
+        // Atualiza senha definitiva
+        $user->forceFill([
             'password' => Hash::make($request->password),
-            'must_change_password' => false,
-        ]);
+        ])->save();
+
+        // Limpa estado de senha temporária (plaintext + expiração + flag must_change)
+        $tempPassword->clearOnPasswordChange($user->fresh());
 
         return redirect()->route('admin.dashboard')->with('success', 'Senha alterada com sucesso.');
     }

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Domain\Auth\Services\TemporaryPasswordService;
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -32,20 +34,32 @@ class LoginRequest extends FormRequest
         $email = $this->string('email')->lower()->value();
         $password = $this->string('password')->value();
 
+        // ────────────────────────────────────────────────────────────────
+        // Pré-check: senha temporária expirada.
+        //
+        // Se o user existe E está com must_change_password=true E
+        // password_expires_at < agora, a senha temp atual NÃO funciona mais.
+        // Regeneramos automaticamente uma nova + reenviamos email + recusamos
+        // o login com mensagem específica.
+        //
+        // Rodamos este check ANTES do Auth::attempt para que credenciais
+        // expiradas não consumam tentativa de rate-limit.
+        // ────────────────────────────────────────────────────────────────
+        $userPreCheck = User::where('email', $email)->first();
+        if ($userPreCheck && $userPreCheck->temporaryPasswordIsExpired()) {
+            // Verifica se a senha digitada bate com a temp atual antes de
+            // regenerar — assim usuário só recebe email se realmente está
+            // tentando logar com uma temp expirada (não se digitou outra senha qualquer).
+            if (\Illuminate\Support\Facades\Hash::check($password, $userPreCheck->password)) {
+                app(TemporaryPasswordService::class)->regenerate($userPreCheck);
+                throw ValidationException::withMessages([
+                    'email' => 'Sua senha temporária expirou. Uma nova foi enviada para o seu email.',
+                ]);
+            }
+        }
+
         // Reestruturação 2026-04-27: login isolado por contexto.
-        //
-        // O middleware RouteByHost já resolveu qual tenant é esperado para
-        // este host/path. Se o user não bate com esse tenant (e não é
-        // master admin), recusamos com mensagem GENÉRICA — não vazamos a
-        // existência da conta em outro tenant.
-        //
-        // Regras:
-        //   1. Master admin (tenant_id NULL + role admin_master) loga em
-        //      qualquer contexto (decisão do PO).
-        //   2. User com tenant_id preenchido só loga em contextos que
-        //      resolveram para o mesmo tenant_id.
-        //   3. Se context = 'app' (host = app.*, sem /c/{slug}), aceita
-        //      qualquer user — mas redirect pós-login leva pra rota dele.
+        // Master admin sempre passa; tenant user precisa bater com expected_tenant_id.
         $expectedTenantId = $this->attributes->get('expected_tenant_id');
 
         if (! Auth::attempt(
@@ -65,13 +79,12 @@ class LoginRequest extends FormRequest
             : ($user?->tenant_id === null);
 
         if ($expectedTenantId !== null && ! $isMasterAdmin) {
-            // Contexto exige um tenant específico (raiz, /c/{slug}, ou domínio próprio)
             if ((int) $user->tenant_id !== (int) $expectedTenantId) {
                 Auth::logout();
                 $this->session()->invalidate();
                 RateLimiter::hit($this->throttleKey());
                 throw ValidationException::withMessages([
-                    'email' => __('auth.failed'), // mesma mensagem genérica
+                    'email' => __('auth.failed'),
                 ]);
             }
         }

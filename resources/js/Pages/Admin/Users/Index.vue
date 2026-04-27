@@ -32,13 +32,24 @@ function doDelete() {
 }
 async function resetPassword(id) {
     const ok = await confirm({
-        title: 'Resetar senha',
-        message: 'Uma senha temporária será gerada e o usuário será obrigado a trocá-la no próximo login. Continuar?',
-        confirmText: 'Resetar senha',
+        title: 'Reenviar credenciais',
+        message: 'Uma nova senha temporária de 8 caracteres será gerada e enviada por email para o usuário. A senha anterior deixará de funcionar. Continuar?',
+        confirmText: 'Gerar nova senha',
         variant: 'primary',
         icon: 'question',
     });
     if (ok) router.post(route('admin.users.reset-password', id));
+}
+
+async function copiarSenha(senha) {
+    try {
+        await navigator.clipboard.writeText(senha);
+        // Feedback visual simples sem dependência externa
+        const ev = new CustomEvent('toast', { detail: { tipo: 'success', mensagem: 'Senha copiada' } });
+        window.dispatchEvent(ev);
+    } catch (e) {
+        // Fallback silencioso — alguns browsers bloqueiam clipboard sem HTTPS
+    }
 }
 </script>
 
@@ -74,6 +85,7 @@ async function resetPassword(id) {
                 { key: 'email', label: 'E-mail' },
                 { key: 'cargo', label: 'Cargo' },
                 { key: 'roles', label: 'Perfis' },
+                { key: 'temp_password', label: 'Senha temporária' },
                 { key: 'last_login_at', label: 'Último acesso' },
                 { key: 'is_active', label: 'Status' },
                 { key: 'acoes', label: '', align: 'right' },
@@ -100,6 +112,25 @@ async function resetPassword(id) {
                         {{ r.short_name || r.name }}
                     </span>
                 </div>
+            </template>
+            <template #cell-temp_password="{ row }">
+                <!-- Senha temporária visível ATÉ o user trocá-la (must_change_password=true).
+                     Quando expira, mostra "Expirada — clique em Reenviar". -->
+                <div v-if="row.temp_password && !row.temp_password_expired" class="inline-flex items-center gap-2">
+                    <code class="px-2 py-1 rounded bg-amber-50 ring-1 ring-amber-200 text-amber-900 text-sm font-mono font-bold tracking-wider">
+                        {{ row.temp_password }}
+                    </code>
+                    <button type="button"
+                            @click="copiarSenha(row.temp_password)"
+                            class="text-xs text-macaybas-primary hover:underline"
+                            title="Copiar senha">
+                        Copiar
+                    </button>
+                </div>
+                <span v-else-if="row.temp_password_expired" class="text-xs text-rose-700">
+                    Expirada · use Reenviar →
+                </span>
+                <span v-else class="text-xs text-slate-400">—</span>
             </template>
             <template #cell-last_login_at="{ row }">
                 {{ dataHoraBR(row.last_login_at) }}
