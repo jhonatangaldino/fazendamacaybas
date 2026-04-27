@@ -62,11 +62,21 @@ class EventoRebanhoWizardController extends Controller
                 'lot' => $a->lot ? ['id' => $a->lot->id, 'nome' => $a->lot->nome] : null,
             ]);
 
+        // Auditoria 2026-04-27 — eventos AGREGADOS para lotes de aves/peixes
+        // (gestao_modo='agregada'). Permite vacinar/medicar/mortalidade em
+        // X de Y animais sem identificação individual.
+        $lotesAgregados = AnimalLot::where('is_active', true)
+            ->where('gestao_modo', 'agregada')
+            ->where('quantidade_atual', '>', 0)
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'codigo', 'quantidade_atual', 'peso_medio_kg', 'finalidade']);
+
         return Inertia::render('Admin/Wizards/EventoRebanho', [
             'tipoInicial' => $tipo,
             'animais' => $animais,
             'lotes' => AnimalLot::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
             'locais' => AnimalLocation::ativos()->orderBy('tipo')->orderBy('nome')->get(['id', 'nome', 'tipo']),
+            'lotesAgregados' => $lotesAgregados,
         ]);
     }
 }

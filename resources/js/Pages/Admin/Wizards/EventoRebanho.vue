@@ -205,18 +205,29 @@ const animaisFiltrados = computed(() => {
     );
 });
 
-// MODO em lote — para vacinação/medicação/vermífugo/observação.
-// Deixa o usuário aplicar o MESMO evento em múltiplos animais:
-//   - por lote (grupo)
-//   - por pasto (local físico)
-//   - por seleção múltipla
-// Adapta o comportamento do wizard conforme o tipo ativo.
-const TIPOS_LOTE_OK = ['vacinacao', 'medicacao', 'vermifugacao', 'observacao'];
+// MODO em lote — para vacinação/medicação/vermífugo/observação/mortalidade.
+// Auditoria 2026-04-27: adicionada mortalidade aos modos lote, e novo
+// modo 'lote_agregado' para aves/peixes (lote sem identificação individual,
+// pesado e administrado em massa).
+//
+// Modos disponíveis (depende do tipo do evento):
+//   - individual    → 1 animal específico (sempre permitido)
+//   - lote_grupo    → todos os animais com lot_id = X (vacinacao etc, animais individuais)
+//   - lote_pasto    → todos os animais com location_id = X
+//   - selecao       → seleção múltipla manual
+//   - lote_agregado → N de M animais de um lote AGREGADO (aves/peixes/abelhas)
+const TIPOS_LOTE_OK = ['vacinacao', 'medicacao', 'vermifugacao', 'observacao', 'mortalidade'];
+const TIPOS_AGREGADO_OK = ['vacinacao', 'medicacao', 'vermifugacao', 'mortalidade', 'observacao'];
 const permiteLote = computed(() => TIPOS_LOTE_OK.includes(tipoAtivo.value));
-const modo = ref('individual');           // 'individual' | 'lote_grupo' | 'lote_pasto' | 'selecao'
+const permiteAgregado = computed(() =>
+    TIPOS_AGREGADO_OK.includes(tipoAtivo.value) && (props.lotesAgregados || []).length > 0
+);
+const modo = ref('individual');           // 'individual' | 'lote_grupo' | 'lote_pasto' | 'selecao' | 'lote_agregado'
 const loteFiltroId = ref(null);            // quando modo=lote_grupo
 const localFiltroId = ref(null);           // quando modo=lote_pasto
 const idsSelecionados = ref([]);           // quando modo=selecao
+const loteAgregadoId = ref(null);          // quando modo=lote_agregado
+const qtdAnimaisAgregado = ref('');        // quando modo=lote_agregado: quantos animais participam
 
 const animaisDoFiltro = computed(() => {
     if (modo.value === 'lote_grupo' && loteFiltroId.value) {
@@ -233,7 +244,10 @@ const animaisDoFiltro = computed(() => {
 
 const podeAvancar1 = computed(() => {
     if (modo.value === 'individual') return !!selecionado.value;
-    // Lote: precisa ter ao menos 1 animal afetado
+    if (modo.value === 'lote_agregado') {
+        const qtd = parseInt(String(qtdAnimaisAgregado.value)) || 0;
+        return !!loteAgregadoId.value && qtd >= 1;
+    }
     return animaisDoFiltro.value.length > 0;
 });
 const podeAvancar2 = computed(() => {
@@ -263,7 +277,11 @@ const localNome = computed(() => {
 });
 
 function confirmar() {
-    // Em modo LOTE, usa endpoint batch
+    // Modo agregado: rota nova (admin.rebanho.lotes.eventos.store)
+    if (modo.value === 'lote_agregado') {
+        return confirmarLoteAgregado();
+    }
+    // Modos lote (grupo/pasto/seleção): rota batch existente que itera animais
     if (modo.value !== 'individual') {
         return confirmarEmLote();
     }
@@ -317,6 +335,44 @@ function confirmar() {
 }
 
 // Envio em LOTE — um único POST aplica o evento em N animais.
+// Auditoria 2026-04-27 — evento em LOTE AGREGADO (aves, peixes).
+// Rota: admin.rebanho.lotes.eventos.store
+// Decrementa quantidade_atual quando tipo=mortalidade.
+function confirmarLoteAgregado() {
+    erroServidor.value = null;
+    const qtd = parseInt(String(qtdAnimaisAgregado.value)) || 0;
+    if (qtd < 1) { erroServidor.value = 'Informe quantos animais foram afetados.'; return; }
+
+    const payload = {
+        tipo: tipoAtivo.value,
+        data: form.data_evento,
+        quantidade_animais: qtd,
+        vacina: form.vacina || null,
+        medicamento: form.medicamento || null,
+        dose: form.dose || null,
+        via_aplicacao: form.via_aplicacao || null,
+        responsavel: form.responsavel || null,
+        observacoes: tipoAtivo.value === 'mortalidade' && form.causa
+            ? form.causa + (form.observacoes ? ` · ${form.observacoes}` : '')
+            : (form.observacoes || null),
+    };
+
+    form.transform(() => payload).post(route('admin.rebanho.lotes.eventos.store', loteAgregadoId.value), {
+        preserveScroll: false,
+        onSuccess: (page) => {
+            const flashError = page?.props?.flash?.error ?? null;
+            if (flashError) { erroServidor.value = flashError; return; }
+            const lote = props.lotesAgregados.find(l => l.id === loteAgregadoId.value);
+            sucesso.value = {
+                _animal: { identificacao: lote?.nome || 'lote', especie_lote: true },
+                _loteNome: lote?.nome,
+                _qtd: qtd,
+            };
+            passo.value = 4;
+        },
+    });
+}
+
 function confirmarEmLote() {
     erroServidor.value = null;
 
@@ -403,28 +459,66 @@ function reiniciar() {
                 <!-- Toggle INDIVIDUAL vs EM LOTE — só para tipos que aceitam em lote
                      (vacinação/medicação/vermifugação/observação). Cenário real:
                      veterinário aplica a mesma vacina em 80 animais de uma vez. -->
-                <div v-if="permiteLote" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div v-if="permiteLote || permiteAgregado" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <button type="button" @click="modo = 'individual'"
                         class="py-3 px-2 rounded-lg border-2 text-sm font-medium"
                         :class="modo === 'individual' ? 'border-macaybas-primary bg-emerald-50 text-emerald-800' : 'border-slate-200'">
                         🐄 Um animal
                     </button>
-                    <button type="button" @click="modo = 'lote_grupo'"
+                    <button v-if="permiteLote" type="button" @click="modo = 'lote_grupo'"
                         class="py-3 px-2 rounded-lg border-2 text-sm font-medium"
                         :class="modo === 'lote_grupo' ? 'border-macaybas-primary bg-emerald-50 text-emerald-800' : 'border-slate-200'">
                         🐑 Lote inteiro
                     </button>
-                    <button type="button" @click="modo = 'lote_pasto'"
+                    <button v-if="permiteLote" type="button" @click="modo = 'lote_pasto'"
                         class="py-3 px-2 rounded-lg border-2 text-sm font-medium"
                         :class="modo === 'lote_pasto' ? 'border-macaybas-primary bg-emerald-50 text-emerald-800' : 'border-slate-200'">
                         📍 Pasto inteiro
                     </button>
-                    <button type="button" @click="modo = 'selecao'"
+                    <button v-if="permiteLote" type="button" @click="modo = 'selecao'"
                         class="py-3 px-2 rounded-lg border-2 text-sm font-medium"
                         :class="modo === 'selecao' ? 'border-macaybas-primary bg-emerald-50 text-emerald-800' : 'border-slate-200'">
                         ✓ Escolher vários
                     </button>
+                    <!-- Auditoria 2026-04-27 — modo AGREGADO (aves/peixes) -->
+                    <button v-if="permiteAgregado" type="button" @click="modo = 'lote_agregado'"
+                        class="py-3 px-2 rounded-lg border-2 text-sm font-medium"
+                        :class="modo === 'lote_agregado' ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-slate-200'">
+                        🐔 Lote agregado<br><span class="text-xs font-normal">(N de M animais)</span>
+                    </button>
                 </div>
+
+                <!-- LOTE AGREGADO: escolhe lote + quantidade afetada -->
+                <template v-if="modo === 'lote_agregado'">
+                    <p class="text-sm text-slate-600">
+                        <strong>Aves, peixes ou abelhas</strong> sem identificação individual.
+                        Escolha o lote e informe quantos animais foram afetados pelo evento.
+                    </p>
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <button v-for="l in lotesAgregados" :key="l.id" type="button"
+                                @click="loteAgregadoId = l.id; qtdAnimaisAgregado = ''"
+                                class="text-left rounded-xl border-2 p-4 transition-all hover:border-macaybas-primary"
+                                :class="loteAgregadoId === l.id ? 'border-macaybas-primary bg-emerald-50' : 'border-slate-200 bg-white'">
+                            <div class="font-bold text-slate-900">{{ l.nome }}</div>
+                            <div class="text-xs font-mono text-slate-500">{{ l.codigo }}</div>
+                            <div class="text-sm text-slate-700 mt-2">
+                                Efetivo: <strong>{{ Number(l.quantidade_atual).toLocaleString('pt-BR') }}</strong>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div v-if="loteAgregadoId">
+                        <InputLabel value="Quantos animais foram afetados? *" />
+                        <input v-model="qtdAnimaisAgregado" type="number" min="1"
+                               :max="props.lotesAgregados.find(l => l.id === loteAgregadoId)?.quantidade_atual"
+                               class="form-input text-2xl py-3 font-mono w-full"
+                               :placeholder="String(props.lotesAgregados.find(l => l.id === loteAgregadoId)?.quantidade_atual || 0)">
+                        <p class="text-xs text-slate-500 mt-1">
+                            <span v-if="tipoAtivo === 'mortalidade'">⚠ Esses animais serão DESCONTADOS do efetivo do lote.</span>
+                            <span v-else>O efetivo do lote NÃO muda — só registra o evento.</span>
+                        </p>
+                    </div>
+                </template>
 
                 <!-- INDIVIDUAL: mesma UI de sempre -->
                 <template v-if="modo === 'individual'">

@@ -22,14 +22,28 @@ import { emojiEspecie } from '@/utils/emojiEspecie.js';
 
 const props = defineProps({
     animais: { type: Array, required: true },
+    lotesAgregados: { type: Array, default: () => [] },
 });
 
 const PASSOS = [
-    { n: 1, titulo: 'O animal',   icon: '🐄' },
+    { n: 1, titulo: 'O que pesar', icon: '🐄' },
     { n: 2, titulo: 'O peso',     icon: '⚖️' },
     { n: 3, titulo: 'Conferência', icon: '📋' },
     { n: 4, titulo: 'Pronto!',    icon: '✅' },
 ];
+
+// MODO da pesagem (auditoria 2026-04-27)
+//   individual → pesar 1 animal (bovino, equino) → atual
+//   amostragem → pesar N animais aleatórios de um lote → calcula média
+//   biomassa   → kg total / qtd no lote → média
+const modo = ref('individual');
+const loteSelecionado = ref(null);
+// Amostragem: nº pesados + peso total da amostra → calcula média
+const amostraQtd = ref('');
+const amostraPesoTotal = ref('');
+// Biomassa: kg total + qtd no lote → média
+const biomassaPesoTotal = ref('');
+const biomassaQtd = ref('');
 
 const passo = ref(1);
 const selecionado = ref(null);
@@ -45,6 +59,23 @@ const form = useForm({
     observacoes: '',
 });
 
+// Peso médio calculado dinâmico para amostragem/biomassa
+const pesoMedioCalculado = computed(() => {
+    if (modo.value === 'amostragem') {
+        const q = parseFloat(String(amostraQtd.value).replace(',', '.'));
+        const p = parseFloat(String(amostraPesoTotal.value).replace(',', '.'));
+        if (!q || !p || q <= 0) return null;
+        return p / q;
+    }
+    if (modo.value === 'biomassa') {
+        const q = parseFloat(String(biomassaQtd.value).replace(',', '.'));
+        const p = parseFloat(String(biomassaPesoTotal.value).replace(',', '.'));
+        if (!q || !p || q <= 0) return null;
+        return p / q;
+    }
+    return null;
+});
+
 const animaisFiltrados = computed(() => {
     if (!busca.value.trim()) return props.animais;
     const q = busca.value.toLowerCase();
@@ -56,10 +87,22 @@ const animaisFiltrados = computed(() => {
     );
 });
 
-const podeAvancar1 = computed(() => !!selecionado.value);
+const podeAvancar1 = computed(() => {
+    if (modo.value === 'individual') return !!selecionado.value;
+    return !!loteSelecionado.value; // amostragem ou biomassa exigem lote
+});
 const podeAvancar2 = computed(() => {
-    const n = parseFloat(String(form.peso).replace(',', '.'));
-    return !isNaN(n) && n > 0 && !!form.data_evento;
+    if (modo.value === 'individual') {
+        const n = parseFloat(String(form.peso).replace(',', '.'));
+        return !isNaN(n) && n > 0 && !!form.data_evento;
+    }
+    if (modo.value === 'amostragem') {
+        return pesoMedioCalculado.value !== null && pesoMedioCalculado.value > 0 && !!form.data_evento;
+    }
+    if (modo.value === 'biomassa') {
+        return pesoMedioCalculado.value !== null && pesoMedioCalculado.value > 0 && !!form.data_evento;
+    }
+    return false;
 });
 
 // emojiEspecie vem de '@/utils/emojiEspecie.js' — centralizado.
@@ -91,19 +134,51 @@ function irPara(n) { passo.value = n; }
 function confirmar() {
     if (!podeAvancar1.value || !podeAvancar2.value) return;
 
-    // Snapshot do peso ANTES do submit — usado no passo 4 para mostrar evolução
-    pesoAnterior.value = selecionado.value?.peso_atual ? Number(selecionado.value.peso_atual) : null;
+    // ─── INDIVIDUAL: pesa 1 animal específico (rota antiga) ───────────────
+    if (modo.value === 'individual') {
+        pesoAnterior.value = selecionado.value?.peso_atual ? Number(selecionado.value.peso_atual) : null;
+
+        form
+            .transform((d) => {
+                const { data_evento, ...r } = d;
+                return { ...r, data: data_evento, peso: parseFloat(String(d.peso).replace(',', '.')) };
+            })
+            .post(route('admin.rebanho.animais.eventos.store', selecionado.value.id), {
+                preserveScroll: false,
+                onSuccess: () => {
+                    animalRegistrado.value = selecionado.value;
+                    pesoRegistrado.value = parseFloat(String(form.peso).replace(',', '.'));
+                    passo.value = 4;
+                },
+            });
+        return;
+    }
+
+    // ─── AMOSTRAGEM ou BIOMASSA: evento agregado por LOTE (rota nova) ───
+    pesoAnterior.value = loteSelecionado.value?.peso_medio_kg ? Number(loteSelecionado.value.peso_medio_kg) : null;
+    const pesoMedio = pesoMedioCalculado.value;
+    // Quantos animais participaram do evento (para registrar quantidade_animais)
+    const qtdEvento = modo.value === 'amostragem'
+        ? parseInt(String(amostraQtd.value)) || 0
+        : (parseInt(String(biomassaQtd.value)) || loteSelecionado.value.quantidade_atual);
+
+    const obs = modo.value === 'amostragem'
+        ? `Pesagem amostral · ${amostraQtd.value} animais pesados · ${amostraPesoTotal.value} kg total`
+        : `Pesagem por biomassa · ${biomassaQtd.value} animais · ${biomassaPesoTotal.value} kg total`;
 
     form
-        .transform((d) => {
-            const { data_evento, ...r } = d;
-            return { ...r, data: data_evento, peso: parseFloat(String(d.peso).replace(',', '.')) };
-        })
-        .post(route('admin.rebanho.animais.eventos.store', selecionado.value.id), {
+        .transform(() => ({
+            tipo: 'pesagem',
+            data: form.data_evento,
+            peso: pesoMedio,
+            quantidade_animais: qtdEvento,
+            observacoes: (form.observacoes ? form.observacoes + ' · ' : '') + obs,
+        }))
+        .post(route('admin.rebanho.lotes.eventos.store', loteSelecionado.value.id), {
             preserveScroll: false,
             onSuccess: () => {
-                animalRegistrado.value = selecionado.value;
-                pesoRegistrado.value = parseFloat(String(form.peso).replace(',', '.'));
+                animalRegistrado.value = { identificacao: loteSelecionado.value.nome, especie_lote: true };
+                pesoRegistrado.value = pesoMedio;
                 passo.value = 4;
             },
         });
@@ -154,9 +229,32 @@ function reiniciar() {
 
         <WizardStepper :passos="PASSOS" :passo="passo" />
 
-        <!-- PASSO 1 · O animal -->
+        <!-- PASSO 1 · O animal/lote -->
         <div v-if="passo === 1" class="card max-w-5xl mx-auto">
             <div class="card-body space-y-5">
+                <!-- Tabs de modo (auditoria 2026-04-27) -->
+                <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+                    <button type="button" @click="modo = 'individual'"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition"
+                            :class="modo === 'individual' ? 'bg-macaybas-primary-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+                        🐄 Animal individual
+                    </button>
+                    <button type="button" @click="modo = 'amostragem'"
+                            :disabled="lotesAgregados.length === 0"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            :class="modo === 'amostragem' ? 'bg-macaybas-primary-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+                        🐔 Pesagem amostral (lote)
+                    </button>
+                    <button type="button" @click="modo = 'biomassa'"
+                            :disabled="lotesAgregados.length === 0"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            :class="modo === 'biomassa' ? 'bg-macaybas-primary-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+                        🐟 Biomassa (despesca)
+                    </button>
+                </div>
+
+                <!-- ── MODO INDIVIDUAL ── -->
+                <template v-if="modo === 'individual'">
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">Qual animal você quer pesar?</h2>
                     <p class="text-base text-slate-600 mt-2">
@@ -208,6 +306,46 @@ function reiniciar() {
                         </div>
                     </button>
                 </div>
+                </template>
+
+                <!-- ── MODO AMOSTRAGEM ou BIOMASSA: escolhe o LOTE ── -->
+                <template v-if="modo === 'amostragem' || modo === 'biomassa'">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-slate-900">
+                            {{ modo === 'amostragem' ? 'Qual lote você está amostrando?' : 'Qual lote da despesca?' }}
+                        </h2>
+                        <p class="text-base text-slate-600 mt-2">
+                            <span v-if="modo === 'amostragem'">
+                                Pesa um grupo pequeno (10-30 animais) e o sistema calcula o peso médio do lote inteiro.
+                                Útil para aves de corte, postura e suínos em recria.
+                            </span>
+                            <span v-else>
+                                Pesa o total da despesca (kg) com a quantidade de animais e o sistema calcula
+                                o peso médio. Útil para piscicultura.
+                            </span>
+                        </p>
+                        <p v-if="lotesAgregados.length === 0" class="text-sm text-amber-700 mt-2">
+                            Não há lotes agregados (aves/peixes) cadastrados ainda.
+                        </p>
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <button v-for="l in lotesAgregados" :key="l.id" type="button"
+                                @click="loteSelecionado = l"
+                                class="text-left rounded-xl border-2 p-4 transition-all hover:border-macaybas-primary hover:shadow-md"
+                                :class="loteSelecionado?.id === l.id ? 'border-macaybas-primary bg-emerald-50 shadow-md' : 'border-slate-200 bg-white'">
+                            <div class="font-bold text-slate-900">{{ l.nome }}</div>
+                            <div class="text-xs text-slate-500 font-mono mt-0.5">{{ l.codigo }}</div>
+                            <div class="text-sm text-slate-700 mt-2">
+                                Efetivo atual: <strong>{{ Number(l.quantidade_atual).toLocaleString('pt-BR') }}</strong>
+                            </div>
+                            <div v-if="l.peso_medio_kg" class="text-sm text-slate-700">
+                                Peso médio: <strong>{{ Number(l.peso_medio_kg).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }} kg</strong>
+                            </div>
+                            <div v-else class="text-xs text-slate-400 mt-1">Sem peso médio registrado</div>
+                        </button>
+                    </div>
+                </template>
 
                 <div class="flex justify-end pt-4">
                     <button @click="avancar" :disabled="!podeAvancar1" class="btn-primary px-8 py-3 text-base">Continuar →</button>
@@ -215,9 +353,12 @@ function reiniciar() {
             </div>
         </div>
 
-        <!-- PASSO 2 · O peso -->
+        <!-- PASSO 2 · O peso (depende do modo) -->
         <div v-if="passo === 2" class="card max-w-2xl mx-auto">
             <div class="card-body space-y-5">
+
+                <!-- ── INDIVIDUAL ── -->
+                <template v-if="modo === 'individual'">
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">Qual o peso do {{ selecionado.identificacao }}?</h2>
                     <p class="text-base text-slate-600 mt-2">
@@ -227,7 +368,6 @@ function reiniciar() {
 
                 <div>
                     <InputLabel value="Peso em quilos" />
-                    <!-- type=text + inputmode=decimal: aceita vírgula OU ponto. Conversão acontece em confirmar(). -->
                     <input v-model="form.peso" type="text" inputmode="decimal"
                            placeholder="Ex: 450,5"
                            class="form-input text-2xl py-4 font-mono w-full"
@@ -235,6 +375,79 @@ function reiniciar() {
                     <p class="text-xs text-slate-500 mt-1">Pode usar vírgula (450,5) ou ponto (450.5).</p>
                     <p v-if="form.errors.peso" class="text-sm text-red-700 mt-1">{{ form.errors.peso }}</p>
                 </div>
+                </template>
+
+                <!-- ── AMOSTRAGEM ── -->
+                <template v-if="modo === 'amostragem'">
+                <div>
+                    <h2 class="text-2xl font-semibold text-slate-900">Pesagem amostral · {{ loteSelecionado.nome }}</h2>
+                    <p class="text-base text-slate-600 mt-2">
+                        Informe quantos animais você pesou e o peso TOTAL dessa amostra. O sistema calcula o peso médio.
+                    </p>
+                </div>
+
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <InputLabel value="Quantos animais foram pesados?" />
+                        <input v-model="amostraQtd" type="number" min="1" :max="loteSelecionado.quantidade_atual"
+                               class="form-input text-xl py-3 font-mono"
+                               placeholder="Ex.: 30">
+                        <p class="text-xs text-slate-500 mt-1">Lote tem {{ Number(loteSelecionado.quantidade_atual).toLocaleString('pt-BR') }} no total.</p>
+                    </div>
+                    <div>
+                        <InputLabel value="Peso total da amostra (kg)" />
+                        <input v-model="amostraPesoTotal" type="text" inputmode="decimal"
+                               class="form-input text-xl py-3 font-mono"
+                               placeholder="Ex.: 75,5"
+                               @input="amostraPesoTotal = String(amostraPesoTotal).replace(/[^0-9.,]/g, '')">
+                        <p class="text-xs text-slate-500 mt-1">Soma dos pesos dos animais pesados.</p>
+                    </div>
+                </div>
+
+                <div v-if="pesoMedioCalculado" class="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 p-4 text-center">
+                    <div class="text-xs text-emerald-700 uppercase tracking-wider">Peso médio calculado</div>
+                    <div class="text-3xl font-bold text-emerald-900 font-mono mt-1">
+                        {{ pesoMedioCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 3 }) }} kg
+                    </div>
+                    <div class="text-xs text-emerald-700 mt-1">por animal — atualiza o peso médio do lote</div>
+                </div>
+                </template>
+
+                <!-- ── BIOMASSA ── -->
+                <template v-if="modo === 'biomassa'">
+                <div>
+                    <h2 class="text-2xl font-semibold text-slate-900">Biomassa · {{ loteSelecionado.nome }}</h2>
+                    <p class="text-base text-slate-600 mt-2">
+                        Informe o peso total da despesca e quantos animais participaram. Comum em piscicultura.
+                    </p>
+                </div>
+
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <InputLabel value="Peso total (kg)" />
+                        <input v-model="biomassaPesoTotal" type="text" inputmode="decimal"
+                               class="form-input text-2xl py-4 font-mono"
+                               placeholder="Ex.: 1250,5"
+                               @input="biomassaPesoTotal = String(biomassaPesoTotal).replace(/[^0-9.,]/g, '')">
+                        <p class="text-xs text-slate-500 mt-1">kg total na balança/caixa.</p>
+                    </div>
+                    <div>
+                        <InputLabel value="Quantidade de animais" />
+                        <input v-model="biomassaQtd" type="number" min="1" :max="loteSelecionado.quantidade_atual"
+                               class="form-input text-2xl py-4 font-mono"
+                               :placeholder="String(loteSelecionado.quantidade_atual)">
+                        <p class="text-xs text-slate-500 mt-1">Total no lote: {{ Number(loteSelecionado.quantidade_atual).toLocaleString('pt-BR') }}</p>
+                    </div>
+                </div>
+
+                <div v-if="pesoMedioCalculado" class="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 p-4 text-center">
+                    <div class="text-xs text-emerald-700 uppercase tracking-wider">Peso médio calculado</div>
+                    <div class="text-3xl font-bold text-emerald-900 font-mono mt-1">
+                        {{ pesoMedioCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 3 }) }} kg
+                    </div>
+                    <div class="text-xs text-emerald-700 mt-1">por animal · atualiza peso médio do lote</div>
+                </div>
+                </template>
 
                 <div>
                     <InputLabel value="Quando você pesou?" />

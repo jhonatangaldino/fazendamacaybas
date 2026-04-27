@@ -456,6 +456,11 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
         Route::delete('rebanho/animais/{animal}/foto', [AnimalController::class, 'removePhoto'])->middleware('permission:operational.rebanho.animais.update')->name('rebanho.animais.foto.remove');
         Route::get('rebanho/animais/{animal}', [AnimalController::class, 'show'])->name('rebanho.animais.show');
         Route::post('rebanho/animais/{animal}/eventos', [AnimalController::class, 'storeEvent'])->middleware('permission:operational.rebanho.eventos.create')->name('rebanho.animais.eventos.store');
+        // Auditoria 2026-04-27 · eventos AGREGADOS (lote inteiro / N de M animais)
+        // C2 pesagem amostral/biomassa, C3 mortalidade massa, C4 vacina parcial
+        Route::post('rebanho/lotes/{lot}/eventos', [\App\Http\Controllers\Admin\Livestock\AnimalLotEventController::class, 'store'])
+            ->middleware('permission:operational.rebanho.eventos.create')
+            ->name('rebanho.lotes.eventos.store');
         Route::post('rebanho/animais/vender-lote', [AnimalController::class, 'sellBatch'])->middleware('permission:operational.rebanho.animais.update')->name('rebanho.animais.vender-lote');
         // Evento em LOTE: vacinação/medicação/vermífugo/observação aplicados em múltiplos animais
         Route::post('rebanho/animais/eventos-lote', [AnimalController::class, 'storeEventBatch'])->middleware('permission:operational.rebanho.eventos.create')->name('rebanho.animais.eventos-lote');

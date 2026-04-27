@@ -17,7 +17,8 @@ class AnimalEvent extends Model
     protected $table = 'animal_events';
 
     protected $fillable = [
-        'animal_id', 'lot_id', 'tipo', 'data', 'peso', 'vacina', 'medicamento',
+        'animal_id', 'lot_id', 'quantidade_animais',
+        'tipo', 'data', 'peso', 'vacina', 'medicamento',
         'dose', 'via_aplicacao', 'responsavel', 'valor', 'partner_id',
         'lot_origem_id', 'lot_destino_id',
         'location_origem_id', 'location_destino_id',
@@ -30,7 +31,17 @@ class AnimalEvent extends Model
         'peso' => 'decimal:2',
         'dose' => 'decimal:3',
         'valor' => 'decimal:2',
+        'quantidade_animais' => 'integer',
     ];
+
+    /**
+     * Helper: este evento é agregado (afeta um lote inteiro/parcial sem
+     * registro individual)?
+     */
+    public function isAgregado(): bool
+    {
+        return $this->animal_id === null && $this->lot_id !== null;
+    }
 
     public function animal(): BelongsTo
     {

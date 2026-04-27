@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Wizards;
 
 use App\Http\Controllers\Controller;
 use App\Models\Livestock\Animal;
+use App\Models\Livestock\AnimalLot;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -46,8 +47,19 @@ class PesagemWizardController extends Controller
                 'lot' => $a->lot ? ['id' => $a->lot->id, 'nome' => $a->lot->nome] : null,
             ]);
 
+        // Auditoria 2026-04-27 — pesagem amostral/biomassa para lotes agregados
+        // (aves, peixes). Lotes com gestao_modo='agregada' permitem pesagem
+        // por amostragem (N animais pesados → calcula média) ou biomassa
+        // (kg total / qtd → média).
+        $lotesAgregados = AnimalLot::where('is_active', true)
+            ->where('gestao_modo', 'agregada')
+            ->where('quantidade_atual', '>', 0)
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'codigo', 'quantidade_atual', 'peso_medio_kg', 'finalidade']);
+
         return Inertia::render('Admin/Wizards/Pesagem', [
             'animais' => $animais,
+            'lotesAgregados' => $lotesAgregados,
         ]);
     }
 }
