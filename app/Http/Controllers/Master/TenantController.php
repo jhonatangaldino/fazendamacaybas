@@ -248,6 +248,9 @@ class TenantController extends Controller
                 'telefone' => $tenant->telefone,
                 'cidade' => $tenant->cidade,
                 'estado' => $tenant->estado,
+                'endereco' => $tenant->endereco,
+                'latitude' => $tenant->latitude !== null ? (string) $tenant->latitude : null,
+                'longitude' => $tenant->longitude !== null ? (string) $tenant->longitude : null,
                 'is_active' => (bool) $tenant->is_active,
                 'is_master_tenant' => (bool) $tenant->is_master_tenant,
                 'domains' => $tenant->domains ?? [],
@@ -280,11 +283,16 @@ class TenantController extends Controller
     /**
      * Espelha lat/lng/endereco do tenant nos settings.landing.map.* — assim a
      * landing pública renderiza o mapa corretamente sem o usuário ter que
-     * preencher 2 lugares. Override por tenant (mesma chave, tenant_id != null).
+     * preencher 2 lugares.
      *
-     * Idempotente. Se o usuário JÁ preencheu manualmente um valor diferente
-     * em /master/cms/configuracoes, **não sobrescreve** — só preenche valores
-     * que estiverem nulos/vazios.
+     * Comportamento (corrigido 2026-04-27):
+     *   O cadastro do tenant é a fonte da verdade. Quando o master edita o
+     *   tenant com endereço/lat/lng, esses valores SOBRESCREVEM os settings.
+     *   Antes a regra era "respeita override manual" — mas isso quebrava a
+     *   expectativa do usuário (ele edita no cliente e não vê no mapa). Quem
+     *   precisar customizar a string da página de localização pode editar em
+     *   /master/cms/configuracoes — mas será sobrescrito pelo próximo edit do
+     *   tenant. Comportamento previsível > flexibilidade silenciosa.
      */
     private function syncMapSettings(\App\Domain\Billing\Models\Tenant $tenant): void
     {
@@ -297,10 +305,6 @@ class TenantController extends Controller
 
         foreach ($mapping as $key => $value) {
             if ($value === null || $value === '') continue;
-
-            $existente = \App\Models\Setting::where('tenant_id', $tenant->id)->where('key', $key)->first();
-            // Se já existe override do cliente E não é vazio, respeita.
-            if ($existente && ! empty($existente->value)) continue;
 
             \App\Models\Setting::updateOrCreate(
                 ['tenant_id' => $tenant->id, 'key' => $key],
