@@ -8,10 +8,12 @@ use App\Domain\Cms\Services\LandingScaffoldService;
 use App\Http\Controllers\Controller;
 use App\Models\Farm;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -316,6 +318,93 @@ class TenantController extends Controller
                 ]
             );
         }
+    }
+
+    /**
+     * Endpoint AJAX que aceita um texto de coordenadas em qualquer formato
+     * comum e devolve { lat, lng } em decimal. Usado pelo Form do tenant
+     * para deixar o master colar:
+     *
+     *   - URL Google Maps:  https://maps.app.goo.gl/...  (encurtada — segue redirect)
+     *                       https://www.google.com/maps/place/.../@-20.229,-43.734,17z
+     *                       https://maps.google.com/?q=-20.229,-43.734
+     *   - DMS:              20°13'44.9"S 43°44'03.5"W
+     *   - Decimal pareado:  -20.229139, -43.734306
+     */
+    public function parseCoords(Request $request): JsonResponse
+    {
+        $request->validate(['input' => 'required|string|max:1000']);
+        $raw = trim($request->string('input'));
+
+        // Se for URL encurtada, segue até 5 redirects para extrair coords da URL final.
+        if (preg_match('#^https?://#i', $raw)) {
+            $resolved = $this->resolveMapsUrl($raw);
+            $coords = $this->extractFromMapsUrl($resolved ?? $raw);
+            if ($coords) {
+                return response()->json($coords + ['source' => 'url']);
+            }
+        }
+
+        // DMS: 20°13'44.9"S 43°44'03.5"W
+        if (preg_match_all('/(-?\d+(?:[.,]\d+)?)\s*°\s*(\d+(?:[.,]\d+)?)?\s*\'?\s*(\d+(?:[.,]\d+)?)?\s*"?\s*([NSEWLOnsewlo])/u', $raw, $m, PREG_SET_ORDER) && count($m) >= 2) {
+            $toDecimal = function ($parts) {
+                $g = (float) str_replace(',', '.', $parts[1]);
+                $mm = isset($parts[2]) && $parts[2] !== '' ? (float) str_replace(',', '.', $parts[2]) : 0;
+                $s = isset($parts[3]) && $parts[3] !== '' ? (float) str_replace(',', '.', $parts[3]) : 0;
+                $sinal = preg_match('/[SWOswo]/u', $parts[4]) ? -1 : 1;
+                return $sinal * (abs($g) + $mm / 60 + $s / 3600);
+            };
+            return response()->json(['lat' => round($toDecimal($m[0]), 7), 'lng' => round($toDecimal($m[1]), 7), 'source' => 'dms']);
+        }
+
+        // Decimal pareado: -20.229, -43.734  ou  -20.229; -43.734
+        if (preg_match('/(-?\d+\.?\d*)\s*[,;\s]+\s*(-?\d+\.?\d*)/', $raw, $m)) {
+            $lat = (float) $m[1];
+            $lng = (float) $m[2];
+            if (abs($lat) <= 90 && abs($lng) <= 180) {
+                return response()->json(['lat' => round($lat, 7), 'lng' => round($lng, 7), 'source' => 'decimal']);
+            }
+        }
+
+        return response()->json(['error' => 'Não consegui identificar coordenadas no texto. Cole uma URL do Google Maps, ou coordenadas DMS (20°13\'44.9"S 43°44\'03.5"W), ou decimal (-20.229, -43.734).'], 422);
+    }
+
+    /**
+     * Segue redirects de URL encurtada (maps.app.goo.gl, goo.gl/maps).
+     * Retorna a URL final (que normalmente contém @lat,lng) ou null se falhar.
+     */
+    private function resolveMapsUrl(string $url): ?string
+    {
+        try {
+            $resp = Http::withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; MacaybasBot/1.0)'])
+                ->timeout(8)
+                ->withOptions(['allow_redirects' => ['max' => 5, 'track_redirects' => true]])
+                ->get($url);
+            $history = $resp->handlerStats()['redirect_url'] ?? null;
+            return $history ?: ($resp->effectiveUri() ? (string) $resp->effectiveUri() : null);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Extrai lat/lng de uma URL do Google Maps em qualquer um dos formatos comuns.
+     */
+    private function extractFromMapsUrl(string $url): ?array
+    {
+        // /@-20.229,-43.734,17z
+        if (preg_match('/@(-?\d+\.\d+),(-?\d+\.\d+)/', $url, $m)) {
+            return ['lat' => round((float) $m[1], 7), 'lng' => round((float) $m[2], 7)];
+        }
+        // ?q=-20.229,-43.734  ou  &q=-20.229,-43.734
+        if (preg_match('/[?&!]q=(-?\d+\.\d+),(-?\d+\.\d+)/', $url, $m)) {
+            return ['lat' => round((float) $m[1], 7), 'lng' => round((float) $m[2], 7)];
+        }
+        // !3d-20.229!4d-43.734  (formato interno do place share)
+        if (preg_match('/!3d(-?\d+\.\d+).*?!4d(-?\d+\.\d+)/', $url, $m)) {
+            return ['lat' => round((float) $m[1], 7), 'lng' => round((float) $m[2], 7)];
+        }
+        return null;
     }
 
     /**

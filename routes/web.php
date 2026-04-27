@@ -110,6 +110,8 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
     Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
     Route::get('tenants/novo', [TenantController::class, 'create'])->name('tenants.create');
     Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
+    // Helper AJAX: aceita URL Google Maps, DMS ou decimal e devolve {lat,lng}
+    Route::post('tenants/parse-coords', [TenantController::class, 'parseCoords'])->name('tenants.parse-coords');
     Route::get('tenants/{tenant}/editar', [TenantController::class, 'edit'])->name('tenants.edit');
     Route::put('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
     Route::post('tenants/{tenant}/toggle', [TenantController::class, 'toggle'])->name('tenants.toggle');

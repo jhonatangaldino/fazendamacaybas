@@ -82,6 +82,36 @@ const mapaUrl = computed(() => {
     return `https://www.google.com/maps?q=${lat},${lng}&z=15`;
 });
 
+// Aceita URL do Google Maps (curta tipo maps.app.goo.gl ou completa),
+// DMS (20°13'44.9"S 43°44'03.5"W), ou decimal pareado (-20.229, -43.734).
+// Backend resolve URL curta seguindo redirect (CORS bloqueia no client).
+const colarTexto = ref('');
+const colarStatus = ref(null); // null | 'pedindo' | 'ok' | 'erro'
+const colarErroMsg = ref('');
+async function colarConverter() {
+    const t = (colarTexto.value || '').trim();
+    if (! t) { colarStatus.value = 'erro'; colarErroMsg.value = 'Cole alguma coisa antes.'; return; }
+    colarStatus.value = 'pedindo';
+    colarErroMsg.value = '';
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        const r = await fetch(route('master.tenants.parse-coords'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+            body: JSON.stringify({ input: t }),
+        });
+        const data = await r.json();
+        if (! r.ok) { colarStatus.value = 'erro'; colarErroMsg.value = data.error || 'Não consegui identificar.'; return; }
+        form.latitude = String(data.lat);
+        form.longitude = String(data.lng);
+        colarStatus.value = 'ok';
+        colarTexto.value = '';
+    } catch (e) {
+        colarStatus.value = 'erro';
+        colarErroMsg.value = 'Erro de rede. Tente novamente.';
+    }
+}
+
 /**
  * Auto-slug: derivado do nome enquanto o usuário não editar o campo slug
  * manualmente. Em edit também respeita — slug pré-existente não é sobrescrito.
@@ -414,6 +444,36 @@ function submit() {
                         >
                             Ver no Google Maps ↗
                         </a>
+                    </div>
+
+                    <!-- Atalho: cole URL Google Maps, DMS ou decimal e o sistema converte -->
+                    <div class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-3 space-y-2">
+                        <label class="block text-xs font-semibold text-slate-700">
+                            Atalho: cole link do Google Maps, DMS ou coordenadas decimais
+                        </label>
+                        <p class="text-[11px] text-slate-500 leading-snug">
+                            Aceita: URL <code class="font-mono">maps.app.goo.gl/...</code> · DMS <code class="font-mono">20°13'44.9"S 43°44'03.5"W</code> · decimal <code class="font-mono">-20.229, -43.734</code>
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input
+                                v-model="colarTexto"
+                                type="text"
+                                @keydown.enter.prevent="colarConverter"
+                                class="flex-1 px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm"
+                                placeholder="Cole aqui (URL, DMS ou decimal) e clique Converter"
+                            >
+                            <button
+                                type="button"
+                                @click="colarConverter"
+                                :disabled="colarStatus === 'pedindo'"
+                                class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-60"
+                            >
+                                <span v-if="colarStatus === 'pedindo'">Convertendo…</span>
+                                <span v-else>Converter</span>
+                            </button>
+                        </div>
+                        <p v-if="colarStatus === 'ok'" class="text-xs text-emerald-700">✓ Coordenadas preenchidas abaixo</p>
+                        <p v-if="colarStatus === 'erro'" class="text-xs text-red-700">{{ colarErroMsg }}</p>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
