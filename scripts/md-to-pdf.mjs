@@ -53,6 +53,14 @@ function mdToHtml(md) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
+        // HTML block-level — passa direto sem virar <p>
+        // Cobre <section>, <div>, <aside>, <figure>, <details>, <hr> etc
+        if (/^<\/?(section|div|aside|figure|details|summary|article|nav|header|footer|main)\b/i.test(line.trim())) {
+            flushPara(); flushList(); flushTable();
+            out.push(line);
+            continue;
+        }
+
         // Bloco de código
         if (line.startsWith('```')) {
             if (inCode) {
@@ -142,89 +150,235 @@ function buildHtml(bodyHtml, title = 'Documento') {
 <meta charset="UTF-8">
 <title>${escapeHtml(title)}</title>
 <style>
-  @page { size: A4; margin: 18mm 16mm; }
+  @page {
+    size: A4;
+    margin: 20mm 18mm 22mm 18mm;
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      color: #94a3b8;
+      font-size: 8pt;
+      font-family: -apple-system, "Segoe UI", sans-serif;
+    }
+  }
+  @page :first { margin: 0; @bottom-center { content: ''; } }
+
   * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #1e293b;
-    line-height: 1.55;
-    font-size: 11pt;
+    line-height: 1.6;
+    font-size: 10.5pt;
   }
-  h1 { font-size: 22pt; color: #166534; border-bottom: 3px solid #166534; padding-bottom: 6pt; margin-top: 0; }
-  h2 { font-size: 16pt; color: #14532d; margin-top: 22pt; border-bottom: 1px solid #d1d5db; padding-bottom: 3pt; }
-  h3 { font-size: 13pt; color: #166534; margin-top: 16pt; }
-  h4 { font-size: 11pt; color: #1f2937; margin-top: 12pt; }
-  p { margin: 6pt 0; }
+
+  /* Cabeçalhos */
+  h1 { font-size: 24pt; color: #166534; margin-top: 0; margin-bottom: 12pt; font-weight: 700; }
+  h2 {
+    font-size: 18pt; color: #14532d; margin-top: 0; margin-bottom: 10pt;
+    border-bottom: 2px solid #166534; padding-bottom: 6pt;
+    page-break-before: always; page-break-after: avoid;
+    font-weight: 700;
+  }
+  h3 {
+    font-size: 13pt; color: #166534; margin-top: 18pt; margin-bottom: 6pt;
+    page-break-after: avoid; break-after: avoid;
+    font-weight: 600;
+  }
+  h4 { font-size: 11pt; color: #1f2937; margin-top: 12pt; margin-bottom: 4pt; page-break-after: avoid; font-weight: 600; }
+  /* Heading + parágrafo seguinte ficam juntos */
+  h2 + p, h3 + p, h4 + p { page-break-before: avoid; break-before: avoid; }
+
+  /* Texto */
+  p { margin: 5pt 0; orphans: 3; widows: 3; }
   a { color: #0369a1; text-decoration: none; }
-  strong { color: #111827; }
+  strong { color: #111827; font-weight: 600; }
+  ul, ol { margin: 4pt 0 10pt 0; padding-left: 22pt; }
+  li { margin: 3pt 0; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 16pt 0; }
+
+  /* Code */
   code {
     font-family: "SF Mono", "Consolas", "Monaco", monospace;
-    background: #f1f5f9;
-    padding: 1pt 4pt;
-    border-radius: 3pt;
-    font-size: 9.5pt;
-    color: #be123c;
+    background: #f1f5f9; padding: 1pt 5pt; border-radius: 3pt;
+    font-size: 9pt; color: #be123c;
   }
   pre {
-    background: #0f172a;
-    color: #e2e8f0;
-    padding: 10pt 12pt;
-    border-radius: 6pt;
-    overflow-x: auto;
-    font-size: 8.5pt;
-    line-height: 1.45;
+    background: #0f172a; color: #e2e8f0;
+    padding: 10pt 12pt; border-radius: 6pt;
+    font-size: 8.5pt; line-height: 1.45;
     page-break-inside: avoid;
   }
   pre code { background: transparent; color: inherit; padding: 0; }
-  ul { margin: 4pt 0 8pt 0; padding-left: 20pt; }
-  li { margin: 2pt 0; }
-  hr { border: none; border-top: 2px solid #e5e7eb; margin: 18pt 0; }
+
+  /* Tabelas */
   table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 8pt 0 12pt 0;
+    border-collapse: collapse; width: 100%;
+    margin: 8pt 0 14pt 0; font-size: 9.5pt;
     page-break-inside: avoid;
-    font-size: 9.5pt;
   }
-  th, td {
-    border: 1px solid #e5e7eb;
-    padding: 5pt 7pt;
-    vertical-align: top;
-  }
+  th, td { border: 1px solid #e5e7eb; padding: 6pt 9pt; vertical-align: top; }
   th { background: #f0fdf4; color: #166534; font-weight: 600; text-align: left; }
   tr:nth-child(even) td { background: #f9fafb; }
-  blockquote {
-    border-left: 3px solid #166534;
-    padding-left: 10pt;
-    color: #475569;
-    margin: 8pt 0;
-  }
+
+  /* Imagens — bloco de tela inteira, com sombra suave */
   img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    margin: 10pt auto;
-    border: 1px solid #e5e7eb;
-    border-radius: 4pt;
+    max-width: 100%; height: auto; display: block;
+    margin: 8pt auto;
+    border: 1px solid #d1d5db; border-radius: 4pt;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    page-break-inside: avoid; break-inside: avoid;
+  }
+
+  /* Citação */
+  blockquote {
+    border-left: 4px solid #166534;
+    background: #f0fdf4;
+    padding: 8pt 12pt;
+    margin: 10pt 0;
+    color: #166534;
+    font-style: italic;
     page-break-inside: avoid;
   }
-  p:has(> img:only-child) { margin: 14pt 0; text-align: center; }
-  .emoji { font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; }
-  h1, h2, h3 { page-break-after: avoid; }
-  table, pre, ul { page-break-inside: avoid; }
-  .footer {
-    position: fixed;
-    bottom: 5mm;
-    left: 0; right: 0;
-    text-align: center;
+
+  /* Wrapper de seção — força h3 + img + steps a ficarem juntos */
+  section.wizard, section.section-card {
+    page-break-inside: avoid; break-inside: avoid;
+    margin-bottom: 14pt;
+  }
+  section.wizard { padding-top: 4pt; }
+
+  /* Callout boxes */
+  .callout {
+    border-left: 4px solid #0284c7;
+    background: #f0f9ff;
+    padding: 8pt 12pt;
+    margin: 10pt 0;
+    border-radius: 0 4pt 4pt 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+  .callout.tip { border-color: #16a34a; background: #f0fdf4; }
+  .callout.warning { border-color: #ea580c; background: #fff7ed; }
+  .callout.info { border-color: #0284c7; background: #f0f9ff; }
+  .callout strong:first-child { display: block; margin-bottom: 3pt; color: #0c4a6e; }
+  .callout.tip strong:first-child { color: #14532d; }
+  .callout.warning strong:first-child { color: #7c2d12; }
+
+  /* Boxes "Quando usar" / "Resultado" — pequenos rótulos coloridos */
+  .field {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4pt;
+    padding: 8pt 12pt;
+    margin: 6pt 0;
+    font-size: 10pt;
+  }
+  .field-label {
     font-size: 8pt;
-    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 3pt;
+  }
+
+  /* CAPA — primeira página */
+  .cover {
+    height: 297mm; width: 210mm;
+    page-break-after: always;
+    background: linear-gradient(135deg, #166534 0%, #14532d 60%, #ca8a04 100%);
+    color: white;
+    padding: 30mm 25mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .cover-logo {
+    width: 80pt; height: 80pt;
+    background: white;
+    color: #166534;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36pt; font-weight: 700;
+    font-family: Georgia, serif;
+    margin-bottom: 18pt;
+  }
+  .cover-brand {
+    font-size: 12pt;
+    text-transform: uppercase;
+    letter-spacing: 3pt;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 6pt;
+  }
+  .cover-title {
+    font-size: 36pt;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0 0 14pt 0;
+    color: white;
+    border: none;
+  }
+  .cover-subtitle {
+    font-size: 14pt;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.5;
+    max-width: 130mm;
+  }
+  .cover-meta {
+    border-top: 1px solid rgba(255,255,255,0.3);
+    padding-top: 14pt;
+    font-size: 10pt;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.7;
+  }
+  .cover-meta strong { color: white; }
+
+  /* SUMÁRIO */
+  .toc { page-break-after: always; }
+  .toc h2 { page-break-before: auto; border-bottom: 2px solid #166534; }
+  .toc-item {
+    display: flex; justify-content: space-between;
+    padding: 5pt 0; border-bottom: 1px dotted #cbd5e1;
+    font-size: 11pt;
+  }
+  .toc-item.level-1 { font-weight: 600; color: #166534; padding-top: 10pt; }
+  .toc-item.level-2 { padding-left: 16pt; color: #1e293b; }
+  .toc-page { color: #94a3b8; font-variant-numeric: tabular-nums; }
+
+  /* Página de capítulo (entre seções) */
+  .chapter-divider {
+    page-break-before: always;
+    page-break-after: avoid;
+    text-align: center;
+    padding-top: 60mm;
+  }
+  .chapter-divider .chapter-num {
+    font-size: 11pt;
+    color: #ca8a04;
+    text-transform: uppercase;
+    letter-spacing: 4pt;
+    margin-bottom: 8pt;
+  }
+  .chapter-divider .chapter-title {
+    font-size: 28pt;
+    color: #166534;
+    font-weight: 700;
+    margin: 0;
+  }
+  .chapter-divider .chapter-subtitle {
+    font-size: 12pt;
+    color: #64748b;
+    margin-top: 8pt;
+    max-width: 120mm;
+    margin-left: auto;
+    margin-right: auto;
   }
 </style>
 </head>
 <body>
 ${bodyHtml}
-<div class="footer">Fazenda Macaybas — FASE 1 de Evolução · gerado em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
 </body>
 </html>`;
 }
