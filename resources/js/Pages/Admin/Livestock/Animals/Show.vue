@@ -321,6 +321,26 @@ const interpretacaoIcone = computed(() => ({
     info:      'ℹ️',
 }[interpretacao.value?.tipo] ?? 'ℹ️'));
 
+// ═══════ TABELA DROVET — estilos do card de avaliação ═══════
+// status vem do backend: 'ok' | 'aviso' | 'alerta'
+const drovetClass = computed(() => ({
+    alerta: 'bg-red-50 border-red-300 text-red-900',
+    aviso:  'bg-amber-50 border-amber-300 text-amber-900',
+    ok:     'bg-emerald-50 border-emerald-300 text-emerald-900',
+}[props.animal?.crescimento_drovet?.status] ?? 'bg-slate-50 border-slate-200 text-slate-700'));
+
+const drovetIcone = computed(() => ({
+    alerta: '🚨',
+    aviso:  '⚠️',
+    ok:     '🐄',
+}[props.animal?.crescimento_drovet?.status] ?? 'ℹ️'));
+
+const drovetBadgeClass = computed(() => ({
+    alerta: 'bg-red-200 text-red-900',
+    aviso:  'bg-amber-200 text-amber-900',
+    ok:     'bg-emerald-200 text-emerald-900',
+}[props.animal?.crescimento_drovet?.status] ?? 'bg-slate-200 text-slate-700'));
+
 // Dados do gráfico — destaca último ponto (maior) + cor da linha conforme tendência
 const chartData = computed(() => {
     const ps = pesagensOrdenadas.value;
@@ -694,6 +714,57 @@ watch(tiposPermitidosNoModal, (lista) => {
             <div class="flex-1 min-w-0">
                 <div class="font-bold text-base leading-tight">{{ interpretacao.titulo }}</div>
                 <div class="text-sm mt-1 leading-relaxed">{{ interpretacao.texto }}</div>
+            </div>
+        </div>
+
+        <!-- ═══ TABELA DROVET · crescimento de fêmea leiteira (só p/ raças leiteiras) ═══ -->
+        <div v-if="animal.crescimento_drovet"
+             class="mb-4 rounded-xl border-2 px-5 py-4"
+             :class="drovetClass">
+            <div class="flex items-start gap-3">
+                <div class="text-3xl leading-none flex-shrink-0" aria-hidden="true">
+                    {{ drovetIcone }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-base leading-tight">{{ animal.crescimento_drovet.titulo }}</span>
+                        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                              :class="drovetBadgeClass">
+                            {{ animal.crescimento_drovet.fase_label }}
+                        </span>
+                    </div>
+                    <div class="text-sm mt-2 leading-relaxed">{{ animal.crescimento_drovet.texto }}</div>
+
+                    <!-- Mini "régua" peso atual vs alvo -->
+                    <div class="mt-3 grid grid-cols-3 gap-3 text-sm">
+                        <div class="rounded-md bg-white/60 ring-1 ring-current/10 p-2">
+                            <div class="text-xs uppercase tracking-wide opacity-70">Peso atual</div>
+                            <div class="font-bold text-lg">{{ animal.crescimento_drovet.peso_atual.toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }} kg</div>
+                        </div>
+                        <div class="rounded-md bg-white/60 ring-1 ring-current/10 p-2">
+                            <div class="text-xs uppercase tracking-wide opacity-70">Peso-alvo DROVET</div>
+                            <div class="font-bold text-lg">{{ animal.crescimento_drovet.peso_alvo }} kg</div>
+                        </div>
+                        <div class="rounded-md bg-white/60 ring-1 ring-current/10 p-2">
+                            <div class="text-xs uppercase tracking-wide opacity-70">Desvio</div>
+                            <div class="font-bold text-lg">
+                                {{ animal.crescimento_drovet.desvio_kg >= 0 ? '+' : '' }}{{ animal.crescimento_drovet.desvio_kg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} kg
+                                <span class="text-xs opacity-70">({{ animal.crescimento_drovet.desvio_pct >= 0 ? '+' : '' }}{{ animal.crescimento_drovet.desvio_pct }}%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Faixa de cobrição quando aplicável -->
+                    <div v-if="animal.crescimento_drovet.cobricao" class="mt-2 text-xs opacity-80">
+                        🎯 Faixa de cobrição para {{ animal.crescimento_drovet.tamanho_label.split('(')[0].trim().toLowerCase() }}:
+                        <strong>{{ animal.crescimento_drovet.cobricao.min }}–{{ animal.crescimento_drovet.cobricao.max }} kg</strong>
+                    </div>
+
+                    <div class="mt-2 text-xs opacity-70">
+                        Referência DROVET+ · raça {{ animal.crescimento_drovet.breed_nome }} ({{ animal.crescimento_drovet.tamanho_label.split('(')[0].trim().toLowerCase() }}) ·
+                        {{ animal.crescimento_drovet.idade_meses }} {{ animal.crescimento_drovet.idade_meses === 1 ? 'mês' : 'meses' }}
+                    </div>
+                </div>
             </div>
         </div>
 

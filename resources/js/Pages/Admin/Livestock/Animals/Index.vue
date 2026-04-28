@@ -21,6 +21,7 @@ const props = defineProps({
     categorias: Array,
     partners: Array,
     resumo: { type: Object, default: () => ({ ativos: 0, vendidos: 0, baixas: 0, peso_total: 0, ativos_com_peso: 0 }) },
+    tem_manejo_leiteiro: { type: Boolean, default: false },
 });
 
 // Peso médio do rebanho (apenas considera animais com peso registrado)
@@ -251,6 +252,10 @@ function doDelete() {
         <PageHeader title="Animais" subtitle="Cadastro individual com histórico incremental de pesagens, vacinas e eventos">
             <template #actions>
                 <!-- BLOCO 4.3 — Hierarquia invertida: Vender é a ação core do dono (faz mais), Cadastrar é raro -->
+                <!-- Dashboard leiteiro só aparece se a fazenda PRATICA manejo leiteiro (raça/categoria leite ou eventos) -->
+                <Link v-if="tem_manejo_leiteiro" :href="route('admin.rebanho.controle-leiteiro.dashboard')" class="btn-outline" title="Quadro mensal DROVET com produção, categorias e histórico">
+                    📊 Dashboard leiteiro
+                </Link>
                 <Link :href="route('admin.rebanho.animais.create')" class="btn-outline" title="Cadastrar animal individualmente">
                     Novo animal
                 </Link>

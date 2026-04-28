@@ -133,6 +133,14 @@ class AnimalController extends Controller
                 ['value' => 'pet', 'label' => 'Pet'],
                 ['value' => 'servico', 'label' => 'Serviço / trabalho'],
             ],
+            // Inteligência contextual: o botão "Dashboard leiteiro" só aparece
+            // se a fazenda PRATICA manejo leiteiro — sem isso o link é ruído
+            // pra quem só tem corte, equino, ovino ou aquicultura. Dois sinais:
+            //   1. existe ao menos 1 animal categorizado como leite/misto, OU
+            //   2. existe ao menos 1 evento de controle_leiteiro/ordenha
+            // Basta um pra mostrar. Query barata (existência, não count).
+            'tem_manejo_leiteiro' => Animal::whereIn('categoria', ['leite', 'misto'])->exists()
+                || \App\Models\Livestock\AnimalEvent::whereIn('tipo', ['controle_leiteiro', 'ordenha'])->exists(),
         ]);
     }
 
@@ -418,6 +426,11 @@ class AnimalController extends Controller
         ]);
         $acoesRapidas = $this->montarAcoesRapidas($animal);
 
+        // Avaliação DROVET — só aplicável a fêmeas leiteiras (raça reconhecida)
+        // com data_nascimento + peso_atual e idade ≤ 27 meses. Devolve null
+        // quando não se aplica e a UI suprime o card.
+        $crescimentoDrovet = \App\Domain\Livestock\DairyHeiferGrowthTable::evaluate($animal);
+
         return Inertia::render('Admin/Livestock/Animals/Show', [
             'animal' => [
                 ...$animal->toArray(),
@@ -425,6 +438,7 @@ class AnimalController extends Controller
                 'idade_em_meses' => $animal->data_nascimento?->diffInMonths(now()),
                 'status_reprodutivo' => $statusReprodutivo,
                 'acoes_rapidas' => $acoesRapidas,
+                'crescimento_drovet' => $crescimentoDrovet,
             ],
             'events' => $events,
             'pesagens' => $pesagens,

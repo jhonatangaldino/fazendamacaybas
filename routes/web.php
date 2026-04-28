@@ -497,6 +497,11 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
         Route::post('rebanho/animais/eventos-lote', [AnimalController::class, 'storeEventBatch'])->middleware('permission:operational.rebanho.eventos.create')->name('rebanho.animais.eventos-lote');
         Route::delete('rebanho/animais/{animal}/eventos/{event}', [AnimalController::class, 'destroyEvent'])->middleware('permission:operational.rebanho.eventos.delete')->name('rebanho.animais.eventos.destroy');
 
+        // Dashboard Controle Leiteiro mensal — espelha o quadro DROVET+ em tela:
+        // produção por vaca/mês + contagem de categorias + histórico 12 meses.
+        Route::get('rebanho/controle-leiteiro', [\App\Http\Controllers\Admin\Livestock\ControleLeiteiroController::class, 'dashboard'])
+            ->name('rebanho.controle-leiteiro.dashboard');
+
         // ──── Correção de domínio · Lotes (grupo) e Locais (pasto/piquete) ────
         // Antes o sistema misturava os dois conceitos em `animal_lots` e nem
         // tinha CRUD. Agora são separados e cada um tem sua própria tela.
