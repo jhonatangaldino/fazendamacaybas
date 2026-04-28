@@ -42,6 +42,11 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureMailNotifications();
         $this->configureImpersonationGate();
+
+        // Observer que mantém financial_accounts.saldo_atual sincronizado com
+        // transações pagas (receitas somam, despesas subtraem). Antes disso,
+        // o saldo ficava preso em saldo_inicial mesmo com transações registradas.
+        \App\Models\Financial\FinancialTransaction::observe(\App\Observers\FinancialTransactionObserver::class);
     }
 
     /**
