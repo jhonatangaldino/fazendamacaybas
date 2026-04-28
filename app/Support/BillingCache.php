@@ -87,4 +87,34 @@ class BillingCache
         Cache::forget(self::menuBadgesKey(null));
         Cache::forget(self::masterKpisKey());
     }
+
+    /**
+     * Edição de PLANO afeta TODOS os tenants daquele plano. Invalida o cache
+     * `tenantFeatures` (que controla quais menus aparecem por feature) de
+     * cada tenant ligado a este plano — direto via tenants.plan_id ou via
+     * subscriptions.plan_id (que `Tenant::planFeatures()` prioriza).
+     *
+     * Chamado em PlanController::update/toggle. Sem isso, master desmarcando
+     * "rebanho" no plano só refletia após TTL de 15min — bug detectado
+     * pelo dono ("continua aparecendo o menu mesmo tendo desmarcado").
+     */
+    public static function forgetForPlan(int $planId): void
+    {
+        // Tenants ligados ao plano via FK direta E via subscriptions.
+        // UNION para deduplicar (tenant pode ter ambos apontando pro mesmo plano).
+        $tenantIds = \DB::table('tenants')
+            ->where('plan_id', $planId)
+            ->pluck('id')
+            ->merge(
+                \DB::table('subscriptions')
+                    ->where('plan_id', $planId)
+                    ->pluck('tenant_id')
+            )
+            ->unique()
+            ->values();
+
+        foreach ($tenantIds as $tenantId) {
+            self::forgetForTenant((int) $tenantId);
+        }
+    }
 }

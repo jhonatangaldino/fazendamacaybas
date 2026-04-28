@@ -6,6 +6,7 @@ use App\Domain\Billing\Models\Plan;
 use App\Domain\Billing\Models\Subscription;
 use App\Domain\Billing\Models\Tenant;
 use App\Http\Controllers\Controller;
+use App\Support\BillingCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -104,6 +105,10 @@ class SubscriptionController extends Controller
             $msg = 'Assinatura de '.$tenant->nome.' atualizada.';
         }
 
+        // Troca de plano altera as features disponíveis para o tenant.
+        // Invalida cache `tenantFeatures` para o menu refletir imediatamente.
+        BillingCache::forgetForTenant($tenant->id);
+
         return redirect()
             ->route('master.tenants.subscription.show', $tenant)
             ->with('success', $msg);
@@ -124,6 +129,10 @@ class SubscriptionController extends Controller
             'status' => 'canceled',
             'canceled_at' => now(),
         ]);
+
+        // Cancelamento pode bloquear features no futuro → invalida cache
+        // do tenant para o menu já refletir o novo estado.
+        BillingCache::forgetForTenant($tenant->id);
 
         return back()->with('success', 'Assinatura de '.$tenant->nome.' cancelada.');
     }

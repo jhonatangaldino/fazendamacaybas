@@ -85,14 +85,18 @@ class AnimalController extends Controller
         // KPIs base (todos os profiles): ativos, sexo, peso médio, vendidos/baixas mês
         $animaisQuery = Animal::where('species_id', $species->id);
 
-        // Para gestao=lote (Ave/Peixe), "ativos" é a SOMA de quantidade_atual
-        // dos lotes ativos. Sem isso o dashboard mostrava "0 ativos" mesmo
-        // com 300 peixes em 2 lotes — bug detectado pelo usuário.
-        $totalAtivos = $species->gestao === 'lote'
-            ? (int) \App\Models\Livestock\AnimalLot::where('species_id', $species->id)
-                ->where('is_active', true)
-                ->sum('quantidade_atual')
-            : (clone $animaisQuery)->where('status', 'ativo')->count();
+        // Total de individuais ativos da espécie. Para gestao=individual
+        // já é o número final; para gestao=lote (Ave/Peixe) soma-se mais
+        // abaixo as cabeças dos lotes agregados a este número (cadastros
+        // 1-a-1 legados na espécie de massa).
+        //
+        // CUIDADO: anteriormente esta linha JÁ somava quantidade_atual dos
+        // lotes para gestao=lote, e mais abaixo (linha 145+) somava de novo
+        // → double-count (mostrava 9160 quando o real era 4580). Bug
+        // detectado pelo dono comparando badge do menu (4580) com
+        // dashboard (9160). Corrigido: aqui só conta Animal individual,
+        // a soma de lotes vai exclusivamente no bloco abaixo.
+        $totalAtivos = (clone $animaisQuery)->where('status', 'ativo')->count();
         $sexoM = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'M')->count();
         $sexoF = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'F')->count();
         $vendidosMes = (clone $animaisQuery)->where('status', 'vendido')

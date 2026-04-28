@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Master;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Billing\PlanFeatures;
 use App\Http\Controllers\Controller;
+use App\Support\BillingCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -98,6 +99,11 @@ class PlanController extends Controller
 
         $plan->update($validated);
 
+        // Edição de plano (especialmente features) afeta TODOS os tenants
+        // que o usam. Invalida cache `tenantFeatures` deles para que o
+        // menu reflita a mudança no próximo carregamento (sem esperar TTL).
+        BillingCache::forgetForPlan($plan->id);
+
         return redirect()
             ->route('master.planos.index')
             ->with('success', 'Plano "'.$plan->nome.'" atualizado.');
@@ -106,6 +112,10 @@ class PlanController extends Controller
     public function toggle(Plan $plan): RedirectResponse
     {
         $plan->update(['is_active' => ! $plan->is_active]);
+
+        // Toggle de ativo/inativo pode bloquear acesso → invalida cache
+        // dos tenants para refletir imediatamente.
+        BillingCache::forgetForPlan($plan->id);
 
         $msg = $plan->is_active
             ? 'Plano "'.$plan->nome.'" ativado.'
