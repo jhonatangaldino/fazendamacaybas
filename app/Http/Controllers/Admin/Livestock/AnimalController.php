@@ -1563,7 +1563,13 @@ class AnimalController extends Controller
         }
 
         if ($data['tipo'] === 'mortalidade') {
-            $c['total_ativos_restantes'] = Animal::where('status', 'ativo')->count();
+            // Total = individuais + cabeças em lotes agregados (Ave/Peixe).
+            // Sem isso a mensagem "restam X animais" ignorava 4500 aves em lotes.
+            $individuais = Animal::where('status', 'ativo')->count();
+            $cabecasAgregadas = (int) \App\Models\Livestock\AnimalLot::where('is_active', true)
+                ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->where('gestao', 'lote'))
+                ->sum('quantidade_atual');
+            $c['total_ativos_restantes'] = $individuais + $cabecasAgregadas;
         }
 
         return $c;
