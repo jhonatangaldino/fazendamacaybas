@@ -22,7 +22,14 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead
 </head>
-<body class="font-sans antialiased h-full bg-slate-50">
+{{-- Padding-top de 40px aplicado IMEDIATAMENTE quando há impersonação ativa
+     (não mais via JS watch, que tinha flash inicial onde header/título ficava
+     coberto pela tarja amarela). Detecção feita server-side pra evitar
+     hidratação tardia. --}}
+@php
+    $hasImpersonation = session()->has('impersonation');
+@endphp
+<body class="font-sans antialiased h-full bg-slate-50 {{ $hasImpersonation ? 'pt-10' : '' }}">
     @inertia
 </body>
 </html>

@@ -51,13 +51,15 @@ const menuBadges = computed(() => page.props.menuBadges || {});
 //     porque fixed é em relação ao viewport, não ao body padding.
 const impersonation = computed(() => page.props.impersonation || null);
 
-watch(impersonation, (active) => {
-    if (typeof document === 'undefined') return;
-    document.body.style.paddingTop = active ? '40px' : '';
-}, { immediate: true });
-
+// Padding-top do body agora é aplicado via Blade root (app.blade.php) com base em
+// session('impersonation'). Antes era aplicado via JS watch — causava flash
+// inicial onde o header/título de wizard ficava encoberto pela tarja amarela
+// (especialmente notado em primeiro mount após navegar pra um wizard).
+// Mantemos cleanup defensivo em caso de algum browser ter cacheado o paddingTop antigo.
 onUnmounted(() => {
-    if (typeof document !== 'undefined') document.body.style.paddingTop = '';
+    if (typeof document !== 'undefined' && document.body.style.paddingTop) {
+        document.body.style.paddingTop = '';
+    }
 });
 
 // Features liberadas pelo plano do tenant (vêm do HandleInertiaRequests).

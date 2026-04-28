@@ -591,8 +591,27 @@ function reiniciar() {
                         <option :value="null">— Escolha um lote —</option>
                         <option v-for="l in lotesLocal" :key="l.id" :value="l.id">{{ l.nome }}</option>
                     </select>
-                    <div v-if="loteFiltroId" class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded p-3">
-                        <strong>{{ animaisDoFiltro.length }}</strong> {{ animaisDoFiltro.length === 1 ? 'animal' : 'animais' }} ativo{{ animaisDoFiltro.length === 1 ? '' : 's' }} nesse lote vão receber o evento.
+                    <div v-if="loteFiltroId" class="rounded-lg bg-emerald-50 border border-emerald-200 overflow-hidden">
+                        <div class="px-3 py-2 bg-emerald-100 text-sm text-emerald-900 font-semibold flex items-center justify-between">
+                            <span>
+                                <strong>{{ animaisDoFiltro.length }}</strong> {{ animaisDoFiltro.length === 1 ? 'animal vai' : 'animais vão' }} receber o evento
+                            </span>
+                            <span v-if="animaisDoFiltro.length > 0" class="text-xs text-emerald-700 font-normal">veja a lista abaixo</span>
+                        </div>
+                        <!-- Lista dos animais — usuário sabe EXATAMENTE em quem vai aplicar.
+                             Limita a 50 visíveis com scroll pra não tomar a tela inteira. -->
+                        <ul v-if="animaisDoFiltro.length > 0" class="max-h-48 overflow-y-auto divide-y divide-emerald-100 bg-white">
+                            <li v-for="a in animaisDoFiltro.slice(0, 50)" :key="a.id"
+                                class="px-3 py-2 text-sm flex items-center gap-2">
+                                <span class="text-base" aria-hidden="true">🐾</span>
+                                <span class="font-mono font-semibold text-slate-900">{{ a.identificacao }}</span>
+                                <span v-if="a.nome" class="text-slate-600">· {{ a.nome }}</span>
+                                <span v-if="a.peso_atual" class="ml-auto text-xs text-slate-500">{{ Number(a.peso_atual).toLocaleString('pt-BR') }} kg</span>
+                            </li>
+                            <li v-if="animaisDoFiltro.length > 50" class="px-3 py-2 text-xs text-slate-500 italic text-center">
+                                + {{ animaisDoFiltro.length - 50 }} outros animais (não listados aqui pra economizar tela)
+                            </li>
+                        </ul>
                     </div>
                 </template>
 
@@ -605,8 +624,25 @@ function reiniciar() {
                             {{ l.nome }}<span v-if="l.tipo"> · {{ l.tipo }}</span>
                         </option>
                     </select>
-                    <div v-if="localFiltroId" class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded p-3">
-                        <strong>{{ animaisDoFiltro.length }}</strong> {{ animaisDoFiltro.length === 1 ? 'animal' : 'animais' }} no pasto vão receber o evento.
+                    <div v-if="localFiltroId" class="rounded-lg bg-emerald-50 border border-emerald-200 overflow-hidden">
+                        <div class="px-3 py-2 bg-emerald-100 text-sm text-emerald-900 font-semibold flex items-center justify-between">
+                            <span>
+                                <strong>{{ animaisDoFiltro.length }}</strong> {{ animaisDoFiltro.length === 1 ? 'animal' : 'animais' }} no pasto
+                            </span>
+                            <span v-if="animaisDoFiltro.length > 0" class="text-xs text-emerald-700 font-normal">veja a lista abaixo</span>
+                        </div>
+                        <ul v-if="animaisDoFiltro.length > 0" class="max-h-48 overflow-y-auto divide-y divide-emerald-100 bg-white">
+                            <li v-for="a in animaisDoFiltro.slice(0, 50)" :key="a.id"
+                                class="px-3 py-2 text-sm flex items-center gap-2">
+                                <span class="text-base" aria-hidden="true">🐾</span>
+                                <span class="font-mono font-semibold text-slate-900">{{ a.identificacao }}</span>
+                                <span v-if="a.nome" class="text-slate-600">· {{ a.nome }}</span>
+                                <span v-if="a.lot?.nome" class="ml-auto text-xs text-slate-500">🏷 {{ a.lot.nome }}</span>
+                            </li>
+                            <li v-if="animaisDoFiltro.length > 50" class="px-3 py-2 text-xs text-slate-500 italic text-center">
+                                + {{ animaisDoFiltro.length - 50 }} outros animais
+                            </li>
+                        </ul>
                     </div>
                 </template>
 
