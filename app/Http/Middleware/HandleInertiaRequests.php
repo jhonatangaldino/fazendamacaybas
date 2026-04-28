@@ -265,13 +265,18 @@ class HandleInertiaRequests extends Middleware
             // Cache 15min, invalida via BillingCache em SubscriptionController::update.
             'tenantFeatures' => function () use ($request) {
                 $effectiveTenantId = $this->effectiveTenantId($request);
+                // null = MASTER sem impersonar OU sem tenant → vê tudo (admin global)
                 if ($effectiveTenantId === null) return null;
                 $key = BillingCache::tenantFeaturesKey($effectiveTenantId);
                 return Cache::remember($key, BillingCache::TTL_FEATURES, function () use ($effectiveTenantId) {
                     $tenant = Tenant::with(['plan', 'subscription.plan'])->find($effectiveTenantId);
                     if ($tenant === null) return null;
-                    $features = $tenant->planFeatures();
-                    return empty($features) ? null : $features;
+                    // IMPORTANTE: array vazio [] significa "plano sem nenhuma feature
+                    // marcada" → frontend BLOQUEIA todos os menus com feature gate.
+                    // Antes retornava null nesse caso e liberava tudo (bug detectado
+                    // pelo dono: master impersonando tenant via menus de módulos
+                    // que não estavam liberados no plano).
+                    return $tenant->planFeatures() ?: [];
                 });
             },
             'flash' => [

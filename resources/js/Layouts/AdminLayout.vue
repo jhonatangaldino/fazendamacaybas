@@ -212,18 +212,25 @@ const menu = computed(() => [
 
 /**
  * Filtra item do menu por permissão E por feature do plano.
- *   - perm: null     → ignora permissão (item core)
+ *
+ * Regras:
+ *   - perm: null     → ignora permissão (item core/sempre visível)
  *   - feature: null  → ignora feature gate (item core)
- *   - tenantFeatures: null → master ou plano sem features (libera tudo)
- *   - tenantFeatures: []   → plano vazio explícito; comportamento decidido no
- *     backend (Tenant::hasFeature retorna true para [] vazio = libera tudo).
+ *   - tenantFeatures: null → MASTER sem impersonar → libera tudo (admin global)
+ *   - tenantFeatures: []   → plano SEM features marcadas → BLOQUEIA tudo com feature gate
+ *   - tenantFeatures: ['financeiro', 'rebanho'] → libera só essas
+ *
+ * Antes (bug detectado pelo dono): plano sem features marcadas liberava
+ * todos os menus mesmo assim. Agora master impersonando tenant SEM rebanho
+ * no plano NÃO vê o menu Rebanho.
  */
 function isItemAvailable(item) {
     if (item.perm != null && ! can(item.perm)) return false;
-    if (item.feature && Array.isArray(tenantFeatures.value) && tenantFeatures.value.length > 0) {
-        return tenantFeatures.value.includes(item.feature);
-    }
-    return true;
+    if (! item.feature) return true; // item sem feature gate é sempre visível
+    // null = master global (libera). Array (incluindo vazio) = filtra pelo conteúdo.
+    if (tenantFeatures.value === null) return true;
+    if (! Array.isArray(tenantFeatures.value)) return true;
+    return tenantFeatures.value.includes(item.feature);
 }
 
 const visibleMenu = computed(() =>
