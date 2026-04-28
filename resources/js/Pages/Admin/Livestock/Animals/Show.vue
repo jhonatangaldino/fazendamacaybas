@@ -182,15 +182,16 @@ function salvarEvento() {
 }
 
 async function removerEvento(event) {
-    // Texto humanizado: data em pt-BR (dd/mm/aaaa) e tipo com label legível
-    // do EVENT_CATALOG (ex: "pesagem" → "Pesagem", "postura_diaria" → "Postura (ovos)").
-    // Antes mostrava ISO/UTC ("2025-12-01T03:00:00.000000Z") e tipo cru.
+    // "Apagar registro de X" funciona pra TODOS os tipos:
+    //   pesagem, vacinação, mortalidade, venda, ordenha, postura, exame de toque…
+    // "Remover pesagem" soava como reverter o ATO; aqui é claro que apaga
+    // só o REGISTRO no histórico.
     const dataLegivel = event.data ? dataBR(event.data) : 'data desconhecida';
     const labelEvento = EVENT_CATALOG[event.tipo]?.label || event.tipo || 'evento';
     const ok = await confirmModal({
-        title: `Remover ${labelEvento.toLowerCase()}?`,
-        message: `Tem certeza que quer apagar o registro de ${labelEvento.toLowerCase()} do dia ${dataLegivel}?\n\nIsso é permanente. Indicadores que dependem deste evento (peso atual, ganho médio, produção do mês) serão recalculados.`,
-        confirmText: 'Sim, remover',
+        title: `Apagar registro de ${labelEvento.toLowerCase()}?`,
+        message: `Você vai apagar o registro de ${labelEvento.toLowerCase()} do dia ${dataLegivel}.\n\nIsso é permanente. Indicadores que dependem deste registro (peso atual, ganho médio, produção do mês, etc.) serão recalculados automaticamente.`,
+        confirmText: 'Sim, apagar registro',
         cancelText: 'Cancelar',
         variant: 'danger',
     });
