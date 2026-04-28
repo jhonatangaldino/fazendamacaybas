@@ -38,6 +38,30 @@
     }
 }
 
+/* ===== Anti-zoom iOS Safari =====
+ * iOS Safari dá auto-zoom no input quando font-size < 16px, jogando o
+ * layout pra fora do enquadramento (usuário precisa pinçar pra voltar).
+ * Bug reportado pelo PO 2026-04-28 nos CRUDs em mobile.
+ *
+ * Solução padrão da comunidade: forçar font-size: 16px em todos os
+ * controles de form em viewports mobile. Vai sobrescrever qualquer
+ * `text-xs`/`text-sm` que componentes específicos tenham aplicado
+ * (e existe — 10+ arquivos com inputs `text-sm` inline).
+ *
+ * Excluídos: checkbox/radio/range/file/hidden — não disparam zoom e
+ * podem ter dimensões customizadas.
+ *
+ * Fora do @layer pra ter especificidade alta (sobrescreve utilities
+ * do Tailwind como text-sm).
+ */
+@media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="color"]),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
 @layer components {
     /* ════════════════════════════════════════════════════════════════
      * DESIGN SYSTEM · F4.2 (mobile-first)
