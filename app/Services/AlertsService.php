@@ -175,9 +175,11 @@ class AlertsService
     {
         $alerts = [];
 
-        // Clientes com faturas vencidas (overdue)
+        // Clientes com faturas vencidas (overdue) — só faturas do PLANO
+        // contam, avulsas (tipo='unica') não disparam o alerta de inadimplência.
         if (Schema::hasTable('invoices')) {
             $clientesVencidos = Invoice::where('status', 'overdue')
+                ->where('tipo', 'mensal')
                 ->distinct()
                 ->count(DB::raw('tenant_id'));
             if ($clientesVencidos > 0) {
@@ -186,6 +188,37 @@ class AlertsService
                     'Pagamento em atraso — pode levar a bloqueio.',
                     route('master.cobrancas.index', ['status' => 'overdue']),
                     'Ver cobranças');
+            }
+
+            // Clientes que precisam de NOVO CICLO DE FATURAS — modelo
+            // "paga pra usar" (pré-pago): master gera as faturas do período
+            // (mensal/anual) e quando a vigência está acabando precisa gerar
+            // o próximo ciclo. Sem esse alerta, master esquece e o cliente
+            // perde acesso por bloqueio (PO 2026-04-28).
+            //
+            // Critério: subscription ativa/em-dia, current_period_end <= hoje + 15 dias,
+            // E não há nenhuma fatura mensal cobrindo período POSTERIOR ao
+            // current_period_end atual.
+            $limiar = today()->addDays(15)->toDateString();
+            $precisamCiclo = DB::table('subscriptions as s')
+                ->whereIn('s.status', ['active', 'overdue', 'grace'])
+                ->whereNotNull('s.current_period_end')
+                ->where('s.current_period_end', '<=', $limiar)
+                ->whereNotExists(function ($q) {
+                    $q->select(DB::raw(1))
+                      ->from('invoices as i')
+                      ->whereColumn('i.tenant_id', 's.tenant_id')
+                      ->where('i.tipo', 'mensal')
+                      ->whereColumn('i.periodo_inicio', '>', 's.current_period_end');
+                })
+                ->count();
+
+            if ($precisamCiclo > 0) {
+                $alerts[] = $this->mk('master_precisa_gerar_ciclo', 'atencao',
+                    "{$precisamCiclo} cliente(s) precisam de novo ciclo de faturas",
+                    'Vigência do plano termina em até 15 dias e não há faturas geradas pro próximo período.',
+                    route('master.cobrancas.wizard.create'),
+                    'Gerar faturas');
             }
         }
 
@@ -244,7 +277,8 @@ class AlertsService
         if (Schema::hasTable('invoices')) {
             $abertas = Invoice::whereIn('status', ['pending', 'overdue'])->count();
             if ($abertas > 0) {
-                $sev = Invoice::where('status', 'overdue')->exists() ? 'critico' : 'atencao';
+                // Crítico só conta overdue do PLANO (avulsa não bloqueia → não eleva severidade)
+                $sev = Invoice::where('status', 'overdue')->where('tipo', 'mensal')->exists() ? 'critico' : 'atencao';
                 $badges['master.cobrancas.index'] = ['n' => $abertas, 'sev' => $sev];
             }
         }

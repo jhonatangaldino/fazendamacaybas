@@ -204,7 +204,9 @@ class InvoiceGenerationService
             $cursor = Carbon::create($anoIni, $mesIni, 1);
             $fim = Carbon::create($anoFim, $mesFim, 1);
 
-            while ($cursor->lte($fim)) {
+            // Fim é EXCLUSIVO (representa renovação, não última cobrança).
+            // Mesma semântica do gerarMensal() pra preview bater com o que será criado.
+            while ($cursor->lt($fim)) {
                 $venc = BusinessDay::fifthOfMonth($cursor->year, $cursor->month);
                 $linhas[] = [
                     'referencia_mes' => $cursor->month,
