@@ -69,7 +69,7 @@ const tipoAtivo = ref(null);
 const { toast } = useToast();
 function abrirModal(tipo) {
     if (props.animals.length === 0) {
-        toast?.(`Cadastre pelo menos um ${props.species.nome.toLowerCase()} antes de registrar eventos.`, 'atencao');
+        toast.warning(`Cadastre pelo menos um ${props.species.nome.toLowerCase()} antes de registrar eventos.`);
         return;
     }
     tipoAtivo.value = tipo;

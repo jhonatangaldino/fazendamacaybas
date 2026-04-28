@@ -50,7 +50,7 @@ async function toggleAuto() {
             body: JSON.stringify({ enabled: ! autoConfig.value.enabled_raw }),
         });
         await carregarConfig();
-        toast?.(autoConfig.value.enabled_raw ? 'Auto-aprovação no login: ATIVADA' : 'Auto-aprovação no login: desativada', 'sucesso');
+        toast.success(autoConfig.value.enabled_raw ? 'Auto-aprovação no login: ATIVADA' : 'Auto-aprovação no login: desativada');
     } finally {
         togglingAuto.value = false;
     }
@@ -58,7 +58,7 @@ async function toggleAuto() {
 
 async function processarLote() {
     if (pendentesParaProcessar.value.length === 0) {
-        toast?.('Nenhum comprovante pendente pra processar.', 'info');
+        toast.info('Nenhum comprovante pendente pra processar.');
         return;
     }
     const ok = await confirm({
@@ -70,10 +70,8 @@ async function processarLote() {
     });
     if (! ok) return;
     await lote.processarLote(pendentesParaProcessar.value);
-    toast?.(
-        `Lote processado: ${lote.aprovados.value} aprovado(s), ${lote.pendentes.value} pra revisão, ${lote.erros.value} erro(s)`,
-        lote.aprovados.value > 0 ? 'sucesso' : 'info'
-    );
+    const msg = `Lote processado: ${lote.aprovados.value} aprovado(s), ${lote.pendentes.value} pra revisão, ${lote.erros.value} erro(s)`;
+    (lote.aprovados.value > 0 ? toast.success : toast.info)(msg);
     // Recarrega a página pra ver os status atualizados
     setTimeout(() => router.reload({ only: ['invoices', 'totals'] }), 1500);
     await carregarConfig();

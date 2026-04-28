@@ -38,14 +38,14 @@ async function onBarcodeDetectedFromList(code) {
         const data = await resp.json();
 
         if (data.found && data.item) {
-            toast({ variant: 'success', message: `"${data.item.nome}" identificado. Abrindo edição...` });
+            toast.success(`"${data.item.nome}" identificado. Abrindo edição...`);
             setTimeout(() => { window.location.href = data.item.edit_url; }, 400);
             return;
         }
         // Não encontrado em base nenhuma — oferece cadastrar com o código já verificado
         naoEncontrado.value = { code, suggestion: data.suggestion || null };
     } catch (e) {
-        toast({ variant: 'warning', message: 'Falha na consulta. Tente novamente.' });
+        toast.warning('Falha na consulta. Tente novamente.');
     }
 }
 

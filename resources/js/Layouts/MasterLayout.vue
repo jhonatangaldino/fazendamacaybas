@@ -94,14 +94,14 @@ async function tryAutoApproveOnLogin() {
         // 3. Marca como rodado ANTES de processar (evita re-trigger se demorar)
         sessionStorage.setItem('proof_auto_approve_ran', '1');
 
-        toast?.(`🤖 Processando ${invoices.length} comprovante(s) em background...`, 'info');
+        toast.info(`🤖 Processando ${invoices.length} comprovante(s) em background...`);
         await lote.processarLote(invoices);
         const a = lote.aprovados.value;
         const pn = lote.pendentes.value;
         const e = lote.erros.value;
         if (a > 0 || pn > 0) {
-            toast?.(`🤖 Auto-aprovação: ${a} aprovado(s), ${pn} pra revisão manual${e > 0 ? `, ${e} erro(s)` : ''}`,
-                a > 0 ? 'sucesso' : 'info');
+            const msg = `🤖 Auto-aprovação: ${a} aprovado(s), ${pn} pra revisão manual${e > 0 ? `, ${e} erro(s)` : ''}`;
+            (a > 0 ? toast.success : toast.info)(msg);
         }
     } catch (err) {
         // Falha silenciosa — auto-aprovação é otimização, não pode quebrar UX

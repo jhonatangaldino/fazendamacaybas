@@ -119,7 +119,7 @@ function salvar() {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
-                toast?.(`✓ ${eventoMeta.value.label} registrada para ${animalSelecionado.value.identificacao}`, 'sucesso');
+                toast.success(`${eventoMeta.value.label} registrada para ${animalSelecionado.value.identificacao}`);
                 emit('success');
                 emit('close');
             },

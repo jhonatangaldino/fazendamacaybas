@@ -205,10 +205,10 @@ async function onBarcodeDetected(code) {
         if (data.found && data.item) {
             if (!isEdit) {
                 produtoExistente.value = data.item;
-                toast({ variant: 'warning', message: `"${data.item.nome}" já está cadastrado.` });
+                toast.warning(`"${data.item.nome}" já está cadastrado.`);
                 return;
             }
-            toast({ variant: 'info', message: `Código já associado a "${data.item.nome}".` });
+            toast.info(`Código já associado a "${data.item.nome}".`);
             return;
         }
 
@@ -225,7 +225,7 @@ async function onBarcodeDetected(code) {
                 if (!form.nome && s.nome) form.nome = s.nome;
                 if (!form.marca && s.marca) form.marca = s.marca;
             }
-            toast({ variant: 'success', message: `Produto identificado: ${s.nome} (${s.source})` });
+            toast.success(`Produto identificado: ${s.nome} (${s.source})`);
             return;
         }
 
@@ -234,16 +234,15 @@ async function onBarcodeDetected(code) {
             diagnostico: data.diagnostico || null,
             attempts: data.attempts || null,
         };
-        toast({
-            variant: 'info',
-            message: `Código ${code} lido, mas não consta em nenhuma base pública. Preencha manualmente — das próximas vezes será reconhecido localmente.`,
-            duration: 8000,
-        });
+        toast.info(
+            `Código ${code} lido, mas não consta em nenhuma base pública. Preencha manualmente — das próximas vezes será reconhecido localmente.`,
+            { duration: 8000 }
+        );
         requestAnimationFrame(() => {
             document.querySelector('input[required][class*="form-input"]:not([value])')?.focus();
         });
     } catch (e) {
-        toast({ variant: 'warning', message: 'Falha de rede ao consultar produto. Preencha manualmente.' });
+        toast.warning('Falha de rede ao consultar produto. Preencha manualmente.');
         ultimaTentativa.value = { code, diagnostico: 'Erro de rede: ' + (e?.message || 'desconhecido'), attempts: null };
     } finally {
         lookupLoading.value = false;

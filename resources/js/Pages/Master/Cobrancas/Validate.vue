@@ -228,7 +228,7 @@ async function aprovar() {
 
 async function rejeitar() {
     if (! motivoRejeicao.value.trim() || motivoRejeicao.value.trim().length < 5) {
-        toast?.('Informe um motivo de pelo menos 5 caracteres pra rejeitar.', 'atencao');
+        toast.warning('Informe um motivo de pelo menos 5 caracteres pra rejeitar.');
         return;
     }
     const ok = await confirm({
