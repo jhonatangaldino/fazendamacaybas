@@ -12,6 +12,8 @@ import AvatarUpload from '@/Components/AvatarUpload.vue';
 const props = defineProps({
     user: Object,
     roles: Array,
+    available_farms: { type: Array, default: () => [] },
+    plan_info: { type: Object, default: () => ({ max_users: 0, usuarios_ativos: 0, plano_nome: null, limite_atingido: false }) },
 });
 
 // Senha NUNCA é coletada — sistema gera automaticamente em todo cadastro novo
@@ -25,6 +27,8 @@ const form = useForm({
     cargo: props.user?.cargo ?? '',
     is_active: props.user?.is_active ?? true,
     roles: props.user?.roles ?? [],
+    // Farms permitidas (vazio = acesso a todas as fazendas do tenant — admin/dono)
+    farm_ids: props.user?.farm_ids ?? [],
 });
 
 const isEdit = !!props.user;
@@ -149,9 +153,52 @@ function submit() {
                 </div>
             </div>
 
+            <!-- Acesso a fazendas — só aparece se o tenant tem >1 fazenda
+                 (com 1 fazenda só não há decisão a tomar). Vazio = acesso global. -->
+            <div v-if="available_farms.length > 1" class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Acesso às fazendas</h2>
+                    <p class="card-subtitle">
+                        Marque as fazendas que este usuário pode operar.
+                        <strong>Não marcar nenhuma</strong> dá acesso a todas (padrão para Dono/Admin).
+                    </p>
+                </div>
+                <div class="card-body">
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        <label v-for="f in available_farms" :key="f.id"
+                               class="flex items-center gap-3 rounded-lg border border-slate-200 p-3 cursor-pointer hover:border-macaybas-primary">
+                            <input type="checkbox" :value="f.id" v-model="form.farm_ids"
+                                   class="rounded border-slate-300 text-macaybas-primary focus:ring-macaybas-primary">
+                            <span class="text-sm text-slate-900">🏠 {{ f.nome }}</span>
+                        </label>
+                    </div>
+                    <p v-if="form.farm_ids.length === 0" class="text-xs text-amber-700 mt-3">
+                        ⓘ Nenhuma fazenda marcada — usuário vai ter acesso a <strong>todas as {{ available_farms.length }} fazendas</strong> do cliente.
+                        Útil para o Dono/Admin Master da fazenda. Para um Veterinário/Funcionário restrito, marque fazendas específicas.
+                    </p>
+                    <p v-else class="text-xs text-emerald-700 mt-3">
+                        ✓ Acesso restrito a <strong>{{ form.farm_ids.length }} {{ form.farm_ids.length === 1 ? 'fazenda' : 'fazendas' }}</strong> selecionada{{ form.farm_ids.length === 1 ? '' : 's' }}.
+                    </p>
+                    <InputError :message="form.errors.farm_ids" />
+                </div>
+            </div>
+
+            <!-- Aviso de limite do plano em modo cadastro -->
+            <div v-if="!isEdit && plan_info.limite_atingido"
+                 class="rounded-xl bg-red-50 ring-1 ring-red-200 p-4 flex items-start gap-3">
+                <span class="text-2xl flex-shrink-0">🚫</span>
+                <div class="text-sm text-red-900">
+                    <strong>Limite do plano atingido:</strong> {{ plan_info.usuarios_ativos }} de {{ plan_info.max_users }} usuários ativos
+                    no plano <strong>{{ plan_info.plano_nome }}</strong>. Para adicionar mais usuários, faça upgrade do plano
+                    ou desative usuários existentes.
+                </div>
+            </div>
+
             <div class="flex justify-end gap-2">
                 <Link :href="route('admin.users.index')" class="btn-outline">Cancelar</Link>
-                <button type="submit" class="btn-primary" :disabled="form.processing">
+                <button type="submit"
+                        class="btn-primary"
+                        :disabled="form.processing || (!isEdit && plan_info.limite_atingido)">
                     {{ isEdit ? 'Salvar alterações' : 'Criar usuário' }}
                 </button>
             </div>

@@ -21,8 +21,17 @@ class UserController extends Controller
     {
         $isMaster = $request->user()->hasRole('admin_master');
 
+        // CRÍTICO multi-tenant: User NÃO usa BelongsToTenant trait (decisão
+        // arquitetural pra suportar master sem tenant). Resultado: sem filtro
+        // explícito, /admin/users vazava usuários de TODOS os clientes.
+        // Detectado pelo dono: master impersonando "Fazenda Demonstração" via
+        // usuários da "Fazenda Macaybas". FIX: filtrar pelo tenant_id ATIVO
+        // (do user logado, ou do tenant impersonado quando master).
+        $tenantIdAtivo = (int) (app()->bound('tenant_id') ? app('tenant_id') : ($request->user()->tenant_id ?? 0));
+
         $q = User::query()
             ->with('roles:id,name,short_name,description')
+            ->where('tenant_id', $tenantIdAtivo)
             ->when($request->search, fn ($qq) => $qq->where(function ($w) use ($request) {
                 $w->where('name', 'like', "%{$request->search}%")
                     ->orWhere('email', 'like', "%{$request->search}%");
@@ -30,7 +39,7 @@ class UserController extends Controller
             ->when($request->role, fn ($qq) => $qq->whereHas('roles', fn ($r) => $r->where('name', $request->role)))
             ->when($request->status === 'ativos', fn ($qq) => $qq->where('is_active', true))
             ->when($request->status === 'inativos', fn ($qq) => $qq->where('is_active', false))
-            // Não-masters não enxergam usuários admin_master
+            // Não-masters não enxergam usuários admin_master (e tenant não tem masters mesmo)
             ->when(! $isMaster, fn ($qq) => $qq->whereDoesntHave('roles', fn ($r) => $r->where('name', 'admin_master')))
             ->orderBy('name');
 
@@ -57,14 +66,19 @@ class UserController extends Controller
             ]),
             'filters' => $request->only(['search', 'role', 'status']),
             'roles' => $this->availableRoles(),
+            // Uso vs limite do plano — UI exibe "5 de 10" + bloqueia "Novo usuário"
+            // quando atinge o teto.
+            'plan_info' => $this->planUsageInfo($request),
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
         return Inertia::render('Admin/Users/Form', [
             'user' => null,
             'roles' => $this->availableRoles(),
+            'available_farms' => $this->farmsDoTenantAtivo($request),
+            'plan_info' => $this->planUsageInfo($request),
         ]);
     }
 
@@ -82,6 +96,9 @@ class UserController extends Controller
             'is_active' => ['boolean'],
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
+            // Farms permitidas (subset do tenant). Vazio = acesso global ao tenant.
+            'farm_ids' => ['nullable', 'array'],
+            'farm_ids.*' => ['integer', 'exists:farms,id'],
         ]);
 
         // Não-masters não podem atribuir o perfil admin_master
@@ -94,16 +111,42 @@ class UserController extends Controller
             return back()->with('error', 'Master não pode criar usuários por esta tela. Use a tela de Usuários do cliente em /master/tenants/{id}/usuarios.');
         }
 
+        // Limite de usuários do plano — controle por tenant.
+        // plan.max_users = 0 significa ilimitado.
+        $tenant = $criador->tenant()->with('plan:id,max_users,nome')->first();
+        $maxUsers = $tenant?->plan?->max_users ?? 0;
+        if ($maxUsers > 0) {
+            $usuariosAtivos = User::where('tenant_id', $criador->tenant_id)
+                ->where('is_active', true)
+                ->count();
+            if ($usuariosAtivos >= $maxUsers) {
+                return back()->with('error',
+                    "Limite de usuários do plano \"{$tenant->plan->nome}\" atingido ({$usuariosAtivos}/{$maxUsers}). "
+                    . "Para adicionar mais usuários, faça upgrade do plano ou desative usuários existentes."
+                );
+            }
+        }
+
+        // Garante que farms escolhidas pertencem ao tenant do criador (defesa
+        // contra payload manipulado tentando atribuir farm de outro cliente).
+        $farmIdsRaw = $data['farm_ids'] ?? [];
+        $farmIds = empty($farmIdsRaw) ? [] : \App\Models\Farm::where('tenant_id', $criador->tenant_id)
+            ->whereIn('id', $farmIdsRaw)
+            ->pluck('id')
+            ->all();
+
         // Cria o user SEM senha definitiva. O service depois preenche password
         // (hash), temp_password_plaintext e password_expires_at.
         $user = User::create([
-            ...collect($data)->except('roles')->all(),
+            ...collect($data)->except(['roles', 'farm_ids'])->all(),
             'password' => Hash::make(\Illuminate\Support\Str::random(40)), // placeholder, será sobrescrito
             'tenant_id' => $criador->tenant_id,
             'current_farm_id' => $criador->current_farm_id,
         ]);
 
         $user->syncRoles($data['roles'] ?? []);
+        // Vincula farms permitidas (vazio = acesso global)
+        $user->farms()->sync($farmIds);
 
         // Gera senha temporária + dispara email de boas-vindas.
         // Falha de email é tolerada (admin vê senha em tela como fallback).
@@ -114,8 +157,14 @@ class UserController extends Controller
             ->with('success', "Usuário criado. Senha temporária: {$senhaTemp} — também enviada para {$user->email}. Expira em ".TemporaryPasswordService::VALIDITY_HOURS." horas.");
     }
 
-    public function edit(User $user)
+    public function edit(Request $request, User $user)
     {
+        // Defesa multi-tenant: usuário só edita usuário do mesmo tenant.
+        $tenantIdAtivo = (int) (app()->bound('tenant_id') ? app('tenant_id') : ($request->user()->tenant_id ?? 0));
+        if ($user->tenant_id !== $tenantIdAtivo) {
+            abort(403, 'Você não tem acesso a este usuário.');
+        }
+
         return Inertia::render('Admin/Users/Form', [
             'user' => [
                 'id' => $user->id,
@@ -128,8 +177,11 @@ class UserController extends Controller
                 'is_active' => $user->is_active,
                 'must_change_password' => $user->must_change_password,
                 'roles' => $user->roles->pluck('name'),
+                'farm_ids' => $user->farmsPermitidas(),
             ],
             'roles' => $this->availableRoles(),
+            'available_farms' => $this->farmsDoTenantAtivo($request),
+            'plan_info' => $this->planUsageInfo($request),
         ]);
     }
 
@@ -138,6 +190,12 @@ class UserController extends Controller
         // Não-masters não podem editar um admin_master
         if ($user->hasRole('admin_master') && ! $request->user()->hasRole('admin_master')) {
             return back()->with('error', 'Você não tem permissão para editar este usuário.');
+        }
+
+        // Defesa multi-tenant
+        $tenantIdAtivo = (int) (app()->bound('tenant_id') ? app('tenant_id') : ($request->user()->tenant_id ?? 0));
+        if ($user->tenant_id !== $tenantIdAtivo) {
+            abort(403, 'Você não tem acesso a este usuário.');
         }
 
         // Edição NÃO aceita senha. Para reset/regen, usar resetPassword endpoint.
@@ -150,16 +208,77 @@ class UserController extends Controller
             'is_active' => ['boolean'],
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,name'],
+            'farm_ids' => ['nullable', 'array'],
+            'farm_ids.*' => ['integer', 'exists:farms,id'],
         ]);
 
         if (! $request->user()->hasRole('admin_master') && in_array('admin_master', $data['roles'] ?? [], true)) {
             return back()->with('error', 'Você não tem permissão para atribuir o perfil Admin Master.');
         }
 
-        $user->update(collect($data)->except('roles')->all());
+        // Reativar user inativo encara limite do plano
+        if ($user->is_active === false && ($data['is_active'] ?? false) === true) {
+            $tenant = $user->tenant()->with('plan:id,max_users,nome')->first();
+            $maxUsers = $tenant?->plan?->max_users ?? 0;
+            if ($maxUsers > 0) {
+                $usuariosAtivos = User::where('tenant_id', $user->tenant_id)
+                    ->where('is_active', true)
+                    ->where('id', '!=', $user->id)
+                    ->count();
+                if ($usuariosAtivos >= $maxUsers) {
+                    return back()->with('error',
+                        "Não pode reativar — limite do plano \"{$tenant->plan->nome}\" atingido ({$usuariosAtivos}/{$maxUsers})."
+                    );
+                }
+            }
+        }
+
+        // Sanitiza farm_ids — só farms do tenant
+        $farmIdsRaw = $data['farm_ids'] ?? [];
+        $farmIds = empty($farmIdsRaw) ? [] : \App\Models\Farm::where('tenant_id', $user->tenant_id)
+            ->whereIn('id', $farmIdsRaw)
+            ->pluck('id')
+            ->all();
+
+        $user->update(collect($data)->except(['roles', 'farm_ids'])->all());
         $user->syncRoles($data['roles'] ?? []);
+        $user->farms()->sync($farmIds);
 
         return redirect()->route('admin.users.index')->with('success', 'Usuário atualizado.');
+    }
+
+    /**
+     * Lista de farms do tenant ATIVO (criador). Defesa multi-tenant — só
+     * mostra farms do próprio cliente.
+     */
+    private function farmsDoTenantAtivo(Request $request): array
+    {
+        $tenantIdAtivo = (int) (app()->bound('tenant_id') ? app('tenant_id') : ($request->user()->tenant_id ?? 0));
+        return \App\Models\Farm::where('tenant_id', $tenantIdAtivo)
+            ->orderBy('nome')
+            ->get(['id', 'nome'])
+            ->map(fn ($f) => ['id' => $f->id, 'nome' => $f->nome])
+            ->all();
+    }
+
+    /**
+     * Info do plano sobre uso de usuários — pra o Form mostrar "5 de 10 usuários"
+     * e impedir cadastro quando atinge o teto.
+     */
+    private function planUsageInfo(Request $request): array
+    {
+        $tenantIdAtivo = (int) (app()->bound('tenant_id') ? app('tenant_id') : ($request->user()->tenant_id ?? 0));
+        $tenant = \App\Domain\Billing\Models\Tenant::with('plan:id,max_users,nome')->find($tenantIdAtivo);
+        $maxUsers = $tenant?->plan?->max_users ?? 0; // 0 = ilimitado
+        $usuariosAtivos = User::where('tenant_id', $tenantIdAtivo)
+            ->where('is_active', true)
+            ->count();
+        return [
+            'max_users' => $maxUsers,
+            'usuarios_ativos' => $usuariosAtivos,
+            'plano_nome' => $tenant?->plan?->nome,
+            'limite_atingido' => $maxUsers > 0 && $usuariosAtivos >= $maxUsers,
+        ];
     }
 
     public function destroy(User $user)

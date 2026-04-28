@@ -175,6 +175,37 @@ class User extends Authenticatable
     }
 
     /**
+     * Farms que o user pode acessar (subset do tenant).
+     * 0 farms vinculadas = acesso a TODAS as farms do tenant (admin/dono).
+     * 1+ farms = restrito apenas às listadas (ex: Veterinário em 2 fazendas).
+     */
+    public function farms(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\Farm::class, 'user_farm_access')
+            ->withTimestamps();
+    }
+
+    /**
+     * Helper: retorna IDs das farms permitidas. Lista vazia significa
+     * "acesso global ao tenant" (comportamento legado e admin).
+     */
+    public function farmsPermitidas(): array
+    {
+        return $this->farms()->pluck('farms.id')->all();
+    }
+
+    /**
+     * Verifica se user tem acesso a uma farm específica.
+     * Sem nenhuma farm vinculada → acesso global (admin do tenant).
+     * Com farms vinculadas → só as listadas.
+     */
+    public function podeAcessarFarm(int $farmId): bool
+    {
+        $permitidas = $this->farmsPermitidas();
+        return empty($permitidas) || in_array($farmId, $permitidas, true);
+    }
+
+    /**
      * URL de destino após login e quando o user logado acessa rota guest.
      *
      * M0 — regra de roteamento por tipo de usuário:

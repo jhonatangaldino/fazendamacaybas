@@ -15,6 +15,7 @@ const props = defineProps({
     users: Object,
     filters: Object,
     roles: Array,
+    plan_info: { type: Object, default: () => ({ max_users: 0, usuarios_ativos: 0, plano_nome: null, limite_atingido: false }) },
 });
 
 const filtros = reactive({ ...props.filters });
@@ -60,9 +61,45 @@ async function copiarSenha(senha) {
 
         <PageHeader title="Usuários" subtitle="Gerencie o acesso e os perfis dos usuários do sistema">
             <template #actions>
-                <Link :href="route('admin.users.create')" class="btn-primary">Novo usuário</Link>
+                <Link v-if="!plan_info.limite_atingido"
+                      :href="route('admin.users.create')"
+                      class="btn-primary">Novo usuário</Link>
+                <button v-else
+                        type="button"
+                        disabled
+                        class="btn-primary opacity-60 cursor-not-allowed"
+                        :title="`Limite do plano ${plan_info.plano_nome} atingido (${plan_info.usuarios_ativos}/${plan_info.max_users})`">
+                    Limite atingido
+                </button>
             </template>
         </PageHeader>
+
+        <!-- Indicador de uso vs limite do plano -->
+        <div v-if="plan_info.max_users > 0"
+             class="mb-4 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+             :class="plan_info.limite_atingido
+                ? 'bg-red-50 ring-1 ring-red-200'
+                : (plan_info.usuarios_ativos / plan_info.max_users >= 0.8
+                    ? 'bg-amber-50 ring-1 ring-amber-200'
+                    : 'bg-slate-50 ring-1 ring-slate-200')">
+            <div class="flex items-center gap-2 text-sm">
+                <span class="text-xl" aria-hidden="true">{{ plan_info.limite_atingido ? '🚫' : '👥' }}</span>
+                <div>
+                    <div class="font-semibold text-slate-900">
+                        {{ plan_info.usuarios_ativos }} de {{ plan_info.max_users }} usuários ativos
+                    </div>
+                    <div class="text-xs text-slate-600">
+                        Plano <strong>{{ plan_info.plano_nome }}</strong>{{ plan_info.limite_atingido ? ' — limite atingido. Faça upgrade ou desative usuários.' : '' }}
+                    </div>
+                </div>
+            </div>
+            <!-- Barra de progresso -->
+            <div class="hidden sm:block w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div class="h-full transition-all"
+                     :class="plan_info.limite_atingido ? 'bg-red-500' : (plan_info.usuarios_ativos / plan_info.max_users >= 0.8 ? 'bg-amber-500' : 'bg-emerald-500')"
+                     :style="`width: ${Math.min(100, (plan_info.usuarios_ativos / plan_info.max_users) * 100)}%`"></div>
+            </div>
+        </div>
 
         <div class="card mb-4">
             <div class="card-body grid gap-3 sm:grid-cols-3">
