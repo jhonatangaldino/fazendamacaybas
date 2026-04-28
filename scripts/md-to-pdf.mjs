@@ -104,11 +104,22 @@ function mdToHtml(md) {
         }
         if (!isTableLine && inTable) flushTable();
 
-        // Headings
+        // Headings — adiciona id automático (slug do texto) pra permitir
+        // links internos clicáveis no PDF (ex.: sumário aponta pra cada seção)
         const hMatch = line.match(/^(#{1,6})\s+(.+)$/);
         if (hMatch) {
             flushPara(); flushList();
-            out.push(`<h${hMatch[1].length}>${parseInline(hMatch[2])}</h${hMatch[1].length}>`);
+            const level = hMatch[1].length;
+            const text = hMatch[2];
+            // Slugify: lowercase + remove acentos + troca não-alfanum por hífen
+            const slug = text
+                .toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/[^\w\s-]/g, '')
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+            out.push(`<h${level} id="${slug}">${parseInline(text)}</h${level}>`);
             continue;
         }
 
@@ -221,12 +232,18 @@ function buildHtml(bodyHtml, title = 'Documento') {
   tr:nth-child(even) td { background: #f9fafb; }
 
   /* Imagens — bloco de tela inteira, com sombra suave.
-     Reforço de page-break: cada imagem é uma "unidade visual" indivisível.
-     • page-break-inside/break-inside: avoid → não quebra a imagem em si
-     • page-break-before/after: auto → mas evita órfãos: imagem isolada no fim
-       de página com legenda na próxima — usar wrapper section.section-card. */
+     CRÍTICO: max-height força a imagem a CABER em uma página A4 retrato
+     (área útil ~240mm). Sem isso, prints verticais altos (mobile 320×680px)
+     viram 170×360mm e o Chrome QUEBRA AO MEIO mesmo com break-inside:avoid
+     — é fallback obrigatório dele quando elemento > página inteira.
+     Com max-height 210mm a imagem é redimensionada proporcionalmente
+     (object-fit: contain) e cabe sempre em uma página. */
   img {
-    max-width: 100%; height: auto; display: block;
+    max-width: 100%;
+    max-height: 210mm;
+    width: auto; height: auto;
+    object-fit: contain;
+    display: block;
     margin: 8pt auto;
     border: 1px solid #d1d5db; border-radius: 4pt;
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);

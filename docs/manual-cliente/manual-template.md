@@ -9,7 +9,7 @@
 <strong>Versão 2.0</strong><br>
 Edição __EDICAO__ — Abril/2026<br>
 Sistema de Gestão Rural Macaybas<br>
-<small>Inclui Dashboard Leiteiro · Tabela DROVET · Tab Evolução Leiteira</small>
+<small>Inclui Controle do leite · Avaliação de crescimento DROVET · Aba de produção</small>
 </div>
 </div>
 
@@ -28,7 +28,7 @@ Este manual é seu guia oficial para usar o **Sistema de Gestão Fazenda Macayba
 Este documento foi escrito pensando em **três perfis de usuário**:
 
 - **Dono da fazenda** — visão completa, decisões estratégicas
-- **Gerente / Capataz** — operação do dia a dia
+- **Gerente** — operação do dia a dia
 - **Funcionário** — registro de atividades pontuais
 
 Não é necessário nenhum conhecimento técnico. Cada seção mostra exatamente o que clicar, em que ordem, e o que vai acontecer.
@@ -37,7 +37,7 @@ Não é necessário nenhum conhecimento técnico. Cada seção mostra exatamente
 
 <div class="callout info">
 <strong>📖 Leitura recomendada</strong>
-Leia primeiro a <strong>Parte 1</strong> (Como entrar no sistema) e a <strong>Parte 2</strong> (O Hub). Depois consulte os capítulos específicos conforme a sua necessidade — não precisa ler tudo de uma vez.
+Leia primeiro a <strong>Parte 1</strong> (Como entrar no sistema) e a <strong>Parte 2</strong> (a tela Início). Depois consulte os capítulos específicos conforme a sua necessidade — não precisa ler tudo de uma vez.
 </div>
 
 <div class="callout tip">
@@ -72,40 +72,40 @@ Verifique a pasta <strong>spam / lixo eletrônico</strong>. Se não estiver lá,
 
 <div class="toc">
 
-<div class="toc-item level-1"><span>Parte 1 — Acessando o sistema</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>1.1 Tela de login</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>1.2 Primeiro acesso e troca de senha</span><span class="toc-page"></span></div>
+<a class="toc-item level-1" href="#acessando-o-sistema"><span>Parte 1 — Acessando o sistema</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#11-tela-de-login"><span>1.1 Tela de login</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#12-primeiro-acesso-e-troca-de-senha"><span>1.2 Primeiro acesso e troca de senha</span><span class="toc-page"></span></a>
 
-<div class="toc-item level-1"><span>Parte 2 — Tela inicial: o Hub</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>2.1 Conhecendo o Hub</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>2.2 Os 3 blocos de atalhos</span><span class="toc-page"></span></div>
+<a class="toc-item level-1" href="#tela-inicial-o-painel-de-atalhos"><span>Parte 2 — Tela inicial (Início)</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#21-conhecendo-o-hub"><span>2.1 Conhecendo a tela Início</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#22-os-3-blocos-de-atalhos"><span>2.2 Os 3 blocos de atalhos</span><span class="toc-page"></span></a>
 
-<div class="toc-item level-1"><span>Parte 3 — Painel (Dashboard)</span><span class="toc-page"></span></div>
+<a class="toc-item level-1" href="#painel"><span>Parte 3 — Painel</span><span class="toc-page"></span></a>
 
-<div class="toc-item level-1"><span>Parte 4 — Os 15 atalhos rápidos</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>4.1 Pesar animal · 4.2 Cadastrar animal · 4.3 Evento de rebanho</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>4.4 Vender animal · 4.5 Despesa · 4.6 Receita</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>4.7 Receber mercadoria · 4.8 Ajustar estoque · 4.9 Saída do estoque</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>4.10 Aplicar produto · 4.11 Arrumar máquina · 4.12 Criar tarefa</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>4.13 Anexar documento · 4.14 Plantio · 4.15 Colheita</span><span class="toc-page"></span></div>
+<a class="toc-item level-1" href="#os-15-atalhos-rpidos"><span>Parte 4 — Os 15 atalhos rápidos</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#41-pesar-animal"><span>4.1 Pesar animal · 4.2 Cadastrar animal · 4.3 Evento de rebanho</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#44-vender-animal"><span>4.4 Vender animal · 4.5 Despesa · 4.6 Receita</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#47-receber-mercadoria"><span>4.7 Receber mercadoria · 4.8 Ajustar estoque · 4.9 Saída do estoque</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#410-aplicar-produto"><span>4.10 Aplicar produto · 4.11 Arrumar máquina · 4.12 Criar tarefa</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#413-anexar-documento"><span>4.13 Anexar documento · 4.14 Plantio · 4.15 Colheita</span><span class="toc-page"></span></a>
 
-<div class="toc-item level-1"><span>Parte 5 — Áreas de consulta (menus)</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>5.1 Rebanho · 5.2 Lotes · 5.3 Locais (pastos)</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>5.4 Parceiros · 5.5 Financeiro · 5.6 Estoque</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>5.7 Agrícola · 5.8 Máquinas · 5.9 Tarefas</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>5.10 Documentos · 5.11 Relatórios · 5.12 Dashboard Leiteiro</span><span class="toc-page"></span></div>
+<a class="toc-item level-1" href="#reas-de-consulta-menus"><span>Parte 5 — Áreas de consulta (menus)</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#51-rebanho"><span>5.1 Rebanho · 5.2 Lotes · 5.3 Locais (pastos)</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#54-parceiros"><span>5.4 Parceiros · 5.5 Financeiro · 5.6 Estoque</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#57-agrcola"><span>5.7 Agrícola · 5.8 Máquinas · 5.9 Tarefas</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#511-documentos"><span>5.10 Documentos · 5.11 Relatórios · 5.14 Controle do leite</span><span class="toc-page"></span></a>
 
-<div class="toc-item level-1"><span>Parte 6 — Telas de detalhe</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>6.1 Ficha completa do animal (com histórico)</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>6.1.1 Aba Evolução leiteira (nova)</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>6.1.2 Card DROVET de crescimento</span><span class="toc-page"></span></div>
-<div class="toc-item level-2"><span>6.2 Edição de cadastros</span><span class="toc-page"></span></div>
+<a class="toc-item level-1" href="#telas-de-detalhe"><span>Parte 6 — Telas de detalhe</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#61-ficha-completa-do-animal-com-histrico"><span>6.1 Ficha completa do animal (com histórico)</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#611-aba-evoluo-leiteira-nova"><span>6.1.1 Aba Evolução leiteira (nova)</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#612-card-drovet-de-crescimento-fmeas-leiteiras"><span>6.1.2 Avaliação de crescimento (DROVET)</span><span class="toc-page"></span></a>
+<a class="toc-item level-2" href="#62-editar-animal"><span>6.2 Edição de cadastros</span><span class="toc-page"></span></a>
 
-<div class="toc-item level-1"><span>Parte 7 — Cadastros completos</span><span class="toc-page"></span></div>
+<a class="toc-item level-1" href="#cadastros-completos"><span>Parte 7 — Cadastros completos</span><span class="toc-page"></span></a>
 
-<div class="toc-item level-1"><span>Parte 8 — Perguntas frequentes</span><span class="toc-page"></span></div>
+<a class="toc-item level-1" href="#perguntas-frequentes-faq"><span>Parte 8 — Perguntas frequentes</span><span class="toc-page"></span></a>
 
-<div class="toc-item level-1"><span>Parte 9 — Suporte e contato</span><span class="toc-page"></span></div>
+<a class="toc-item level-1" href="#suporte-e-contato"><span>Parte 9 — Suporte e contato</span><span class="toc-page"></span></a>
 
 </div>
 
@@ -159,17 +159,17 @@ A senha temporária <strong>expira em 2 horas</strong> após você recebê-la. S
 
 <div class="chapter-divider">
 <div class="chapter-num">Parte 2</div>
-<div class="chapter-title">Tela inicial: o Hub</div>
+<div class="chapter-title">Tela inicial: o Início</div>
 <div class="chapter-subtitle">A porta de entrada do sistema</div>
 </div>
 
-# Tela inicial: o Hub
+# Tela inicial: o Início
 
-Após o login, você cai no **Hub** — a tela que pergunta **"O que você quer fazer agora?"** e oferece atalhos diretos para as ações mais comuns.
+Após o login, você cai na **tela Início** — a tela que pergunta **"O que você quer fazer agora?"** e oferece atalhos diretos para as ações mais comuns.
 
-![Hub — tela inicial após o login](screenshots/__IMG__/02-hub.png)
+![Tela Início — tela inicial após o login](screenshots/__IMG__/02-hub.png)
 
-## 2.1 Conhecendo o Hub
+## 2.1 Conhecendo a tela Início
 
 A tela tem 3 áreas principais:
 
@@ -190,7 +190,7 @@ Seu nome, botão de sair e (em alguns casos) link para o site público da fazend
 
 ## 2.2 Os 3 blocos de atalhos
 
-Os atalhos do Hub estão organizados em **3 blocos de frequência**:
+Os atalhos da tela Início estão organizados em **3 blocos de frequência**:
 
 <div class="field">
 <div class="field-label">Bloco "Todo dia"</div>
@@ -209,11 +209,11 @@ Ações <strong>mais raras</strong>: cadastrar novo animal, vender animal, regis
 
 <div class="chapter-divider">
 <div class="chapter-num">Parte 3</div>
-<div class="chapter-title">Painel (Dashboard)</div>
+<div class="chapter-title">Painel</div>
 <div class="chapter-subtitle">Visão geral em números da sua fazenda</div>
 </div>
 
-# Painel (Dashboard)
+# Painel
 
 O Painel é o **resumo gerencial** da fazenda: quantos animais, saldo do mês, alertas pendentes, últimos lançamentos.
 
@@ -221,7 +221,7 @@ O Painel é o **resumo gerencial** da fazenda: quantos animais, saldo do mês, a
 
 <div class="field">
 <div class="field-label">Como abrir</div>
-Clique em <strong>"Painel"</strong> na barra lateral, ou em <strong>"Ver painel de números"</strong> no Hub.
+Clique em <strong>"Painel"</strong> na barra lateral, ou em <strong>"Ver painel de números"</strong> na tela Início.
 </div>
 
 <div class="field">
@@ -237,7 +237,7 @@ Clique em <strong>"Painel"</strong> na barra lateral, ou em <strong>"Ver painel 
 
 <div class="callout tip">
 <strong>💡 Quando consultar</strong>
-Acesse o Painel <strong>uma vez por semana</strong> para ter visão geral. Para ações específicas, use o Hub.
+Acesse o Painel <strong>uma vez por semana</strong> para ter visão geral. Para ações específicas, use a tela Início.
 </div>
 
 <div class="chapter-divider">
@@ -564,7 +564,7 @@ Lembrar de fazer algo nos próximos dias — vacinar, adubar, consertar cerca.
 
 <div class="field">
 <div class="field-label">O que acontece</div>
-A tarefa aparece no Painel até ser concluída. Quem é responsável recebe notificação no Hub.
+A tarefa aparece no Painel até ser concluída. Quem é responsável recebe notificação na tela Início.
 </div>
 
 </section>
@@ -906,11 +906,11 @@ Gestão de quem tem acesso ao sistema da sua fazenda. Atribua **perfis de permis
 
 <section class="section-card">
 
-## 5.14 Dashboard Leiteiro (DROVET) <span class="badge-novo">NOVO</span>
+## 5.14 Controle do leite (mensal) <span class="badge-novo">NOVO</span>
 
-Reproduz em tela o **quadro mensal DROVET+ de papel**: produção por vaca, contagem de categorias e histórico anual. Acesse via botão **📊 Dashboard leiteiro** no topo da listagem de Animais (só aparece se você tem manejo leiteiro — gado de corte, equino ou aquicultura não vê).
+Reproduz em tela o **quadro mensal de controle do leite**: produção por vaca, contagem de categorias e histórico anual. Acesse via botão **📊 Controle do leite** no topo da listagem de Animais (só aparece se você tem manejo leiteiro — gado de corte, equino ou aquicultura não vê).
 
-![Dashboard Leiteiro mensal](screenshots/__IMG__/c14-dashboard-leiteiro.png)
+![Controle do leite — quadro mensal](screenshots/__IMG__/c14-dashboard-leiteiro.png)
 
 <div class="field">
 <div class="field-label">4 KPIs do mês</div>
@@ -957,13 +957,13 @@ Reproduz em tela o **quadro mensal DROVET+ de papel**: produção por vaca, cont
 <li>← <strong>Mês anterior</strong> (seta esquerda)</li>
 <li><strong>Hoje</strong> (volta pro mês corrente quando você está em outro mês)</li>
 <li>→ <strong>Mês seguinte</strong> (seta direita)</li>
-<li>+ <strong>Novo controle do mês</strong> — botão verde abre wizard "Controle do leite"</li>
+<li>+ <strong>Novo controle do mês</strong> — botão verde abre o assistente "Controle do leite"</li>
 </ul>
 </div>
 
 <div class="callout info">
 <strong>📊 Inteligência contextual</strong><br>
-Esse dashboard só aparece pra fazendas com manejo leiteiro (vaca categorizada como leite/misto, ou ao menos 1 evento de controle leiteiro/ordenha registrado). Fazendas só de corte, peixe, ave de postura ou cavalo não recebem esse atalho — sem poluir a interface.
+Essa tela só aparece pra fazendas com manejo leiteiro (vaca categorizada como leite/misto, ou ao menos 1 evento de controle leiteiro/ordenha registrado). Fazendas só de corte, peixe, ave de postura ou cavalo não recebem esse atalho — sem poluir a interface.
 </div>
 
 </section>
@@ -1001,7 +1001,7 @@ Quando você clica em um animal na lista, abre a **ficha completa** dele — uma
 <div class="field">
 <div class="field-label">Ações disponíveis</div>
 <ul>
-<li><strong>+ Novo evento</strong>: abre modal para registrar pesagem, ordenha, vacina, etc. — o tipo de evento é filtrado automaticamente pela espécie e sexo do animal</li>
+<li><strong>+ Novo evento</strong>: abre uma janela para registrar pesagem, ordenha, vacina, etc. — o tipo de evento é filtrado automaticamente pela espécie e sexo do animal</li>
 <li><strong>Editar cadastro</strong>: muda lote, local, observações</li>
 <li><strong>Voltar</strong>: retorna à lista</li>
 </ul>
