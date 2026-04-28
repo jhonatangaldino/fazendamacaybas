@@ -10,6 +10,7 @@ import InputMoney from '@/Components/InputMoney.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
 import { router } from '@inertiajs/vue3';
 import { emojiEspecie } from '@/utils/emojiEspecie.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const props = defineProps({ animal: Object, species: Array, lots: Array, locations: { type: Array, default: () => [] }, farms: Array, partners: Array });
 const isEdit = !!props.animal;
@@ -271,6 +272,7 @@ function csrfHeader() {
 
 const novoLoteAberto = ref(false);
 const novoLoteForm = ref({ nome: '', codigo: '' });
+useBodyScrollLock(computed(() => novoLoteAberto.value || novoLocalAberto.value));
 const novoLoteError = ref(null);
 const salvandoLote = ref(false);
 function abrirNovoLote() {
@@ -628,7 +630,7 @@ onMounted(() => {
         <Teleport to="body">
             <div v-if="novoLoteAberto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="novoLoteAberto = false"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-1">Novo lote (grupo)</h3>
                     <p class="text-sm text-slate-500 mb-4">
                         Crie o grupo de manejo aqui mesmo — depois o animal já fica associado.
@@ -658,7 +660,7 @@ onMounted(() => {
             <!-- Modal inline: criar LOCAL/PASTO sem sair do form -->
             <div v-if="novoLocalAberto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="novoLocalAberto = false"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-1">Novo pasto / local</h3>
                     <p class="text-sm text-slate-500 mb-4">
                         Onde o animal fica fisicamente. Pasto, piquete, curral, baia ou tanque.

@@ -11,8 +11,11 @@
  */
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const emit = defineEmits(['detected', 'close']);
+// Componente é sempre "aberto" enquanto montado — o pai controla via v-if.
+useBodyScrollLock(ref(true));
 
 const video = ref(null);
 const status = ref('Iniciando câmera...');
@@ -85,7 +88,7 @@ onBeforeUnmount(() => {
 <template>
     <Teleport to="body">
         <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80">
-            <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] overscroll-contain">
                 <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
                     <h3 class="text-lg font-semibold text-slate-900">Escanear código de barras</h3>
                     <button @click="$emit('close')" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>

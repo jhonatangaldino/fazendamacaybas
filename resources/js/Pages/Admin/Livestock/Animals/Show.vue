@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const { confirm: confirmModal } = useConfirm();
 import PageHeader from '@/Components/PageHeader.vue';
@@ -48,6 +49,7 @@ const activeTab = ref('timeline'); // timeline | grafico | dados
 // Renomeamos para `data_evento` e usamos transform() para enviar ao backend
 // com a chave esperada (`data`).
 const novoEvento = ref(false);
+useBodyScrollLock(novoEvento);
 const eventForm = useForm({
     tipo: 'pesagem',
     data_evento: hojeBR(),
@@ -1149,7 +1151,7 @@ watch(tiposPermitidosNoModal, (lista) => {
         <Teleport to="body">
             <div v-if="novoEvento" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="novoEvento = false"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold text-slate-900 mb-4">Novo evento — {{ animal.identificacao }}</h3>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="sm:col-span-2">

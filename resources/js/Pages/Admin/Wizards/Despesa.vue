@@ -536,7 +536,7 @@ function reiniciar() {
         <Teleport to="body">
             <div v-if="novaCategoria.modalAberto.value" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="novaCategoria.fechar"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-1">Novo tipo de gasto</h3>
                     <p class="text-sm text-slate-500 mb-4">Ex.: "Ração", "Combustível", "Veterinário".</p>
                     <div>
@@ -559,7 +559,7 @@ function reiniciar() {
 
             <div v-if="novoFornecedor.modalAberto.value" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="novoFornecedor.fechar"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-1">Novo fornecedor</h3>
                     <p class="text-sm text-slate-500 mb-4">Quem você pagou ou vai pagar.</p>
                     <div class="space-y-3">

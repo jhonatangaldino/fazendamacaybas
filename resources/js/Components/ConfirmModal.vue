@@ -1,5 +1,8 @@
 <script setup>
-defineProps({
+import { toRef } from 'vue';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
+
+const props = defineProps({
     show: Boolean,
     title: { type: String, default: 'Confirmar' },
     message: { type: String, default: 'Tem certeza?' },
@@ -8,13 +11,14 @@ defineProps({
     variant: { type: String, default: 'danger' }, // danger | primary
 });
 defineEmits(['confirm', 'cancel']);
+useBodyScrollLock(toRef(props, 'show'));
 </script>
 
 <template>
     <Teleport to="body">
         <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="$emit('cancel')"></div>
-            <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                 <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ title }}</h3>
                 <p class="text-sm text-slate-600 mb-6">{{ message }}</p>
                 <div class="flex justify-end gap-2">

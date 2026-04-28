@@ -8,6 +8,7 @@ import InputError from '@/Components/InputError.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import BarcodeScanner from '@/Components/BarcodeScanner.vue';
 import { useToast } from '@/composables/useToast.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const { toast } = useToast();
 const props = defineProps({ item: Object, categories: Array });
@@ -181,6 +182,7 @@ watch(
 const showScanner = ref(false);
 const lookupLoading = ref(false);
 const produtoExistente = ref(null);
+useBodyScrollLock(computed(() => !!produtoExistente.value));
 const sugestaoPublica = ref(null);
 const ultimaTentativa = ref(null);
 
@@ -477,7 +479,7 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3',
         <Teleport to="body">
             <div v-if="produtoExistente" class="fixed inset-0 z-[55] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/50" @click="produtoExistente = null"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <div class="flex items-start gap-3 mb-4">
                         <div class="h-10 w-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

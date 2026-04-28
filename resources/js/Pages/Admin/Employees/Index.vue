@@ -12,6 +12,7 @@ import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR, cpfMask, telefoneMask, hojeBR } from '@/utils/format.js';
 import { apenasDigitos, apenasAlfaNum, validarCpf, validarCnpj } from '@/utils/br-validators.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const props = defineProps({ employees: Object, filters: Object, farms: Array, setores: Array });
 useAutoReload(['employees'], 25000);
@@ -25,6 +26,7 @@ const filtros = reactive({
 });
 const editing = ref(null);
 const desligamento = ref(null);
+useBodyScrollLock(computed(() => !!desligamento.value));
 const desligForm = useForm({ data_demissao: '', motivo_demissao: '' });
 
 const form = useForm({
@@ -477,7 +479,7 @@ function confirmarDesligamento() {
         <Teleport to="body">
             <div v-if="desligamento" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="desligamento = null"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <div class="mb-4">
                         <h3 class="text-lg font-semibold text-slate-900">Desligar funcionário</h3>
                         <p class="text-sm text-slate-500 mt-1">Informe a data de desligamento de <strong>{{ desligamento.nome }}</strong>. O registro será mantido — apenas marcado como inativo.</p>

@@ -967,7 +967,7 @@ const tituloModo = computed(() => MODOS.find((m) => m.id === modo.value)?.rotulo
         <Teleport to="body">
             <div v-if="novoComprador.modalAberto.value" class="fixed inset-0 z-50 flex items-center justify-center p-4" data-cy="modal-comprador">
                 <div class="absolute inset-0 bg-black/40" @click="novoComprador.fechar"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-1">Novo comprador</h3>
                     <p class="text-sm text-slate-500 mb-4">Cadastre o mínimo: nome e tipo. Os outros campos podem ficar para depois.</p>
                     <div class="space-y-3">

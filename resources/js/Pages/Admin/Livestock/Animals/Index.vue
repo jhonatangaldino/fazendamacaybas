@@ -11,6 +11,7 @@ import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import { dataBR, brl, hojeBR } from '@/utils/format.js';
 import { tableActionsFor, EVENT_CATALOG, vendaConfigFor } from '@/utils/animalProfile.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const props = defineProps({
     animals: Object,
@@ -120,6 +121,7 @@ function confirmarEventoRapido() {
 // Venda em lote contextual (arroba/kg/unidade/cabeça)
 // =========================================================================
 const vendaAberta = ref(false);
+useBodyScrollLock(computed(() => !!eventoRapido.value || vendaAberta.value));
 // ⚠ `data` colide com método .data() do useForm — usar data_venda + transform
 const vendaForm = useForm({
     animal_ids: [], data_venda: '', partner_id: null, observacoes: '',
@@ -504,7 +506,7 @@ function doDelete() {
         <Teleport to="body">
             <div v-if="eventoRapido" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="eventoRapido = null"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold text-slate-900 mb-1">Registrar {{ labelEvento(eventoTipo).toLowerCase() }}</h3>
                     <p class="text-sm text-slate-500 mb-4">
                         <span v-if="eventoRapido.species?.gestao === 'lote'">Lote</span>
@@ -557,7 +559,7 @@ function doDelete() {
         <Teleport to="body">
             <div v-if="vendaAberta" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="vendaAberta = false"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold text-slate-900 mb-1">
                         Venda — {{ nCabecas }} {{ especieSelecionada?.nome?.toLowerCase() }}{{ nCabecas === 1 ? '' : 's' }}
                     </h3>

@@ -10,7 +10,8 @@
  * fazendo o modal ficar mais alto que a viewport visível (header cortado no topo).
  * dvh atualiza quando a barra some/aparece.
  */
-import { onMounted, onBeforeUnmount, watch } from 'vue';
+import { onMounted, onBeforeUnmount, toRef } from 'vue';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -20,13 +21,11 @@ const props = defineProps({
 });
 const emit = defineEmits(['close']);
 
+useBodyScrollLock(toRef(props, 'open'));
+
 function onKey(e) { if (e.key === 'Escape') emit('close'); }
 onMounted(() => document.addEventListener('keydown', onKey));
-onBeforeUnmount(() => {
-    document.removeEventListener('keydown', onKey);
-    document.body.style.overflow = '';
-});
-watch(() => props.open, (v) => { document.body.style.overflow = v ? 'hidden' : ''; });
+onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
 </script>
 
 <template>

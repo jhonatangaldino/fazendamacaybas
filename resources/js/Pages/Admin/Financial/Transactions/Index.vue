@@ -11,6 +11,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR, hojeBR } from '@/utils/format.js';
 import { useForm } from '@inertiajs/vue3';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const props = defineProps({
     transactions: Object,
@@ -42,6 +43,7 @@ function doDelete() {
 }
 
 const payModal = ref(null);
+useBodyScrollLock(computed(() => !!payModal.value));
 const payForm = useForm({ data_pagamento: '', forma_pagamento: 'pix' });
 function askPay(t) {
     payModal.value = t;
@@ -202,7 +204,7 @@ const modoReceber = computed(() =>
         <Teleport to="body">
             <div v-if="payModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="payModal = null"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold text-slate-900 mb-1">
                         {{ payModal.tipo === 'receita' ? 'Marcar como recebida' : 'Marcar conta como paga' }}
                     </h3>

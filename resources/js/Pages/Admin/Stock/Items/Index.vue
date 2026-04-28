@@ -1,5 +1,6 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -25,6 +26,7 @@ const confirmDelete = ref(null);
 // Scanner a partir da listagem: se achar, abre o item; se não, oferece cadastro.
 const showScanner = ref(false);
 const naoEncontrado = ref(null); // { code } → modal oferecendo cadastro com scan
+useBodyScrollLock(computed(() => !!naoEncontrado.value));
 
 async function onBarcodeDetectedFromList(code) {
     showScanner.value = false;
@@ -199,7 +201,7 @@ const tipoLabel = {
         <Teleport to="body">
             <div v-if="naoEncontrado" class="fixed inset-0 z-[55] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/50" @click="naoEncontrado = null"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <div class="flex items-start gap-3 mb-4">
                         <div class="h-10 w-10 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center flex-shrink-0">
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>

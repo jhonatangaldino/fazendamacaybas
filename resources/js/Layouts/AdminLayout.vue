@@ -10,6 +10,7 @@ import TutorialTour from '@/Components/TutorialTour.vue';
 import Icon from '@/Components/Icon.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -77,6 +78,7 @@ function usageScore(routeKey) {
 const sidebarOpen = ref(false);
 const userMenuOpen = ref(false);
 const profileModalOpen = ref(false);
+useBodyScrollLock(profileModalOpen);
 
 /**
  * Registra uso de um menu (fire-and-forget). Não usa Inertia pra evitar reload.
@@ -394,7 +396,7 @@ function logout() {
         <Teleport to="body">
             <div v-if="profileModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="profileModalOpen = false"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <div class="flex items-start justify-between mb-4">
                         <div>
                             <h3 class="text-lg font-semibold text-slate-900">Sua foto de perfil</h3>

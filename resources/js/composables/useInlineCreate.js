@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { useBodyScrollLock } from './useBodyScrollLock';
 
 /**
  * useInlineCreate — padrão reutilizável para criar dependências
@@ -33,6 +34,11 @@ export function useInlineCreate({ endpoint, initialForm = {}, onCreated = null }
     const form = ref({ ...initialForm });
     const erro = ref(null);
     const salvando = ref(false);
+
+    // Trava scroll do body enquanto o modal está aberto. Sem isso, o gesto
+    // de scroll dentro do modal vaza pra página de fundo no mobile e
+    // dispara pull-to-refresh do navegador (PO 2026-04-28).
+    useBodyScrollLock(modalAberto);
 
     function abrir(extraInit = null) {
         form.value = { ...initialForm, ...(extraInit || {}) };

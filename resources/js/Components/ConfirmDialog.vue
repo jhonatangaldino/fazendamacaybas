@@ -1,7 +1,10 @@
 <script setup>
+import { computed } from 'vue';
 import { useConfirm } from '@/composables/useConfirm.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const { state, handleConfirm, handleCancel } = useConfirm();
+useBodyScrollLock(computed(() => state.value.open));
 
 const iconPaths = {
     warning: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
@@ -41,7 +44,7 @@ function onKey(e) {
                  tabindex="-1">
                 <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]" @click="handleCancel"></div>
 
-                <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <div class="flex items-start gap-4">
                         <div :class="['h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0',
                                       iconColors[state.icon]?.bg ?? 'bg-slate-100']">

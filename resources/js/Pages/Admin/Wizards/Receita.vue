@@ -10,6 +10,7 @@
  */
 import { ref, computed } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
@@ -27,6 +28,7 @@ const props = defineProps({
 // BLOCO 4.4 — Receita inline conta (replicado de Despesa.vue)
 const contasLocal = ref([...props.contas]);
 const contaInlineOpen = ref(false);
+useBodyScrollLock(contaInlineOpen);
 const contaInlineSalvando = ref(false);
 const contaInlineErro = ref(null);
 const contaInlineForm = ref({ nome: '', tipo: 'corrente' });
@@ -257,7 +259,7 @@ function reiniciar() {
                 <Teleport to="body">
                     <div v-if="contaInlineOpen" class="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
                         <div class="absolute inset-0 bg-slate-900/60" @click="contaInlineOpen = false"></div>
-                        <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-slate-200">
+                        <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-slate-200 max-h-[90vh] overflow-y-auto overscroll-contain">
                             <div class="px-5 pt-5 pb-3 border-b border-slate-100">
                                 <h3 class="text-base font-semibold text-slate-900">Nova conta financeira</h3>
                                 <p class="text-xs text-slate-500 mt-0.5">Cadastro rápido sem sair do assistente.</p>

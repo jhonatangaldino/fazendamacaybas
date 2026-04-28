@@ -288,7 +288,7 @@ function reiniciar() {
         <Teleport to="body">
             <div v-if="novoItem.modalAberto.value" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="novoItem.fechar"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-1">Novo item de estoque</h3>
                     <div class="space-y-3">
                         <div>

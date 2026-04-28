@@ -10,6 +10,7 @@ import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import { useInlineCreate } from '@/composables/useInlineCreate.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const props = defineProps({
     tenant: { type: Object, required: true },
@@ -57,6 +58,7 @@ const resetVisible = ref(true);
 
 const confirmReset = ref(null);
 const confirmToggle = ref(null);
+useBodyScrollLock(computed(() => !!(confirmReset.value || confirmToggle.value)));
 
 function doReset() {
     router.post(
@@ -340,7 +342,7 @@ function doToggle() {
         <Teleport to="body">
             <div v-if="confirmReset" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="confirmReset = null"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-2">Reenviar credenciais de {{ confirmReset.name }}?</h3>
                     <p class="text-sm text-slate-600 mb-5">
                         Uma nova senha temporária de 8 caracteres será gerada e <strong>enviada
@@ -357,7 +359,7 @@ function doToggle() {
 
             <div v-if="confirmToggle" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="confirmToggle = null"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-2">
                         {{ confirmToggle.is_active ? 'Desativar' : 'Reativar' }} {{ confirmToggle.name }}?
                     </h3>
@@ -384,7 +386,7 @@ function doToggle() {
             <!-- Modal: criar usuário novo inline -->
             <div v-if="novoUser.modalAberto.value" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="novoUser.fechar"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-1">Novo usuário de {{ tenant.nome }}</h3>
                     <p class="text-sm text-slate-500 mb-4">
                         Uma senha temporária de 8 caracteres é gerada e <strong>enviada por e-mail</strong>

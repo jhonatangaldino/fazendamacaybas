@@ -8,6 +8,7 @@ import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const { confirm } = useConfirm();
 
@@ -17,6 +18,7 @@ const props = defineProps({
 });
 
 const showForm = ref(false);
+useBodyScrollLock(showForm);
 const editing = ref(null);
 
 const form = useForm({
@@ -186,7 +188,7 @@ function brl(v) {
         <Teleport to="body">
             <div v-if="showForm" class="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
                 <div class="absolute inset-0 bg-slate-900/60" @click="showForm = false"></div>
-                <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-slate-200 max-h-[90vh] overflow-y-auto">
+                <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-slate-200 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <div class="px-5 pt-5 pb-3 border-b border-slate-100">
                         <h2 class="text-base font-semibold text-slate-900">{{ editing ? 'Editar conta' : 'Nova conta financeira' }}</h2>
                     </div>

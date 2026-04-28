@@ -18,6 +18,7 @@
  */
 import { ref, watch, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const props = defineProps({
     invoice: { type: Object, default: null }, // null = fechado
@@ -25,6 +26,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'success']);
 
 const aberto = computed(() => props.invoice !== null);
+useBodyScrollLock(aberto);
 
 const dataPagamento = ref(new Date().toISOString().slice(0, 10));
 const metodoPagamento = ref('pix');
@@ -87,7 +89,7 @@ function confirmar() {
                 <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="fechar"></div>
 
                 <!-- modal -->
-                <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-slate-200 max-h-[90vh] overflow-y-auto">
+                <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl ring-1 ring-slate-200 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <!-- header -->
                     <div class="px-5 pt-5 pb-3 border-b border-slate-100">
                         <div class="flex items-start gap-3">

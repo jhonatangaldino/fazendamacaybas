@@ -13,6 +13,7 @@
  */
 import { ref, computed } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
@@ -173,6 +174,11 @@ function salvarNovoLote() {
 // Modal: novo local inline
 const novoLocalAberto = ref(false);
 const novoLocalForm = useForm({ nome: '', codigo: '', tipo: 'pasto' });
+
+// Trava scroll do body quando qualquer modal interno está aberto.
+// Sem isso, no mobile o scroll vaza pra fora do modal e dispara
+// pull-to-refresh do navegador (PO 2026-04-28).
+useBodyScrollLock(computed(() => novoLoteAberto.value || novoLocalAberto.value));
 function abrirNovoLocal() { novoLocalForm.reset(); novoLocalForm.tipo = 'pasto'; novoLocalAberto.value = true; }
 function salvarNovoLocal() {
     novoLocalForm.post(route('admin.rebanho.locais.store'), {
@@ -884,7 +890,7 @@ function reiniciar() {
         <Teleport to="body">
             <div v-if="novoLoteAberto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="novoLoteAberto = false"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-1">Novo lote</h3>
                     <p class="text-sm text-slate-500 mb-4">
                         Um lote é um <strong>grupo de manejo</strong> (ex.: "Bezerros 2026"). Depois de criar,
@@ -913,7 +919,7 @@ function reiniciar() {
             <!-- Modal inline: novo LOCAL (pasto/piquete/curral) -->
             <div v-if="novoLocalAberto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/40" @click="novoLocalAberto = false"></div>
-                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
                     <h3 class="text-lg font-semibold mb-1">Novo pasto / local</h3>
                     <p class="text-sm text-slate-500 mb-4">
                         Um local é a <strong>posição física</strong> (pasto, piquete, curral, baia, tanque).
