@@ -274,10 +274,11 @@ function logout() {
              Antes usava md:static que jogava sidebar no fluxo normal e ela
              subia junto com scroll em listas grandes. -->
         <div class="flex-1 flex flex-col min-w-0 w-full md:ml-64">
-            <!-- TOPBAR — sombra reforçada (shadow-sm) cria divisão visual nítida
-                 entre header sticky e conteúdo do main. Antes só tinha border-b 1px
-                 que parecia se misturar com o título da página em scrolls pequenos. -->
-            <header :class="['sticky z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm px-4 lg:px-8', stickyTop]">
+            <!-- TOPBAR — sombra reforçada (shadow-md) + bg-white opaco garantem
+                 que conteúdo do main NUNCA fique visível atrás do header durante
+                 scroll. Antes shadow-sm + border-b 1px deixava títulos do main
+                 parecerem 'meio cortados' em qualquer rolagem mínima. -->
+            <header :class="['sticky z-20 h-16 flex items-center justify-between bg-white shadow-md px-4 lg:px-8', stickyTop]">
                 <button @click="sidebarOpen = !sidebarOpen" class="md:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
                     <svg class="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
@@ -361,10 +362,11 @@ function logout() {
                 </div>
             </header>
 
-            <!-- Main: padding-top maior dá respiro entre header sticky e o título
-                 da página. Antes p-4 (16px) deixava h1 do PageHeader ficar
-                 "meio cortado" durante scrolls pequenos (sticky cobria parte). -->
-            <main class="flex-1 px-4 pt-6 pb-4 lg:px-8 lg:pt-8 lg:pb-8 min-w-0 w-full max-w-full overflow-x-hidden">
+            <!-- Main: pt-8/lg:pt-10 dá respiro generoso (32-40px) entre topbar
+                 sticky e o título da página. Plus header tem shadow-md opaca
+                 (acima) que esconde QUALQUER conteúdo passando por trás durante
+                 scroll — garante que H1 nunca apareça 'meio cortado'. -->
+            <main class="flex-1 px-4 pt-8 pb-4 lg:px-8 lg:pt-10 lg:pb-8 min-w-0 w-full max-w-full overflow-x-hidden">
                 <AlertBar />
                 <slot />
             </main>
