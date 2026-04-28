@@ -45,8 +45,10 @@ class AnimalLot extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
-        'quantidade_inicial' => 'decimal:2',
-        'quantidade_atual' => 'decimal:2',
+        // Cabeças são sempre inteiras — antes vinha "200.00" do decimal(10,2),
+        // confundia UI mostrando "200.00 cabeças" no select de lote.
+        'quantidade_inicial' => 'integer',
+        'quantidade_atual' => 'integer',
         'peso_medio_kg' => 'decimal:2',
         'data_inicio' => 'date',
         'data_fim' => 'date',

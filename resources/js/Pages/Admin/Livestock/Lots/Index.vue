@@ -95,11 +95,11 @@ function toggleAtivo(lote) {
                      com indicação de baixas se decrementou. Lote convencional:
                      mostra animais_count (Animals individuais vinculados). -->
                 <template v-if="row.species && row.species.gestao === 'lote'">
-                    <span class="font-mono font-semibold">{{ row.quantidade_atual ?? 0 }}</span>
-                    <span v-if="row.quantidade_inicial && row.quantidade_atual !== null && row.quantidade_atual !== row.quantidade_inicial"
+                    <span class="font-mono font-semibold">{{ Math.round(Number(row.quantidade_atual ?? 0)) }}</span>
+                    <span v-if="row.quantidade_inicial && row.quantidade_atual !== null && Number(row.quantidade_atual) !== Number(row.quantidade_inicial)"
                           class="ml-1 text-xs text-amber-700"
-                          :title="`Inicial: ${row.quantidade_inicial} · Baixas: ${row.quantidade_inicial - row.quantidade_atual}`">
-                        / {{ row.quantidade_inicial }}
+                          :title="`Inicial: ${Math.round(Number(row.quantidade_inicial))} · Baixas: ${Math.round(Number(row.quantidade_inicial) - Number(row.quantidade_atual))}`">
+                        / {{ Math.round(Number(row.quantidade_inicial)) }}
                     </span>
                 </template>
                 <span v-else class="font-mono">{{ row.animais_count ?? 0 }}</span>

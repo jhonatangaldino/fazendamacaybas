@@ -100,12 +100,35 @@ class DashboardController extends Controller
         // BUG FIX B4.4: antes usava DB::table('animals') que BYPASSA scopes globais.
         // Isso causava modal "Rebanho ativo" mostrar animais de outras farms (46+26+5=77)
         // enquanto card Rebanho (Animal::ativos()) mostrava apenas 1 da farm correta.
-        $totalAnimais = Animal::ativos()->count();
-        $animaisPorEspecie = Animal::ativos()
+        //
+        // BUG FIX 2026-04-28 (apontado pelo usuário): Animal::ativos()->count() ignora
+        // cabeças em lotes agregados (Ave/Peixe gestão=lote). Modal mostrava "Ave: 1"
+        // (único animal individual residual) enquanto sidebar mostrava "Ave: 4580"
+        // (cabeças em lotes). Solução: somar individuais + agregados, igual à sidebar.
+        $totalAnimaisIndividuais = Animal::ativos()->count();
+        $cabecasAgregadas = (int) \App\Models\Livestock\AnimalLot::where('is_active', true)
+            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->where('gestao', 'lote'))
+            ->sum('quantidade_atual');
+        $totalAnimais = $totalAnimaisIndividuais + $cabecasAgregadas;
+
+        // Por espécie: individuais (count animals) + agregados (sum quantidade_atual)
+        $individuaisPorEspecie = Animal::ativos()
             ->leftJoin('animal_species', 'animals.species_id', '=', 'animal_species.id')
             ->select('animal_species.nome as especie', DB::raw('COUNT(*) as total'))
             ->groupBy('animal_species.nome')
-            ->get();
+            ->pluck('total', 'especie');
+        $agregadosPorEspecie = \App\Models\Livestock\AnimalLot::where('animal_lots.is_active', true)
+            ->leftJoin('animal_species', 'animal_lots.species_id', '=', 'animal_species.id')
+            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->where('gestao', 'lote'))
+            ->select('animal_species.nome as especie', DB::raw('SUM(animal_lots.quantidade_atual) as total'))
+            ->groupBy('animal_species.nome')
+            ->pluck('total', 'especie');
+        // Mescla: cada espécie com soma individual + agregado
+        $todasEspecies = collect($individuaisPorEspecie->keys())->merge($agregadosPorEspecie->keys())->unique();
+        $animaisPorEspecie = $todasEspecies->map(fn ($especie) => (object) [
+            'especie' => $especie,
+            'total' => (int) ($individuaisPorEspecie[$especie] ?? 0) + (int) ($agregadosPorEspecie[$especie] ?? 0),
+        ])->sortByDesc('total')->values();
 
         // Estoque — TUDO via Eloquent (StockItem model com BelongsToTenant + BelongsToFarm).
         // BUG FIX B4.4: idem para stock_items. DB::table() bypassava scopes →

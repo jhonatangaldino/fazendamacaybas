@@ -231,14 +231,14 @@ function salvar() {
                         <select v-model="loteSelecionado" class="form-select">
                             <option :value="null" disabled>— Escolha o lote —</option>
                             <option v-for="l in lotesAgregados" :key="l.id" :value="l">
-                                {{ l.nome }} ({{ l.quantidade_atual }} cabeças{{ l.codigo ? ' · '+l.codigo : '' }})
+                                {{ l.nome }} ({{ Math.round(l.quantidade_atual) }} cabeças{{ l.codigo ? ' · '+l.codigo : '' }})
                             </option>
                         </select>
                         <p v-if="lotesAgregados.length === 0" class="text-xs text-amber-700 mt-1">
                             Sem lote ativo dessa espécie. Crie um lote primeiro pra registrar eventos.
                         </p>
                         <p v-else-if="loteSelecionado" class="text-xs text-emerald-700 mt-1">
-                            ✓ {{ loteSelecionado.quantidade_atual }} cabeças nesse lote
+                            ✓ {{ Math.round(loteSelecionado.quantidade_atual) }} cabeças nesse lote
                         </p>
                     </div>
 
@@ -332,7 +332,7 @@ function salvar() {
                         <InputLabel value="Quantidade de baixas *" />
                         <InputDecimal v-model="form.quantidade_baixa" :decimals="0" :min="1" placeholder="Ex.: 5" />
                         <p class="text-xs text-amber-700 mt-1">
-                            ⚠ Decrementa do lote ({{ loteSelecionado?.quantidade_atual ?? '?' }} → {{ (loteSelecionado?.quantidade_atual ?? 0) - (parseInt(form.quantidade_baixa) || 0) }})
+                            ⚠ Decrementa do lote ({{ loteSelecionado?.quantidade_atual ? Math.round(loteSelecionado.quantidade_atual) : '?' }} → {{ Math.round((loteSelecionado?.quantidade_atual ?? 0) - (parseInt(form.quantidade_baixa) || 0)) }})
                         </p>
                     </div>
 
