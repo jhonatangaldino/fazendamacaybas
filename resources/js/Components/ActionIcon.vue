@@ -86,17 +86,18 @@ const effectiveVariant = computed(() =>
     props.variant === 'auto' ? (autoVariant[props.type] || 'slate') : props.variant
 );
 const d = computed(() => paths[props.type] || paths.edit);
-// F4.2: área de toque 44×44 em mobile, 36×36 em desktop (padrão WCAG 2.5.5)
-// size='sm' é mais compacto mas ainda garante 40×40 mobile, 28×28 desktop
+// F4.2: área de toque ≥40px em qualquer touch device (mobile + tablet),
+// reduz só em desktop puro (lg=1024px+, sem touch). Padrão WCAG 2.5.5.
+// Antes usava md: (≥768px) que pegava iPad como desktop e quebrava UX touch.
 const sizeClass = computed(() =>
     props.size === 'sm'
-        ? 'h-10 w-10 md:h-7 md:w-7'
-        : 'h-11 w-11 md:h-9 md:w-9',
+        ? 'h-10 w-10 lg:h-8 lg:w-8'
+        : 'h-11 w-11 lg:h-9 lg:w-9',
 );
 const iconSize = computed(() =>
     props.size === 'sm'
-        ? 'h-5 w-5 md:h-4 md:w-4'
-        : 'h-5 w-5 md:h-[18px] md:w-[18px]',
+        ? 'h-5 w-5 lg:h-4 lg:w-4'
+        : 'h-5 w-5 lg:h-[18px] lg:w-[18px]',
 );
 </script>
 
