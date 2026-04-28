@@ -45,39 +45,66 @@ const hasAlways = computed(() => !!slots.always);
 </script>
 
 <template>
-    <div class="card mb-4">
-        <div class="card-body">
-            <!-- Busca/filtros sempre visíveis -->
-            <div v-if="hasAlways" class="mb-0" :class="mobileOpen ? 'mb-3' : ''">
+    <!-- Visual ajustado: busca destacada (ícone embutido + bg sutil),
+         filtros separados visualmente pra não parecerem "grudados". -->
+    <div class="bg-white rounded-xl ring-1 ring-slate-200 mb-4 overflow-hidden">
+        <!-- BLOCO BUSCA — destacado, com lupa embutida e fundo sutil pra
+             diferenciar dos filtros de refinamento abaixo. -->
+        <div v-if="hasAlways" class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+            <div class="relative filter-search-slot">
+                <!-- Ícone de busca abs à esquerda; o input filho ganha pl-10 via CSS local -->
+                <svg class="h-5 w-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
                 <slot name="always" />
             </div>
+        </div>
 
-            <!-- Botão "Mostrar filtros" — só aparece em mobile -->
-            <button
-                v-if="$slots.default"
-                type="button"
-                @click="mobileOpen = !mobileOpen"
-                class="md:hidden w-full flex items-center justify-center gap-2 text-sm font-medium text-slate-600 hover:text-macaybas-primary py-2 border-t border-slate-100 mt-2"
-                :class="hasAlways ? 'mt-3 pt-3' : ''"
-            >
-                <svg class="h-4 w-4 transition-transform" :class="mobileOpen ? 'rotate-180' : ''"
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
-                {{ mobileOpen ? 'Esconder filtros' : 'Mostrar filtros' }}
-            </button>
+        <!-- Botão "Mostrar filtros" mobile -->
+        <button
+            v-if="$slots.default"
+            type="button"
+            @click="mobileOpen = !mobileOpen"
+            class="md:hidden w-full flex items-center justify-center gap-2 text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 py-3 border-b border-slate-200 touch-manipulation"
+        >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            </svg>
+            <span>{{ mobileOpen ? 'Esconder filtros' : 'Mostrar filtros' }}</span>
+            <svg class="h-4 w-4 transition-transform" :class="mobileOpen ? 'rotate-180' : ''"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
 
-            <!-- Filtros — escondidos em mobile por padrão, sempre visíveis em desktop -->
-            <div
-                v-if="$slots.default"
-                class="grid gap-3"
-                :class="[
-                    cols,
-                    mobileOpen ? 'mt-3' : 'hidden md:grid',
-                ]"
-            >
-                <slot />
-            </div>
+        <!-- BLOCO FILTROS — refinamentos secundários. Padding interno respira
+             sem precisar grudar com o input principal. -->
+        <div
+            v-if="$slots.default"
+            class="grid gap-3 px-4 py-3"
+            :class="[
+                cols,
+                mobileOpen ? '' : 'hidden md:grid',
+            ]"
+        >
+            <slot />
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Busca: input filho recebe pl-10 (espaço pra ícone) automaticamente sem
+   precisar mudar o consumidor. Também aumenta altura mobile pra 16px (anti-zoom). */
+.filter-search-slot :deep(input) {
+    padding-left: 2.5rem !important;
+    background: white;
+    border-color: #e2e8f0;
+}
+.filter-search-slot :deep(input:focus) {
+    border-color: #15803d;
+    box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.1);
+}
+</style>
