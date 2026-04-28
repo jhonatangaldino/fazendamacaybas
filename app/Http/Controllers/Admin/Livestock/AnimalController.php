@@ -12,6 +12,7 @@ use App\Models\Livestock\AnimalLocation;
 use App\Models\Livestock\AnimalLot;
 use App\Models\Livestock\AnimalSpecies;
 use App\Models\Partner;
+use App\Services\Livestock\LivestockMetricsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -73,88 +74,40 @@ class AnimalController extends Controller
      * AnimalSpecies fica em tenant_id=1 (catálogo global) — withoutGlobalScopes
      * pra resolver o slug independente do tenant atual.
      */
-    public function dashboardEspecie(Request $request, string $speciesSlug)
+    public function dashboardEspecie(Request $request, string $speciesSlug, LivestockMetricsService $metrics)
     {
         $species = AnimalSpecies::withoutGlobalScopes()
             ->where('slug', $speciesSlug)
             ->where('is_active', true)
             ->firstOrFail(['id', 'nome', 'slug', 'gestao', 'profile', 'allowed_events']);
 
-        $tenantId = (int) (auth()->user()->tenant_id ?? app('tenant_id'));
+        // KPIs base via service — fonte única em todas as telas.
+        // Antes este controller calculava cada KPI inline com fórmulas
+        // sutilmente diferentes do Hub/Painel/Relatório. Bovino mostrava
+        // 344 aqui e 345 no Hub porque cada um filtrava de um jeito.
+        $totalAtivos = $metrics->totalCabecasPorEspecie($species->id);
+        $sexo = $metrics->sexoCount($species->id);
+        $sexoM = $sexo['M'];
+        $sexoF = $sexo['F'];
+        $vendidosMes = $metrics->vendidosNoMes($species->id);
+        $baixasMes = $metrics->baixasNoMes($species->id);
+        $pesoMedio = $metrics->pesoMedioPorEspecie($species->id);
+        $eventosRecentes = $metrics->eventosUltimosNDias($species->id, 7);
 
-        // KPIs base (todos os profiles): ativos, sexo, peso médio, vendidos/baixas mês
+        // Lots relevantes pra esta espécie (lista usada pelo modal de evento
+        // agregado). Aqui mantemos a query original — não é uma métrica, é
+        // uma listagem pra UI escolher um lote.
         $animaisQuery = Animal::where('species_id', $species->id);
-
-        // Total de individuais ativos da espécie. Para gestao=individual
-        // já é o número final; para gestao=lote (Ave/Peixe) soma-se mais
-        // abaixo as cabeças dos lotes agregados a este número (cadastros
-        // 1-a-1 legados na espécie de massa).
-        //
-        // CUIDADO: anteriormente esta linha JÁ somava quantidade_atual dos
-        // lotes para gestao=lote, e mais abaixo (linha 145+) somava de novo
-        // → double-count (mostrava 9160 quando o real era 4580). Bug
-        // detectado pelo dono comparando badge do menu (4580) com
-        // dashboard (9160). Corrigido: aqui só conta Animal individual,
-        // a soma de lotes vai exclusivamente no bloco abaixo.
-        $totalAtivos = (clone $animaisQuery)->where('status', 'ativo')->count();
-        $sexoM = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'M')->count();
-        $sexoF = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'F')->count();
-        $vendidosMes = (clone $animaisQuery)->where('status', 'vendido')
-            ->where('updated_at', '>=', now()->startOfMonth())->count();
-        $baixasMes = (clone $animaisQuery)->whereIn('status', ['morto', 'abatido'])
-            ->where('updated_at', '>=', now()->startOfMonth())->count();
-
-        // Peso médio do último evento de pesagem por animal — usa subquery
-        // simples (compatível MySQL/SQLite/Pg). Só vale pra gestao=individual.
-        $pesoMedio = null;
-        if ($species->gestao === 'individual') {
-            $animalIds = (clone $animaisQuery)->where('status', 'ativo')->pluck('id')->all();
-            if (count($animalIds) > 0) {
-                // Pega o último peso de cada animal (subquery por id máximo).
-                $ultimosPesoIds = DB::table('animal_events')
-                    ->whereIn('animal_id', $animalIds)
-                    ->where('tipo', 'pesagem')
-                    ->whereNotNull('peso')
-                    ->select(DB::raw('MAX(id) as id'))
-                    ->groupBy('animal_id')
-                    ->pluck('id');
-                if ($ultimosPesoIds->count() > 0) {
-                    $pesoMedio = (float) AnimalEvent::whereIn('id', $ultimosPesoIds)->avg('peso');
-                }
-            }
-        }
-
-        // Eventos recentes (últimos 7 dias) — útil pro master ver atividade
-        $eventosRecentes = AnimalEvent::whereHas('animal', fn ($q) =>
-            $q->where('species_id', $species->id))
-            ->where('data', '>=', now()->subDays(7)->toDateString())
-            ->count();
-
-        // Lots relevantes pra esta espécie (3 vinculações possíveis):
-        //  - lot.species_id = species.id (lote agregado novo, sem Animal individual)
-        //  - lot tem animals com species_id = species.id (lote convencional)
-        // Pra lote agregado (gestao_modo='agregada'), KPIs vêm do próprio lote.
         $lots = AnimalLot::where('is_active', true)
             ->where(function ($q) use ($species) {
                 $q->where('species_id', $species->id)
                   ->orWhereHas('animals', fn ($qq) => $qq->where('species_id', $species->id)->where('status', 'ativo'));
             })
             ->orderBy('nome')
-            // Inclui species_id e codigo pro modal de evento agregado filtrar e exibir.
             ->get(['id', 'nome', 'codigo', 'species_id', 'gestao_modo', 'quantidade_atual']);
 
-        // Pra espécies de gestão lote (Ave/Peixe), o "total ativos" não vem
-        // da contagem de Animal — vem da soma de quantidade_atual dos lotes
-        // agregados (cadastrados como massa).
-        if ($species->gestao === 'lote') {
-            $cabecasAgregadas = (float) $lots->where('gestao_modo', 'agregada')->sum('quantidade_atual');
-            // Soma com Animals individuais legados (quem ainda cadastrou 1 a 1)
-            $totalAtivos = (int) ($cabecasAgregadas + $totalAtivos);
-        }
-
-        // KPIs específicos por profile — só calcula o que faz sentido pra
-        // a espécie. Cada perfil tem métricas próprias do mercado.
-        $kpisProfile = $this->kpisProfileEspecie($species);
+        // KPIs específicos por profile — agora também via service.
+        $kpisProfile = $this->kpisProfileEspecie($species, $metrics);
 
         // Lista enxuta de animais ativos pro modal de evento rápido.
         // Limita a 500 — fazendas maiores que isso usam o "Ver todos".
@@ -349,48 +302,31 @@ class AnimalController extends Controller
      * Retorna ['profile' => 'ruminante_leite', 'cards' => [...]] ou null
      * quando o profile não tem KPIs especiais (ex.: pet, equino).
      */
-    private function kpisProfileEspecie(AnimalSpecies $species): ?array
+    private function kpisProfileEspecie(AnimalSpecies $species, ?LivestockMetricsService $metrics = null): ?array
     {
+        $metrics = $metrics ?: app(LivestockMetricsService::class);
         $profile = $species->profile;
 
         // Bovino tem profile=ruminante_corte mas pode ter animais com categoria=leite
-        // (Holandesa, Girolando, Jersey). Se houver, exibe os indicadores de leite
-        // mesmo no profile de corte. Critério: existe ≥1 animal leite/misto na espécie
-        // OU já houve ordenha registrada nessa espécie.
+        // (Holandesa, Girolando, Jersey). Service detecta manejo leiteiro pela
+        // presença de animal categoria leite/misto OU evento ordenha/controle.
         $temManejoLeiteiroEspecie = false;
         if ($profile === 'ruminante_corte' || $profile === 'ruminante_leite') {
-            $temManejoLeiteiroEspecie = Animal::where('species_id', $species->id)
-                ->whereIn('categoria', ['leite', 'misto'])
-                ->exists()
-                || AnimalEvent::whereHas('animal', fn ($q) => $q->where('species_id', $species->id))
-                    ->whereIn('tipo', ['controle_leiteiro', 'ordenha'])
-                    ->exists();
+            $temManejoLeiteiroEspecie = $metrics->temManejoLeiteiro($species->id);
         }
-        // Promove profile para 'ruminante_leite' quando há manejo leiteiro detectado
         if ($temManejoLeiteiroEspecie && $profile !== 'ruminante_leite') {
             $profile = 'ruminante_leite';
         }
 
         if ($profile === 'ruminante_leite') {
-            // Litros mês atual + comparação com mês anterior + vacas em lactação
-            $animalIds = Animal::where('species_id', $species->id)
-                ->where('status', 'ativo')->pluck('id');
-            $litrosMesAtual = (float) AnimalEvent::whereIn('animal_id', $animalIds)
-                ->where('tipo', 'ordenha')
-                ->where('data', '>=', now()->startOfMonth()->toDateString())
-                ->sum('producao_litros');
-            $litrosMesAnterior = (float) AnimalEvent::whereIn('animal_id', $animalIds)
-                ->where('tipo', 'ordenha')
-                ->whereBetween('data', [
-                    now()->subMonth()->startOfMonth()->toDateString(),
-                    now()->subMonth()->endOfMonth()->toDateString(),
-                ])
-                ->sum('producao_litros');
-            $vacasEmLactacao = AnimalEvent::whereIn('animal_id', $animalIds)
-                ->where('tipo', 'ordenha')
-                ->where('data', '>=', now()->subDays(30)->toDateString())
-                ->distinct('animal_id')
-                ->count('animal_id');
+            // Service unifica fórmula com Controle Leiteiro — antes este card
+            // somava só tipo=ordenha sobre coluna producao_litros (78,2 L) e o
+            // Controle Leiteiro somava ordenha+controle_leiteiro iterando o
+            // array ordenhas[] (116,8 L) → divergência. Agora ambos chamam
+            // litrosNoMes/vacasEmLactacao do service.
+            $litrosMesAtual = $metrics->litrosNoMes($species->id);
+            $litrosMesAnterior = $metrics->litrosNoMes($species->id, now()->subMonth());
+            $vacasEmLactacao = $metrics->vacasEmLactacao($species->id);
             $variacao = $litrosMesAnterior > 0
                 ? round((($litrosMesAtual - $litrosMesAnterior) / $litrosMesAnterior) * 100, 1)
                 : null;
@@ -455,7 +391,7 @@ class AnimalController extends Controller
         return null;
     }
 
-    public function index(Request $request)
+    public function index(Request $request, LivestockMetricsService $metrics)
     {
         // Reference data multi-tenant: species/breed estão em tenant_id=1 (sistema)
         // mas o user pode estar em outro tenant. O global scope filtra por tenant
@@ -515,29 +451,17 @@ class AnimalController extends Controller
             // "quanto rebanho tenho" e "quantos precisam de atenção"
             // sem ter que navegar. Sem pesagem há 60+ dias = lembrete
             // de pesar (ganho/perda só é calculável com pesagens).
-            // Resumo da espécie/contexto — DEVE respeitar os mesmos filtros
-            // estruturais da listagem (species_id, lot_id, location_id),
-            // senão o título "X bovino(s) ativo(s)" mente e mostra o
-            // rebanho do tenant inteiro (Bovino + Equino + Suíno + ...).
-            // Bug detectado pelo dono: listagem filtrada de Bovino mostrava
-            // 1956 (rebanho TODO) enquanto Dashboard espécie mostrava 344
-            // (apenas Bovino). 1956 era a soma agregada de tudo.
+            // Resumo da espécie/contexto.
+            // 2026-04-28 — quando species_id está informado, usa o service para
+            // garantir que peso_total/ativos_com_peso vêm do ÚLTIMO evento de
+            // pesagem (mesma fonte do Dashboard de espécie). Antes a listagem
+            // somava `animals.peso_atual` que ficava stale, gerando 480kg vs
+            // 309kg. Agora o número é o mesmo das duas telas.
             //
-            // Não respeita search/status/categoria propositalmente:
-            //   - search (texto livre) tornaria o resumo instável a cada tecla
-            //   - status faria os totais (ativos/vendidos/baixas) mentirem entre si
-            //   - categoria é refinamento dentro da espécie, não muda contexto
-            'resumo' => Animal::query()
-                ->when($request->species_id, fn ($qq) => $qq->where('species_id', $request->species_id))
-                ->when($request->lot_id, fn ($qq) => $qq->where('lot_id', $request->lot_id))
-                ->when($request->location_id, fn ($qq) => $qq->where('location_id', $request->location_id))
-                ->selectRaw("
-                    SUM(CASE WHEN status = 'ativo' THEN 1 ELSE 0 END) as ativos,
-                    SUM(CASE WHEN status = 'vendido' THEN 1 ELSE 0 END) as vendidos,
-                    SUM(CASE WHEN status IN ('morto','abatido') THEN 1 ELSE 0 END) as baixas,
-                    SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN peso_atual ELSE 0 END) as peso_total,
-                    SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN 1 ELSE 0 END) as ativos_com_peso
-                ")->first(),
+            // Sem species_id (visão "todas espécies"), continua via Animal::query()
+            // mas usando peso_atual como aproximação — visão geral é menos
+            // sensível e qualquer queda na precisão é menos visível.
+            'resumo' => $this->resumoListagem($request, $metrics),
             'partners' => Partner::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
             'categorias' => [
                 ['value' => 'leite', 'label' => 'Leite'],
@@ -553,9 +477,51 @@ class AnimalController extends Controller
             //   1. existe ao menos 1 animal categorizado como leite/misto, OU
             //   2. existe ao menos 1 evento de controle_leiteiro/ordenha
             // Basta um pra mostrar. Query barata (existência, não count).
-            'tem_manejo_leiteiro' => Animal::whereIn('categoria', ['leite', 'misto'])->exists()
-                || \App\Models\Livestock\AnimalEvent::whereIn('tipo', ['controle_leiteiro', 'ordenha'])->exists(),
+            'tem_manejo_leiteiro' => $metrics->temManejoLeiteiro(),
         ]);
+    }
+
+    /**
+     * Resumo (ativos/vendidos/baixas/peso_total/ativos_com_peso) da listagem.
+     * Quando species_id está informado, usa o service para garantir que peso
+     * vem do último evento de pesagem (coerente com Dashboard). Sem species,
+     * mantém SQL agregado original como aproximação geral.
+     */
+    private function resumoListagem(Request $request, LivestockMetricsService $metrics)
+    {
+        // Se há species_id, computa peso pelo service (último evento).
+        if ($request->filled('species_id')) {
+            $sid = (int) $request->species_id;
+            $ativos = Animal::query()
+                ->when($request->lot_id, fn ($qq) => $qq->where('lot_id', $request->lot_id))
+                ->when($request->location_id, fn ($qq) => $qq->where('location_id', $request->location_id))
+                ->where('species_id', $sid)
+                ->selectRaw("
+                    SUM(CASE WHEN status = 'ativo' THEN 1 ELSE 0 END) as ativos,
+                    SUM(CASE WHEN status = 'vendido' THEN 1 ELSE 0 END) as vendidos,
+                    SUM(CASE WHEN status IN ('morto','abatido') THEN 1 ELSE 0 END) as baixas
+                ")->first();
+            $peso = $metrics->pesoTotalAtivos($sid);
+            return (object) [
+                'ativos' => (int) ($ativos->ativos ?? 0),
+                'vendidos' => (int) ($ativos->vendidos ?? 0),
+                'baixas' => (int) ($ativos->baixas ?? 0),
+                'peso_total' => $peso['peso_total'],
+                'ativos_com_peso' => $peso['ativos_com_peso'],
+            ];
+        }
+
+        // Sem species_id, mantém SQL agregado simples como aproximação.
+        return Animal::query()
+            ->when($request->lot_id, fn ($qq) => $qq->where('lot_id', $request->lot_id))
+            ->when($request->location_id, fn ($qq) => $qq->where('location_id', $request->location_id))
+            ->selectRaw("
+                SUM(CASE WHEN status = 'ativo' THEN 1 ELSE 0 END) as ativos,
+                SUM(CASE WHEN status = 'vendido' THEN 1 ELSE 0 END) as vendidos,
+                SUM(CASE WHEN status IN ('morto','abatido') THEN 1 ELSE 0 END) as baixas,
+                SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN peso_atual ELSE 0 END) as peso_total,
+                SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN 1 ELSE 0 END) as ativos_com_peso
+            ")->first();
     }
 
     public function create()

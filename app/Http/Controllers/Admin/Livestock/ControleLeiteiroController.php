@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Livestock;
 use App\Http\Controllers\Controller;
 use App\Models\Livestock\Animal;
 use App\Models\Livestock\AnimalEvent;
+use App\Services\Livestock\LivestockMetricsService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ use Inertia\Response;
  */
 class ControleLeiteiroController extends Controller
 {
-    public function dashboard(Request $request): Response
+    public function dashboard(Request $request, LivestockMetricsService $metrics): Response
     {
         // Mês de referência (formato YYYY-MM). Default: mês atual.
         $mesParam = $request->query('mes', now()->format('Y-m'));
@@ -116,20 +117,34 @@ class ControleLeiteiroController extends Controller
             ];
         })->values();
 
-        // ── Contagem de categorias no dia do controle (último dia do mês)
-        $contagem = $this->contarCategorias($fimMes, $speciesId);
+        // ── Contagem de categorias DROVET no dia do controle (último dia do mês).
+        // Centralizado no LivestockMetricsService — antes era método privado.
+        // Sem species_id, retorna zeros (a tela DROVET sempre tem species filtrada).
+        $contagem = $speciesId
+            ? $metrics->contarCategoriasLeiteiras($speciesId, $fimMes)
+            : ['vacas_secas'=>0,'vacas_lactacao'=>0,'novilhas'=>0,'bezerras'=>0,'machos'=>0,'total_femeas'=>0,'total_geral'=>0];
 
-        // ── Histórico dos últimos 12 meses
-        $historico = $this->historicoMensal($mesRef, $speciesId);
+        // ── Histórico dos últimos 12 meses (delega ao service)
+        $historico = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $m = $mesRef->copy()->subMonths($i)->startOfMonth();
+            $litrosMes = $speciesId ? $metrics->litrosNoMes($speciesId, $m) : 0.0;
+            $vacasMes = $speciesId ? $metrics->vacasEmLactacao($speciesId, $m) : 0;
+            $historico[] = [
+                'mes'              => $m->format('Y-m'),
+                'mes_label'        => $this->formatarMesPtBrCurto($m),
+                'total_litros'     => round($litrosMes, 1),
+                'vacas_ordenhadas' => $vacasMes,
+            ];
+        }
 
-        // ── Totais do mês
-        $totalLitrosMes  = $linhas->sum('total_litros');
-        $vacasOrdenhadas = $linhas->count();
+        // ── Totais do mês — números canônicos do service.
+        // Antes este controller calculava localmente e o Dashboard de Espécie
+        // calculava com fórmula diferente. Agora ambos chamam o mesmo método.
+        $totalLitrosMes  = $speciesId ? $metrics->litrosNoMes($speciesId, $mesRef) : 0.0;
+        $vacasOrdenhadas = $speciesId ? $metrics->vacasEmLactacao($speciesId, $mesRef) : 0;
         $mediaPorVaca    = $vacasOrdenhadas > 0 ? round($totalLitrosMes / $vacasOrdenhadas, 1) : 0;
-
-        // Maior produtora do mês
-        $top = $linhas->sortByDesc('total_litros')->first();
-        $topProdutora = $top && $top['total_litros'] > 0 ? $top : null;
+        $topProdutora    = $speciesId ? $metrics->topProdutoraDoMes($speciesId, $mesRef) : null;
 
         // Labels adaptam à espécie ("Vacas" → "Búfalas" → "Cabras")
         $labelFemea = match (true) {
@@ -172,126 +187,11 @@ class ControleLeiteiroController extends Controller
     }
 
     /**
-     * Contagem de categorias no dia do controle (snapshot DROVET).
-     *
-     * Categorias:
-     *   - vacas_secas: F + adultas + tem evento 'secagem' SEM controle_leiteiro
-     *                  posterior à secagem (ainda em descanso reprodutivo)
-     *   - novilhas:    F + idade > 12 meses + sem secagem ativa + não está em
-     *                  lactação (sem controle_leiteiro nos últimos 60 dias)
-     *   - bezerras:    F + idade ≤ 12 meses
-     *   - machos:      M (qualquer idade)
+     * Métodos privados contarCategorias() e historicoMensal() foram removidos
+     * em 2026-04-28 — a lógica vive agora em LivestockMetricsService como
+     * fonte única, evitando que Dashboard de espécie e Controle Leiteiro
+     * computassem números diferentes pro mesmo conceito.
      */
-    private function contarCategorias(Carbon $dataRef, ?int $speciesId = null): array
-    {
-        $q = Animal::where('status', 'ativo')
-            ->select('id', 'sexo', 'data_nascimento');
-        if ($speciesId) $q->where('species_id', $speciesId);
-        $animais = $q->get();
-
-        $vacasSecas = 0;
-        $novilhas   = 0;
-        $bezerras   = 0;
-        $machos     = 0;
-        $vacasLact  = 0; // não pedido no DROVET, mas útil pro overview
-
-        foreach ($animais as $a) {
-            if ($a->sexo === 'M') {
-                $machos++;
-                continue;
-            }
-            // F daqui pra frente
-            $idadeMeses = $a->data_nascimento ? (int) $a->data_nascimento->diffInMonths($dataRef) : null;
-            if ($idadeMeses !== null && $idadeMeses <= 12) {
-                $bezerras++;
-                continue;
-            }
-
-            // Adulta (>12 meses ou sem data_nasc): seca, lactação ou novilha?
-            $ultimaSecagem = AnimalEvent::where('animal_id', $a->id)
-                ->where('tipo', 'secagem')
-                ->where('data', '<=', $dataRef->toDateString())
-                ->orderByDesc('data')
-                ->first(['data']);
-
-            if ($ultimaSecagem) {
-                // Tem controle_leiteiro depois da secagem? Se sim, voltou a produzir
-                $voltou = AnimalEvent::where('animal_id', $a->id)
-                    ->whereIn('tipo', ['controle_leiteiro', 'ordenha'])
-                    ->where('data', '>', $ultimaSecagem->data)
-                    ->where('data', '<=', $dataRef->toDateString())
-                    ->exists();
-                if (! $voltou) {
-                    $vacasSecas++;
-                    continue;
-                }
-            }
-
-            // Em lactação? (controle_leiteiro nos últimos 60 dias)
-            $emLactacao = AnimalEvent::where('animal_id', $a->id)
-                ->whereIn('tipo', ['controle_leiteiro', 'ordenha'])
-                ->whereBetween('data', [$dataRef->copy()->subDays(60)->toDateString(), $dataRef->toDateString()])
-                ->exists();
-            if ($emLactacao) {
-                $vacasLact++;
-            } else {
-                $novilhas++;
-            }
-        }
-
-        return [
-            'vacas_secas'      => $vacasSecas,
-            'vacas_lactacao'   => $vacasLact,
-            'novilhas'         => $novilhas,
-            'bezerras'         => $bezerras,
-            'machos'           => $machos,
-            'total_femeas'     => $vacasSecas + $vacasLact + $novilhas + $bezerras,
-            'total_geral'      => $vacasSecas + $vacasLact + $novilhas + $bezerras + $machos,
-        ];
-    }
-
-    /**
-     * Histórico dos últimos 12 meses (do mês de referência pra trás).
-     * Para cada mês: total de litros e nº de vacas ordenhadas.
-     */
-    private function historicoMensal(Carbon $mesRef, ?int $speciesId = null): array
-    {
-        $rows = [];
-        $animalIdsDaEspecie = null;
-        if ($speciesId) {
-            $animalIdsDaEspecie = Animal::where('species_id', $speciesId)->pluck('id');
-        }
-        for ($i = 11; $i >= 0; $i--) {
-            $m = $mesRef->copy()->subMonths($i)->startOfMonth();
-            $inicio = $m->copy()->startOfMonth()->toDateString();
-            $fim    = $m->copy()->endOfMonth()->toDateString();
-
-            $q = AnimalEvent::whereIn('tipo', ['controle_leiteiro', 'ordenha'])
-                ->whereBetween('data', [$inicio, $fim])
-                ->whereNotNull('animal_id');
-            if ($animalIdsDaEspecie) $q->whereIn('animal_id', $animalIdsDaEspecie);
-            $eventos = $q->get(['animal_id', 'producao_litros', 'ordenhas']);
-
-            $totalLitros = 0;
-            foreach ($eventos as $ev) {
-                if (! empty($ev->ordenhas) && is_array($ev->ordenhas)) {
-                    foreach ($ev->ordenhas as $o) {
-                        $totalLitros += (float) ($o['litros'] ?? 0);
-                    }
-                } elseif ($ev->producao_litros) {
-                    $totalLitros += (float) $ev->producao_litros;
-                }
-            }
-
-            $rows[] = [
-                'mes'             => $m->format('Y-m'),
-                'mes_label'       => $this->formatarMesPtBrCurto($m),
-                'total_litros'    => round($totalLitros, 1),
-                'vacas_ordenhadas' => $eventos->pluck('animal_id')->unique()->count(),
-            ];
-        }
-        return $rows;
-    }
 
     private function formatarMesPtBr(Carbon $d): string
     {

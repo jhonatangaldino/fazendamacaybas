@@ -5,11 +5,10 @@ namespace App\Http\Middleware;
 use App\Domain\Billing\Models\Tenant;
 use App\Domain\Billing\PlanFeatures;
 use App\Models\Farm;
-use App\Models\Livestock\Animal;
-use App\Models\Livestock\AnimalSpecies;
 use App\Models\MenuUsage;
 use App\Models\Setting;
 use App\Services\AlertsService;
+use App\Services\Livestock\LivestockMetricsService;
 use App\Support\BillingCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -176,62 +175,15 @@ class HandleInertiaRequests extends Middleware
                     "tenant_species_with_count.{$effectiveTenantId}",
                     now()->addMinutes(10),
                     function () use ($effectiveTenantId) {
-                        // withoutGlobalScopes pra não restringir species pelo tenant
-                        // (catálogo é "global", animals é que tem tenant_id).
-                        // SQL bruto no count pra evitar BelongsToTenantScope na
-                        // relação animals que travava resultado em vazio.
-                        $species = AnimalSpecies::withoutGlobalScopes()
-                            ->where('is_active', true)
-                            ->orderBy('nome')
-                            ->get(['id', 'nome', 'slug', 'gestao', 'profile']);
-
-                        // Animais individuais (gestao=individual).
-                        // CRÍTICO: Animal usa SoftDeletes mas \DB::table() é Query
-                        // Builder direto — não aplica o global scope. Sem o
-                        // whereNull('deleted_at'), animais soft-deleted que ainda
-                        // tinham status='ativo' eram contados, divergindo da
-                        // contagem Eloquent do dashboard de espécie. Bug detectado
-                        // pelo dono (Bovino: Hub 345 vs Dashboard 344).
-                        $countsIndividual = \DB::table('animals')
-                            ->select('species_id', \DB::raw('COUNT(*) as cnt'))
-                            ->where('status', 'ativo')
-                            ->whereNull('deleted_at')
-                            ->where('tenant_id', $effectiveTenantId)
-                            ->whereIn('species_id', $species->pluck('id'))
-                            ->groupBy('species_id')
-                            ->pluck('cnt', 'species_id');
-
-                        // Cabeças em lotes agregados (gestao=lote — Ave/Peixe).
-                        // CRÍTICO: filtrar por tenant_id — \DB::table() é Query Builder
-                        // direto, NÃO aplica BelongsToTenantScope. Sem este where()
-                        // os lotes de TODOS os tenants eram somados (vazamento de
-                        // dados entre clientes — bug detectado pelo usuário).
-                        $countsAgregado = \DB::table('animal_lots')
-                            ->select('species_id', \DB::raw('COALESCE(SUM(quantidade_atual), 0) as cnt'))
-                            ->where('is_active', true)
-                            ->where('tenant_id', $effectiveTenantId)
-                            ->whereIn('species_id', $species->where('gestao', 'lote')->pluck('id'))
-                            ->groupBy('species_id')
-                            ->pluck('cnt', 'species_id');
-
-                        return $species->map(fn ($s) => [
-                            'id' => $s->id,
-                            'nome' => $s->nome,
-                            'slug' => $s->slug,
-                            'gestao' => $s->gestao,
-                            'profile' => $s->profile,
-                            // Total de cabeças da espécie:
-                            //   gestao=individual → só conta Animal.
-                            //   gestao=lote (Ave/Peixe) → SOMA dos lotes agregados
-                            //     + Animal individual legado (quem cadastrou 1 a 1
-                            //     antes de migrar pro modelo de massa). Ignorar os
-                            //     individuais legados causava divergência: dashboard
-                            //     mostrava 4581, menu mostrava 4580 (bug detectado
-                            //     pelo dono comparando os dois números).
-                            'animals_count' => $s->gestao === 'lote'
-                                ? (int) (($countsAgregado[$s->id] ?? 0) + ($countsIndividual[$s->id] ?? 0))
-                                : (int) ($countsIndividual[$s->id] ?? 0),
-                        ])->all();
+                        // 2026-04-28 · agora consome LivestockMetricsService
+                        // (fonte única). Antes este bloco fazia DB::table()
+                        // direto, que bypassava SoftDeletes — causando
+                        // Bovino · Hub=345 vs Dashboard=344. Service usa
+                        // Eloquent (respeita SoftDeletes) e centraliza com
+                        // Hub/Painel/Relatório. Tenant-wide: passa farmId=null
+                        // intencional (badge é global do tenant, não da farm).
+                        $metrics = app(LivestockMetricsService::class);
+                        return $metrics->cabecasPorEspecie($effectiveTenantId, null)->all();
                     }
                 );
             },

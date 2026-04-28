@@ -7,6 +7,9 @@ use App\Models\Financial\FinancialTransaction;
 use App\Models\Livestock\Animal;
 use App\Models\Stock\StockItem;
 use App\Models\Task\Task;
+use App\Services\Livestock\LivestockMetricsService;
+use App\Services\Metrics\FinancialMetrics;
+use App\Services\Metrics\TarefasMetrics;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -19,49 +22,68 @@ class DashboardController extends Controller
     /**
      * Dashboard — painel de KPIs + drill-down.
      *
+     * REFATORADO 2026-04-28 (auditoria METRICS-AUDIT): KPIs consolidados de
+     * Metrics services (fonte única de verdade). Antes este controller tinha
+     * fórmulas inline e divergia de Hub/Lista/Relatório (22 divergências
+     * detectadas). Agora qualquer mudança de fórmula propaga automaticamente.
+     *
+     * Services consumidos:
+     *   - LivestockMetricsService    (já existia, cobre Rebanho)
+     *   - FinancialMetrics            (NOVO — KPIs Financeiro)
+     *   - TarefasMetrics              (NOVO — KPIs Tarefas)
+     *
+     * As listas de drill-down (top 15 receitas/despesas, contas a pagar/receber,
+     * tarefas pendentes, estoque baixo) continuam aqui — são listas, não KPIs.
+     *
      * OTIMIZAÇÃO (Hostinger 500 conn/h):
      *   Eram 13 queries por hit. Agora agrupamos tudo em cache de 90s
      *   por (tenant_id, farm_id, user_id). Navegar entre páginas e voltar
      *   pro dashboard durante 90s reutiliza a resposta → zero queries.
      *   90s é balance entre "dado recente" e "economia de conexão".
+     *   Os Metrics services também cacheiam internamente (TTL_FAST=300s),
+     *   então hits subsequentes em outros controladores reaproveitam.
      *
      *   Força refresh: `?refresh=1` ignora o cache (útil após criar
      *   transação/animal/tarefa).
      */
-    public function index(Request $request): Response
-    {
+    public function index(
+        Request $request,
+        FinancialMetrics $financeiro,
+        TarefasMetrics $tarefas,
+    ): Response {
         $tenant = app()->bound('tenant_id') ? app('tenant_id') : 'null';
         $farm   = app()->bound('farm_id') ? app('farm_id') : 'null';
         $user   = $request->user()?->id ?? 'guest';
-        // Cache key versionado: bump v2 invalida automaticamente caches velhos
-        // que tinham contagens incorretas (DB::table sem scopes — bug B4.4 fix).
-        $cacheKey = "dashboard:v2:{$tenant}:{$farm}:{$user}";
+        // Cache key versionado: bump v3 invalida caches anteriores (refator pra Metrics services).
+        $cacheKey = "dashboard:v3:{$tenant}:{$farm}:{$user}";
 
         if ($request->query('refresh') === '1') {
             Cache::forget($cacheKey);
         }
 
-        $payload = Cache::remember($cacheKey, now()->addSeconds(90), fn () => $this->buildPayload());
+        $payload = Cache::remember(
+            $cacheKey,
+            now()->addSeconds(90),
+            fn () => $this->buildPayload(app(LivestockMetricsService::class), $financeiro, $tarefas),
+        );
 
         return Inertia::render('Admin/Dashboard', $payload);
     }
 
-    protected function buildPayload(): array
-    {
+    protected function buildPayload(
+        LivestockMetricsService $metrics,
+        FinancialMetrics $financeiro,
+        TarefasMetrics $tarefas,
+    ): array {
         $hoje = Carbon::today();
         $inicioMes = Carbon::now()->startOfMonth();
         $fimMes = Carbon::now()->endOfMonth();
 
-        // Financeiro do mês — totais + listas de drill-down
-        $receitasMesTotal = FinancialTransaction::receitas()
-            ->pagas()
-            ->whereBetween('data_pagamento', [$inicioMes, $fimMes])
-            ->sum('valor');
-
-        $despesasMesTotal = FinancialTransaction::despesas()
-            ->pagas()
-            ->whereBetween('data_pagamento', [$inicioMes, $fimMes])
-            ->sum('valor');
+        // ═══════════ FINANCEIRO — via FinancialMetrics (fonte única) ═══════════
+        $receitasMesTotal = $financeiro->receitasNoPeriodo('mes_atual');
+        $despesasMesTotal = $financeiro->despesasNoPeriodo('mes_atual');
+        // Atrasadas agora = SÓ despesas (decisão de produto; antes contava receita+despesa).
+        $atrasadas = $financeiro->atrasadas();
 
         // Top 15 de cada tipo para alimentar o drawer de drill-down
         $receitasMesLista = FinancialTransaction::receitas()
@@ -92,49 +114,23 @@ class DashboardController extends Controller
             ->limit(10)
             ->get(['id', 'descricao', 'valor', 'data_vencimento', 'status']);
 
-        $contasAtrasadas = FinancialTransaction::pendentes()
-            ->where('data_vencimento', '<', $hoje)
-            ->count();
+        // ═══════════ REBANHO — via LivestockMetricsService (fonte única) ═══════════
+        // Antes este bloco tinha 3 queries inline com sutis variações em relação
+        // ao Hub e ao Relatório. Bovino aparecia 345 num lugar e 344 noutro pq
+        // cada controller calculava diferente. Service uniformiza.
+        $totalAnimais = $metrics->totalCabecasTodasEspecies();
+        $animaisPorEspecie = $metrics->cabecasPorEspecie()
+            ->filter(fn ($s) => $s['animals_count'] > 0)
+            ->map(fn ($s) => (object) [
+                'especie' => $s['nome'],
+                'total'   => $s['animals_count'],
+            ])->sortByDesc('total')->values();
 
-        // Rebanho — TUDO via Eloquent (Animal model com BelongsToTenant + BelongsToFarm).
-        // BUG FIX B4.4: antes usava DB::table('animals') que BYPASSA scopes globais.
-        // Isso causava modal "Rebanho ativo" mostrar animais de outras farms (46+26+5=77)
-        // enquanto card Rebanho (Animal::ativos()) mostrava apenas 1 da farm correta.
-        //
-        // BUG FIX 2026-04-28 (apontado pelo usuário): Animal::ativos()->count() ignora
-        // cabeças em lotes agregados (Ave/Peixe gestão=lote). Modal mostrava "Ave: 1"
-        // (único animal individual residual) enquanto sidebar mostrava "Ave: 4580"
-        // (cabeças em lotes). Solução: somar individuais + agregados, igual à sidebar.
-        $totalAnimaisIndividuais = Animal::ativos()->count();
-        $cabecasAgregadas = (int) \App\Models\Livestock\AnimalLot::where('is_active', true)
-            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->where('gestao', 'lote'))
-            ->sum('quantidade_atual');
-        $totalAnimais = $totalAnimaisIndividuais + $cabecasAgregadas;
-
-        // Por espécie: individuais (count animals) + agregados (sum quantidade_atual)
-        $individuaisPorEspecie = Animal::ativos()
-            ->leftJoin('animal_species', 'animals.species_id', '=', 'animal_species.id')
-            ->select('animal_species.nome as especie', DB::raw('COUNT(*) as total'))
-            ->groupBy('animal_species.nome')
-            ->pluck('total', 'especie');
-        $agregadosPorEspecie = \App\Models\Livestock\AnimalLot::where('animal_lots.is_active', true)
-            ->leftJoin('animal_species', 'animal_lots.species_id', '=', 'animal_species.id')
-            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->where('gestao', 'lote'))
-            ->select('animal_species.nome as especie', DB::raw('SUM(animal_lots.quantidade_atual) as total'))
-            ->groupBy('animal_species.nome')
-            ->pluck('total', 'especie');
-        // Mescla: cada espécie com soma individual + agregado
-        $todasEspecies = collect($individuaisPorEspecie->keys())->merge($agregadosPorEspecie->keys())->unique();
-        $animaisPorEspecie = $todasEspecies->map(fn ($especie) => (object) [
-            'especie' => $especie,
-            'total' => (int) ($individuaisPorEspecie[$especie] ?? 0) + (int) ($agregadosPorEspecie[$especie] ?? 0),
-        ])->sortByDesc('total')->values();
-
-        // Estoque — TUDO via Eloquent (StockItem model com BelongsToTenant + BelongsToFarm).
-        // BUG FIX B4.4: idem para stock_items. DB::table() bypassava scopes →
-        // alerta mostrava itens baixos de OUTRAS farms enquanto /admin/estoque/itens
-        // (que usa StockItem model) renderizava "Nenhum registro encontrado".
-        $itensBaixoEstoque = StockItem::query()
+        // ═══════════ ESTOQUE — query inline (EstoqueMetrics fica para Fase 4) ═══════════
+        // BUG FIX B4.4: usar StockItem model (não DB::table) pra preservar scopes.
+        // BUG FIX METRICS-AUDIT alta-6: KPI antes era count() da lista limitada.
+        // Se houver 50 itens abaixo, mostrava 10. Agora count REAL via subquery.
+        $itensBaixoEstoqueQuery = StockItem::query()
             ->leftJoin('stock_movements', 'stock_items.id', '=', 'stock_movements.item_id')
             ->where('stock_items.is_active', true)
             ->select(
@@ -145,15 +141,16 @@ class DashboardController extends Controller
                 DB::raw("SUM(CASE WHEN stock_movements.tipo IN ('entrada','ajuste') THEN stock_movements.quantidade WHEN stock_movements.tipo = 'saida' THEN -stock_movements.quantidade ELSE 0 END) as saldo")
             )
             ->groupBy('stock_items.id', 'stock_items.nome', 'stock_items.unidade', 'stock_items.estoque_minimo')
-            ->havingRaw('COALESCE(saldo, 0) < stock_items.estoque_minimo')
-            ->limit(10)
-            ->get();
+            ->havingRaw('COALESCE(saldo, 0) < stock_items.estoque_minimo');
 
-        // Tarefas pendentes — consolidado em 1 query com CASE para
-        // derivar total pendentes + total atrasadas (antes eram 3 queries).
-        $tarefasAgg = Task::whereIn('status', ['pendente', 'em_andamento'])
-            ->selectRaw('COUNT(*) as pendentes, SUM(CASE WHEN data_vencimento < ? THEN 1 ELSE 0 END) as atrasadas', [$hoje])
-            ->first();
+        $itensBaixoEstoqueList = (clone $itensBaixoEstoqueQuery)->limit(10)->get();
+        $itensBaixoEstoqueCount = (clone $itensBaixoEstoqueQuery)->get()->count();
+
+        // ═══════════ TAREFAS — via TarefasMetrics (fonte única) ═══════════
+        // Antes Painel incluía em_andamento; AlertsService só pendente.
+        // Padronizamos no resumo() do service (decisão de produto: incluir
+        // em_andamento — tarefa em andamento atrasada ainda é tarefa atrasada).
+        $tarefasResumo = $tarefas->resumo();
 
         $tarefasPendentes = Task::whereIn('status', ['pendente', 'em_andamento'])
             ->orderBy('data_vencimento')
@@ -163,26 +160,26 @@ class DashboardController extends Controller
         return [
             'widgets' => [
                 'financeiro' => [
-                    'receitas_mes' => (float) $receitasMesTotal,
-                    'despesas_mes' => (float) $despesasMesTotal,
-                    'saldo_mes' => (float) $receitasMesTotal - (float) $despesasMesTotal,
-                    'contas_atrasadas' => $contasAtrasadas,
+                    'receitas_mes' => $receitasMesTotal,
+                    'despesas_mes' => $despesasMesTotal,
+                    'saldo_mes' => $receitasMesTotal - $despesasMesTotal,
+                    'contas_atrasadas' => $atrasadas['count'],
                 ],
                 'rebanho' => [
                     'total' => $totalAnimais,
                     'por_especie' => $animaisPorEspecie,
                 ],
                 'estoque' => [
-                    'itens_baixo_estoque' => $itensBaixoEstoque->count(),
+                    'itens_baixo_estoque' => $itensBaixoEstoqueCount,
                 ],
                 'tarefas' => [
-                    'pendentes' => (int) ($tarefasAgg->pendentes ?? 0),
-                    'atrasadas' => (int) ($tarefasAgg->atrasadas ?? 0),
+                    'pendentes' => $tarefasResumo['pendentes'],
+                    'atrasadas' => $tarefasResumo['atrasadas'],
                 ],
             ],
             'contas_a_pagar' => $contasAPagar,
             'contas_a_receber' => $contasAReceber,
-            'itens_baixo_estoque' => $itensBaixoEstoque,
+            'itens_baixo_estoque' => $itensBaixoEstoqueList,
             'tarefas_pendentes' => $tarefasPendentes,
             // Listas de drill-down dos KPIs (para drawers)
             'drillReceitasMes' => $receitasMesLista,

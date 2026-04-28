@@ -9,6 +9,7 @@ use App\Models\Livestock\Animal;
 use App\Models\Stock\StockItem;
 use App\Models\Task\Task;
 use App\Models\Vehicle\MaintenanceOrder;
+use App\Services\Livestock\LivestockMetricsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ class ReportController extends Controller
      * Agora todas as queries usam Eloquent Models — scopes globais filtram
      * automaticamente por tenant_id (BelongsToTenant) e farm_id (BelongsToFarm).
      */
-    public function index(Request $request)
+    public function index(Request $request, LivestockMetricsService $metrics)
     {
         $from = $request->from ? Carbon::parse($request->from) : now()->startOfMonth();
         $to = $request->to ? Carbon::parse($request->to) : now()->endOfMonth();
@@ -56,32 +57,18 @@ class ReportController extends Controller
             ->get();
 
         // ─── Rebanho ───
-        // Inclui CABEÇAS em LOTES AGREGADOS (Ave/Peixe gestao=lote) — sem isso
-        // o relatório mostrava "Ave: 1" mesmo com 4500 cabeças em lotes.
-        // Bug detectado pelo dono — painel mostrava 7876, modal/relatório 1956.
-        $rebanhoIndividualPorEspecie = Animal::ativos()
-            ->leftJoin('animal_species', 'animals.species_id', '=', 'animal_species.id')
-            ->select(DB::raw("COALESCE(animal_species.nome, 'Sem espécie') as especie"), DB::raw('COUNT(*) as total'))
-            ->groupBy('especie')
-            ->pluck('total', 'especie');
+        // 2026-04-28 · agora consome LivestockMetricsService (fonte única).
+        // Antes havia 3 queries inline aqui que divergiam sutilmente do
+        // Hub / Painel / Dashboard. Bovino mostrava 345 num lugar e 344 em
+        // outro porque cada controller computava do seu jeito. Centralizado.
+        $rebanhoPorEspecie = $metrics->cabecasPorEspecie()
+            ->filter(fn ($s) => $s['animals_count'] > 0)
+            ->map(fn ($s) => (object) [
+                'especie' => $s['nome'] ?? 'Sem espécie',
+                'total' => $s['animals_count'],
+            ])->sortByDesc('total')->values();
 
-        $rebanhoAgregadoPorEspecie = \App\Models\Livestock\AnimalLot::where('animal_lots.is_active', true)
-            ->leftJoin('animal_species', 'animal_lots.species_id', '=', 'animal_species.id')
-            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->where('gestao', 'lote'))
-            ->select(DB::raw("COALESCE(animal_species.nome, 'Sem espécie') as especie"), DB::raw('SUM(animal_lots.quantidade_atual) as total'))
-            ->groupBy('especie')
-            ->pluck('total', 'especie');
-
-        $todasEspecies = collect($rebanhoIndividualPorEspecie->keys())
-            ->merge($rebanhoAgregadoPorEspecie->keys())
-            ->unique();
-        $rebanhoPorEspecie = $todasEspecies->map(fn ($e) => (object) [
-            'especie' => $e,
-            'total' => (int) ($rebanhoIndividualPorEspecie[$e] ?? 0) + (int) ($rebanhoAgregadoPorEspecie[$e] ?? 0),
-        ])->sortByDesc('total')->values();
-
-        // Por sexo: lotes agregados (Ave/Peixe) não têm sexo individualmente;
-        // soma dele entra como "indefinido" pra refletir realidade.
+        // Por sexo: soma lotes agregados como "L" pra UI distinguir.
         $sexoIndividual = Animal::ativos()
             ->select('sexo', DB::raw('COUNT(*) as total'))
             ->groupBy('sexo')
@@ -91,7 +78,6 @@ class ReportController extends Controller
             ->sum('quantidade_atual');
         $rebanhoPorSexo = collect($sexoIndividual);
         if ($totalAgregado > 0) {
-            // Marca como "L" (lote) pra UI poder distinguir se quiser
             $rebanhoPorSexo['L'] = $totalAgregado;
         }
 

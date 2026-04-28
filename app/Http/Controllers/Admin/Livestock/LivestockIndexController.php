@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Admin\Livestock;
 
 use App\Http\Controllers\Controller;
-use App\Models\Livestock\Animal;
-use App\Models\Livestock\AnimalEvent;
 use App\Models\Livestock\AnimalLot;
 use App\Models\Livestock\AnimalLocation;
+use App\Services\Livestock\LivestockMetricsService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,30 +18,20 @@ use Inertia\Response;
  *
  * As contagens por espécie chegam via `tenantSpecies` (HandleInertiaRequests)
  * — aqui só calculamos KPI total e contagens auxiliares (lotes, locais).
+ *
+ * Refatorado 2026-04-28 — agora consome LivestockMetricsService como fonte
+ * única de verdade, em vez de fórmula inline. Antes o Bovino mostrava 345
+ * no card e 344 no Dashboard de espécie; ambos agora chamam o service.
  */
 class LivestockIndexController extends Controller
 {
-    public function __invoke(): Response
+    public function __invoke(LivestockMetricsService $metrics): Response
     {
-        // Total de animais ATIVOS = individuais (Animal) + cabeças em lotes
-        // agregados (AnimalLot.quantidade_atual onde species.gestao = 'lote').
-        // Bug detectado pelo dono: Hub mostrava 1956 mas card "Rebanho" do
-        // painel mostrava 7876 — diferença = cabeças em lotes Ave/Peixe que
-        // ficavam fora aqui. Mesmo fix já aplicado em DashboardController e
-        // ReportController.
-        $individuais = Animal::where('status', 'ativo')->count();
-        $cabecasAgregadas = (int) AnimalLot::where('is_active', true)
-            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->where('gestao', 'lote'))
-            ->sum('quantidade_atual');
-
         return Inertia::render('Admin/Livestock/Hub', [
-            'totalAnimais' => $individuais + $cabecasAgregadas,
+            'totalAnimais' => $metrics->totalCabecasTodasEspecies(),
             'totalLotes' => AnimalLot::where('is_active', true)->count(),
             'totalLocais' => AnimalLocation::where('is_active', true)->count(),
-            // Igual ao critério da Animals/Index: existem animais leite/misto OU
-            // já houve eventos de ordenha/controle leiteiro.
-            'temManejoLeiteiro' => Animal::whereIn('categoria', ['leite', 'misto'])->exists()
-                || AnimalEvent::whereIn('tipo', ['controle_leiteiro', 'ordenha'])->exists(),
+            'temManejoLeiteiro' => $metrics->temManejoLeiteiro(),
         ]);
     }
 }
