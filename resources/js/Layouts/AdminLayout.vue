@@ -267,7 +267,11 @@ function logout() {
     <ConfirmDialog />
     <TutorialTour />
     <FlashMessages />
-    <div class="min-h-screen flex bg-slate-50 w-full overflow-x-hidden">
+    <!-- Wrapper: pt-10 quando impersona, empurrando todo layout abaixo da
+         tarja amarela (40px). Sem isso, o header sticky aparece coberto
+         pela tarja antes do scroll (sticky:top-10 só ativa durante scroll). -->
+    <div :class="['min-h-screen flex bg-slate-50 w-full overflow-x-hidden',
+                  impersonation ? 'pt-10' : '']">
         <!-- SIDEBAR -->
         <!-- B4.4 fix · sidebar usa flex column + flex-1 + min-h-0 + overscroll-contain
              para que o <nav> sempre scrolle dentro do espaço disponível.
@@ -279,13 +283,19 @@ function logout() {
              height = calc(100dvh - 40px) quando banner amarelo IMPERSONAÇÃO ativo.
              Sem isso, o último item do menu (Perfis/Faturas) cai abaixo do
              viewport quando há banner empurrando 40px pra baixo. -->
-        <!-- Aside fixed: top-0 base; CSS body[data-impersonation] sobrepõe top:40
-             quando há tarja. Height ajusta via mesma heurística (100dvh - 40 quando
-             impersonação). Tudo sem condicional Vue — fonte única é o data-attr. -->
+        <!-- Aside fixed: top muda via Vue conditional baseado em `impersonation`.
+             Antes era CSS-only (body[data-impersonation] aside.fixed { top: 40px })
+             mas estava sendo sobrescrito pela utility `top-0` do Tailwind em alguns
+             contextos, deixando o sidebar coberto pela tarja. Vue conditional é
+             explícito e à prova de race condition no first paint. -->
         <aside
-            :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', 'md:translate-x-0']"
-            class="fixed inset-y-0 left-0 top-0 z-40 w-72 md:w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:flex-shrink-0 flex flex-col"
-            :style="impersonation ? 'height: calc(100dvh - 40px); bottom: auto;' : 'height: 100dvh; bottom: auto;'"
+            :class="[
+                sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+                'md:translate-x-0',
+                impersonation ? 'top-10' : 'top-0',
+            ]"
+            class="fixed left-0 bottom-0 z-40 w-72 md:w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:flex-shrink-0 flex flex-col"
+            :style="impersonation ? 'height: calc(100dvh - 40px);' : 'height: 100dvh;'"
         >
             <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10 flex-shrink-0">
                 <img v-if="siteLogo"
@@ -399,10 +409,11 @@ function logout() {
                  que conteúdo do main NUNCA fique visível atrás do header durante
                  scroll. Antes shadow-sm + border-b 1px deixava títulos do main
                  parecerem 'meio cortados' em qualquer rolagem mínima. -->
-            <!-- Header sticky: top-0 base. CSS body[data-impersonation] sobrepõe
-                 top:40 quando há tarja, garantindo que ao rolar o header não
-                 cubra a tarja amarela. -->
-            <header class="sticky top-0 z-20 h-16 flex items-center justify-between bg-white shadow-md px-3 lg:px-8 gap-2">
+            <!-- Header sticky: top via Vue conditional. Quando impersona, cola
+                 abaixo da tarja (top-10 = 40px). Sem impersonação, top-0. -->
+            <header
+                :class="['sticky z-20 h-16 flex items-center justify-between bg-white shadow-md px-3 lg:px-8 gap-2',
+                          impersonation ? 'top-10' : 'top-0']">
                 <!-- Mobile: hambúrguer com tap target ≥44px (era p-2 = 36px) + título da página visível -->
                 <button @click="sidebarOpen = !sidebarOpen"
                         class="md:hidden inline-flex items-center justify-center min-h-11 min-w-11 rounded-md hover:bg-slate-100 active:bg-slate-200 touch-manipulation"

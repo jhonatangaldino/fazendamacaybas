@@ -152,9 +152,12 @@ const menu = [
         <!-- B4.4 fix · flex column + flex-1 + dvh para sidebar scrollar até o fim
              em iOS Safari (problema reportado: itens inferiores inacessíveis em mobile) -->
         <aside
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform duration-200 lg:static lg:flex-shrink-0 lg:translate-x-0 flex flex-col h-screen lg:h-auto"
-            style="height: 100dvh;"
-            :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full']"
+            class="fixed left-0 bottom-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform duration-200 lg:static lg:flex-shrink-0 lg:translate-x-0 flex flex-col"
+            :style="impersonation ? 'height: calc(100dvh - 40px);' : 'height: 100dvh;'"
+            :class="[
+                sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+                impersonation ? 'top-10' : 'top-0',
+            ]"
         >
             <!-- Brand — mesmo formato do Admin (logo redonda + nome + papel) -->
             <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10 flex-shrink-0">
@@ -209,7 +212,9 @@ const menu = [
 
         <!-- MAIN — espaçamento, sticky topbar e padding idênticos ao Admin -->
         <div class="flex-1 flex flex-col min-w-0 w-full">
-            <header class="sticky top-0 z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 px-4 lg:px-8">
+            <header
+                :class="['sticky z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 px-4 lg:px-8',
+                          impersonation ? 'top-10' : 'top-0']">
                 <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
                     <svg class="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
