@@ -256,7 +256,7 @@ function reiniciar() {
                         <option v-for="c in categoriasLocal" :key="c.id" :value="c.id">{{ c.nome }}</option>
                     </select>
                     <div class="mt-1 flex items-center gap-2">
-                        <button type="button" @click="novaCategoria.abrir()" class="text-xs text-macaybas-primary hover:underline">
+                        <button type="button" @click="novaCategoria.abrir()" class="inline-flex items-center min-h-9 px-2 text-xs text-macaybas-primary hover:underline lg:min-h-0 lg:px-0">
                             + Criar tipo novo
                         </button>
                         <span v-if="categoriasLocal.length === 0" class="text-xs text-amber-700">
@@ -273,7 +273,7 @@ function reiniciar() {
                         <option v-for="p in fornecedoresLocal" :key="p.id" :value="p.id">{{ p.nome }}</option>
                     </select>
                     <div class="mt-1">
-                        <button type="button" @click="novoFornecedor.abrir()" class="text-xs text-macaybas-primary hover:underline">
+                        <button type="button" @click="novoFornecedor.abrir()" class="inline-flex items-center min-h-9 px-2 text-xs text-macaybas-primary hover:underline lg:min-h-0 lg:px-0">
                             + Cadastrar fornecedor novo
                         </button>
                     </div>

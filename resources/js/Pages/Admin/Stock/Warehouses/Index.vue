@@ -122,7 +122,7 @@ function doDelete() {
         >
             <template #cell-farm="{ row }">{{ row.farm?.nome ?? '—' }}</template>
             <template #cell-is_active="{ row }">
-                <button @click="toggle(row)" :class="row.is_active ? 'badge-green' : 'badge-slate'" class="cursor-pointer hover:opacity-80">
+                <button @click="toggle(row)" :class="row.is_active ? 'badge-toggle-green' : 'badge-toggle-slate'">
                     {{ row.is_active ? 'Ativo' : 'Inativo' }}
                 </button>
             </template>

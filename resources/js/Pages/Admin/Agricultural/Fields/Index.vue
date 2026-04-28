@@ -114,7 +114,7 @@ function doDelete() {
             <template #cell-farm="{ row }">{{ row.farm?.nome ?? '—' }}</template>
             <template #cell-area_ha="{ row }">{{ Number(row.area_ha).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) }}</template>
             <template #cell-is_active="{ row }">
-                <button @click="toggle(row)" :class="row.is_active ? 'badge-green' : 'badge-slate'" class="cursor-pointer">{{ row.is_active ? 'Ativo' : 'Inativo' }}</button>
+                <button @click="toggle(row)" :class="row.is_active ? 'badge-toggle-green' : 'badge-toggle-slate'">{{ row.is_active ? 'Ativo' : 'Inativo' }}</button>
             </template>
             <template #cell-acoes="{ row }">
                 <div class="flex gap-1 justify-end">

@@ -122,7 +122,7 @@ async function copiarSenha(senha) {
                     </code>
                     <button type="button"
                             @click="copiarSenha(row.temp_password)"
-                            class="text-xs text-macaybas-primary hover:underline"
+                            class="inline-flex items-center min-h-9 px-2 text-xs text-macaybas-primary hover:underline lg:min-h-0"
                             title="Copiar senha">
                         Copiar
                     </button>

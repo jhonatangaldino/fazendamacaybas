@@ -368,7 +368,7 @@ function doDelete() {
         </transition>
 
         <!-- Tabela custom com checkbox (desktop pleno ≥1280; iPad usa cards) -->
-        <div class="hidden xl:block card overflow-hidden">
+        <div class="hidden xl:block card overflow-x-auto">
             <table class="table-base">
                 <thead>
                     <tr>
