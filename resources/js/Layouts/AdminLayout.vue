@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import AlertBar from '@/Components/AlertBar.vue';
 import FlashMessages from '@/Components/FlashMessages.vue';
@@ -23,12 +23,27 @@ const menuUsageGlobal = computed(() => page.props.menuUsageGlobal || {});
 // Estrutura: { 'admin.financeiro.index': { n: 3, sev: 'critico' }, ... }
 const menuBadges = computed(() => page.props.menuBadges || {});
 
-// Banner de impersonação está em position:fixed (40px). Quando ativo,
-// aplicamos padding-top no container raiz para que header sticky e
-// sidebar não fiquem cobertos.
+// Banner de impersonação é fixed top-0 h-10 (40px), fora do flow.
+//
+// Estratégia de layout:
+//   • body.paddingTop = 40 quando há banner → todo conteúdo do flow começa
+//     em y=40 (abaixo do banner). Header e main já nascem na posição correta.
+//   • header permanece SEMPRE com top-0 (sem offset sticky). Se usássemos
+//     top:40 (top-10) o sticky em estado relative ADICIONA 40 à posição
+//     natural — header iria pra y=80 e sobreporia o H1 do main. Bug
+//     reportado pelo PO em 2026-04-28.
+//   • aside é fixed e seu top muda explicitamente (top-10 quando banner)
+//     porque fixed é em relação ao viewport, não ao body padding.
 const impersonation = computed(() => page.props.impersonation || null);
-const layoutPadTop = computed(() => impersonation.value ? 'pt-10' : '');
-const stickyTop = computed(() => impersonation.value ? 'top-10' : 'top-0');
+
+watch(impersonation, (active) => {
+    if (typeof document === 'undefined') return;
+    document.body.style.paddingTop = active ? '40px' : '';
+}, { immediate: true });
+
+onUnmounted(() => {
+    if (typeof document !== 'undefined') document.body.style.paddingTop = '';
+});
 
 // Features liberadas pelo plano do tenant (vêm do HandleInertiaRequests).
 // Usado para esconder itens do menu que não são incluídos no plano.
@@ -204,7 +219,7 @@ function logout() {
     <ConfirmDialog />
     <TutorialTour />
     <FlashMessages />
-    <div :class="['min-h-screen flex bg-slate-50 w-full overflow-x-hidden', layoutPadTop]">
+    <div class="min-h-screen flex bg-slate-50 w-full overflow-x-hidden">
         <!-- SIDEBAR -->
         <!-- B4.4 fix · sidebar usa flex column + flex-1 + min-h-0 + overscroll-contain
              para que o <nav> sempre scrolle dentro do espaço disponível.
@@ -278,7 +293,7 @@ function logout() {
                  que conteúdo do main NUNCA fique visível atrás do header durante
                  scroll. Antes shadow-sm + border-b 1px deixava títulos do main
                  parecerem 'meio cortados' em qualquer rolagem mínima. -->
-            <header :class="['sticky z-20 h-16 flex items-center justify-between bg-white shadow-md px-4 lg:px-8', stickyTop]">
+            <header class="sticky top-0 z-20 h-16 flex items-center justify-between bg-white shadow-md px-4 lg:px-8">
                 <button @click="sidebarOpen = !sidebarOpen" class="md:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
                     <svg class="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
@@ -362,11 +377,14 @@ function logout() {
                 </div>
             </header>
 
-            <!-- Main: pt-8/lg:pt-10 dá respiro generoso (32-40px) entre topbar
-                 sticky e o título da página. Plus header tem shadow-md opaca
-                 (acima) que esconde QUALQUER conteúdo passando por trás durante
-                 scroll — garante que H1 nunca apareça 'meio cortado'. -->
-            <main class="flex-1 px-4 pt-8 pb-4 lg:px-8 lg:pt-10 lg:pb-8 min-w-0 w-full max-w-full overflow-x-hidden">
+            <!-- Main: respiro entre topbar sticky e o título da página.
+                 Sem impersonação: pt-8/lg:pt-10 (32/40px) — espaço confortável.
+                 Com impersonação: pt-10/lg:pt-14 (40/56px) — respiro maior pra
+                 compensar a presença visual do banner âmbar fixo no topo, que
+                 cria uma camada visual a mais. PO 2026-04-28 reportou apertado
+                 em ambos os viewports quando impersonando. -->
+            <main :class="['flex-1 px-4 pb-4 lg:px-8 lg:pb-8 min-w-0 w-full max-w-full overflow-x-hidden',
+                            impersonation ? 'pt-10 lg:pt-14' : 'pt-8 lg:pt-10']">
                 <AlertBar />
                 <slot />
             </main>

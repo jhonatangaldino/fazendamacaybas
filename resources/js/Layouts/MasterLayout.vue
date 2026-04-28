@@ -151,7 +151,7 @@ const menu = [
 
         <!-- MAIN — espaçamento, sticky topbar e padding idênticos ao Admin -->
         <div class="flex-1 flex flex-col min-w-0 w-full">
-            <header :class="['sticky z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 px-4 lg:px-8', impersonation ? 'top-10' : 'top-0']">
+            <header class="sticky top-0 z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 px-4 lg:px-8">
                 <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
                     <svg class="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
@@ -179,7 +179,8 @@ const menu = [
                 </div>
             </header>
 
-            <main class="flex-1 p-4 lg:p-8 min-w-0 w-full max-w-full overflow-x-hidden">
+            <main :class="['flex-1 px-4 pb-4 lg:px-8 lg:pb-8 min-w-0 w-full max-w-full overflow-x-hidden',
+                            impersonation ? 'pt-10 lg:pt-14' : 'pt-4 lg:pt-8']">
                 <AlertBar />
                 <slot />
             </main>
