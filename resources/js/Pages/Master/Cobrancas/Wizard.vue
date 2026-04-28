@@ -16,6 +16,8 @@ import { brl } from '@/utils/format.js';
 const props = defineProps({
     tenants: { type: Array, default: () => [] },
     planos: { type: Array, default: () => [] },
+    /** Vem do card "Subscription" do tenant — quando setado, pula passo 1 */
+    prefillTenantId: { type: Number, default: null },
 });
 
 const PASSOS = [
@@ -26,13 +28,15 @@ const PASSOS = [
     { n: 5, titulo: 'Confirmar', icon: '✅' },
 ];
 
-const passo = ref(1);
 const hoje = new Date();
 const anoAtual = hoje.getFullYear();
 const mesAtual = hoje.getMonth() + 1;
 
+// Quando vem com tenant pré-selecionado, pula direto pro passo 2 (Tipo).
+const passo = ref(props.prefillTenantId ? 2 : 1);
+
 const form = useForm({
-    tenant_id: null,
+    tenant_id: props.prefillTenantId || null,
     plan_id: null,
     tipo: 'mensal',
     mes_inicio: mesAtual,
@@ -49,14 +53,15 @@ const planoSelecionado = computed(() =>
     props.planos.find(p => p.id === form.plan_id) ?? null
 );
 
-// Quando troca tenant, sugere o plano atual dele (mas master pode trocar no passo 3)
+// Quando troca tenant, sugere o plano atual dele (mas master pode trocar no passo 3).
+// `immediate: true` garante que o pré-fill via prefillTenantId também dispara o auto-plano.
 watch(() => form.tenant_id, (id) => {
     if (! id) return;
     const t = props.tenants.find(x => x.id === id);
     if (t?.plano?.id) {
         form.plan_id = t.plano.id;
     }
-});
+}, { immediate: true });
 
 // MESES e ANOS
 const MESES = [

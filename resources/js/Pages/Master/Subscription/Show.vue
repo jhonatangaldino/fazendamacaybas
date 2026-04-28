@@ -220,14 +220,26 @@ function gerarCobranca() {
             <div class="rounded-2xl bg-white ring-1 ring-slate-200 p-6">
                 <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Gerar cobrança</h3>
 
-                <button
-                    type="button"
-                    v-if="! showInvoiceForm"
-                    @click="showInvoiceForm = true"
-                    class="w-full px-4 py-2.5 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800"
-                >
-                    + Nova cobrança
-                </button>
+                <div v-if="! showInvoiceForm" class="space-y-2">
+                    <button
+                        type="button"
+                        @click="showInvoiceForm = true"
+                        class="w-full px-4 py-2.5 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800"
+                    >
+                        + Cobrança avulsa
+                    </button>
+                    <Link
+                        :href="route('master.cobrancas.wizard.create', { tenant_id: tenant.id })"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white ring-1 ring-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50"
+                    >
+                        📅 Cobranças mensais/anuais
+                    </Link>
+                    <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                        <strong>Avulsa:</strong> uma fatura única, vencimento à sua escolha.<br>
+                        <strong>Mensais/anuais:</strong> gera N faturas (uma por mês do período), cada uma vence
+                        no 5º dia útil do mês de referência e aparece pro cliente 5 dias antes do fim do mês anterior.
+                    </p>
+                </div>
 
                 <form v-else @submit.prevent="gerarCobranca" class="space-y-3">
                     <div>

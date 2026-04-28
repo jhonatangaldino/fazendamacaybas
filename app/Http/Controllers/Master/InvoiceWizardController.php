@@ -30,8 +30,13 @@ use Inertia\Response;
  */
 class InvoiceWizardController extends Controller
 {
-    public function create(): Response
+    public function create(\Illuminate\Http\Request $request): Response
     {
+        // Pré-seleção opcional via ?tenant_id= (vem do botão "Gerar cobranças
+        // mensais/anuais" no card Subscription do tenant). Wizard pula direto
+        // pro passo 2 quando vem com tenant fixado.
+        $prefillTenantId = $request->integer('tenant_id') ?: null;
+
         // Lista todos os tenants ativos com seu plano atual (para auto-preencher passo 3)
         $tenants = Tenant::where('is_active', true)
             ->with(['plan:id,nome,slug,preco_mensal', 'subscription.plan:id,nome,slug,preco_mensal'])
@@ -71,6 +76,7 @@ class InvoiceWizardController extends Controller
         return Inertia::render('Master/Cobrancas/Wizard', [
             'tenants' => $tenants,
             'planos' => $planos,
+            'prefillTenantId' => $prefillTenantId,
         ]);
     }
 
