@@ -220,6 +220,18 @@ class AlertsService
                     route('master.cobrancas.wizard.create'),
                     'Gerar faturas');
             }
+
+            // Pagamentos enviados pelo cliente aguardando double-check do master.
+            // Status `paid_pending_review` → cliente afirmou que pagou e enviou
+            // comprovante; master precisa abrir, conferir e aprovar.
+            $aguardandoReview = Invoice::where('status', 'paid_pending_review')->count();
+            if ($aguardandoReview > 0) {
+                $alerts[] = $this->mk('master_aguardando_validacao_pagamento', 'critico',
+                    "{$aguardandoReview} pagamento(s) aguardando validação",
+                    'Cliente enviou comprovante — confira o arquivo e aprove ou rejeite.',
+                    route('master.cobrancas.index', ['status' => 'paid_pending_review']),
+                    'Validar agora');
+            }
         }
 
         // Clientes sem plano vinculado

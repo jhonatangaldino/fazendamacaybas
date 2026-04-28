@@ -47,7 +47,7 @@ class InvoiceController extends Controller
             ->orderByDesc('data_emissao')
             ->orderByDesc('id');
 
-        if (in_array($status, ['pending', 'paid', 'overdue'], true)) {
+        if (in_array($status, ['pending', 'paid', 'overdue', 'paid_pending_review'], true)) {
             $query->where('status', $status);
         }
 
@@ -336,6 +336,115 @@ class InvoiceController extends Controller
         $this->reconcileSubscriptionFromInvoices($invoice->tenant_id);
 
         return back()->with('success', 'Cobrança #'.$invoice->numero.' marcada como paga.');
+    }
+
+    /**
+     * Aprovação do double-check (Fase 1 do fluxo de comprovante):
+     * cliente subiu o comprovante → status='paid_pending_review' → master
+     * conferiu visualmente → aprova aqui. A fatura vira `paid` com
+     * data_pagamento = hoje (ou a informada) e o E2E definitivo.
+     */
+    public function approveProof(Request $request, Invoice $invoice): RedirectResponse
+    {
+        if ($invoice->status !== 'paid_pending_review') {
+            return back()->with('error', 'Esta fatura não está aguardando validação.');
+        }
+
+        $validated = $request->validate([
+            'data_pagamento' => ['nullable', 'date', 'before_or_equal:today'],
+            'external_payment_id' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $meta = $invoice->meta ?? [];
+        $meta['payment'] = array_filter([
+            'metodo' => 'pix',
+            'aprovado_em' => now()->toIso8601String(),
+            'aprovado_por' => auth()->id(),
+            'comprovante_path' => $invoice->payment_proof_path, // mantém referência mesmo após aprovado
+        ]);
+
+        $invoice->update([
+            'status' => 'paid',
+            'data_pagamento' => $validated['data_pagamento'] ?? now()->toDateString(),
+            'external_payment_id' => $validated['external_payment_id'] ?? $invoice->external_payment_id,
+            'payment_review_reason' => null,
+            'meta' => $meta,
+        ]);
+
+        $this->reconcileSubscriptionFromInvoices($invoice->tenant_id);
+        \App\Support\BillingCache::forgetForTenant($invoice->tenant_id);
+
+        return redirect()->route('master.cobrancas.index', ['status' => 'paid'])
+            ->with('success', 'Pagamento de #'.$invoice->numero.' aprovado.');
+    }
+
+    /**
+     * Rejeição do double-check: fatura volta pra `pending`, comprovante
+     * é removido do storage, motivo fica gravado pro cliente ver na próxima
+     * visita. Cliente pode re-enviar outro comprovante.
+     */
+    public function rejectProof(Request $request, Invoice $invoice): RedirectResponse
+    {
+        if ($invoice->status !== 'paid_pending_review') {
+            return back()->with('error', 'Esta fatura não está aguardando validação.');
+        }
+
+        $validated = $request->validate([
+            'motivo' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'motivo.required' => 'Explique o motivo da rejeição (será mostrado ao cliente).',
+        ]);
+
+        if ($invoice->payment_proof_path && \Storage::disk('public')->exists($invoice->payment_proof_path)) {
+            \Storage::disk('public')->delete($invoice->payment_proof_path);
+        }
+
+        $invoice->update([
+            'status' => $invoice->data_vencimento->isPast() ? 'overdue' : 'pending',
+            'payment_proof_path' => null,
+            'payment_proof_mime' => null,
+            'payment_proof_size' => null,
+            'payment_submitted_at' => null,
+            'payment_review_reason' => $validated['motivo'],
+        ]);
+
+        $this->reconcileSubscriptionFromInvoices($invoice->tenant_id);
+        \App\Support\BillingCache::forgetForTenant($invoice->tenant_id);
+
+        return redirect()->route('master.cobrancas.index')
+            ->with('success', 'Comprovante de #'.$invoice->numero.' rejeitado. Cliente foi notificado.');
+    }
+
+    /**
+     * Tela dedicada de validação do comprovante: mostra o arquivo grande
+     * + dados da fatura lado a lado pro master comparar visualmente.
+     */
+    public function validateProof(Invoice $invoice): \Inertia\Response
+    {
+        if ($invoice->status !== 'paid_pending_review') {
+            abort(404);
+        }
+        $invoice->load('tenant:id,nome');
+
+        return Inertia::render('Master/Cobrancas/Validate', [
+            'invoice' => [
+                'id' => $invoice->id,
+                'numero' => $invoice->numero,
+                'referencia_curta' => $invoice->referencia_curta,
+                'tenant_id' => $invoice->tenant_id,
+                'tenant_nome' => $invoice->tenant?->nome,
+                'tipo' => $invoice->tipo,
+                'valor' => (float) $invoice->valor,
+                'data_emissao' => $invoice->data_emissao?->format('d/m/Y'),
+                'data_vencimento' => $invoice->data_vencimento?->format('d/m/Y'),
+                'pix_txid' => $invoice->pix_txid,
+                'external_payment_id' => $invoice->external_payment_id,
+                'payment_proof_url' => $invoice->payment_proof_path ? asset('storage/'.$invoice->payment_proof_path) : null,
+                'payment_proof_mime' => $invoice->payment_proof_mime,
+                'payment_proof_size' => $invoice->payment_proof_size,
+                'payment_submitted_at' => $invoice->payment_submitted_at?->format('d/m/Y H:i'),
+            ],
+        ]);
     }
 
     /**

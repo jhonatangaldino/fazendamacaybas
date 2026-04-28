@@ -9,9 +9,10 @@
  *   - Para faturas pendentes/vencidas: linha expansível com QR PIX + copia-e-cola
  */
 import { ref } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PixQrCode from '@/Components/PixQrCode.vue';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 import { brl } from '@/utils/format.js';
 
 defineProps({
@@ -39,10 +40,66 @@ function togglePix(invoiceId) {
 }
 
 const statusLabel = {
-    pending:  { text: 'Pendente', cls: 'bg-amber-50 text-amber-700 ring-amber-200', dot: 'bg-amber-500' },
-    paid:     { text: 'Paga',     cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200', dot: 'bg-emerald-500' },
-    overdue:  { text: 'Vencida',  cls: 'bg-rose-50 text-rose-700 ring-rose-200',     dot: 'bg-rose-500' },
+    pending:              { text: 'Pendente',              cls: 'bg-amber-50 text-amber-700 ring-amber-200', dot: 'bg-amber-500' },
+    paid:                 { text: 'Paga',                  cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200', dot: 'bg-emerald-500' },
+    overdue:              { text: 'Vencida',               cls: 'bg-rose-50 text-rose-700 ring-rose-200',     dot: 'bg-rose-500' },
+    paid_pending_review:  { text: 'Aguardando validação', cls: 'bg-sky-50 text-sky-700 ring-sky-200',         dot: 'bg-sky-500' },
 };
+
+// Modal de envio de comprovante
+const uploadModal = ref({ open: false, invoice: null });
+const uploadFile = ref(null);
+const uploadE2e = ref('');
+const uploading = ref(false);
+const uploadError = ref(null);
+
+useBodyScrollLock(() => uploadModal.value.open);
+
+function abrirUpload(invoice) {
+    uploadModal.value = { open: true, invoice };
+    uploadFile.value = null;
+    uploadE2e.value = '';
+    uploadError.value = null;
+}
+
+function fecharUpload() {
+    if (uploading.value) return;
+    uploadModal.value = { open: false, invoice: null };
+}
+
+function onFileChange(e) {
+    const f = e.target.files?.[0] ?? null;
+    if (! f) { uploadFile.value = null; return; }
+    if (f.size > 5 * 1024 * 1024) {
+        uploadError.value = 'Arquivo maior que 5 MB.';
+        e.target.value = '';
+        return;
+    }
+    uploadFile.value = f;
+    uploadError.value = null;
+}
+
+function enviarComprovante() {
+    if (! uploadFile.value || ! uploadModal.value.invoice) return;
+    uploading.value = true;
+    uploadError.value = null;
+    const fd = new FormData();
+    fd.append('comprovante', uploadFile.value);
+    if (uploadE2e.value.trim()) fd.append('external_payment_id', uploadE2e.value.trim());
+    router.post(route('admin.faturas.submit-payment', uploadModal.value.invoice.id), fd, {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            uploading.value = false;
+            uploadModal.value = { open: false, invoice: null };
+        },
+        onError: (errors) => {
+            uploading.value = false;
+            uploadError.value = errors.comprovante || errors.external_payment_id || 'Não foi possível enviar.';
+        },
+        onFinish: () => { uploading.value = false; },
+    });
+}
 
 const subStatusLabel = {
     active:   { text: 'Em dia',          cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
@@ -173,12 +230,87 @@ const subStatusLabel = {
                         </div>
                     </div>
 
+                    <!-- Banner: rejeição anterior do master (cliente vê o motivo) -->
+                    <div v-if="isPagavel(i) && i.payment_review_reason"
+                         class="mx-4 sm:mx-5 mb-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+                        <div class="font-semibold">⚠ Comprovante anterior rejeitado pelo administrador</div>
+                        <div class="mt-1 text-xs">{{ i.payment_review_reason }}</div>
+                        <div class="mt-1 text-xs text-rose-700">Envie um novo comprovante abaixo.</div>
+                    </div>
+
+                    <!-- Banner: aguardando validação master -->
+                    <div v-if="i.status === 'paid_pending_review'"
+                         class="mx-4 sm:mx-5 mb-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+                        <div class="font-semibold">⏳ Comprovante recebido — aguardando confirmação</div>
+                        <div class="mt-1 text-xs">
+                            Enviado em {{ i.payment_submitted_at }}. O administrador vai conferir e atualizar
+                            o status em breve.
+                        </div>
+                    </div>
+
                     <!-- PIX expandido -->
-                    <div v-if="isPagavel(i) && expanded.has(i.id)" class="border-t border-slate-100 bg-slate-50/50 p-4 sm:p-5">
+                    <div v-if="isPagavel(i) && expanded.has(i.id)" class="border-t border-slate-100 bg-slate-50/50 p-4 sm:p-5 space-y-4">
                         <PixQrCode :payload="i.pix_payload ?? ''" :size="220" :referencia="i.referencia_curta" />
+                        <div class="border-t border-slate-200 pt-3">
+                            <p class="text-xs text-slate-600 mb-2">
+                                Já fez o PIX? Envie o comprovante e o admin confirma rapidinho —
+                                a fatura é dada como paga assim que ele aprovar.
+                            </p>
+                            <button type="button" @click="abrirUpload(i)"
+                                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700">
+                                ✓ Já paguei — enviar comprovante
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Modal: upload de comprovante -->
+            <Teleport to="body">
+                <div v-if="uploadModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-slate-900/60" @click="fecharUpload"></div>
+                    <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-1">Enviar comprovante</h3>
+                        <p class="text-sm text-slate-600 mb-4">
+                            Fatura <strong>{{ uploadModal.invoice?.referencia_curta }}</strong>
+                            · {{ brl(uploadModal.invoice?.valor) }}
+                        </p>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">
+                                    Comprovante <span class="text-red-500">*</span>
+                                </label>
+                                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                       @change="onFileChange"
+                                       class="block w-full text-sm text-slate-700 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:text-sm file:font-medium hover:file:bg-emerald-100" />
+                                <p class="text-xs text-slate-500 mt-1">PDF, JPG, PNG ou WEBP até 5 MB.</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">
+                                    ID da transação <span class="font-normal lowercase text-slate-400">(opcional)</span>
+                                </label>
+                                <input type="text" v-model="uploadE2e" maxlength="50"
+                                       placeholder="Cole o ID PIX (E2E) do comprovante"
+                                       class="form-input font-mono text-xs">
+                            </div>
+                            <div v-if="uploadError" class="text-sm text-red-700 bg-red-50 ring-1 ring-red-200 rounded-md px-3 py-2">
+                                {{ uploadError }}
+                            </div>
+                        </div>
+
+                        <div class="mt-5 flex justify-end gap-2">
+                            <button type="button" @click="fecharUpload" :disabled="uploading"
+                                    class="btn-outline">Cancelar</button>
+                            <button type="button" @click="enviarComprovante"
+                                    :disabled="uploading || ! uploadFile"
+                                    class="btn-primary disabled:opacity-50">
+                                {{ uploading ? 'Enviando…' : 'Enviar' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Teleport>
 
             <p class="mt-4 text-xs text-slate-500">
                 💬 Pagou pelo banco e a fatura ainda não atualizou? Aguarde alguns minutos

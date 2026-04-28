@@ -36,6 +36,7 @@ function brl(v) {
 const statusLabel = {
     pending: { text: 'Pendente', color: 'bg-amber-50 text-amber-700 ring-amber-200', dot: 'bg-amber-500' },
     paid: { text: 'Paga', color: 'bg-emerald-50 text-emerald-700 ring-emerald-200', dot: 'bg-emerald-500' },
+    paid_pending_review: { text: 'Aguardando validação', color: 'bg-sky-50 text-sky-700 ring-sky-200', dot: 'bg-sky-500' },
     overdue: { text: 'Vencida', color: 'bg-rose-50 text-rose-700 ring-rose-200', dot: 'bg-rose-500' },
 };
 
@@ -222,7 +223,11 @@ async function marcarPendente(invoice) {
                                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                                         Ver PIX
                                     </Link>
-                                    <button v-if="i.status !== 'paid'" @click="marcarPaga(i)"
+                                    <Link v-if="i.status === 'paid_pending_review'" :href="route('master.cobrancas.validate', i.id)"
+                                          class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-sky-600 text-white hover:bg-sky-700">
+                                        🔍 Validar
+                                    </Link>
+                                    <button v-else-if="i.status !== 'paid'" @click="marcarPaga(i)"
                                             class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700">
                                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         Marcar paga
@@ -278,7 +283,11 @@ async function marcarPendente(invoice) {
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                             Ver PIX
                         </Link>
-                        <button v-if="i.status !== 'paid'" @click="marcarPaga(i)"
+                        <Link v-if="i.status === 'paid_pending_review'" :href="route('master.cobrancas.validate', i.id)"
+                              class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-sky-600 text-white hover:bg-sky-700">
+                            🔍 Validar
+                        </Link>
+                        <button v-else-if="i.status !== 'paid'" @click="marcarPaga(i)"
                                 class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             Marcar paga

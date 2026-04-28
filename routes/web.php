@@ -154,6 +154,10 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
     Route::get('cobrancas/{invoice}/pix', [InvoiceController::class, 'showPix'])->name('cobrancas.pix');
     Route::post('cobrancas/{invoice}/marcar-paga', [InvoiceController::class, 'markPaid'])->name('cobrancas.mark-paid');
     Route::post('cobrancas/{invoice}/marcar-pendente', [InvoiceController::class, 'markPending'])->name('cobrancas.mark-pending');
+    // Double-check de comprovante enviado pelo cliente (Fase 1)
+    Route::get('cobrancas/{invoice}/validar', [InvoiceController::class, 'validateProof'])->name('cobrancas.validate');
+    Route::post('cobrancas/{invoice}/aprovar-pagamento', [InvoiceController::class, 'approveProof'])->name('cobrancas.approve-proof');
+    Route::post('cobrancas/{invoice}/rejeitar-pagamento', [InvoiceController::class, 'rejectProof'])->name('cobrancas.reject-proof');
 
     // M6 — Assinatura + cobranças POR tenant
     Route::get('tenants/{tenant}/assinatura', [SubscriptionController::class, 'show'])->name('tenants.subscription.show');
@@ -274,6 +278,9 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
     Route::get('faturas', [\App\Http\Controllers\Admin\FaturasController::class, 'index'])
         ->middleware('permission:operational.financeiro.view')
         ->name('faturas.index');
+    Route::post('faturas/{invoice}/comprovante', [\App\Http\Controllers\Admin\FaturasController::class, 'submitPayment'])
+        ->middleware('permission:operational.financeiro.view')
+        ->name('faturas.submit-payment');
 
     // Tela "Plano não inclui esta funcionalidade" — destino do EnforceFeature.
     // CORE: nunca passa por feature gate.

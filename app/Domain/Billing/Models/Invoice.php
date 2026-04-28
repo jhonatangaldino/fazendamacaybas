@@ -36,6 +36,11 @@ class Invoice extends Model
         'pix_payload',
         'pix_qrcode_base64',
         'meta',
+        'payment_proof_path',
+        'payment_proof_mime',
+        'payment_proof_size',
+        'payment_submitted_at',
+        'payment_review_reason',
     ];
 
     protected $casts = [
@@ -48,6 +53,7 @@ class Invoice extends Model
         'data_emissao' => 'date',
         'data_vencimento' => 'date',
         'data_pagamento' => 'date',
+        'payment_submitted_at' => 'datetime',
         'meta' => 'array',
     ];
 
