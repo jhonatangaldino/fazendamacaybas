@@ -72,15 +72,28 @@ const MESES = [
 ];
 const ANOS = Array.from({ length: 6 }, (_, i) => anoAtual - 1 + i);
 
+// Fim é EXCLUSIVO — representa quando o plano termina (renovação),
+// NÃO o último mês cobrado. Assim "abr/2026 → abr/2027" = 12 meses
+// (cobre abr/2026 até mar/2027), casando com a intuição de "plano anual".
 const periodoValido = computed(() => {
     const ini = form.ano_inicio * 100 + form.mes_inicio;
     const fim = form.ano_fim * 100 + form.mes_fim;
-    return ini <= fim;
+    return fim > ini;
 });
 
 const totalMeses = computed(() => {
     if (! periodoValido.value) return 0;
-    return ((form.ano_fim - form.ano_inicio) * 12) + (form.mes_fim - form.mes_inicio) + 1;
+    return ((form.ano_fim - form.ano_inicio) * 12) + (form.mes_fim - form.mes_inicio);
+});
+
+// Label do último mês efetivamente cobrado (fim - 1 mês), para exibir
+// "Cobre: Abril 2026 a Março 2027" e tirar a ambiguidade do fim exclusivo.
+const ultimoMesCoberto = computed(() => {
+    if (! periodoValido.value) return null;
+    let m = form.mes_fim - 1;
+    let a = form.ano_fim;
+    if (m === 0) { m = 12; a -= 1; }
+    return { mes: m, ano: a, nome: MESES.find(x => x.v === m)?.nome };
 });
 
 // Preview vindo do backend
@@ -280,14 +293,14 @@ function confirmar() {
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs uppercase tracking-wider font-semibold text-slate-600 mb-1.5">Mês fim</label>
+                            <label class="block text-xs uppercase tracking-wider font-semibold text-slate-600 mb-1.5">Renova em (mês)</label>
                             <select v-model.number="form.mes_fim"
                                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                                 <option v-for="m in MESES" :key="m.v" :value="m.v">{{ m.nome }}</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs uppercase tracking-wider font-semibold text-slate-600 mb-1.5">Ano fim</label>
+                            <label class="block text-xs uppercase tracking-wider font-semibold text-slate-600 mb-1.5">Renova em (ano)</label>
                             <select v-model.number="form.ano_fim"
                                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                                 <option v-for="a in ANOS" :key="a" :value="a">{{ a }}</option>
@@ -295,11 +308,18 @@ function confirmar() {
                         </div>
                     </div>
 
+                    <p class="mt-2 text-xs text-slate-500">
+                        "Renova em" é o mês em que o plano <strong>termina</strong> e renova — a última cobrança é do mês anterior.
+                        Ex.: "Abril 2026 → Abril 2027" cobre Abr/26 a Mar/27 (12 meses).
+                    </p>
+
                     <div v-if="! periodoValido" class="mt-4 text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 rounded-lg p-3">
-                        Período inválido: o início não pode ser maior que o fim.
+                        Período inválido: a data de renovação precisa ser posterior ao início.
                     </div>
                     <div v-else-if="planoSelecionado" class="mt-4 text-sm text-slate-700 bg-slate-50 ring-1 ring-slate-200 rounded-lg p-3">
-                        <strong>{{ totalMeses }} mês{{ totalMeses === 1 ? '' : 'es' }}</strong> ·
+                        Cobre <strong>{{ MESES.find(x => x.v === form.mes_inicio)?.nome }}/{{ form.ano_inicio }}</strong>
+                        a <strong>{{ ultimoMesCoberto?.nome }}/{{ ultimoMesCoberto?.ano }}</strong> ·
+                        <strong>{{ totalMeses }} fatura{{ totalMeses === 1 ? '' : 's' }}</strong> ·
                         valor estimado: <strong>{{ brl(totalMeses * planoSelecionado.preco_mensal) }}</strong>
                     </div>
                 </div>

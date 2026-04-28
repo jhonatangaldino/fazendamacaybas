@@ -98,9 +98,11 @@ class InvoiceGenerationService
 
             $criadas = collect();
             $cursor = Carbon::create($anoIni, $mesIni, 1);
+            // Fim é EXCLUSIVO — representa quando o plano termina (renovação),
+            // não a última cobrança. Loop usa lt(), não lte().
             $fim = Carbon::create($anoFim, $mesFim, 1);
 
-            while ($cursor->lte($fim)) {
+            while ($cursor->lt($fim)) {
                 $mes = $cursor->month;
                 $ano = $cursor->year;
 
@@ -129,8 +131,10 @@ class InvoiceGenerationService
                 $cursor->addMonth();
             }
 
-            // Atualiza vigência do subscription para refletir o último mês coberto
-            $this->updateSubscriptionVigencia($subscription, Carbon::create($anoFim, $mesFim, 1)->endOfMonth());
+            // Atualiza vigência do subscription para refletir o último mês coberto.
+            // Como o fim é EXCLUSIVO, o último mês cobrado é (fim - 1 mês).
+            $ultimoCoberto = Carbon::create($anoFim, $mesFim, 1)->subMonth()->endOfMonth();
+            $this->updateSubscriptionVigencia($subscription, $ultimoCoberto);
 
             return $criadas;
         });
@@ -395,14 +399,22 @@ class InvoiceGenerationService
         }
         $ini = Carbon::create($anoIni, $mesIni, 1);
         $fim = Carbon::create($anoFim, $mesFim, 1);
-        if ($ini->gt($fim)) {
-            throw new InvalidArgumentException('Mês/ano inicial não pode ser maior que o final.');
+        // Fim é EXCLUSIVO — precisa ser estritamente maior que o início pra
+        // gerar pelo menos 1 mês.
+        if ($fim->lte($ini)) {
+            throw new InvalidArgumentException('Mês/ano final deve ser posterior ao inicial (fim é exclusivo, representa quando o plano termina).');
         }
     }
 
+    /**
+     * Quantos meses o plano cobre. EXCLUSIVO no fim — mês_fim/ano_fim representa
+     * a data em que o plano TERMINA (renovação), não a última cobrança. Assim
+     * "abril/2026 a abril/2027" = 12 meses (cobre abr/2026 até mar/2027), o que
+     * casa com a intuição de "plano anual" (PO 2026-04-28).
+     */
     private function countMeses(int $mesIni, int $anoIni, int $mesFim, int $anoFim): int
     {
-        return (($anoFim - $anoIni) * 12) + ($mesFim - $mesIni) + 1;
+        return (($anoFim - $anoIni) * 12) + ($mesFim - $mesIni);
     }
 
     private function mesLabel(int $mes): string
