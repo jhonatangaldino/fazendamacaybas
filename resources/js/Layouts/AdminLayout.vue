@@ -164,7 +164,9 @@ const menu = computed(() => [
                 perm: 'operational.rebanho.view', feature: 'rebanho',
                 expandable: true,
                 children: () => tenantSpecies.value.map(s => ({
-                    label: `${emojiEspecie(s.nome)} ${s.nome}`,
+                    // Emoji separado do label pra renderizar bigger no template
+                    emoji: emojiEspecie(s.nome),
+                    label: s.nome,
                     href: route('admin.rebanho.especies.dashboard', { especie: s.slug }),
                     badge: s.animals_count,
                     currentMatch: (currentUrl) => {
@@ -347,7 +349,9 @@ function logout() {
                                 </span>
                             </Link>
 
-                            <!-- Submenus dinâmicos (só renderiza se expandido) -->
+                            <!-- Submenus dinâmicos (só renderiza se expandido).
+                                 Emoji da espécie renderizado em text-xl mobile / text-base desktop
+                                 — antes ficava colado ao label no mesmo text-xs (12px) — pequeno demais. -->
                             <ul v-if="item.expandable && isExpanded(item.route)" class="mt-1 ml-4 md:ml-7 space-y-0.5 border-l border-white/10 pl-2 md:pl-2">
                                 <li v-for="child in item.children()" :key="child.label">
                                     <Link
@@ -357,12 +361,13 @@ function logout() {
                                             child.currentMatch?.(page.url) ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white',
                                             (child.badge === 0 || child.badge === '0') ? 'opacity-60' : '',
                                         ]"
-                                        class="flex items-center gap-2 rounded-md px-3 md:px-2 py-2.5 md:py-1.5 text-sm md:text-xs min-h-10 md:min-h-0 transition touch-manipulation"
+                                        class="flex items-center gap-3 rounded-md px-3 md:px-2 py-2.5 md:py-1.5 text-sm md:text-xs min-h-11 md:min-h-0 transition touch-manipulation"
                                     >
+                                        <span v-if="child.emoji" class="text-xl md:text-base flex-shrink-0 leading-none w-6 text-center" aria-hidden="true">{{ child.emoji }}</span>
                                         <span class="flex-1 truncate">{{ child.label }}</span>
                                         <span v-if="child.badge != null"
                                               :class="(child.badge === 0 || child.badge === '0') ? 'text-white/30' : 'text-white/50'"
-                                              class="text-xs md:text-[10px]">{{ child.badge }}</span>
+                                              class="text-xs md:text-[10px] tabular-nums">{{ child.badge }}</span>
                                     </Link>
                                 </li>
                             </ul>
