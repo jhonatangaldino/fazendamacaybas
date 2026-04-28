@@ -285,7 +285,6 @@ function csrfHeader() {
 
 const novoLoteAberto = ref(false);
 const novoLoteForm = ref({ nome: '', codigo: '' });
-useBodyScrollLock(computed(() => novoLoteAberto.value || novoLocalAberto.value));
 const novoLoteError = ref(null);
 const salvandoLote = ref(false);
 function abrirNovoLote() {
@@ -324,6 +323,11 @@ const novoLocalAberto = ref(false);
 const novoLocalForm = ref({ nome: '', codigo: '', tipo: 'pasto' });
 const novoLocalError = ref(null);
 const salvandoLocal = ref(false);
+
+// Body scroll lock pra ambos modais inline (declarado APÓS os refs pra
+// evitar TDZ — referenciar novoLocalAberto antes da declaração quebrava
+// o componente inteiro com "Cannot access X before initialization").
+useBodyScrollLock(computed(() => novoLoteAberto.value || novoLocalAberto.value));
 function abrirNovoLocal() {
     novoLocalForm.value = { nome: '', codigo: '', tipo: 'pasto' };
     novoLocalError.value = null;
@@ -531,8 +535,8 @@ onMounted(() => {
                         </p>
                     </div>
 
-                    <!-- PASTO / LOCAL com criação inline -->
-                    <div>
+                    <!-- PASTO / LOCAL com criação inline (escondido pra pet — cão/gato não fica em pasto) -->
+                    <div v-if="!isPet">
                         <InputLabel value="Pasto / Local (opcional)" />
                         <select v-model="form.location_id" class="form-select">
                             <option :value="null">—</option>
