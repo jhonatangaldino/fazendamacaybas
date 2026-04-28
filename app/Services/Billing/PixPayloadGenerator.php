@@ -84,12 +84,52 @@ class PixPayloadGenerator
     }
 
     /**
-     * Gera um txid curto (até 25 chars), alfanumérico, baseado em uuid.
+     * Gera um TXID legível baseado no tenant + número da fatura.
+     *
+     * Por que legível: o TXID aparece no extrato bancário do master quando
+     * o pagamento cai. Com UUID aleatório (versão antiga) era impossível
+     * identificar de qual cliente veio o PIX. Com sigla do tenant + número
+     * da fatura, o master consegue conciliar visualmente sem abrir o sistema.
+     *
+     * Formato: SSSAAAAMMNNNN (3 letras sigla + ano-mês + sequencial)
+     *   Ex.: "FAZ20260400037" → tenant Faz*, abril/2026, fatura 37
+     *   Cabe folgado nos 25 chars do limite EMV (BACEN).
+     *
+     * Quando $tenantNome e $invoiceNumero são vazios → fallback UUID
+     * (mantém compatibilidade com chamadas legadas / cobranças avulsas).
      */
-    public function generateTxid(): string
+    public function generateTxid(string $tenantNome = '', string $invoiceNumero = ''): string
     {
-        $raw = strtoupper(str_replace('-', '', (string) \Illuminate\Support\Str::uuid()));
-        return substr($raw, 0, 25);
+        if ($tenantNome === '' && $invoiceNumero === '') {
+            $raw = strtoupper(str_replace('-', '', (string) \Illuminate\Support\Str::uuid()));
+            return substr($raw, 0, 25);
+        }
+        $sigla = $this->siglaFromName($tenantNome);
+        $numero = preg_replace('/[^A-Z0-9]/i', '', $invoiceNumero) ?? '';
+        $txid = strtoupper($sigla . $numero);
+        $txid = preg_replace('/[^A-Z0-9]/', '', $txid) ?? '';
+        return substr($txid, 0, 25) ?: $this->generateTxid();
+    }
+
+    /**
+     * Extrai 3 letras significativas do nome do tenant para uso no TXID.
+     * Ignora palavras genéricas comuns no agro (FAZENDA, SITIO, GRANJA, etc.)
+     * pra que dois clientes "Fazenda X" e "Fazenda Y" não fiquem com a
+     * mesma sigla "FAZ".
+     */
+    private function siglaFromName(string $nome): string
+    {
+        $genericas = [
+            'FAZENDA', 'SITIO', 'GRANJA', 'CHACARA', 'HARAS', 'ESTANCIA',
+            'AGROPECUARIA', 'AGRO', 'RURAL', 'LTDA', 'ME', 'EIRELI', 'SA',
+            'DA', 'DE', 'DO', 'DAS', 'DOS', 'E',
+        ];
+        $ascii = strtoupper(\Illuminate\Support\Str::ascii($nome));
+        $palavras = preg_split('/\s+/', trim($ascii)) ?: [];
+        $significativas = array_values(array_filter($palavras, fn ($p) => $p !== '' && ! in_array($p, $genericas, true)));
+        $base = $significativas[0] ?? ($palavras[0] ?? 'CLI');
+        $clean = preg_replace('/[^A-Z0-9]/', '', $base) ?? '';
+        return substr($clean !== '' ? $clean : 'CLI', 0, 3);
     }
 
     /**

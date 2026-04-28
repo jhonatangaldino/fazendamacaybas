@@ -263,8 +263,11 @@ class InvoiceGenerationService
         // Gera identificador e payload PIX (BR Code) usando a chave do master.
         // Sem chave configurada → invoice ainda é criada (status pending), mas
         // pix_payload fica vazio. Tenant verá fatura, master verá aviso.
+        // TXID legível: SIGLA_TENANT + NÚMERO_FATURA — aparece no extrato
+        // bancário do master, facilita conciliação manual.
         $cfg = $this->loadPixConfig();
-        $txid = $this->pix->generateTxid();
+        $numero = $this->nextNumero($tenant->id);
+        $txid = $this->pix->generateTxid($tenant->nome, $numero);
         $payload = '';
         if (! empty($cfg['chave'])) {
             $payload = $this->pix->build(
@@ -279,7 +282,7 @@ class InvoiceGenerationService
         return Invoice::create([
             'tenant_id' => $tenant->id,
             'subscription_id' => $subscription->id,
-            'numero' => $this->nextNumero($tenant->id),
+            'numero' => $numero,
             'tipo' => $tipo,
             'referencia_mes' => $referenciaMes,
             'referencia_ano' => $referenciaAno,

@@ -146,7 +146,10 @@ class InvoiceController extends Controller
         // Sem chave configurada: invoice é criada do mesmo jeito (campos PIX ficam null);
         // master vê aviso amigável após salvar, em vez de 500.
         $cfg = $this->loadPixConfig();
-        $txid = $pix->generateTxid();
+        // TXID legível: SIGLA + NÚMERO da fatura. Aparece no extrato bancário
+        // do master quando o pagamento cai — facilita conciliação manual sem
+        // depender de ferramenta externa.
+        $txid = $pix->generateTxid($tenant->nome, $numero);
         $payload = null;
         if (! empty($cfg['chave'])) {
             $payload = $pix->build(
