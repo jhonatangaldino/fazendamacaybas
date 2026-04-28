@@ -1,11 +1,14 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import MarkInvoicePaidModal from '@/Components/MarkInvoicePaidModal.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
+import { useProofAutoApprove } from '@/composables/useProofAutoApprove.js';
+import { useToast } from '@/composables/useToast.js';
 
 const { confirm } = useConfirm();
+const { toast } = useToast();
 const invoiceParaPagar = ref(null); // null = modal fechado
 
 const props = defineProps({
@@ -13,6 +16,71 @@ const props = defineProps({
     filter_status: { type: String, default: null },
     filter_q: { type: String, default: '' },
     totals: { type: Object, default: () => ({}) },
+});
+
+// ─── Auto-aprovação inteligente ────────────────────────────────────────
+const autoConfig = ref({
+    enabled: false, enabled_raw: false, pode_ativar: false,
+    maturidade: 0, total_aprovacoes: 0, bancos_unicos: 0, threshold_ativacao: 70,
+});
+const lote = useProofAutoApprove();
+const togglingAuto = ref(false);
+
+const pendentesParaProcessar = computed(() =>
+    props.invoices.filter(i => i.status === 'paid_pending_review' && i.payment_proof_url)
+);
+
+async function carregarConfig() {
+    try {
+        const r = await fetch(route('master.cobrancas.auto-approve-config'), {
+            credentials: 'same-origin', headers: { Accept: 'application/json' },
+        });
+        autoConfig.value = await r.json();
+    } catch {}
+}
+
+async function toggleAuto() {
+    togglingAuto.value = true;
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        await fetch(route('master.cobrancas.auto-approve-config'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ enabled: ! autoConfig.value.enabled_raw }),
+        });
+        await carregarConfig();
+        toast?.(autoConfig.value.enabled_raw ? 'Auto-aprovação no login: ATIVADA' : 'Auto-aprovação no login: desativada', 'sucesso');
+    } finally {
+        togglingAuto.value = false;
+    }
+}
+
+async function processarLote() {
+    if (pendentesParaProcessar.value.length === 0) {
+        toast?.('Nenhum comprovante pendente pra processar.', 'info');
+        return;
+    }
+    const ok = await confirm({
+        title: 'Processar lote',
+        message: `Vai rodar OCR no navegador em ${pendentesParaProcessar.value.length} comprovante(s) e auto-aprovar os que passarem em todos os checks (valor + E2E + não duplicata). Os duvidosos ficam pra revisão manual. Pode demorar alguns minutos.`,
+        confirmText: 'Iniciar',
+        variant: 'primary',
+        icon: 'question',
+    });
+    if (! ok) return;
+    await lote.processarLote(pendentesParaProcessar.value);
+    toast?.(
+        `Lote processado: ${lote.aprovados.value} aprovado(s), ${lote.pendentes.value} pra revisão, ${lote.erros.value} erro(s)`,
+        lote.aprovados.value > 0 ? 'sucesso' : 'info'
+    );
+    // Recarrega a página pra ver os status atualizados
+    setTimeout(() => router.reload({ only: ['invoices', 'totals'] }), 1500);
+    await carregarConfig();
+}
+
+onMounted(() => {
+    carregarConfig();
 });
 
 const buscaQuery = ref(props.filter_q ?? '');
@@ -139,6 +207,86 @@ async function marcarPendente(invoice) {
                     Limpar
                 </button>
             </form>
+        </div>
+
+        <!-- 🤖 Card maturidade da auto-aprovação -->
+        <div class="rounded-2xl bg-white ring-1 ring-slate-200 p-5 mb-5">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🤖</span>
+                        <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Auto-aprovação inteligente</h3>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">
+                        A cada aprovação manual sua, o sistema aprende padrões dos comprovantes (banco emissor, formato, E2E PIX).
+                        Quando a maturidade chegar a 70%+, você pode habilitar a auto-aprovação no seu login.
+                    </p>
+                </div>
+                <!-- Toggle -->
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-xs font-semibold text-slate-700">
+                            {{ autoConfig.enabled_raw ? 'Auto no login: ON' : 'Auto no login: OFF' }}
+                        </div>
+                        <div v-if="!autoConfig.pode_ativar && autoConfig.enabled_raw" class="text-[10px] text-amber-700">
+                            (aguardando maturidade ≥ {{ autoConfig.threshold_ativacao }}%)
+                        </div>
+                    </div>
+                    <button type="button" @click="toggleAuto" :disabled="togglingAuto"
+                            :class="autoConfig.enabled_raw ? 'bg-emerald-600' : 'bg-slate-300'"
+                            class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full transition-colors disabled:opacity-50">
+                        <span :class="autoConfig.enabled_raw ? 'translate-x-5' : 'translate-x-0.5'"
+                              class="inline-block h-6 w-6 translate-y-0.5 transform rounded-full bg-white transition-transform shadow"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Barra de maturidade -->
+            <div class="mt-4">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="font-semibold text-slate-700">Maturidade do sistema</span>
+                    <span class="font-mono font-bold"
+                          :class="autoConfig.maturidade >= 70 ? 'text-emerald-700' : autoConfig.maturidade >= 40 ? 'text-amber-700' : 'text-slate-600'">
+                        {{ autoConfig.maturidade }}%
+                    </span>
+                </div>
+                <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full transition-all duration-500"
+                         :class="autoConfig.maturidade >= 70 ? 'bg-emerald-500' : autoConfig.maturidade >= 40 ? 'bg-amber-500' : 'bg-slate-400'"
+                         :style="`width: ${autoConfig.maturidade}%`"></div>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-slate-500 mt-1.5">
+                    <span>{{ autoConfig.total_aprovacoes }} aprovação(ões) na memória · {{ autoConfig.bancos_unicos }} banco(s) reconhecido(s)</span>
+                    <span v-if="autoConfig.maturidade < 70">Faltam ~{{ Math.max(1, Math.round(25 * Math.log(1 / (1 - 0.7)) - autoConfig.total_aprovacoes)) }} pra liberar</span>
+                </div>
+            </div>
+
+            <!-- Botão "Processar lote" -->
+            <div v-if="pendentesParaProcessar.length > 0" class="mt-4 p-3 rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div class="text-sm text-sky-900 min-w-0">
+                        <strong>{{ pendentesParaProcessar.length }}</strong> comprovante(s) aguardando validação.
+                        Posso rodar OCR + checks em todos agora, e auto-aprovar os 100% confiáveis.
+                    </div>
+                    <button type="button" @click="processarLote" :disabled="lote.processando.value"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 disabled:opacity-50">
+                        <span v-if="lote.processando.value">⏳ {{ lote.concluidos.value }}/{{ lote.total.value }}</span>
+                        <span v-else>🚀 Processar lote</span>
+                    </button>
+                </div>
+                <!-- Progresso em tempo real -->
+                <div v-if="lote.processando.value" class="mt-2 h-1.5 bg-white rounded-full overflow-hidden">
+                    <div class="h-full bg-sky-500 transition-all" :style="`width: ${lote.total.value > 0 ? (lote.concluidos.value / lote.total.value * 100) : 0}%`"></div>
+                </div>
+                <div v-if="lote.detalhes.value.length > 0" class="mt-2 text-[11px] text-sky-800 space-y-0.5 max-h-32 overflow-y-auto">
+                    <div v-for="(d, idx) in lote.detalhes.value" :key="idx" class="font-mono">
+                        <span :class="d.decisao === 'aprovado' ? 'text-emerald-700' : d.decisao === 'pendente' ? 'text-amber-700' : 'text-rose-700'">
+                            {{ d.decisao === 'aprovado' ? '✓' : d.decisao === 'pendente' ? '⏳' : '✗' }}
+                        </span>
+                        {{ d.numero }} — {{ d.motivo }}
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Filtros -->

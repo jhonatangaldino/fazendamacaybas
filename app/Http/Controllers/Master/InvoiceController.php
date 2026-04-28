@@ -89,6 +89,7 @@ class InvoiceController extends Controller
             'id', 'tenant_id', 'subscription_id', 'numero', 'tipo',
             'valor', 'status', 'data_emissao', 'data_vencimento', 'data_pagamento',
             'external_payment_id', 'pix_txid',
+            'payment_proof_path', 'payment_proof_mime',
         ]);
 
         return Inertia::render('Master/Cobrancas/Index', [
@@ -106,6 +107,8 @@ class InvoiceController extends Controller
                 'data_pagamento' => $i->data_pagamento?->format('d/m/Y'),
                 'external_payment_id' => $i->external_payment_id,
                 'pix_txid' => $i->pix_txid,
+                'payment_proof_url' => $i->payment_proof_path ? asset('storage/'.$i->payment_proof_path) : null,
+                'payment_proof_mime' => $i->payment_proof_mime,
             ])->values(),
             'filter_status' => $status,
             'filter_q' => $q,
@@ -353,6 +356,12 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'data_pagamento' => ['nullable', 'date', 'before_or_equal:today'],
             'external_payment_id' => ['nullable', 'string', 'max:50'],
+            // OCR data vinda do browser do master (Tesseract.js) — alimenta a
+            // tabela payment_proof_signatures pra auto-aprovação adaptativa.
+            'ocr_banco' => ['nullable', 'string', 'max:50'],
+            'ocr_pattern' => ['nullable', 'string', 'max:80'],
+            // Flag pra distinguir aprovação manual vs em lote (auditoria)
+            'auto_aprovado' => ['nullable', 'boolean'],
         ]);
 
         $meta = $invoice->meta ?? [];
@@ -360,16 +369,40 @@ class InvoiceController extends Controller
             'metodo' => 'pix',
             'aprovado_em' => now()->toIso8601String(),
             'aprovado_por' => auth()->id(),
+            'auto_aprovado' => ! empty($validated['auto_aprovado']),
             'comprovante_path' => $invoice->payment_proof_path, // mantém referência mesmo após aprovado
         ]);
+
+        $finalE2e = $validated['external_payment_id'] ?? $invoice->external_payment_id;
 
         $invoice->update([
             'status' => 'paid',
             'data_pagamento' => $validated['data_pagamento'] ?? now()->toDateString(),
-            'external_payment_id' => $validated['external_payment_id'] ?? $invoice->external_payment_id,
+            'external_payment_id' => $finalE2e,
             'payment_review_reason' => null,
             'meta' => $meta,
         ]);
+
+        // Grava signature pra alimentar auto-aprovação adaptativa. updateOrCreate
+        // pra evitar duplicar se a mesma fatura for aprovada→rejeitada→aprovada.
+        try {
+            \App\Domain\Billing\Models\PaymentProofSignature::updateOrCreate(
+                ['invoice_id' => $invoice->id],
+                [
+                    'tenant_id' => $invoice->tenant_id,
+                    'e2e_id' => $finalE2e,
+                    'banco_detectado' => $validated['ocr_banco'] ?? null,
+                    'valor_aprovado' => $invoice->valor,
+                    'hint_pattern' => $validated['ocr_pattern'] ?? null,
+                ]
+            );
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            // E2E já existia em OUTRA fatura — alerta mas não bloqueia
+            // (master já aprovou; essa info é só auditoria). Loga pra investigação.
+            \Log::warning('E2E duplicado ao aprovar fatura', [
+                'invoice_id' => $invoice->id, 'e2e' => $finalE2e,
+            ]);
+        }
 
         $this->reconcileSubscriptionFromInvoices($invoice->tenant_id);
         \App\Support\BillingCache::forgetForTenant($invoice->tenant_id);
@@ -426,6 +459,19 @@ class InvoiceController extends Controller
         }
         $invoice->load('tenant:id,nome');
 
+        // Estatísticas pro front decidir se o comprovante é "confiável de cara":
+        // - bancos já aprovados (frequência) → auto-marca match quando padrão repetido
+        // - quantidade total de aprovações → escala da memória do sistema
+        $bancosFrequentes = \App\Domain\Billing\Models\PaymentProofSignature::query()
+            ->whereNotNull('banco_detectado')
+            ->selectRaw('banco_detectado, COUNT(*) as cnt')
+            ->groupBy('banco_detectado')
+            ->orderByDesc('cnt')
+            ->limit(10)
+            ->get()
+            ->mapWithKeys(fn ($r) => [$r->banco_detectado => (int) $r->cnt])
+            ->all();
+
         return Inertia::render('Master/Cobrancas/Validate', [
             'invoice' => [
                 'id' => $invoice->id,
@@ -436,6 +482,7 @@ class InvoiceController extends Controller
                 'tipo' => $invoice->tipo,
                 'valor' => (float) $invoice->valor,
                 'data_emissao' => $invoice->data_emissao?->format('d/m/Y'),
+                'data_emissao_iso' => $invoice->data_emissao?->toDateString(),
                 'data_vencimento' => $invoice->data_vencimento?->format('d/m/Y'),
                 'pix_txid' => $invoice->pix_txid,
                 'external_payment_id' => $invoice->external_payment_id,
@@ -444,6 +491,72 @@ class InvoiceController extends Controller
                 'payment_proof_size' => $invoice->payment_proof_size,
                 'payment_submitted_at' => $invoice->payment_submitted_at?->format('d/m/Y H:i'),
             ],
+            'memory' => [
+                'bancos_frequentes' => $bancosFrequentes,
+                'total_aprovacoes' => \App\Domain\Billing\Models\PaymentProofSignature::count(),
+            ],
+        ]);
+    }
+
+    /**
+     * Toggle global "auto-aprovar comprovantes ao master logar" + retorna
+     * estatísticas de maturidade (quantas aprovações na memória, % de
+     * confiança calculada via curva sigmoide).
+     */
+    public function autoApproveConfig(Request $request): \Illuminate\Http\JsonResponse
+    {
+        if ($request->isMethod('post')) {
+            $request->validate([
+                'enabled' => ['required', 'boolean'],
+            ]);
+            \App\Models\Setting::setValue(
+                'master.auto_approve_proofs_on_login',
+                $request->boolean('enabled') ? '1' : '0',
+                'boolean'
+            );
+        }
+
+        $total = \App\Domain\Billing\Models\PaymentProofSignature::count();
+        $bancosUnicos = \App\Domain\Billing\Models\PaymentProofSignature::whereNotNull('banco_detectado')
+            ->distinct('banco_detectado')->count('banco_detectado');
+        // Sigmoide: 0=0%, 5=18%, 25=63%, 50=86%, 100=98%
+        $maturidade = min(100, (int) round(100 * (1 - exp(-$total / 25))));
+        // Threshold pra liberar o auto-aprovar: sistema com pelo menos 70% de maturidade
+        $podeAtivar = $maturidade >= 70;
+        $enabled = (string) \App\Models\Setting::getValue('master.auto_approve_proofs_on_login', '0') === '1';
+
+        return response()->json([
+            'enabled' => $enabled && $podeAtivar, // só conta se realmente está liberado
+            'enabled_raw' => $enabled,
+            'pode_ativar' => $podeAtivar,
+            'maturidade' => $maturidade,
+            'total_aprovacoes' => $total,
+            'bancos_unicos' => $bancosUnicos,
+            'threshold_ativacao' => 70,
+        ]);
+    }
+
+    /**
+     * Endpoint JSON: confere se um E2E (vindo de OCR no browser) já foi
+     * aprovado em outra fatura. Usado pelo botão "Processar lote" pra
+     * detectar duplicatas antes de auto-aprovar.
+     */
+    public function checkDuplicateE2e(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'e2e_id' => ['required', 'string', 'max:50'],
+            'invoice_id' => ['nullable', 'integer'],
+        ]);
+        $existing = \App\Domain\Billing\Models\PaymentProofSignature::where('e2e_id', $request->e2e_id)
+            ->when($request->invoice_id, fn ($q, $id) => $q->where('invoice_id', '!=', $id))
+            ->with('invoice:id,numero,tenant_id')
+            ->first();
+        return response()->json([
+            'duplicate' => $existing !== null,
+            'in_invoice' => $existing?->invoice ? [
+                'id' => $existing->invoice->id,
+                'numero' => $existing->invoice->numero,
+            ] : null,
         ]);
     }
 

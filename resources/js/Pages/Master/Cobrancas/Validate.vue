@@ -20,6 +20,7 @@ const { confirm } = useConfirm();
 
 const props = defineProps({
     invoice: { type: Object, required: true },
+    memory: { type: Object, default: () => ({ bancos_frequentes: {}, total_aprovacoes: 0 }) },
 });
 
 const dataPagamento = ref(new Date().toISOString().slice(0, 10));
@@ -60,6 +61,54 @@ function extractCpf(text) {
     return m ? `${m[1]}.${m[2]}.${m[3]}-${m[4]}` : null;
 }
 
+// Detecta o banco emissor pelo texto OCR. Lista cobre os principais BR.
+// Cada match incrementa "memória" → bancos com muitas aprovações sobem
+// a confiança em comprovantes futuros.
+const BANCOS_REGEX = [
+    { nome: 'PicPay',     re: /picpay/i },
+    { nome: 'Itaú',       re: /ita[uú]/i },
+    { nome: 'Nubank',     re: /nubank/i },
+    { nome: 'Bradesco',   re: /bradesco/i },
+    { nome: 'Santander',  re: /santander/i },
+    { nome: 'Banco do Brasil', re: /banco do brasil|\bbb\b/i },
+    { nome: 'Caixa',      re: /caixa econ[oô]mica|caixa/i },
+    { nome: 'Inter',      re: /banco inter/i },
+    { nome: 'C6',         re: /\bc6 bank|c6\b/i },
+    { nome: 'Mercado Pago', re: /mercado pago|mercadopago/i },
+    { nome: 'Sicoob',     re: /sicoob/i },
+    { nome: 'Sicredi',    re: /sicredi/i },
+    { nome: 'BTG',        re: /btg pactual/i },
+    { nome: 'XP',         re: /\bxp\b/i },
+];
+function detectBanco(text) {
+    for (const b of BANCOS_REGEX) {
+        if (b.re.test(text)) return b.nome;
+    }
+    return null;
+}
+function extractHintPattern(text) {
+    return (text.split('\n').find(l => l.trim().length >= 5) || '').trim().slice(0, 80);
+}
+
+// Check de duplicata: chama backend pra ver se E2E já foi aprovado em outra fatura
+const duplicateCheck = ref({ done: false, isDup: false, inInvoice: null });
+async function checkDuplicate(e2e) {
+    if (! e2e) { duplicateCheck.value = { done: true, isDup: false, inInvoice: null }; return; }
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        const res = await fetch(route('master.cobrancas.check-duplicate-e2e'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf || '', 'Accept': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ e2e_id: e2e, invoice_id: props.invoice.id }),
+        });
+        const data = await res.json();
+        duplicateCheck.value = { done: true, isDup: !! data.duplicate, inInvoice: data.in_invoice };
+    } catch {
+        duplicateCheck.value = { done: true, isDup: false, inInvoice: null };
+    }
+}
+
 async function runOcr() {
     if (! isImage.value || ! props.invoice.payment_proof_url) return;
     ocrLoading.value = true;
@@ -90,10 +139,18 @@ async function runOcr() {
             data: extractData(text),
             e2e: extractE2e(text),
             cpf: extractCpf(text),
+            banco: detectBanco(text),
+            hintPattern: extractHintPattern(text),
         };
         // Auto-preenche o E2E se OCR achou e o campo está vazio
         if (ocrResult.value.e2e && ! externalPaymentId.value) {
             externalPaymentId.value = ocrResult.value.e2e;
+        }
+        // Roda check de duplicata em paralelo
+        if (ocrResult.value.e2e) {
+            checkDuplicate(ocrResult.value.e2e);
+        } else {
+            duplicateCheck.value = { done: true, isDup: false, inInvoice: null };
         }
     } catch (e) {
         ocrError.value = e.message || 'Falha ao processar OCR.';
@@ -110,6 +167,26 @@ const valorMatch = computed(() => {
 const valorOcrFmt = computed(() => {
     if (! ocrResult.value?.valor) return null;
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ocrResult.value.valor);
+});
+
+// Confiança do banco — quantas aprovações anteriores tem o mesmo banco?
+const bancoConfianca = computed(() => {
+    const banco = ocrResult.value?.banco;
+    if (! banco) return 0;
+    return props.memory.bancos_frequentes[banco] || 0;
+});
+
+// "Pronto pra aprovar" — todos os checks principais passaram.
+// Critérios: OCR rodou + valor bate + E2E presente + NÃO é duplicata.
+// Banco com histórico (>=3 aprovações) também sobe a confiança visual,
+// mas não é critério OBRIGATÓRIO (banco novo ainda pode ser legítimo).
+const prontoParaAprovar = computed(() => {
+    if (! ocrResult.value) return false;
+    if (valorMatch.value !== true) return false;
+    if (! ocrResult.value.e2e) return false;
+    if (! duplicateCheck.value.done) return false;
+    if (duplicateCheck.value.isDup) return false;
+    return true;
 });
 
 // Roda OCR automaticamente ao abrir a tela
@@ -140,6 +217,10 @@ async function aprovar() {
     router.post(route('master.cobrancas.approve-proof', props.invoice.id), {
         data_pagamento: dataPagamento.value,
         external_payment_id: externalPaymentId.value?.trim() || null,
+        // Alimenta a memória adaptativa pra próximas auto-aprovações
+        ocr_banco: ocrResult.value?.banco ?? null,
+        ocr_pattern: ocrResult.value?.hintPattern ?? null,
+        auto_aprovado: false,
     }, { onFinish: () => { aprovando.value = false; } });
 }
 
@@ -260,6 +341,16 @@ async function rejeitar() {
                     </div>
 
                     <div v-else-if="ocrResult" class="space-y-2 text-sm">
+                        <!-- ALERTA CRÍTICO: E2E DUPLICADO -->
+                        <div v-if="duplicateCheck.isDup" class="p-3 rounded-lg bg-rose-100 ring-1 ring-rose-300 text-sm text-rose-900">
+                            <div class="font-bold">⛔ E2E PIX duplicado</div>
+                            <div class="text-xs mt-1">
+                                Este mesmo ID de transação já foi aprovado na fatura
+                                <strong>{{ duplicateCheck.inInvoice?.numero }}</strong>.
+                                Cliente pode estar reusando comprovante. <strong>NÃO aprove</strong> sem investigar.
+                            </div>
+                        </div>
+
                         <!-- Valor -->
                         <div class="flex items-center justify-between p-2 rounded-lg"
                              :class="valorMatch === true ? 'bg-emerald-50 ring-1 ring-emerald-200' : valorMatch === false ? 'bg-rose-50 ring-1 ring-rose-200' : 'bg-slate-50'">
@@ -278,24 +369,48 @@ async function rejeitar() {
                             <span class="font-mono text-slate-700">{{ ocrResult.data || '—' }}</span>
                         </div>
                         <!-- E2E -->
-                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 gap-2">
+                        <div class="flex items-center justify-between p-2 rounded-lg gap-2"
+                             :class="duplicateCheck.isDup ? 'bg-rose-50 ring-1 ring-rose-200' : ocrResult.e2e ? 'bg-emerald-50 ring-1 ring-emerald-200' : 'bg-slate-50'">
                             <span class="text-xs text-slate-600 flex-shrink-0">E2E PIX</span>
-                            <span class="font-mono text-[11px] text-slate-700 break-all text-right">{{ ocrResult.e2e || '—' }}</span>
+                            <span class="font-mono text-[11px] break-all text-right" :class="duplicateCheck.isDup ? 'text-rose-800' : ocrResult.e2e ? 'text-emerald-800' : 'text-slate-700'">
+                                {{ ocrResult.e2e || '—' }}
+                            </span>
                         </div>
                         <!-- CPF -->
                         <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50">
                             <span class="text-xs text-slate-600">CPF detectado</span>
                             <span class="font-mono text-slate-700">{{ ocrResult.cpf || '—' }}</span>
                         </div>
+                        <!-- Banco + confiança -->
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                            <span class="text-xs text-slate-600">Banco</span>
+                            <span class="text-slate-700">
+                                {{ ocrResult.banco || 'Não identificado' }}
+                                <span v-if="bancoConfianca > 0" class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                    {{ bancoConfianca }}× aprovado
+                                </span>
+                            </span>
+                        </div>
 
-                        <p v-if="valorMatch === false" class="text-xs text-rose-700 mt-2">
-                            ⚠ <strong>Atenção:</strong> o valor do comprovante não bate com o da fatura.
-                            Confira com cuidado antes de aprovar.
+                        <!-- VEREDITO FINAL -->
+                        <div v-if="prontoParaAprovar" class="mt-3 p-3 rounded-lg bg-emerald-100 ring-2 ring-emerald-400 text-sm text-emerald-900">
+                            <div class="font-bold">✅ Tudo bate — pronto pra aprovar com 1 clique</div>
+                            <div class="text-xs mt-1">
+                                Valor confere, E2E presente e único, comprovante consistente.
+                            </div>
+                        </div>
+                        <p v-else-if="valorMatch === false" class="text-xs text-rose-700 mt-2">
+                            ⚠ <strong>Atenção:</strong> valor do comprovante não bate. Investigue antes de aprovar.
                         </p>
-                        <p v-else-if="valorMatch === true" class="text-xs text-emerald-700 mt-2">
-                            ✓ Valor bate com a fatura. Restam: confirmar recebedor + data no comprovante.
+                        <p v-else-if="!ocrResult.e2e" class="text-xs text-amber-700 mt-2">
+                            ⚠ E2E PIX não detectado no comprovante. Cole manualmente abaixo se conseguir ler no documento.
                         </p>
                     </div>
+                </div>
+
+                <!-- Memória do sistema -->
+                <div v-if="memory.total_aprovacoes > 0" class="text-[11px] text-slate-500 px-1">
+                    💾 Sistema tem {{ memory.total_aprovacoes }} aprovação(ões) na memória — cada aprovação melhora a auto-detecção das próximas.
                 </div>
 
                 <!-- PDF: OCR não disponível -->
@@ -305,7 +420,8 @@ async function rejeitar() {
                 </div>
 
                 <!-- APROVAR -->
-                <div class="rounded-2xl bg-white ring-1 ring-emerald-200 p-5">
+                <div class="rounded-2xl bg-white p-5"
+                     :class="prontoParaAprovar ? 'ring-2 ring-emerald-400 shadow-lg shadow-emerald-100' : 'ring-1 ring-emerald-200'">
                     <h3 class="text-sm font-semibold text-emerald-800 uppercase tracking-wider mb-3">✓ Aprovar pagamento</h3>
                     <div class="space-y-3">
                         <div>
