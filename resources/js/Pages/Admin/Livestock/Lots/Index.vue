@@ -91,7 +91,18 @@ function toggleAtivo(lote) {
                 <span v-else class="text-slate-400">—</span>
             </template>
             <template #cell-animais_count="{ row }">
-                <span class="font-mono">{{ row.animais_count ?? 0 }}</span>
+                <!-- Lote agregado (Ave/Peixe): mostra efetivo ATUAL (quantidade_atual)
+                     com indicação de baixas se decrementou. Lote convencional:
+                     mostra animais_count (Animals individuais vinculados). -->
+                <template v-if="row.species && row.species.gestao === 'lote'">
+                    <span class="font-mono font-semibold">{{ row.quantidade_atual ?? 0 }}</span>
+                    <span v-if="row.quantidade_inicial && row.quantidade_atual !== null && row.quantidade_atual !== row.quantidade_inicial"
+                          class="ml-1 text-xs text-amber-700"
+                          :title="`Inicial: ${row.quantidade_inicial} · Baixas: ${row.quantidade_inicial - row.quantidade_atual}`">
+                        / {{ row.quantidade_inicial }}
+                    </span>
+                </template>
+                <span v-else class="font-mono">{{ row.animais_count ?? 0 }}</span>
             </template>
             <template #cell-status="{ row }">
                 <button @click="toggleAtivo(row)"

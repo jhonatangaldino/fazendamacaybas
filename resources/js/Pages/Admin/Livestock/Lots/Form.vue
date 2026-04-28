@@ -153,6 +153,21 @@ function submit() {
                             <p class="text-xs text-amber-800 mt-1">quando o lote chegou</p>
                         </div>
                     </div>
+
+                    <!-- Mostra efetivo ATUAL no edit (depois de mortalidades/movimentações).
+                         Sem isso o usuário não consegue ver quantos animais ainda existem
+                         de fato no lote — bug de UX detectado na auditoria especialista. -->
+                    <div v-if="isEdit && lot && lot.quantidade_atual !== undefined && lot.quantidade_atual !== form.quantidade_inicial"
+                         class="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 px-3 py-2 flex items-center justify-between gap-3">
+                        <div class="text-sm">
+                            <strong class="text-emerald-900">Efetivo atual: {{ lot.quantidade_atual }}</strong>
+                            <span class="text-emerald-700">
+                                de {{ form.quantidade_inicial }} iniciais
+                                ({{ form.quantidade_inicial - lot.quantidade_atual }} baixas
+                                — {{ ((form.quantidade_inicial - lot.quantidade_atual) / form.quantidade_inicial * 100).toFixed(1) }}%)
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <div>

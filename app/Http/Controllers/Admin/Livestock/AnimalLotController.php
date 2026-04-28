@@ -36,8 +36,13 @@ class AnimalLotController extends Controller
     public function index(Request $request): Response
     {
         $q = AnimalLot::query()
-            ->with('species:id,nome,slug,gestao')
+            // withoutGlobalScopes na relação Species — o catálogo é global (tenant_id=1)
+            // e BelongsToTenantScope retornaria null pra outros tenants. Sem isso o
+            // template não detectava gestao=lote e exibia "0 animais" pra Ave/Peixe.
+            ->with(['species' => fn ($s) => $s->withoutGlobalScopes()->select('id', 'nome', 'slug', 'gestao')])
             ->withCount('animals as animais_count')
+            ->select(['id', 'nome', 'codigo', 'finalidade', 'is_active', 'species_id',
+                'quantidade_atual', 'quantidade_inicial', 'gestao_modo'])
             ->orderBy('nome');
 
         if ($busca = $request->query('q')) {
