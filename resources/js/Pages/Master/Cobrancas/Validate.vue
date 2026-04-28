@@ -4,11 +4,14 @@
  * ter feito (status=paid_pending_review). Mostra o COMPROVANTE grande à
  * esquerda + dados da fatura à direita, e botões "Aprovar" / "Rejeitar".
  *
- * Fase 1 (sem OCR): master compara visualmente. Fase 2 trará Tesseract local
- * que pré-extrai valor/data/E2E e marca os campos que NÃO bateram com a fatura
- * pra atenção do master.
+ * Fase 1: master compara visualmente.
+ * Fase 2 (este commit): Tesseract.js no browser pré-extrai valor/data/E2E/CPF
+ * do comprovante e mostra match/mismatch ao lado de cada campo da fatura.
+ * Tesseract local no servidor não foi viável (Hostinger Business shared sem
+ * binário tesseract). Usar tesseract.js (WebAssembly) é equivalente em
+ * qualidade, roda no navegador do master, lazy-loaded só nesta tela.
  */
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
@@ -27,6 +30,92 @@ const rejeitando = ref(false);
 
 const isPdf = computed(() => props.invoice.payment_proof_mime === 'application/pdf');
 const isImage = computed(() => props.invoice.payment_proof_mime?.startsWith('image/'));
+
+// ─── OCR (Tesseract.js no browser) ─────────────────────────────────────
+const ocrLoading = ref(false);
+const ocrError = ref(null);
+const ocrResult = ref(null);
+const ocrProgress = ref(0);
+const ocrStatus = ref('');
+
+function extractValor(text) {
+    // R$ 1.234,56 / R$1234,56 / 1.234,56 / 1,00
+    const matches = [...text.matchAll(/R?\$?\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/g)];
+    if (matches.length === 0) return null;
+    // Pega o MAIOR valor encontrado (geralmente é o do pagamento, não taxa nem saldo)
+    const valores = matches.map(m => parseFloat(m[1].replace(/\./g, '').replace(',', '.')));
+    return Math.max(...valores);
+}
+function extractData(text) {
+    const m = text.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
+}
+function extractE2e(text) {
+    // Formato BACEN: E + ISPB(8) + AAAAMMDD + HHMM + 11 chars = 32 chars
+    const m = text.match(/E[A-Z0-9]{31}/i);
+    return m ? m[0].toUpperCase() : null;
+}
+function extractCpf(text) {
+    const m = text.match(/(\d{3})\.?(\d{3})\.?(\d{3})-?(\d{2})/);
+    return m ? `${m[1]}.${m[2]}.${m[3]}-${m[4]}` : null;
+}
+
+async function runOcr() {
+    if (! isImage.value || ! props.invoice.payment_proof_url) return;
+    ocrLoading.value = true;
+    ocrError.value = null;
+    ocrProgress.value = 0;
+    ocrStatus.value = 'Carregando módulo de OCR...';
+    try {
+        const Tesseract = await import('tesseract.js');
+        ocrStatus.value = 'Lendo o comprovante...';
+        const { data } = await Tesseract.recognize(
+            props.invoice.payment_proof_url,
+            'por',
+            {
+                logger: (m) => {
+                    if (m.status === 'recognizing text') {
+                        ocrProgress.value = Math.round(m.progress * 100);
+                        ocrStatus.value = `Lendo o comprovante... ${ocrProgress.value}%`;
+                    } else if (m.status === 'loading language traineddata') {
+                        ocrStatus.value = 'Baixando dicionário português (1ª vez)...';
+                    }
+                },
+            }
+        );
+        const text = data.text || '';
+        ocrResult.value = {
+            rawText: text,
+            valor: extractValor(text),
+            data: extractData(text),
+            e2e: extractE2e(text),
+            cpf: extractCpf(text),
+        };
+        // Auto-preenche o E2E se OCR achou e o campo está vazio
+        if (ocrResult.value.e2e && ! externalPaymentId.value) {
+            externalPaymentId.value = ocrResult.value.e2e;
+        }
+    } catch (e) {
+        ocrError.value = e.message || 'Falha ao processar OCR.';
+    } finally {
+        ocrLoading.value = false;
+        ocrStatus.value = '';
+    }
+}
+
+const valorMatch = computed(() => {
+    if (! ocrResult.value?.valor) return null;
+    return Math.abs(ocrResult.value.valor - props.invoice.valor) < 0.01;
+});
+const valorOcrFmt = computed(() => {
+    if (! ocrResult.value?.valor) return null;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ocrResult.value.valor);
+});
+
+// Roda OCR automaticamente ao abrir a tela
+onMounted(() => {
+    if (isImage.value) runOcr();
+});
 
 function brl(v) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
@@ -141,6 +230,78 @@ async function rejeitar() {
                         🔍 Confira no comprovante: <strong>valor</strong> bate com {{ brl(invoice.valor) }}?
                         <strong>recebedor</strong> é a sua conta? <strong>data</strong> faz sentido?
                     </div>
+                </div>
+
+                <!-- ANÁLISE AUTOMÁTICA (OCR) -->
+                <div v-if="isImage" class="rounded-2xl bg-white ring-1 ring-slate-200 p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                            🤖 Análise automática <span class="text-[10px] font-normal text-slate-400">OCR no navegador</span>
+                        </h3>
+                        <button v-if="!ocrLoading && ocrResult" @click="runOcr" type="button"
+                                class="text-xs text-slate-500 hover:text-slate-900">↻ Re-analisar</button>
+                    </div>
+
+                    <div v-if="ocrLoading" class="text-sm text-slate-600">
+                        <div class="flex items-center gap-2">
+                            <svg class="animate-spin h-4 w-4 text-macaybas-primary-700" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                            </svg>
+                            <span>{{ ocrStatus || 'Processando...' }}</span>
+                        </div>
+                        <div v-if="ocrProgress > 0" class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-macaybas-primary-600 transition-all" :style="`width: ${ocrProgress}%`"></div>
+                        </div>
+                    </div>
+
+                    <div v-else-if="ocrError" class="text-sm text-rose-700 bg-rose-50 rounded-md p-2">
+                        ⚠ {{ ocrError }} <button @click="runOcr" class="underline ml-1">Tentar de novo</button>
+                    </div>
+
+                    <div v-else-if="ocrResult" class="space-y-2 text-sm">
+                        <!-- Valor -->
+                        <div class="flex items-center justify-between p-2 rounded-lg"
+                             :class="valorMatch === true ? 'bg-emerald-50 ring-1 ring-emerald-200' : valorMatch === false ? 'bg-rose-50 ring-1 ring-rose-200' : 'bg-slate-50'">
+                            <span class="text-xs text-slate-600">Valor detectado</span>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono font-bold" :class="valorMatch === true ? 'text-emerald-800' : valorMatch === false ? 'text-rose-800' : 'text-slate-700'">
+                                    {{ valorOcrFmt || '—' }}
+                                </span>
+                                <span v-if="valorMatch === true" class="text-emerald-600">✓</span>
+                                <span v-else-if="valorMatch === false" class="text-rose-600" title="Não bate com o valor da fatura">✗</span>
+                            </div>
+                        </div>
+                        <!-- Data -->
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                            <span class="text-xs text-slate-600">Data detectada</span>
+                            <span class="font-mono text-slate-700">{{ ocrResult.data || '—' }}</span>
+                        </div>
+                        <!-- E2E -->
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 gap-2">
+                            <span class="text-xs text-slate-600 flex-shrink-0">E2E PIX</span>
+                            <span class="font-mono text-[11px] text-slate-700 break-all text-right">{{ ocrResult.e2e || '—' }}</span>
+                        </div>
+                        <!-- CPF -->
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                            <span class="text-xs text-slate-600">CPF detectado</span>
+                            <span class="font-mono text-slate-700">{{ ocrResult.cpf || '—' }}</span>
+                        </div>
+
+                        <p v-if="valorMatch === false" class="text-xs text-rose-700 mt-2">
+                            ⚠ <strong>Atenção:</strong> o valor do comprovante não bate com o da fatura.
+                            Confira com cuidado antes de aprovar.
+                        </p>
+                        <p v-else-if="valorMatch === true" class="text-xs text-emerald-700 mt-2">
+                            ✓ Valor bate com a fatura. Restam: confirmar recebedor + data no comprovante.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- PDF: OCR não disponível -->
+                <div v-else-if="isPdf" class="rounded-2xl bg-white ring-1 ring-slate-200 p-5 text-sm text-slate-600">
+                    🤖 <strong>OCR automático não disponível para PDFs</strong> nesta versão.
+                    Confira manualmente os dados no documento ao lado.
                 </div>
 
                 <!-- APROVAR -->
