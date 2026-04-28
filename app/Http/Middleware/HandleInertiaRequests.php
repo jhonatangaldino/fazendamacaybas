@@ -213,10 +213,16 @@ class HandleInertiaRequests extends Middleware
                             'slug' => $s->slug,
                             'gestao' => $s->gestao,
                             'profile' => $s->profile,
-                            // Para gestao=lote, conta SOMA de quantidade_atual dos lotes;
-                            // para individual, conta animals.
+                            // Total de cabeças da espécie:
+                            //   gestao=individual → só conta Animal.
+                            //   gestao=lote (Ave/Peixe) → SOMA dos lotes agregados
+                            //     + Animal individual legado (quem cadastrou 1 a 1
+                            //     antes de migrar pro modelo de massa). Ignorar os
+                            //     individuais legados causava divergência: dashboard
+                            //     mostrava 4581, menu mostrava 4580 (bug detectado
+                            //     pelo dono comparando os dois números).
                             'animals_count' => $s->gestao === 'lote'
-                                ? (int) ($countsAgregado[$s->id] ?? 0)
+                                ? (int) (($countsAgregado[$s->id] ?? 0) + ($countsIndividual[$s->id] ?? 0))
                                 : (int) ($countsIndividual[$s->id] ?? 0),
                         ])->all();
                     }
