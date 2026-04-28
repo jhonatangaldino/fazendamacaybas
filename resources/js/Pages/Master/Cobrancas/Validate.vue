@@ -15,8 +15,10 @@ import { ref, computed, onMounted } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
+import { useToast } from '@/composables/useToast.js';
 
 const { confirm } = useConfirm();
+const { toast } = useToast();
 
 const props = defineProps({
     invoice: { type: Object, required: true },
@@ -226,7 +228,7 @@ async function aprovar() {
 
 async function rejeitar() {
     if (! motivoRejeicao.value.trim() || motivoRejeicao.value.trim().length < 5) {
-        alert('Informe um motivo de pelo menos 5 caracteres.');
+        toast?.('Informe um motivo de pelo menos 5 caracteres pra rejeitar.', 'atencao');
         return;
     }
     const ok = await confirm({

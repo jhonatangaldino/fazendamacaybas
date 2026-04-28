@@ -15,6 +15,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import RegistrarEventoRapidoModal from '@/Components/RegistrarEventoRapidoModal.vue';
 import { emojiEspecie } from '@/utils/emojiEspecie.js';
 import { allowedEventsFor, EVENT_CATALOG } from '@/utils/animalProfile.js';
+import { useToast } from '@/composables/useToast.js';
 import {
     Chart as ChartJS, ArcElement, BarElement, LineElement, PointElement,
     LinearScale, CategoryScale, Tooltip, Legend, Title, Filler,
@@ -65,9 +66,10 @@ const acoesRapidas = computed(() => {
 // Modal de registro
 const modalAberto = ref(false);
 const tipoAtivo = ref(null);
+const { toast } = useToast();
 function abrirModal(tipo) {
     if (props.animals.length === 0) {
-        alert('Cadastre pelo menos um animal antes de registrar eventos.');
+        toast?.(`Cadastre pelo menos um ${props.species.nome.toLowerCase()} antes de registrar eventos.`, 'atencao');
         return;
     }
     tipoAtivo.value = tipo;
