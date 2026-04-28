@@ -154,7 +154,7 @@ const menu = [
         <aside
             class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform duration-200 lg:static lg:flex-shrink-0 lg:translate-x-0 flex flex-col h-screen lg:h-auto"
             style="height: 100dvh;"
-            :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', impersonation ? 'top-10' : 'top-0']"
+            :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full']"
         >
             <!-- Brand — mesmo formato do Admin (logo redonda + nome + papel) -->
             <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10 flex-shrink-0">

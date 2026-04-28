@@ -213,3 +213,29 @@
         @apply bg-slate-50;
     }
 }
+
+/* ============ Impersonação · banner amarelo 40px no topo ============
+ * Quando body tem [data-impersonation] (setado server-side em app.blade.php),
+ * deslocamos:
+ *   - padding-top do body = 40px (empurra conteúdo abaixo da tarja fixa)
+ *   - aside fixed (sidebar) = top:40px (não fica coberto pela tarja)
+ *   - header sticky (topbar) = top:40px (cola abaixo da tarja ao rolar)
+ *
+ * Antes era controlado por JS watch + classes Tailwind condicionais — havia
+ * flash visual inicial e às vezes gap duplicado quando body padding e
+ * top-X de elementos somavam.
+ *
+ * Esta abordagem CSS-only:
+ *   • aplica IMEDIATAMENTE no primeiro paint (sem flash)
+ *   • só uma fonte de verdade (data-attr no body)
+ *   • templates Vue não precisam saber de impersonação pra posicionamento
+ */
+body[data-impersonation] {
+    padding-top: 40px;
+}
+body[data-impersonation] aside.fixed {
+    top: 40px;
+}
+body[data-impersonation] header.sticky {
+    top: 40px;
+}
