@@ -22,7 +22,11 @@ class CategoryController extends Controller
     {
         $data = $request->validate([
             'nome' => ['required', 'string', 'max:120'],
-            'tipo' => ['required', 'in:financeiro,estoque,outro'],
+            // Aceita tipos legados (financeiro/estoque/outro) E os tipos
+            // específicos usados pelas transações (financeiro_receita /
+            // financeiro_despesa). Form passa o tipo certo conforme o
+            // contexto onde foi disparado (Despesa wizard / Receita wizard).
+            'tipo' => ['required', 'in:financeiro,financeiro_receita,financeiro_despesa,estoque,outro'],
         ]);
 
         // Slug único por tipo — se já existir, acrescenta sufixo numérico.

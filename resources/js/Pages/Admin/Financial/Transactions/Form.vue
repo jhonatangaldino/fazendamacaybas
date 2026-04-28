@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -8,6 +8,8 @@ import InputError from '@/Components/InputError.vue';
 import InputMoney from '@/Components/InputMoney.vue';
 import InputDate from '@/Components/InputDate.vue';
 import { hojeBR } from '@/utils/format.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     transaction: Object,
@@ -55,8 +57,10 @@ const isEdit = !!props.transaction;
 const isReceita = computed(() => form.tipo === 'receita');
 const isDespesa = computed(() => form.tipo === 'despesa');
 
+// Usa versão local pra refletir categorias criadas inline durante o lançamento.
+// Inicializadas a partir de props mas atualizam ao criar nova categoria.
 const categorias = computed(() =>
-    isReceita.value ? props.categoriasReceita : props.categoriasDespesa,
+    isReceita.value ? categoriasLocais.value.receita : categoriasLocais.value.despesa,
 );
 
 const labelValor = computed(() => (isReceita.value ? 'Valor a receber (entrada)' : 'Valor a pagar (saída)'));
@@ -139,6 +143,73 @@ function submit() {
     if (isEdit) form.put(route('admin.financeiro.transacoes.update', props.transaction.id));
     else form.post(route('admin.financeiro.transacoes.store'));
 }
+
+// ─── Criar categoria inline (sem sair do form) ─────────────────────
+// Antes a UI dizia "Peça ao admin pra criar". Mas o cliente É admin do
+// próprio tenant — pode criar direto. Modal inline + AJAX.
+const { toast } = useToast();
+const novaCategoriaAberta = ref(false);
+const novaCategoriaForm = ref({ nome: '', tipo: '' });
+const salvandoCategoria = ref(false);
+const categoriasLocais = ref({
+    receita: [...(props.categoriasReceita || [])],
+    despesa: [...(props.categoriasDespesa || [])],
+});
+
+useBodyScrollLock(novaCategoriaAberta);
+
+function abrirNovaCategoria() {
+    // Tipo é fixo pelo contexto (despesa ou receita); user só preenche o nome
+    novaCategoriaForm.value = {
+        nome: '',
+        tipo: isReceita.value ? 'financeiro_receita' : 'financeiro_despesa',
+    };
+    novaCategoriaAberta.value = true;
+}
+
+async function salvarNovaCategoria() {
+    if (!novaCategoriaForm.value.nome.trim() || salvandoCategoria.value) return;
+    salvandoCategoria.value = true;
+    try {
+        const csrf = document.querySelector('meta[name=csrf-token]')?.content;
+        const resp = await fetch(route('admin.financeiro.categorias.inline'), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(novaCategoriaForm.value),
+        });
+        if (!resp.ok) {
+            const erro = await resp.json().catch(() => ({}));
+            throw new Error(erro?.message || 'Falha ao criar categoria');
+        }
+        const cat = await resp.json();
+        // Adiciona à lista local (categorias do tipo correto) e auto-seleciona
+        const bucket = isReceita.value ? 'receita' : 'despesa';
+        categoriasLocais.value[bucket].push({ id: cat.id, nome: cat.nome });
+        categoriasLocais.value[bucket].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        form.category_id = cat.id;
+        novaCategoriaAberta.value = false;
+        toast.success(`Categoria "${cat.nome}" criada e selecionada.`);
+    } catch (e) {
+        toast.error(e.message || 'Erro ao criar categoria.');
+    } finally {
+        salvandoCategoria.value = false;
+    }
+}
+
+function handleEscNovaCategoria(e) {
+    if (e.key === 'Escape' && novaCategoriaAberta.value) {
+        e.stopPropagation();
+        novaCategoriaAberta.value = false;
+    }
+}
+onMounted(() => window.addEventListener('keydown', handleEscNovaCategoria));
+onBeforeUnmount(() => window.removeEventListener('keydown', handleEscNovaCategoria));
 </script>
 
 <template>
@@ -224,17 +295,26 @@ function submit() {
 
                     <div>
                         <InputLabel :value="'Categoria de ' + (isReceita ? 'receita' : 'despesa')" />
-                        <select v-model="form.category_id" class="form-select" :disabled="semCategoriasDoTipo">
+                        <select v-model="form.category_id" class="form-select">
                             <option :value="null">—</option>
                             <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nome }}</option>
                         </select>
-                        <p v-if="semCategoriasDoTipo" class="text-xs text-amber-700 mt-1">
-                            Nenhuma categoria de {{ isReceita ? 'receita' : 'despesa' }} cadastrada.
-                            Peça ao admin para criar categorias em Configurações → Categorias.
-                        </p>
-                        <p v-else-if="!form.category_id" class="text-xs text-slate-400 mt-1">
-                            Categoria ajuda a agrupar no fluxo de caixa e no DRE. Recomendado preencher.
-                        </p>
+
+                        <!-- Botão pra criar categoria SEM sair do form (inline AJAX) -->
+                        <div class="mt-1 flex items-center gap-3 flex-wrap">
+                            <button type="button" @click="abrirNovaCategoria"
+                                    class="inline-flex items-center gap-1 text-xs text-macaybas-primary hover:underline">
+                                <span class="text-base leading-none">＋</span>
+                                Criar nova categoria de {{ isReceita ? 'receita' : 'despesa' }}
+                            </button>
+                            <p v-if="!categorias.length" class="text-xs text-amber-700">
+                                Nenhuma categoria cadastrada ainda — crie a primeira aqui.
+                            </p>
+                            <p v-else-if="!form.category_id" class="text-xs text-slate-400">
+                                Categoria ajuda a agrupar no fluxo de caixa e no DRE.
+                            </p>
+                        </div>
+                        <InputError :message="form.errors.category_id" />
                     </div>
                     <div>
                         <InputLabel value="Centro de custo (opcional)" />
@@ -305,5 +385,50 @@ function submit() {
                 <button type="submit" class="btn-primary" :disabled="form.processing">Salvar</button>
             </div>
         </form>
+
+        <!-- Modal: criar categoria inline (AJAX, fetch JSON, zero navigation).
+             useBodyScrollLock previne pull-to-refresh + scroll do body. -->
+        <Teleport to="body">
+            <div v-if="novaCategoriaAberta" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/40" @click="novaCategoriaAberta = false"></div>
+                <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-900">
+                                Nova categoria de {{ isReceita ? 'receita' : 'despesa' }}
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-1">
+                                Crie agora — não precisa sair desta tela. Já fica disponível pra escolher.
+                            </p>
+                        </div>
+                        <button @click="novaCategoriaAberta = false"
+                                class="text-slate-400 hover:text-slate-600 text-2xl leading-none -mt-1"
+                                aria-label="Fechar">&times;</button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <InputLabel value="Nome da categoria *" />
+                            <input v-model="novaCategoriaForm.nome" type="text" maxlength="120" required
+                                   :placeholder="isReceita ? 'Ex.: Venda de bezerros' : 'Ex.: Ração, Vacinas, Combustível'"
+                                   class="form-input"
+                                   @keyup.enter="salvarNovaCategoria">
+                        </div>
+                        <p class="text-xs text-slate-500">
+                            Tipo: <strong>{{ isReceita ? 'Receita' : 'Despesa' }}</strong> (definido pelo contexto desta tela)
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end gap-2 mt-6">
+                        <button type="button" @click="novaCategoriaAberta = false" class="btn-outline">Cancelar</button>
+                        <button type="button" @click="salvarNovaCategoria"
+                                :disabled="salvandoCategoria || !novaCategoriaForm.nome.trim()"
+                                class="btn-primary">
+                            {{ salvandoCategoria ? 'Salvando…' : 'Criar categoria' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AdminLayout>
 </template>
