@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
@@ -125,7 +125,19 @@ onMounted(() => {
     if (acao && MAPA_ACAO_HUB[acao]) {
         abrirEvento(MAPA_ACAO_HUB[acao]);
     }
+    // Atalho ESC fecha o modal — UX padrão de qualquer modal
+    window.addEventListener('keydown', handleEscape);
 });
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleEscape);
+});
+
+function handleEscape(e) {
+    if (e.key === 'Escape' && novoEvento.value) {
+        novoEvento.value = false;
+    }
+}
 
 function salvarEvento() {
     eventForm
