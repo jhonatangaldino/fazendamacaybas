@@ -19,6 +19,21 @@ class Animal extends Model
     use LogsActivity, SoftDeletes;
     use BelongsToTenant, BelongsToFarm;
 
+    /**
+     * Invalida cache de tenantSpecies quando animal é criado/atualizado/excluído.
+     * Sem isso a sidebar mostra contagem antiga por até 10 minutos depois de
+     * cadastrar/excluir/mudar status de animal.
+     */
+    protected static function booted(): void
+    {
+        $invalidate = function (Animal $a) {
+            \Illuminate\Support\Facades\Cache::forget("tenant_species_with_count.{$a->tenant_id}");
+        };
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'farm_id', 'species_id', 'breed_id', 'lot_id', 'location_id',
         'mae_id', 'pai_id',

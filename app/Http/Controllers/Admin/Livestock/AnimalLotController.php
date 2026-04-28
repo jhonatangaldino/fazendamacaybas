@@ -222,9 +222,12 @@ class AnimalLotController extends Controller
             'is_active' => ['boolean'],
             // Campos de lote agregado (ave/peixe) — quando preenchidos
             // sinalizam cadastro em massa (gestao_modo=agregada no store).
-            'quantidade_inicial' => ['nullable', 'numeric', 'min:1'],
-            'peso_medio_kg' => ['nullable', 'numeric', 'min:0'],
-            'data_inicio' => ['nullable', 'date'],
+            // max:100000 = 100mil cabeças num lote único; mais que isso indica erro de digitação.
+            'quantidade_inicial' => ['nullable', 'numeric', 'min:1', 'max:100000'],
+            // Peso médio por cabeça com max plausível: ave/peixe pequenos, max 5kg por cabeça.
+            // Bovino agregado é raro, mas se for: 1500kg max por cabeça.
+            'peso_medio_kg' => ['nullable', 'numeric', 'min:0', 'max:1500'],
+            'data_inicio' => ['nullable', 'date', 'before_or_equal:today'],
         ]);
     }
 }

@@ -82,7 +82,14 @@ class RegistrarPartoWizardController extends Controller
             abort(400, 'Esta tarefa não dispara o wizard de parto.');
         }
 
-        $mae = Animal::with(['species:id,nome,slug', 'breed:id,nome', 'lot:id,nome', 'location:id,nome'])
+        // withoutGlobalScopes em species/breed — catálogos globais (tenant_id=1)
+        // ficam null pra outros tenants se BelongsToTenantScope for aplicado.
+        $mae = Animal::with([
+                'species' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome', 'slug'),
+                'breed'   => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome'),
+                'lot:id,nome',
+                'location:id,nome',
+            ])
             ->findOrFail($task->related_id);
 
         $slug = $mae->species?->slug ?? 'bovino';

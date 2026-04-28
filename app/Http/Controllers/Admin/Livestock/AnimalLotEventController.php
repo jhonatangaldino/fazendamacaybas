@@ -36,6 +36,15 @@ class AnimalLotEventController extends Controller
 {
     public function store(Request $request, AnimalLot $lot): RedirectResponse
     {
+        // Lote zerado/inativo não aceita mais eventos — só observação histórica.
+        // Caso contrário usuário poderia "fazer postura" em lote já encerrado.
+        if (! $lot->is_active) {
+            return back()->with('error', 'Lote inativo não aceita novos eventos. Reative o lote primeiro.');
+        }
+        if ((int) $lot->quantidade_atual <= 0 && $request->input('tipo') !== 'observacao') {
+            return back()->with('error', 'Lote com efetivo zero (todas baixas registradas) não aceita mais eventos de manejo. Apenas observações são permitidas.');
+        }
+
         $data = $request->validate([
             'tipo' => ['required', 'in:pesagem,vacinacao,medicacao,vermifugacao,mortalidade,observacao,biometria_amostral,postura_diaria,alimentacao,qualidade_agua,movimentacao'],
             'data' => ['required', 'date', 'before_or_equal:today'],

@@ -16,6 +16,22 @@ class AnimalLot extends Model
 
     protected $table = 'animal_lots';
 
+    /**
+     * Invalida cache de tenantSpecies (sidebar contagem) quando lote agregado
+     * tem quantidade alterada (criação/exclusão/mortalidade decrementando).
+     * Sem isso o painel mostra "Ave: 1000 cabeças" mesmo depois de 50
+     * mortalidades por até 10 minutos.
+     */
+    protected static function booted(): void
+    {
+        $invalidate = function (AnimalLot $l) {
+            \Illuminate\Support\Facades\Cache::forget("tenant_species_with_count.{$l->tenant_id}");
+        };
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'farm_id', 'codigo', 'nome', 'descricao', 'finalidade', 'is_active', 'tenant_id',
         // 2026-04-28 · vinculação direta a species (cadastro de lote sem Animal)

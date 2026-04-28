@@ -59,7 +59,11 @@ class ExameToqueWizardController extends Controller
         // próxima da cobertura, situações reais que não podem ser escondidas.
         $femeas = Animal::ativos()
             ->where('sexo', 'F')
-            ->with(['species:id,nome,slug', 'lot:id,nome'])
+            // withoutGlobalScopes em species (catálogo global, tenant_id=1)
+            ->with([
+                'species' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome', 'slug'),
+                'lot:id,nome',
+            ])
             ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'lot_id', 'data_nascimento')
             ->orderBy('identificacao')
             ->get()

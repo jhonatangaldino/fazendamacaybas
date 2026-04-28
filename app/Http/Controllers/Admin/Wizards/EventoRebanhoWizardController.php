@@ -43,7 +43,12 @@ class EventoRebanhoWizardController extends Controller
         }
 
         $animais = Animal::ativos()
-            ->with(['species:id,nome', 'breed:id,nome', 'lot:id,nome'])
+            // withoutGlobalScopes em species/breed (catálogos globais, tenant_id=1)
+            ->with([
+                'species' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome'),
+                'breed'   => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome'),
+                'lot:id,nome',
+            ])
             ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'breed_id', 'lot_id', 'location_id', 'peso_atual', 'data_nascimento', 'photo_path', 'updated_at')
             ->orderByDesc('updated_at')
             ->orderBy('identificacao')

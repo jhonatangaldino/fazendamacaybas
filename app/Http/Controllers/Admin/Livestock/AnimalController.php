@@ -649,12 +649,15 @@ class AnimalController extends Controller
             'identificacao' => ['required', 'string', 'max:30', Rule::unique('animals', 'identificacao')->ignore($id)->whereNull('deleted_at')],
             'nome' => ['nullable', 'string', 'max:100'],
             'sexo' => ['required', 'in:M,F'],
-            'data_nascimento' => ['nullable', 'date'],
-            'peso_nascimento' => ['nullable', 'numeric', 'min:0'],
+            // Data nascimento não pode ser futura — animal "nasceu amanhã" é absurdo
+            'data_nascimento' => ['nullable', 'date', 'before_or_equal:today'],
+            // Peso ao nascer com max razoável (bezerro grande ≈ 50kg, leitão ≈ 2kg, pinto ≈ 0.05kg)
+            'peso_nascimento' => ['nullable', 'numeric', 'min:0', 'max:100'],
             // peso_atual NÃO é editável no form — é derivado do último evento de pesagem (regra incremental-first)
             'origem' => ['required', 'in:nascido,compra'],
             'partner_id' => ['nullable', 'exists:partners,id'],
-            'data_aquisicao' => ['nullable', 'date'],
+            // Data aquisição não pode ser futura
+            'data_aquisicao' => ['nullable', 'date', 'before_or_equal:today'],
             'valor_aquisicao' => ['nullable', 'numeric', 'min:0'],
             'status' => ['required', 'in:ativo,vendido,morto,abatido,transferido'],
             'observacoes' => ['nullable', 'string'],
@@ -664,6 +667,11 @@ class AnimalController extends Controller
             // cada espécie; este enum só define o universo sintático.
             'categoria' => ['nullable', 'in:leite,corte,reproducao,misto,pet,servico,trabalho,esporte,postura,companhia'],
             'numero_registro' => ['nullable', 'string', 'max:50'],
+        ], [
+            // Mensagens pt-BR amigáveis (default Laravel mistura "anterior a today")
+            'data_nascimento.before_or_equal' => 'A data de nascimento não pode ser futura.',
+            'data_aquisicao.before_or_equal'  => 'A data de aquisição não pode ser futura.',
+            'peso_nascimento.max' => 'Peso ao nascer parece absurdo (>100kg). Verifique se digitou em kg (não gramas).',
         ]);
     }
 
@@ -756,6 +764,28 @@ class AnimalController extends Controller
         if ($nomeMudou && in_array($profile, self::PROFILES_EXIGEM_NOME, true) && empty($nomeAtual)) {
             return "Animais do tipo {$nomeEsp} exigem o campo Nome. "
                 . 'Diferente de animais de produção, pets são identificados pelo nome, não só pelo número.';
+        }
+
+        // ── 5. PESO ao nascer plausível por espécie ────────────────────────
+        // Bezerros bovinos: 25-50kg; Búfalo: 30-50; Suíno: 1-2; Ovino/Caprino: 3-5;
+        // Equino: 40-60; Pet (cão/gato): 0.05-0.5; Coelho: 0.05-0.1.
+        $pesoNasc = isset($data['peso_nascimento']) ? (float) $data['peso_nascimento'] : null;
+        $pesoMudou = $existing === null || $pesoNasc !== ($existing->peso_nascimento ? (float) $existing->peso_nascimento : null);
+        if ($pesoMudou && $pesoNasc !== null && $pesoNasc > 0) {
+            $maxPorProfile = [
+                'ruminante_corte'  => 60,    // bezerro grande
+                'ruminante_leite'  => 60,
+                'ruminante_lan'    => 8,     // cordeiro
+                'equino'           => 80,    // potro
+                'suino'            => 5,     // leitão
+                'pet'              => 2,     // filhote pet (cão grande)
+                'roedor_pequeno'   => 0.2,   // coelho recém-nascido
+            ];
+            $max = $maxPorProfile[$profile] ?? null;
+            if ($max !== null && $pesoNasc > $max) {
+                return "Peso ao nascer de {$pesoNasc}kg parece absurdo para {$nomeEsp}. "
+                    . "Limite plausível: {$max}kg. Verifique se digitou em kg (não gramas).";
+            }
         }
 
         return null; // tudo coerente
@@ -1097,6 +1127,28 @@ class AnimalController extends Controller
         // ── Regras por TIPO de evento (campos obrigatórios condicionais) ──
         if ($data['tipo'] === 'pesagem' && empty($data['peso'])) {
             return back()->with('error', 'Pesagem exige o valor do peso.');
+        }
+        // Peso plausível por espécie — bovino adulto até 1500kg, búfalo até 1300,
+        // equino até 800, suíno até 400, caprino/ovino até 150, pet até 100, etc.
+        if ($data['tipo'] === 'pesagem' && ! empty($data['peso'])) {
+            $animalSpecies = $animal->species()->withoutGlobalScopes()->first();
+            $profile = $animalSpecies?->profile;
+            $maxPesoPorProfile = [
+                'ruminante_corte' => 1500,
+                'ruminante_leite' => 1300,
+                'ruminante_lan'   => 200,
+                'equino'          => 800,
+                'suino'           => 400,
+                'pet'             => 100,
+                'roedor_pequeno'  => 10,
+            ];
+            $max = $maxPesoPorProfile[$profile] ?? 9999;
+            if ((float) $data['peso'] > $max) {
+                return back()->with('error',
+                    "Peso de {$data['peso']}kg parece absurdo para {$animalSpecies?->nome}. "
+                    . "Limite plausível: {$max}kg. Verifique se digitou em kg (não gramas)."
+                );
+            }
         }
         if ($data['tipo'] === 'vacinacao' && empty($data['vacina'])) {
             return back()->with('error', 'Vacinação exige o nome da vacina.');

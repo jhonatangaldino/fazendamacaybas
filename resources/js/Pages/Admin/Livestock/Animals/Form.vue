@@ -590,12 +590,14 @@ onMounted(() => {
                     <div>
                         <InputLabel :value="requiresDataNasc ? 'Data de nascimento' : 'Data de nascimento (opcional)'" />
                         <InputDate v-model="form.data_nascimento" :required="requiresDataNasc" />
+                        <InputError :message="form.errors.data_nascimento" />
                         <p v-if="requiresDataNasc" class="text-xs text-slate-400 mt-1">Usada para calcular idade, desmame, ciclo de cobertura e abate.</p>
                     </div>
 
                     <div v-if="showPesoNascimento">
                         <InputLabel value="Peso ao nascer (kg)" />
                         <InputDecimal v-model="form.peso_nascimento" :decimals="2" :min="0" placeholder="0,00" />
+                        <InputError :message="form.errors.peso_nascimento" />
                         <p class="text-xs text-slate-400 mt-1">Valor único (imutável). Pesagens seguintes vão em <em>Histórico ⚖</em>.</p>
                     </div>
 
