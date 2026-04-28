@@ -515,13 +515,29 @@ class AnimalController extends Controller
             // "quanto rebanho tenho" e "quantos precisam de atenção"
             // sem ter que navegar. Sem pesagem há 60+ dias = lembrete
             // de pesar (ganho/perda só é calculável com pesagens).
-            'resumo' => Animal::selectRaw("
-                SUM(CASE WHEN status = 'ativo' THEN 1 ELSE 0 END) as ativos,
-                SUM(CASE WHEN status = 'vendido' THEN 1 ELSE 0 END) as vendidos,
-                SUM(CASE WHEN status IN ('morto','abatido') THEN 1 ELSE 0 END) as baixas,
-                SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN peso_atual ELSE 0 END) as peso_total,
-                SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN 1 ELSE 0 END) as ativos_com_peso
-            ")->first(),
+            // Resumo da espécie/contexto — DEVE respeitar os mesmos filtros
+            // estruturais da listagem (species_id, lot_id, location_id),
+            // senão o título "X bovino(s) ativo(s)" mente e mostra o
+            // rebanho do tenant inteiro (Bovino + Equino + Suíno + ...).
+            // Bug detectado pelo dono: listagem filtrada de Bovino mostrava
+            // 1956 (rebanho TODO) enquanto Dashboard espécie mostrava 344
+            // (apenas Bovino). 1956 era a soma agregada de tudo.
+            //
+            // Não respeita search/status/categoria propositalmente:
+            //   - search (texto livre) tornaria o resumo instável a cada tecla
+            //   - status faria os totais (ativos/vendidos/baixas) mentirem entre si
+            //   - categoria é refinamento dentro da espécie, não muda contexto
+            'resumo' => Animal::query()
+                ->when($request->species_id, fn ($qq) => $qq->where('species_id', $request->species_id))
+                ->when($request->lot_id, fn ($qq) => $qq->where('lot_id', $request->lot_id))
+                ->when($request->location_id, fn ($qq) => $qq->where('location_id', $request->location_id))
+                ->selectRaw("
+                    SUM(CASE WHEN status = 'ativo' THEN 1 ELSE 0 END) as ativos,
+                    SUM(CASE WHEN status = 'vendido' THEN 1 ELSE 0 END) as vendidos,
+                    SUM(CASE WHEN status IN ('morto','abatido') THEN 1 ELSE 0 END) as baixas,
+                    SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN peso_atual ELSE 0 END) as peso_total,
+                    SUM(CASE WHEN status = 'ativo' AND peso_atual > 0 THEN 1 ELSE 0 END) as ativos_com_peso
+                ")->first(),
             'partners' => Partner::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
             'categorias' => [
                 ['value' => 'leite', 'label' => 'Leite'],
