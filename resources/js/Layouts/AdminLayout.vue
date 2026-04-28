@@ -409,11 +409,11 @@ function logout() {
                  que conteúdo do main NUNCA fique visível atrás do header durante
                  scroll. Antes shadow-sm + border-b 1px deixava títulos do main
                  parecerem 'meio cortados' em qualquer rolagem mínima. -->
-            <!-- Header sticky: top via Vue conditional. Quando impersona, cola
-                 abaixo da tarja (top-10 = 40px). Sem impersonação, top-0. -->
-            <header
-                :class="['sticky z-20 h-16 flex items-center justify-between bg-white shadow-md px-3 lg:px-8 gap-2',
-                          impersonation ? 'top-10' : 'top-0']">
+            <!-- Header sticky: SEMPRE top-0. O wrapper externo já tem pt-10
+                 quando impersona, então o header em fluxo natural já fica
+                 abaixo da tarja. Adicionar top-10 aqui empurrava o header
+                 40px ABAIXO de onde deveria — bug detectado pelo dono. -->
+            <header class="sticky top-0 z-20 h-16 flex items-center justify-between bg-white shadow-md px-3 lg:px-8 gap-2">
                 <!-- Mobile: hambúrguer com tap target ≥44px (era p-2 = 36px) + título da página visível -->
                 <button @click="sidebarOpen = !sidebarOpen"
                         class="md:hidden inline-flex items-center justify-center min-h-11 min-w-11 rounded-md hover:bg-slate-100 active:bg-slate-200 touch-manipulation"
