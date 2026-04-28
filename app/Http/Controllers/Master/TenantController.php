@@ -184,6 +184,13 @@ class TenantController extends Controller
                 'is_active' => true,
             ]);
 
+            // Dados-seed operacionais — sem isso o usuário trava em wizards
+            // que dependem de pré-requisitos (Categoria de despesa para Wizard
+            // Despesa, Armazém para Estoque, Talhão+Cultura para Plantio,
+            // Veículo para Manutenção). Idempotente: pode rodar várias vezes.
+            app(\App\Domain\Tenancy\Services\TenantOperationalSeed::class)
+                ->seed($tenant, $farm);
+
             // Usuário dono — usa o email informado no form como
             // credencial de primeiro acesso. Senha temporária 8 chars
             // alfanuméricos gerada pelo TemporaryPasswordService que
