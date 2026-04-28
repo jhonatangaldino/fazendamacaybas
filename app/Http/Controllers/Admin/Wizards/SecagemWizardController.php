@@ -102,11 +102,8 @@ class SecagemWizardController extends Controller
             'created_by' => $request->user()?->id,
         ]);
 
-        $returnTo = $request->input('return_to');
-        $url = ($returnTo && str_starts_with($returnTo, '/admin/'))
-            ? $returnTo
-            : route('admin.inicio');
-
-        return redirect($url)->with('success', "Vaca {$animal->identificacao} marcada como SECA em " . \Carbon\Carbon::parse($validated['data'])->format('d/m/Y') . '.');
+        // back() em vez de redirect() — Vue mostra passo 4 "Pronto!" e o usuário
+        // clica "Voltar ao início" que respeita return_to manualmente.
+        return back()->with('success', "Vaca {$animal->identificacao} marcada como SECA em " . \Carbon\Carbon::parse($validated['data'])->format('d/m/Y') . '.');
     }
 }

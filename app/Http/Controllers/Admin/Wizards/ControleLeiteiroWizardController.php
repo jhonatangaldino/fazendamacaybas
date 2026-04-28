@@ -119,12 +119,8 @@ class ControleLeiteiroWizardController extends Controller
             }
         });
 
-        // return_to: caminho relativo passado pelo Animal show pra voltar pra ficha
-        $returnTo = $request->input('return_to');
-        $url = ($returnTo && str_starts_with($returnTo, '/admin/'))
-            ? $returnTo
-            : route('admin.inicio');
-
-        return redirect($url)->with('success', "Leite registrado para {$count} vaca(s).");
+        // back() em vez de redirect() — Vue mostra passo 4 "Pronto!" e o usuário
+        // clica "Voltar ao início" que respeita return_to manualmente.
+        return back()->with('success', "Leite registrado para {$count} vaca(s).");
     }
 }

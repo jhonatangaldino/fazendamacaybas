@@ -166,12 +166,9 @@ class ExameToqueWizardController extends Controller
             $msg .= " {$tarefasCriadas} tarefa(s) automática(s) criada(s) (secagem + maternidade).";
         }
 
-        $returnTo = $request->input('return_to');
-        $url = ($returnTo && str_starts_with($returnTo, '/admin/'))
-            ? $returnTo
-            : route('admin.inicio');
-
-        return redirect($url)->with('success', $msg);
+        // back() em vez de redirect() — Vue mostra passo 4 "Pronto!" e o usuário
+        // clica "Voltar ao início" que respeita return_to manualmente.
+        return back()->with('success', $msg);
     }
 
     /**
