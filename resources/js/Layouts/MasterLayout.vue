@@ -19,7 +19,7 @@
  * UI genéricos (FlashMessages, GlobalLoading, ToastContainer).
  */
 
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import AlertBar from '@/Components/AlertBar.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
@@ -29,6 +29,8 @@ import GlobalLoading from '@/Components/GlobalLoading.vue';
 import Icon from '@/Components/Icon.vue';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
+import { useProofAutoApprove } from '@/composables/useProofAutoApprove.js';
+import { useToast } from '@/composables/useToast.js';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user ?? null);
@@ -55,6 +57,62 @@ function isActive(routeName) {
 function logout() {
     router.post(route('logout'));
 }
+
+// ── Auto-aprovação de comprovantes em background no LOGIN ──────────
+// Quando: master fez toggle ON (cobrancas.auto-approve-config) E
+// maturidade ≥ 70%. Roda 1× por sessão (sessionStorage), em background,
+// sem bloquear nada. Toast no fim resume {aprovados, pendentes, erros}.
+//
+// Tesseract.js carrega lazy só quando há comprovantes — bundle não infla.
+const lote = useProofAutoApprove();
+const { toast } = useToast();
+
+async function tryAutoApproveOnLogin() {
+    if (typeof window === 'undefined') return;
+    // Roda 1× por sessão pra não disparar em toda navegação Inertia.
+    if (sessionStorage.getItem('proof_auto_approve_ran')) return;
+    try {
+        // 1. Lê config (toggle + maturidade)
+        const cfgRes = await fetch(route('master.cobrancas.auto-approve-config'), {
+            credentials: 'same-origin', headers: { Accept: 'application/json' },
+        });
+        if (! cfgRes.ok) return;
+        const cfg = await cfgRes.json();
+        if (! cfg.enabled) return; // toggle off OU abaixo do threshold de maturidade
+
+        // 2. Pega lista de pendentes
+        const listRes = await fetch(route('master.cobrancas.pending-review-list'), {
+            credentials: 'same-origin', headers: { Accept: 'application/json' },
+        });
+        if (! listRes.ok) return;
+        const { invoices } = await listRes.json();
+        if (! invoices?.length) {
+            sessionStorage.setItem('proof_auto_approve_ran', '1');
+            return;
+        }
+
+        // 3. Marca como rodado ANTES de processar (evita re-trigger se demorar)
+        sessionStorage.setItem('proof_auto_approve_ran', '1');
+
+        toast?.(`🤖 Processando ${invoices.length} comprovante(s) em background...`, 'info');
+        await lote.processarLote(invoices);
+        const a = lote.aprovados.value;
+        const pn = lote.pendentes.value;
+        const e = lote.erros.value;
+        if (a > 0 || pn > 0) {
+            toast?.(`🤖 Auto-aprovação: ${a} aprovado(s), ${pn} pra revisão manual${e > 0 ? `, ${e} erro(s)` : ''}`,
+                a > 0 ? 'sucesso' : 'info');
+        }
+    } catch (err) {
+        // Falha silenciosa — auto-aprovação é otimização, não pode quebrar UX
+        console.warn('[auto-approve] falhou:', err.message);
+    }
+}
+
+onMounted(() => {
+    // Aguarda 2s pra UI carregar primeiro (não competir com bundle inicial)
+    setTimeout(() => { tryAutoApproveOnLogin(); }, 2000);
+});
 
 /**
  * Itens da sidebar.

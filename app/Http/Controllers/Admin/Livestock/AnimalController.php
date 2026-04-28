@@ -143,6 +143,28 @@ class AnimalController extends Controller
         // a espécie. Cada perfil tem métricas próprias do mercado.
         $kpisProfile = $this->kpisProfileEspecie($species);
 
+        // Lista enxuta de animais ativos pro modal de evento rápido.
+        // Limita a 500 — fazendas maiores que isso usam o "Ver todos".
+        $animaisLista = (clone $animaisQuery)->where('status', 'ativo')
+            ->orderBy('identificacao')
+            ->limit(500)
+            ->get(['id', 'identificacao', 'nome'])
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'identificacao' => $a->identificacao,
+                'nome' => $a->nome,
+            ])->values();
+
+        // Dados pros gráficos (Chart.js no front)
+        $charts = $this->chartsParaProfile($species, $animaisQuery);
+
+        // Locations da fazenda atual (pra modal de movimentação)
+        $locations = AnimalLocation::where('is_active', true)
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'tipo'])
+            ->map(fn ($l) => ['id' => $l->id, 'nome' => $l->nome, 'tipo' => $l->tipo])
+            ->values();
+
         return Inertia::render('Admin/Livestock/EspecieDashboard', [
             'species' => [
                 'id' => $species->id,
@@ -163,8 +185,142 @@ class AnimalController extends Controller
                 'lots_count' => $lots->count(),
             ],
             'kpis_profile' => $kpisProfile,
+            'charts' => $charts,
             'lots' => $lots,
+            'locations' => $locations,
+            'animals' => $animaisLista,
         ]);
+    }
+
+    /**
+     * Dados pros gráficos da página (Chart.js no front).
+     * Cada profile retorna o que faz sentido pra ele.
+     */
+    private function chartsParaProfile(AnimalSpecies $species, $animaisQuery): array
+    {
+        $charts = [];
+
+        // Distribuição por sexo (todas espécies individuais)
+        if ($species->gestao === 'individual') {
+            $sexoM = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'M')->count();
+            $sexoF = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'F')->count();
+            if ($sexoM + $sexoF > 0) {
+                $charts['sexo'] = [
+                    'tipo' => 'pie',
+                    'titulo' => 'Distribuição por sexo',
+                    'labels' => ['Machos', 'Fêmeas'],
+                    'data' => [$sexoM, $sexoF],
+                    'cores' => ['#0ea5e9', '#ec4899'],
+                ];
+            }
+
+            // Distribuição etária (bins de 6 meses até 5 anos+)
+            $animaisAtivos = (clone $animaisQuery)->where('status', 'ativo')
+                ->whereNotNull('data_nascimento')
+                ->get(['data_nascimento']);
+            if ($animaisAtivos->count() > 0) {
+                $bins = [
+                    '0-6 m' => 0, '6-12 m' => 0, '1-2 a' => 0, '2-3 a' => 0, '3-5 a' => 0, '5+ a' => 0,
+                ];
+                $hoje = now();
+                foreach ($animaisAtivos as $a) {
+                    $meses = $a->data_nascimento->diffInMonths($hoje);
+                    if ($meses < 6) $bins['0-6 m']++;
+                    elseif ($meses < 12) $bins['6-12 m']++;
+                    elseif ($meses < 24) $bins['1-2 a']++;
+                    elseif ($meses < 36) $bins['2-3 a']++;
+                    elseif ($meses < 60) $bins['3-5 a']++;
+                    else $bins['5+ a']++;
+                }
+                $charts['idade'] = [
+                    'tipo' => 'bar',
+                    'titulo' => 'Distribuição etária',
+                    'labels' => array_keys($bins),
+                    'data' => array_values($bins),
+                    'cores' => ['#10b981', '#22c55e', '#84cc16', '#eab308', '#f59e0b', '#dc2626'],
+                ];
+            }
+
+            // Evolução de peso médio (últimos 6 meses, média mensal)
+            $animalIds = (clone $animaisQuery)->where('status', 'ativo')->pluck('id');
+            if ($animalIds->count() > 0) {
+                $pontos = [];
+                for ($i = 5; $i >= 0; $i--) {
+                    $mesIni = now()->subMonths($i)->startOfMonth();
+                    $mesFim = now()->subMonths($i)->endOfMonth();
+                    $media = (float) AnimalEvent::whereIn('animal_id', $animalIds)
+                        ->where('tipo', 'pesagem')
+                        ->whereBetween('data', [$mesIni->toDateString(), $mesFim->toDateString()])
+                        ->avg('peso');
+                    if ($media > 0) {
+                        $pontos[] = [
+                            'label' => $mesIni->translatedFormat('M/y'),
+                            'valor' => round($media, 1),
+                        ];
+                    }
+                }
+                if (count($pontos) >= 2) {
+                    $charts['peso_evolucao'] = [
+                        'tipo' => 'line',
+                        'titulo' => 'Evolução do peso médio (kg)',
+                        'labels' => array_column($pontos, 'label'),
+                        'data' => array_column($pontos, 'valor'),
+                        'cor' => '#0ea5e9',
+                    ];
+                }
+            }
+        }
+
+        // Profile leite — produção mensal últimos 12 meses
+        if ($species->profile === 'ruminante_leite') {
+            $animalIds = (clone $animaisQuery)->where('status', 'ativo')->pluck('id');
+            if ($animalIds->count() > 0) {
+                $pontos = [];
+                for ($i = 11; $i >= 0; $i--) {
+                    $mesIni = now()->subMonths($i)->startOfMonth();
+                    $mesFim = now()->subMonths($i)->endOfMonth();
+                    $litros = (float) AnimalEvent::whereIn('animal_id', $animalIds)
+                        ->where('tipo', 'ordenha')
+                        ->whereBetween('data', [$mesIni->toDateString(), $mesFim->toDateString()])
+                        ->sum('producao_litros');
+                    $pontos[] = [
+                        'label' => $mesIni->translatedFormat('M/y'),
+                        'valor' => round($litros, 1),
+                    ];
+                }
+                $charts['leite_mensal'] = [
+                    'tipo' => 'line',
+                    'titulo' => 'Produção mensal de leite (litros)',
+                    'labels' => array_column($pontos, 'label'),
+                    'data' => array_column($pontos, 'valor'),
+                    'cor' => '#0ea5e9',
+                ];
+            }
+        }
+
+        // Profile postura — postura diária últimos 30 dias
+        if ($species->profile === 'ave_postura') {
+            $animalIds = (clone $animaisQuery)->where('status', 'ativo')->pluck('id');
+            if ($animalIds->count() > 0) {
+                $eventos = AnimalEvent::whereIn('animal_id', $animalIds)
+                    ->where('tipo', 'postura_diaria')
+                    ->where('data', '>=', now()->subDays(30)->toDateString())
+                    ->get(['data', 'peso'])
+                    ->groupBy(fn ($e) => $e->data->toDateString())
+                    ->map(fn ($g) => $g->sum('peso'));
+                if ($eventos->count() >= 2) {
+                    $charts['postura_diaria'] = [
+                        'tipo' => 'line',
+                        'titulo' => 'Postura diária (ovos) — últimos 30d',
+                        'labels' => $eventos->keys()->map(fn ($d) => \Carbon\Carbon::parse($d)->format('d/m'))->all(),
+                        'data' => $eventos->values()->all(),
+                        'cor' => '#f59e0b',
+                    ];
+                }
+            }
+        }
+
+        return $charts;
     }
 
     /**

@@ -537,6 +537,33 @@ class InvoiceController extends Controller
     }
 
     /**
+     * Endpoint JSON: lista TODOS os comprovantes aguardando validação,
+     * com URL pública do arquivo + dados mínimos pro OCR no browser.
+     * Usado pelo MasterLayout no login pra disparar auto-aprovação em
+     * background quando o toggle está ON e maturidade ≥ 70%.
+     */
+    public function pendingReviewList(): \Illuminate\Http\JsonResponse
+    {
+        $invoices = Invoice::with('tenant:id,nome')
+            ->where('status', 'paid_pending_review')
+            ->whereNotNull('payment_proof_path')
+            ->orderBy('payment_submitted_at')
+            ->get(['id', 'tenant_id', 'numero', 'valor', 'payment_proof_path', 'payment_proof_mime']);
+
+        return response()->json([
+            'invoices' => $invoices->map(fn ($i) => [
+                'id' => $i->id,
+                'numero' => $i->numero,
+                'valor' => (float) $i->valor,
+                'tenant_nome' => $i->tenant?->nome,
+                'status' => $i->status,
+                'payment_proof_url' => asset('storage/'.$i->payment_proof_path),
+                'payment_proof_mime' => $i->payment_proof_mime,
+            ])->values()->all(),
+        ]);
+    }
+
+    /**
      * Endpoint JSON: confere se um E2E (vindo de OCR no browser) já foi
      * aprovado em outra fatura. Usado pelo botão "Processar lote" pra
      * detectar duplicatas antes de auto-aprovar.
