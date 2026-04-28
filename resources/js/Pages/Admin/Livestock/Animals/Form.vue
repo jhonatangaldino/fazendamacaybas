@@ -120,13 +120,13 @@ const categoriasDisponiveis = computed(() => {
     return CATEGORIAS_FALLBACK;
 });
 
-/** Quando a lista de categorias do profile é vazia, o campo some. */
+/** Quando a lista de categorias do profile é vazia OU tem só 1 opção
+ *  (ex.: pet), o campo some — o valor é auto-setado pelo watch logo
+ *  abaixo. Reduz fricção de cadastro de cão/gato (1 opção fixa = "pet"). */
 const showCategoria = computed(() => {
     const p = profile.value;
-    // Se profile tem entrada explícita vazia → esconde (aquicultura/apicultura).
-    // Se profile é desconhecido → mantém (retrocompat).
     if (p && Object.prototype.hasOwnProperty.call(CATEGORIAS_POR_PROFILE, p)) {
-        return CATEGORIAS_POR_PROFILE[p].length > 0;
+        return CATEGORIAS_POR_PROFILE[p].length > 1;
     }
     return true;
 });
@@ -203,6 +203,13 @@ watch(
                 form.categoria = '';
             }
         }
+        // Auto-set quando profile tem 1 categoria fixa (ex.: pet → "pet").
+        // O campo está escondido (showCategoria=false), então o user não
+        // tem como escolher — pré-popula automaticamente. Roda também na
+        // primeira carga via immediate:true.
+        if (categoriasDisponiveis.value.length === 1 && !showCategoria.value) {
+            form.categoria = categoriasDisponiveis.value[0].value;
+        }
         // Se a raça atual não pertence à nova espécie → limpa
         if (form.breed_id && !racas.value.some((r) => r.id === form.breed_id)) {
             form.breed_id = null;
@@ -214,6 +221,7 @@ watch(
             form.numero_registro = '';
         }
     },
+    { immediate: true },
 );
 
 // Foto no cadastro inicial — preview local imediato + upload pós-create.
