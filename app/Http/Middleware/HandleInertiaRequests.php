@@ -185,10 +185,17 @@ class HandleInertiaRequests extends Middleware
                             ->orderBy('nome')
                             ->get(['id', 'nome', 'slug', 'gestao', 'profile']);
 
-                        // Animais individuais (gestao=individual)
+                        // Animais individuais (gestao=individual).
+                        // CRÍTICO: Animal usa SoftDeletes mas \DB::table() é Query
+                        // Builder direto — não aplica o global scope. Sem o
+                        // whereNull('deleted_at'), animais soft-deleted que ainda
+                        // tinham status='ativo' eram contados, divergindo da
+                        // contagem Eloquent do dashboard de espécie. Bug detectado
+                        // pelo dono (Bovino: Hub 345 vs Dashboard 344).
                         $countsIndividual = \DB::table('animals')
                             ->select('species_id', \DB::raw('COUNT(*) as cnt'))
                             ->where('status', 'ativo')
+                            ->whereNull('deleted_at')
                             ->where('tenant_id', $effectiveTenantId)
                             ->whereIn('species_id', $species->pluck('id'))
                             ->groupBy('species_id')
