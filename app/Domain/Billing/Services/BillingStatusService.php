@@ -63,7 +63,14 @@ class BillingStatusService
 
         if ($vigenciaCobreHoje) {
             // Vigência OK. Verifica overdue de fatura individual.
-            $hasOverdue = Invoice::where('tenant_id', $tenantId)->where('status', 'overdue')->exists();
+            // CRÍTICO: só faturas do PLANO (tipo='mensal') disparam bloqueio.
+            // Cobranças avulsas (tipo='unica') são extras e NÃO bloqueiam o
+            // tenant — quem cobra avulso resolve por fora (cobrança direta,
+            // protesto, etc.). Acordo confirmado pelo PO em 2026-04-28.
+            $hasOverdue = Invoice::where('tenant_id', $tenantId)
+                ->where('status', 'overdue')
+                ->where('tipo', 'mensal')
+                ->exists();
             if ($hasOverdue) {
                 if ($status !== 'overdue') $patch['status'] = 'overdue';
             } else {
