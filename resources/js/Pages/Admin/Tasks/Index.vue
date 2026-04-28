@@ -564,8 +564,9 @@ function vinculoLabel(t) {
                             </div>
                         </div>
 
-                        <!-- F4.2: ações com área de toque adequada em mobile -->
-                        <div class="flex flex-row sm:flex-col gap-1.5 items-end flex-shrink-0">
+                        <!-- Padrão de ações inline: horizontal, gap-1, justify-end
+                             (mesmo padrão de Stock/Items, Lotes, Locais, Parceiros) -->
+                        <div class="flex gap-1 justify-end items-center flex-shrink-0">
                             <ActionIcon
                                 v-if="t.status !== 'concluida'"
                                 type="toggle-on"
