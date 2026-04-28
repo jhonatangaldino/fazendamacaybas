@@ -1,6 +1,6 @@
 <script setup>
-import { computed, reactive, ref, watch, onMounted } from 'vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
@@ -10,6 +10,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import { dataBR, brl } from '@/utils/format.js';
 import { useAutoReload } from '@/composables/useAutoReload.js';
+import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const props = defineProps({
     tasks: Object,
@@ -277,10 +278,36 @@ const statusBadge = (s) => ({ pendente: 'badge-yellow', em_andamento: 'badge-blu
 
 // Label curto do vínculo para exibir no card da lista
 function vinculoLabel(t) {
+    // Backend agora envia `t.related` resolvido com label/meta amigáveis.
+    // Fallback pra "Tipo #id" quando ainda não foi enriquecido (retrocompat).
+    if (t.related?.label) return `${t.related.icon || '🔗'} ${t.related.label}`;
     if (!t.related_type || !t.related_id) return null;
     const tipo = RELATED_LABEL[t.related_type] ?? 'Entidade';
     return `${tipo} #${t.related_id}`;
 }
+
+// ─── Modal de detalhes da tarefa ────────────────────────────────
+// Padrão: card é clicável → abre modal com dados completos da tarefa
+// + dados do related (animal/lote/etc). useBodyScrollLock previne
+// pull-to-refresh no mobile e scroll do body atrás do modal.
+const taskAberta = ref(null);
+useBodyScrollLock(computed(() => !!taskAberta.value));
+
+function abrirDetalhes(t) {
+    taskAberta.value = t;
+}
+function fecharDetalhes() {
+    taskAberta.value = null;
+}
+// ESC fecha modal
+function handleEscDetalhes(e) {
+    if (e.key === 'Escape' && taskAberta.value) {
+        e.stopPropagation();
+        fecharDetalhes();
+    }
+}
+onMounted(() => window.addEventListener('keydown', handleEscDetalhes));
+onBeforeUnmount(() => window.removeEventListener('keydown', handleEscDetalhes));
 </script>
 
 <template>
@@ -535,7 +562,9 @@ function vinculoLabel(t) {
         </MobileFilters>
 
         <div class="space-y-3">
-            <div v-for="t in tasks.data" :key="t.id" class="card">
+            <div v-for="t in tasks.data" :key="t.id"
+                 class="card cursor-pointer hover:ring-2 hover:ring-macaybas-primary-200 transition"
+                 @click="abrirDetalhes(t)">
                 <div class="card-body">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex-1 min-w-0">
@@ -543,13 +572,24 @@ function vinculoLabel(t) {
                                 <span :class="prioridadeBadge(t.prioridade)">{{ t.prioridade }}</span>
                                 <span :class="statusBadge(t.status)">{{ t.status.replace('_', ' ') }}</span>
                                 <span v-if="t.modulo" class="badge-slate">{{ t.modulo }}</span>
-                                <span v-if="vinculoLabel(t)" class="badge-blue text-xs">🔗 {{ vinculoLabel(t) }}</span>
                                 <span v-if="t.data_vencimento" class="text-xs text-slate-500">
                                     vence em {{ dataBR(t.data_vencimento) }}
                                 </span>
                             </div>
                             <h3 class="font-semibold text-slate-900">{{ t.titulo }}</h3>
-                            <p v-if="t.descricao" class="text-sm text-slate-600 mt-1">{{ t.descricao }}</p>
+
+                            <!-- Card do related: animal/lote/etc com nome + meta visíveis.
+                                 Antes mostrava só "Animal #78" — usuário não sabia qual. -->
+                            <div v-if="t.related" class="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-macaybas-primary-50 ring-1 ring-macaybas-primary-200 text-sm">
+                                <span class="text-base" aria-hidden="true">{{ t.related.icon || '🔗' }}</span>
+                                <div class="min-w-0">
+                                    <span class="text-[10px] uppercase tracking-wider font-semibold text-macaybas-primary-700">{{ t.related.tipo }}</span>
+                                    <div class="font-medium text-macaybas-primary-900 truncate">{{ t.related.label }}</div>
+                                    <div v-if="t.related.meta" class="text-xs text-macaybas-primary-700/80 truncate">{{ t.related.meta }}</div>
+                                </div>
+                            </div>
+
+                            <p v-if="t.descricao" class="text-sm text-slate-600 mt-2 line-clamp-2">{{ t.descricao }}</p>
 
                             <div v-if="t.assignees.length" class="mt-2 flex flex-wrap gap-1">
                                 <span v-for="a in t.assignees" :key="a.id" class="badge-blue text-xs">👤 {{ a.nome }}</span>
@@ -557,16 +597,16 @@ function vinculoLabel(t) {
 
                             <div v-for="cl in t.checklists" :key="cl.id" class="mt-3 space-y-1">
                                 <div class="text-xs uppercase tracking-wide text-slate-500">{{ cl.titulo }}</div>
-                                <label v-for="item in cl.items" :key="item.id" class="flex items-center gap-2 text-sm cursor-pointer">
+                                <!-- Click no checkbox/label NÃO propaga pro card (senão abre modal) -->
+                                <label v-for="item in cl.items" :key="item.id" class="flex items-center gap-2 text-sm cursor-pointer" @click.stop>
                                     <input type="checkbox" :checked="item.is_done" @change="toggleItem(item)" class="rounded">
                                     <span :class="item.is_done ? 'line-through text-slate-400' : ''">{{ item.descricao }}</span>
                                 </label>
                             </div>
                         </div>
 
-                        <!-- Padrão de ações inline: horizontal, gap-1, justify-end
-                             (mesmo padrão de Stock/Items, Lotes, Locais, Parceiros) -->
-                        <div class="flex gap-1 justify-end items-center flex-shrink-0">
+                        <!-- Ações inline (não propagam click pro card, senão abre modal junto) -->
+                        <div class="flex gap-1 justify-end items-center flex-shrink-0" @click.stop>
                             <ActionIcon
                                 v-if="t.status !== 'concluida'"
                                 type="toggle-on"
@@ -596,5 +636,115 @@ function vinculoLabel(t) {
         <ConfirmModal :show="!!confirmDelete" title="Excluir tarefa"
                       :message="`Excluir ${confirmDelete?.titulo}?`"
                       @cancel="confirmDelete = null" @confirm="doDelete" />
+
+        <!-- ─── MODAL DETALHES DA TAREFA ───────────────────────────────
+             useBodyScrollLock previne pull-to-refresh + scroll do body.
+             overscroll-contain isola o scroll interno do modal. -->
+        <Teleport to="body">
+            <div v-if="taskAberta" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+                <div class="absolute inset-0 bg-slate-900/60" @click="fecharDetalhes"></div>
+                <div class="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto overscroll-contain">
+                    <!-- Header sticky -->
+                    <div class="px-5 pt-5 pb-3 border-b border-slate-100 flex items-start gap-3 sticky top-0 bg-white z-10">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span :class="prioridadeBadge(taskAberta.prioridade)">{{ taskAberta.prioridade }}</span>
+                                <span :class="statusBadge(taskAberta.status)">{{ taskAberta.status.replace('_', ' ') }}</span>
+                                <span v-if="taskAberta.modulo" class="badge-slate">{{ taskAberta.modulo }}</span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-slate-900 mt-2">{{ taskAberta.titulo }}</h3>
+                        </div>
+                        <button @click="fecharDetalhes"
+                                class="text-slate-400 hover:text-slate-600 text-2xl leading-none -mt-1 p-2 -mr-2"
+                                aria-label="Fechar">&times;</button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="p-5 space-y-4">
+                        <!-- Datas -->
+                        <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div v-if="taskAberta.data_inicio">
+                                <div class="text-xs uppercase tracking-wider text-slate-500">Início</div>
+                                <div class="text-slate-900 font-medium">{{ dataBR(taskAberta.data_inicio) }}</div>
+                            </div>
+                            <div v-if="taskAberta.data_vencimento">
+                                <div class="text-xs uppercase tracking-wider text-slate-500">Vence em</div>
+                                <div class="text-slate-900 font-medium">{{ dataBR(taskAberta.data_vencimento) }}</div>
+                            </div>
+                            <div v-if="taskAberta.concluida_em" class="col-span-2">
+                                <div class="text-xs uppercase tracking-wider text-emerald-700">✓ Concluída em</div>
+                                <div class="text-emerald-900 font-medium">{{ dataBR(taskAberta.concluida_em) }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Vínculo (Animal/Lote/etc) com link pra abrir o item -->
+                        <div v-if="taskAberta.related" class="rounded-xl ring-1 ring-macaybas-primary-200 bg-macaybas-primary-50 p-4">
+                            <div class="flex items-start gap-3">
+                                <span class="text-3xl flex-shrink-0" aria-hidden="true">{{ taskAberta.related.icon }}</span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-[10px] uppercase tracking-wider font-semibold text-macaybas-primary-700">
+                                        {{ taskAberta.related.tipo }} relacionado
+                                    </div>
+                                    <div class="text-base font-semibold text-macaybas-primary-900">{{ taskAberta.related.label }}</div>
+                                    <div v-if="taskAberta.related.meta" class="text-sm text-macaybas-primary-700 mt-0.5">
+                                        {{ taskAberta.related.meta }}
+                                    </div>
+                                    <a v-if="taskAberta.related.url"
+                                       :href="taskAberta.related.url"
+                                       class="inline-flex items-center gap-1 mt-2 text-sm font-medium text-macaybas-primary hover:underline">
+                                        Abrir {{ taskAberta.related.tipo.toLowerCase() }} →
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Descrição -->
+                        <div v-if="taskAberta.descricao">
+                            <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Descrição</div>
+                            <p class="text-sm text-slate-700 whitespace-pre-line">{{ taskAberta.descricao }}</p>
+                        </div>
+
+                        <!-- Responsáveis -->
+                        <div v-if="taskAberta.assignees?.length">
+                            <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Responsáveis</div>
+                            <div class="flex flex-wrap gap-1">
+                                <span v-for="a in taskAberta.assignees" :key="a.id" class="badge-blue text-xs">👤 {{ a.nome }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Checklists -->
+                        <div v-for="cl in taskAberta.checklists" :key="cl.id">
+                            <div class="text-xs uppercase tracking-wider text-slate-500 mb-2">{{ cl.titulo }}</div>
+                            <ul class="space-y-2">
+                                <li v-for="item in cl.items" :key="item.id">
+                                    <label class="flex items-start gap-2 text-sm cursor-pointer">
+                                        <input type="checkbox" :checked="item.is_done" @change="toggleItem(item)" class="mt-1 rounded">
+                                        <span :class="item.is_done ? 'line-through text-slate-400' : 'text-slate-700'">{{ item.descricao }}</span>
+                                    </label>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Footer com ações principais -->
+                    <div class="sticky bottom-0 bg-white border-t border-slate-100 p-4 flex flex-wrap gap-2 justify-end">
+                        <button @click="fecharDetalhes" class="btn-outline">Fechar</button>
+                        <button v-if="taskAberta.status !== 'concluida'"
+                                @click="concluir(taskAberta); fecharDetalhes()"
+                                class="btn-primary">
+                            ✓ Concluir tarefa
+                        </button>
+                        <button v-else
+                                @click="reabrir(taskAberta); fecharDetalhes()"
+                                class="btn-outline">
+                            ↻ Reabrir
+                        </button>
+                        <button @click="editar(taskAberta); fecharDetalhes()" class="btn-outline">
+                            Editar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AdminLayout>
 </template>

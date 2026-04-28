@@ -66,8 +66,15 @@ class TaskController extends Controller
             ->orderByRaw("CASE WHEN status = 'pendente' THEN 1 WHEN status = 'em_andamento' THEN 2 WHEN status = 'atrasada' THEN 3 ELSE 4 END")
             ->orderBy('data_vencimento');
 
-        return Inertia::render('Admin/Tasks/Index', [
-            'tasks' => $q->paginate(25)->withQueryString()->through(fn ($t) => [
+        $tasksPaginated = $q->paginate(25)->withQueryString();
+
+        // Pre-carrega resumo do related (Animal/Lote/Field/StockItem) numa query
+        // por tipo — evita N+1. Antes a UI mostrava só "Animal #78" sem nome.
+        $relatedResumos = $this->resolverRelatedResumos($tasksPaginated->items());
+
+        $tasksPaginated->through(function ($t) use ($relatedResumos) {
+            $relatedKey = $t->related_type ? "{$t->related_type}::{$t->related_id}" : null;
+            return [
                 'id' => $t->id,
                 'titulo' => $t->titulo,
                 'descricao' => $t->descricao,
@@ -80,6 +87,8 @@ class TaskController extends Controller
                 // F3: expor vínculo para UI pré-preencher ao editar
                 'related_type' => $t->related_type,
                 'related_id' => $t->related_id,
+                // Resumo amigável: { tipo: 'Animal', label: 'BR-001 · Mimosa', url: '/admin/...', meta: '450kg · Vacas Leiteiras' }
+                'related' => $relatedKey ? ($relatedResumos[$relatedKey] ?? null) : null,
                 'assignees' => $t->assignees->map(fn ($a) => ['id' => $a->id, 'nome' => $a->nome]),
                 'checklists' => $t->checklists->map(fn ($c) => [
                     'id' => $c->id,
@@ -88,7 +97,11 @@ class TaskController extends Controller
                         'id' => $i->id, 'descricao' => $i->descricao, 'is_done' => $i->is_done,
                     ]),
                 ]),
-            ]),
+            ];
+        });
+
+        return Inertia::render('Admin/Tasks/Index', [
+            'tasks' => $tasksPaginated,
             'filters' => $request->only(['status', 'prioridade', 'modulo', 'employee_id']),
             'employees' => Employee::where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
 
@@ -133,6 +146,70 @@ class TaskController extends Controller
                     ->get(['id', 'nome', 'codigo', 'tipo']),
             ],
         ]);
+    }
+
+    /**
+     * Resolve resumos amigáveis dos vínculos polimórficos de tarefas.
+     * Antes a UI mostrava só "Animal #78" — agora vê "BR-001 · Mimosa · 450kg".
+     * Carrega 1 query por TIPO (não N+1) e devolve indexado por "type::id".
+     */
+    private function resolverRelatedResumos(array $tasks): array
+    {
+        $byType = [];
+        foreach ($tasks as $t) {
+            if (! $t->related_type || ! $t->related_id) continue;
+            $byType[$t->related_type][] = $t->related_id;
+        }
+        $resumos = [];
+
+        // Animal — incluir nome + peso + lote
+        if (! empty($byType['App\\Models\\Livestock\\Animal'])) {
+            $animals = \App\Models\Livestock\Animal::with([
+                    'lot:id,nome',
+                    'species' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome', 'slug'),
+                ])
+                ->whereIn('id', array_unique($byType['App\\Models\\Livestock\\Animal']))
+                ->get(['id', 'identificacao', 'nome', 'peso_atual', 'lot_id', 'species_id', 'status']);
+            foreach ($animals as $a) {
+                $meta = [];
+                if ($a->peso_atual) $meta[] = number_format((float) $a->peso_atual, 1, ',', '.') . ' kg';
+                if ($a->lot?->nome) $meta[] = '🏷 ' . $a->lot->nome;
+                if ($a->species?->nome) $meta[] = $a->species->nome;
+                $resumos["App\\Models\\Livestock\\Animal::{$a->id}"] = [
+                    'tipo' => 'Animal',
+                    'icon' => '🐾',
+                    'label' => trim($a->identificacao . ($a->nome ? ' · ' . $a->nome : '')),
+                    'meta' => implode(' · ', $meta),
+                    'url' => route('admin.rebanho.animais.show', $a->id),
+                    'status' => $a->status,
+                ];
+            }
+        }
+
+        // AnimalLot
+        if (! empty($byType['App\\Models\\Livestock\\AnimalLot'])) {
+            $lots = \App\Models\Livestock\AnimalLot::with([
+                    'species' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome'),
+                ])
+                ->whereIn('id', array_unique($byType['App\\Models\\Livestock\\AnimalLot']))
+                ->get(['id', 'nome', 'codigo', 'quantidade_atual', 'species_id', 'is_active']);
+            foreach ($lots as $l) {
+                $meta = [];
+                if ($l->quantidade_atual) $meta[] = (int) $l->quantidade_atual . ' cabeças';
+                if ($l->species?->nome) $meta[] = $l->species->nome;
+                $resumos["App\\Models\\Livestock\\AnimalLot::{$l->id}"] = [
+                    'tipo' => 'Lote',
+                    'icon' => '🏷',
+                    'label' => $l->nome,
+                    'meta' => implode(' · ', $meta),
+                    'url' => route('admin.rebanho.lotes.edit', $l->id),
+                    'status' => $l->is_active ? 'ativo' : 'inativo',
+                ];
+            }
+        }
+
+        // Outros tipos podem entrar aqui no futuro (Field, StockItem...)
+        return $resumos;
     }
 
     public function store(Request $request)
