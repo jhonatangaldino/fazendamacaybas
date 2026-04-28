@@ -505,14 +505,11 @@ function logout() {
                 </div>
             </header>
 
-            <!-- Main: respiro entre topbar sticky e o título da página.
-                 Sem impersonação: pt-8/lg:pt-10 (32/40px) — espaço confortável.
-                 Com impersonação: pt-10/lg:pt-14 (40/56px) — respiro maior pra
-                 compensar a presença visual do banner âmbar fixo no topo, que
-                 cria uma camada visual a mais. PO 2026-04-28 reportou apertado
-                 em ambos os viewports quando impersonando. -->
-            <main :class="['flex-1 px-4 pb-4 lg:px-8 lg:pb-8 min-w-0 w-full max-w-full overflow-x-hidden',
-                            impersonation ? 'pt-10 lg:pt-14' : 'pt-8 lg:pt-10']">
+            <!-- Main: respiro entre topbar sticky e o conteúdo. Padding fixo
+                 (não dobra com offset da tarja). O wrapper externo já empurra
+                 40px abaixo da tarja quando impersona — adicionar pt extra
+                 aqui criava o "espaço grande" reportado pelo dono. -->
+            <main class="flex-1 px-4 pb-4 lg:px-8 lg:pb-8 pt-6 lg:pt-8 min-w-0 w-full max-w-full overflow-x-hidden">
                 <AlertBar />
                 <slot />
             </main>

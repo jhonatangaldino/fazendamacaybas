@@ -178,15 +178,43 @@ class AnimalLotEventController extends Controller
                 $lot->update($update);
             }
 
-            // Movimentação de lote agregado: atualiza local físico (tanque/pasto/baia)
-            // do lote diretamente. Move TODO o lote — pra movimentação parcial precisaria
-            // dividir o lote (feature futura). Movimenta lote->lote (renomear/categoria)
-            // se vier lot_destino_id (raro, mas permitido).
+            // Movimentação de lote agregado:
+            //   1) location_destino_id → muda o local físico do lote (pasto/tanque/baia).
+            //      Não mexe em quantidade — só uma mudança de endereço.
+            //   2) lot_destino_id → TRANSFERE cabeças do lote origem pro destino:
+            //      origem.quantidade_atual -= qtdeAfetada
+            //      destino.quantidade_atual += qtdeAfetada
+            //      Se a origem zerar, marca data_fim (mas não desativa, idem mortalidade).
+            //
+            // Bug detectado pelo dono: antes só (1) era implementado. (2) gravava
+            // o evento com lot_destino_id mas as quantidades dos lotes não mudavam
+            // — usuário via "movimentação registrada" mas os contadores ficavam
+            // iguais. Agora a transferência é efetiva.
             if ($data['tipo'] === 'movimentacao') {
                 $update = [];
+
                 if (! empty($data['location_destino_id'])) {
                     $update['location_id'] = $data['location_destino_id'];
                 }
+
+                if (! empty($data['lot_destino_id']) && $data['lot_destino_id'] != $lot->id) {
+                    // Decrementa origem
+                    $novoEfetivo = max(0, $lot->quantidade_atual - $qtdeAfetada);
+                    $update['quantidade_atual'] = $novoEfetivo;
+                    if ($novoEfetivo === 0) {
+                        $update['data_fim'] = $data['data'];
+                    }
+
+                    // Incrementa destino. AnimalLot tem BelongsToTenant scope —
+                    // find() já filtra pelo tenant atual (segurança multi-tenant).
+                    $destino = AnimalLot::find($data['lot_destino_id']);
+                    if ($destino && $destino->is_active) {
+                        $destino->update([
+                            'quantidade_atual' => $destino->quantidade_atual + $qtdeAfetada,
+                        ]);
+                    }
+                }
+
                 if (! empty($update)) {
                     $lot->update($update);
                 }
@@ -203,9 +231,41 @@ class AnimalLotEventController extends Controller
             'vacinacao' => "Vacinação aplicada em {$qtdeAfetada} animais do lote.",
             'medicacao' => "Medicação aplicada em {$qtdeAfetada} animais do lote.",
             'vermifugacao' => "Vermifugação aplicada em {$qtdeAfetada} animais do lote.",
+            'movimentacao' => $this->buildMovimentacaoMsg($lot, $data, $qtdeAfetada),
             default => "Evento registrado em {$qtdeAfetada} animais do lote.",
         };
 
         return back()->with('success', $msg);
+    }
+
+    /**
+     * Mensagem de sucesso da movimentação descreve concretamente o que mudou:
+     *   • só local: "Lote movido para [pasto X]"
+     *   • só transferência de cabeças: "50 cabeças transferidas para [lote Y]"
+     *   • ambos: combina os dois em uma frase só
+     */
+    private function buildMovimentacaoMsg(AnimalLot $lot, array $data, int $qtdeAfetada): string
+    {
+        $partes = [];
+        $fresh = $lot->fresh();
+
+        if (! empty($data['lot_destino_id'])) {
+            $destino = AnimalLot::find($data['lot_destino_id']);
+            $nomeDestino = $destino?->nome ?? 'lote destino';
+            $partes[] = "{$qtdeAfetada} cabeças transferidas para \"{$nomeDestino}\"";
+        }
+
+        if (! empty($data['location_destino_id'])) {
+            $local = \App\Models\Livestock\AnimalLocation::find($data['location_destino_id']);
+            $nomeLocal = $local?->nome ?? 'novo local';
+            $partes[] = "lote movido para \"{$nomeLocal}\"";
+        }
+
+        if (empty($partes)) {
+            return "Movimentação registrada.";
+        }
+
+        $resumo = implode(' · ', $partes);
+        return "Movimentação registrada · {$resumo}. Efetivo restante: {$fresh->quantidade_atual} cabeças.";
     }
 }
