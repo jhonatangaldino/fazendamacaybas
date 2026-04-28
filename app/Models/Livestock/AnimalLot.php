@@ -36,6 +36,8 @@ class AnimalLot extends Model
         'farm_id', 'codigo', 'nome', 'descricao', 'finalidade', 'is_active', 'tenant_id',
         // 2026-04-28 · vinculação direta a species (cadastro de lote sem Animal)
         'species_id',
+        // 2026-04-28 · local físico do lote (movimentação atualiza)
+        'location_id',
         // RN4 · gestão agregada (aves/peixes/abelhas)
         'gestao_modo', 'quantidade_inicial', 'quantidade_atual',
         // Auditoria 2026-04-27 · campos do lote agregado (massa)

@@ -73,6 +73,10 @@ class AnimalLotEventController extends Controller
             'temperatura_agua' => ['nullable', 'numeric', 'min:0', 'max:60'],
             'oxigenio_dissolvido' => ['nullable', 'numeric', 'min:0'],
 
+            // Movimentação — destino físico (pasto/tanque/baia)
+            'location_destino_id' => ['nullable', 'exists:animal_locations,id'],
+            'lot_destino_id' => ['nullable', 'exists:animal_lots,id'],
+
             'observacoes' => ['nullable', 'string'],
         ], [
             'data.before_or_equal' => 'A data do evento não pode ser futura.',
@@ -86,9 +90,17 @@ class AnimalLotEventController extends Controller
                 return back()->with('error', 'Mortalidade exige a quantidade de baixas.');
             }
         }
-        // Eventos de manejo do lote inteiro (não exigem qtde do user)
-        if (in_array($data['tipo'], ['postura_diaria', 'biometria_amostral', 'qualidade_agua', 'alimentacao'], true)) {
+        // Eventos de manejo do lote inteiro (não exigem qtde do user).
+        // Inclui movimentacao — usuário pode mover lote inteiro pra outro pasto/baia
+        // sem precisar informar qtde manualmente. Se user informar parcial, respeita.
+        if (in_array($data['tipo'], ['postura_diaria', 'biometria_amostral', 'qualidade_agua', 'alimentacao', 'movimentacao'], true)) {
             $qtdeAfetada = $qtdeAfetada ?? $lot->quantidade_atual;
+        }
+        // Vacinação/medicação/vermífugo em LOTE: aplicação ao lote inteiro
+        // por padrão (uma decisão pragmática — vacina aftosa típica é em todos).
+        if (in_array($data['tipo'], ['vacinacao', 'medicacao', 'vermifugacao'], true)
+            && empty($qtdeAfetada)) {
+            $qtdeAfetada = $lot->quantidade_atual;
         }
         if (empty($qtdeAfetada)) {
             return back()->with('error', 'Informe quantos animais foram afetados pelo evento.');
@@ -143,6 +155,8 @@ class AnimalLotEventController extends Controller
                 'ph' => $data['ph'] ?? null,
                 'temperatura_agua' => $data['temperatura_agua'] ?? null,
                 'oxigenio_dissolvido' => $data['oxigenio_dissolvido'] ?? null,
+                'location_destino_id' => $data['location_destino_id'] ?? null,
+                'lot_destino_id' => $data['lot_destino_id'] ?? null,
                 'created_by' => $request->user()?->id,
                 'farm_id' => $lot->farm_id,
             ]);
@@ -162,6 +176,20 @@ class AnimalLotEventController extends Controller
                     $update['data_fim'] = $data['data'];
                 }
                 $lot->update($update);
+            }
+
+            // Movimentação de lote agregado: atualiza local físico (tanque/pasto/baia)
+            // do lote diretamente. Move TODO o lote — pra movimentação parcial precisaria
+            // dividir o lote (feature futura). Movimenta lote->lote (renomear/categoria)
+            // se vier lot_destino_id (raro, mas permitido).
+            if ($data['tipo'] === 'movimentacao') {
+                $update = [];
+                if (! empty($data['location_destino_id'])) {
+                    $update['location_id'] = $data['location_destino_id'];
+                }
+                if (! empty($update)) {
+                    $lot->update($update);
+                }
             }
         });
 
