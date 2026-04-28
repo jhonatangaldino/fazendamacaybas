@@ -279,7 +279,7 @@ function logout() {
                     <div v-if="showFarmBadge" class="relative">
                         <button
                             @click="farmMenuOpen = !farmMenuOpen"
-                            class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-macaybas-primary-50 text-macaybas-primary-800 hover:bg-macaybas-primary-100 text-sm font-medium"
+                            class="min-h-10 flex items-center gap-2 px-3 py-2 rounded-full bg-macaybas-primary-50 text-macaybas-primary-800 hover:bg-macaybas-primary-100 text-sm font-medium"
                             :title="currentFarm?.nome"
                         >
                             <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
