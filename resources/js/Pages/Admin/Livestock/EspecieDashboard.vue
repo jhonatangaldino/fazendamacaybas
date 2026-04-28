@@ -344,8 +344,9 @@ function chartPieData(c) {
             </div>
         </div>
 
-        <!-- Empty state -->
-        <div v-if="kpis.total_ativos === 0" class="rounded-2xl bg-macaybas-primary-50 ring-1 ring-macaybas-primary-200 p-8 text-center">
+        <!-- Empty state — só aparece quando REALMENTE não há nem animal individual nem lote -->
+        <div v-if="kpis.total_ativos === 0 && (!lots || lots.length === 0)"
+             class="rounded-2xl bg-macaybas-primary-50 ring-1 ring-macaybas-primary-200 p-8 text-center">
             <div class="text-6xl mb-3">{{ emoji }}</div>
             <h3 class="text-lg font-semibold text-macaybas-primary-900 mb-1">Comece a usar {{ species.nome }}</h3>
             <p v-if="isLote" class="text-sm text-macaybas-primary-800 mb-4">

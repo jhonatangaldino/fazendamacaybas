@@ -28,6 +28,23 @@ function speciesIdInicial() {
     return props.species[0]?.id ?? '';
 }
 
+// URL de Voltar/Cancelar preserva contexto:
+//   • ?from=show + animal existente → volta pro SHOW (perfil do animal)
+//   • caso contrário → volta pra LISTA filtrada por species_id
+// Sem isso o usuário cai numa lista geral e perde contexto do que veio fazendo.
+const voltarUrl = computed(() => {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('from') === 'show' && props.animal?.id) {
+            return route('admin.rebanho.animais.show', props.animal.id);
+        }
+    } catch {}
+    const sid = form?.species_id ?? speciesIdInicial();
+    return sid
+        ? route('admin.rebanho.animais.index', { species_id: sid })
+        : route('admin.rebanho.animais.index');
+});
+
 const form = useForm({
     farm_id: props.animal?.farm_id ?? props.farms[0]?.id ?? null,
     species_id: speciesIdInicial(),
@@ -78,7 +95,10 @@ const CATEGORIAS_POR_PROFILE = {
     pet:              [{ value: 'companhia', label: 'Companhia' }, { value: 'servico', label: 'Serviço / trabalho' }, { value: 'pet', label: 'Pet' }],
 };
 
-/** Perfis que exigem lote (não aceitam animal individual). */
+/** Perfis que exigem lote (não aceitam animal individual).
+ *  Nota: `ave_corte` e `apicultura` ficam declarados como placeholders —
+ *  o seeder atual não cria essas espécies, mas o código está pronto pra
+ *  quando forem adicionadas (frango de corte com ciclo curto / colmeias). */
 const PROFILES_EXIGEM_LOTE = ['ave_postura', 'ave_corte', 'aquicultura_lote', 'apicultura'];
 
 /** Perfis que exigem nome (pets). */
@@ -395,7 +415,7 @@ onMounted(() => {
             :subtitle="modoNascimento ? 'Cadastre o novo animal que acabou de nascer na fazenda.' : ''"
         >
             <template #actions>
-                <Link :href="route('admin.rebanho.animais.index')" class="btn-outline">Voltar</Link>
+                <Link :href="voltarUrl" class="btn-outline">Voltar</Link>
             </template>
         </PageHeader>
 
@@ -646,7 +666,7 @@ onMounted(() => {
             </div>
 
             <div class="flex justify-end gap-2">
-                <Link :href="route('admin.rebanho.animais.index')" class="btn-outline">Cancelar</Link>
+                <Link :href="voltarUrl" class="btn-outline">Cancelar</Link>
                 <button type="submit" class="btn-primary" :disabled="form.processing">Salvar</button>
             </div>
         </form>

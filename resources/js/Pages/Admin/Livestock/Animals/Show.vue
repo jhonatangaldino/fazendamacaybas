@@ -662,8 +662,10 @@ watch(tiposPermitidosNoModal, (lista) => {
         <PageHeader :title="`${animal.identificacao}${animal.nome ? ' — ' + animal.nome : ''}`"
                     subtitle="Histórico completo e evolução do animal">
             <template #actions>
-                <Link :href="route('admin.rebanho.animais.index')" class="btn-outline">← Voltar</Link>
-                <Link :href="route('admin.rebanho.animais.edit', animal.id)" class="btn-outline">Editar cadastro</Link>
+                <!-- Voltar respeita o filtro de espécie (lista filtrada) e Editar avisa
+                     ao Form que veio do show (?from=show) → Cancel volta pro show. -->
+                <Link :href="route('admin.rebanho.animais.index', { species_id: animal.species_id })" class="btn-outline">← Voltar</Link>
+                <Link :href="route('admin.rebanho.animais.edit', { animal: animal.id, from: 'show' })" class="btn-outline">Editar cadastro</Link>
                 <button @click="abrirEvento('pesagem')" class="btn-primary">+ Novo evento</button>
             </template>
         </PageHeader>

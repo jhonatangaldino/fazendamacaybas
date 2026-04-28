@@ -84,7 +84,15 @@ class AnimalController extends Controller
 
         // KPIs base (todos os profiles): ativos, sexo, peso médio, vendidos/baixas mês
         $animaisQuery = Animal::where('species_id', $species->id);
-        $totalAtivos = (clone $animaisQuery)->where('status', 'ativo')->count();
+
+        // Para gestao=lote (Ave/Peixe), "ativos" é a SOMA de quantidade_atual
+        // dos lotes ativos. Sem isso o dashboard mostrava "0 ativos" mesmo
+        // com 300 peixes em 2 lotes — bug detectado pelo usuário.
+        $totalAtivos = $species->gestao === 'lote'
+            ? (int) \App\Models\Livestock\AnimalLot::where('species_id', $species->id)
+                ->where('is_active', true)
+                ->sum('quantidade_atual')
+            : (clone $animaisQuery)->where('status', 'ativo')->count();
         $sexoM = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'M')->count();
         $sexoF = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'F')->count();
         $vendidosMes = (clone $animaisQuery)->where('status', 'vendido')
@@ -128,7 +136,8 @@ class AnimalController extends Controller
                   ->orWhereHas('animals', fn ($qq) => $qq->where('species_id', $species->id)->where('status', 'ativo'));
             })
             ->orderBy('nome')
-            ->get(['id', 'nome', 'gestao_modo', 'quantidade_atual']);
+            // Inclui species_id e codigo pro modal de evento agregado filtrar e exibir.
+            ->get(['id', 'nome', 'codigo', 'species_id', 'gestao_modo', 'quantidade_atual']);
 
         // Pra espécies de gestão lote (Ave/Peixe), o "total ativos" não vem
         // da contagem de Animal — vem da soma de quantidade_atual dos lotes
@@ -145,14 +154,22 @@ class AnimalController extends Controller
 
         // Lista enxuta de animais ativos pro modal de evento rápido.
         // Limita a 500 — fazendas maiores que isso usam o "Ver todos".
+        // Inclui peso_atual + categoria + lot/location pra ajudar o usuário
+        // a identificar o animal certo no combobox (bug detectado pelo dono:
+        // "se o responsavel nao souber qual nome do animal?").
         $animaisLista = (clone $animaisQuery)->where('status', 'ativo')
+            ->with(['lot:id,nome', 'location:id,nome,tipo'])
             ->orderBy('identificacao')
             ->limit(500)
-            ->get(['id', 'identificacao', 'nome'])
+            ->get(['id', 'identificacao', 'nome', 'categoria', 'peso_atual', 'lot_id', 'location_id'])
             ->map(fn ($a) => [
                 'id' => $a->id,
                 'identificacao' => $a->identificacao,
                 'nome' => $a->nome,
+                'categoria' => $a->categoria,
+                'peso_atual' => $a->peso_atual,
+                'lot' => $a->lot ? ['id' => $a->lot->id, 'nome' => $a->lot->nome] : null,
+                'location' => $a->location ? ['id' => $a->location->id, 'nome' => $a->location->nome, 'tipo' => $a->location->tipo] : null,
             ])->values();
 
         // Dados pros gráficos (Chart.js no front)
@@ -332,6 +349,24 @@ class AnimalController extends Controller
     {
         $profile = $species->profile;
 
+        // Bovino tem profile=ruminante_corte mas pode ter animais com categoria=leite
+        // (Holandesa, Girolando, Jersey). Se houver, exibe os indicadores de leite
+        // mesmo no profile de corte. Critério: existe ≥1 animal leite/misto na espécie
+        // OU já houve ordenha registrada nessa espécie.
+        $temManejoLeiteiroEspecie = false;
+        if ($profile === 'ruminante_corte' || $profile === 'ruminante_leite') {
+            $temManejoLeiteiroEspecie = Animal::where('species_id', $species->id)
+                ->whereIn('categoria', ['leite', 'misto'])
+                ->exists()
+                || AnimalEvent::whereHas('animal', fn ($q) => $q->where('species_id', $species->id))
+                    ->whereIn('tipo', ['controle_leiteiro', 'ordenha'])
+                    ->exists();
+        }
+        // Promove profile para 'ruminante_leite' quando há manejo leiteiro detectado
+        if ($temManejoLeiteiroEspecie && $profile !== 'ruminante_leite') {
+            $profile = 'ruminante_leite';
+        }
+
         if ($profile === 'ruminante_leite') {
             // Litros mês atual + comparação com mês anterior + vacas em lactação
             $animalIds = Animal::where('species_id', $species->id)
@@ -359,7 +394,9 @@ class AnimalController extends Controller
             return [
                 'profile' => 'ruminante_leite',
                 'titulo' => '🥛 Indicadores de produção leiteira',
-                'link' => route('admin.rebanho.controle-leiteiro.dashboard'),
+                // Preserva species_id pra o controle leiteiro filtrar pela espécie
+                // certa (Búfalo não pode mostrar vacas — bug detectado pelo usuário).
+                'link' => route('admin.rebanho.controle-leiteiro.dashboard', ['species_id' => $species->id]),
                 'link_label' => 'Ver dashboard completo',
                 'cards' => [
                     ['label' => 'Litros este mês', 'valor' => round($litrosMesAtual, 1).' L', 'cor' => 'sky', 'icon' => '🥛'],
@@ -461,7 +498,13 @@ class AnimalController extends Controller
                 ];
             }),
             'filters' => $request->only(['search', 'species_id', 'lot_id', 'location_id', 'status', 'categoria']),
-            'species' => AnimalSpecies::where('is_active', true)->get(['id', 'nome']),
+            // withoutGlobalScopes pra catálogo global (BelongsToTenantScope
+            // travaria pra tenants ≠ 1). Senão o select de filtro fica vazio
+            // e o usuário não vê qual espécie está filtrada (UX quebrado).
+            'species' => AnimalSpecies::withoutGlobalScopes()
+                ->where('is_active', true)
+                ->orderBy('nome')
+                ->get(['id', 'nome']),
             'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome']),
             'locations' => AnimalLocation::ativos()->orderBy('tipo')->orderBy('nome')->get(['id', 'nome', 'tipo']),
             // Resumo de valor — 1 query agregada ajuda o dono a saber
@@ -523,8 +566,11 @@ class AnimalController extends Controller
             $animal->update(['photo_path' => $path]);
         }
 
+        // UX: preserva contexto da espécie para o usuário enxergar o animal
+        // recém-cadastrado na lista filtrada (e poder cadastrar mais um do
+        // mesmo tipo sem perder o filtro).
         return redirect()
-            ->route('admin.rebanho.animais.index')
+            ->route('admin.rebanho.animais.index', ['species_id' => $animal->species_id])
             ->with('success', 'Animal cadastrado.')
             ->with('created_animal_id', $animal->id);
     }
@@ -546,7 +592,19 @@ class AnimalController extends Controller
 
         $animal->update($data);
 
-        return redirect()->route('admin.rebanho.animais.index')->with('success', 'Animal atualizado.');
+        // Se o usuário veio do SHOW (link "Editar cadastro" do perfil do animal
+        // passa ?from=show), redirect VOLTA pra mesma tela onde estava — fluxo
+        // mental coeso: estava vendo o perfil, editou, vê o perfil atualizado.
+        // Caso contrário, volta pra lista filtrada por species_id.
+        if ($request->query('from') === 'show') {
+            return redirect()
+                ->route('admin.rebanho.animais.show', $animal->id)
+                ->with('success', 'Animal atualizado.');
+        }
+
+        return redirect()
+            ->route('admin.rebanho.animais.index', ['species_id' => $animal->species_id])
+            ->with('success', 'Animal atualizado.');
     }
 
     public function destroy(Animal $animal)
@@ -631,7 +689,9 @@ class AnimalController extends Controller
      */
     protected function validateDomainCoherence(array $data, ?Animal $existing): ?string
     {
-        $species = AnimalSpecies::find($data['species_id'] ?? null);
+        // withoutGlobalScopes — catálogo é global (tenant_id=1), sem isso
+        // o validator falharia pra todo tenant ≠ 1.
+        $species = AnimalSpecies::withoutGlobalScopes()->find($data['species_id'] ?? null);
         if (! $species) {
             return null; // já validado pelo 'exists' do validator base
         }
@@ -1022,6 +1082,9 @@ class AnimalController extends Controller
             'ordenhas.*.label' => ['nullable', 'string', 'max:20'],
             'ordenhas.*.litros' => ['nullable', 'numeric', 'min:0', 'max:99.99'],
             'producao_litros' => ['nullable', 'numeric', 'min:0', 'max:299.99'],
+            // Ordenha — manhã/tarde separados (padrão DROVET)
+            'litros_manha' => ['nullable', 'numeric', 'min:0', 'max:99.99'],
+            'litros_tarde' => ['nullable', 'numeric', 'min:0', 'max:99.99'],
             // Novos · exame de toque (palpação)
             'gestacao_status' => ['nullable', 'in:prenhe,vazia,duvida'],
             'gestacao_dias' => ['nullable', 'integer', 'min:0', 'max:340'],
@@ -1088,6 +1151,17 @@ class AnimalController extends Controller
         // Se qualquer etapa falhar (FK violation, erro no service), rollback
         // de tudo — nunca deixa estado inconsistente entre Livestock e Financeiro.
         $event = DB::transaction(function () use ($animal, $data, $request, $sale) {
+            // Ordenha — consolida produção total a partir de manhã+tarde
+            // (o front pode mandar só breakdown ou só total — backend resolve).
+            if ($data['tipo'] === 'ordenha') {
+                $manha = (float) ($data['litros_manha'] ?? 0);
+                $tarde = (float) ($data['litros_tarde'] ?? 0);
+                $somaBreakdown = $manha + $tarde;
+                if ($somaBreakdown > 0 && empty($data['producao_litros'])) {
+                    $data['producao_litros'] = $somaBreakdown;
+                }
+            }
+
             $event = $animal->events()->create([
                 ...$data,
                 'lot_id' => $animal->lot_id,

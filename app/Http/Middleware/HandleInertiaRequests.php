@@ -185,11 +185,21 @@ class HandleInertiaRequests extends Middleware
                             ->orderBy('nome')
                             ->get(['id', 'nome', 'slug', 'gestao', 'profile']);
 
-                        $counts = \DB::table('animals')
+                        // Animais individuais (gestao=individual)
+                        $countsIndividual = \DB::table('animals')
                             ->select('species_id', \DB::raw('COUNT(*) as cnt'))
                             ->where('status', 'ativo')
                             ->where('tenant_id', $effectiveTenantId)
                             ->whereIn('species_id', $species->pluck('id'))
+                            ->groupBy('species_id')
+                            ->pluck('cnt', 'species_id');
+
+                        // Cabeças em lotes agregados (gestao=lote — Ave/Peixe).
+                        // Sem isso a sidebar mostra "Ave: 0" mesmo com 2581 cabeças.
+                        $countsAgregado = \DB::table('animal_lots')
+                            ->select('species_id', \DB::raw('COALESCE(SUM(quantidade_atual), 0) as cnt'))
+                            ->where('is_active', true)
+                            ->whereIn('species_id', $species->where('gestao', 'lote')->pluck('id'))
                             ->groupBy('species_id')
                             ->pluck('cnt', 'species_id');
 
@@ -199,7 +209,11 @@ class HandleInertiaRequests extends Middleware
                             'slug' => $s->slug,
                             'gestao' => $s->gestao,
                             'profile' => $s->profile,
-                            'animals_count' => (int) ($counts[$s->id] ?? 0),
+                            // Para gestao=lote, conta SOMA de quantidade_atual dos lotes;
+                            // para individual, conta animals.
+                            'animals_count' => $s->gestao === 'lote'
+                                ? (int) ($countsAgregado[$s->id] ?? 0)
+                                : (int) ($countsIndividual[$s->id] ?? 0),
                         ])->all();
                     }
                 );

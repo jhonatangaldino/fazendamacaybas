@@ -36,6 +36,7 @@ class AnimalLotController extends Controller
     public function index(Request $request): Response
     {
         $q = AnimalLot::query()
+            ->with('species:id,nome,slug,gestao')
             ->withCount('animals as animais_count')
             ->orderBy('nome');
 
@@ -46,10 +47,20 @@ class AnimalLotController extends Controller
             });
         }
 
+        // Filtro por espécie — preserva contexto após cadastro/edição
+        // (vindo de dashboard de espécie lote ou form com species_id).
+        if ($speciesId = $request->integer('species_id')) {
+            $q->where('species_id', $speciesId);
+        }
+
         return Inertia::render('Admin/Livestock/Lots/Index', [
             'lots' => $q->paginate(30)->withQueryString(),
-            'filters' => $request->only(['q']),
+            'filters' => $request->only(['q', 'species_id']),
             'finalidades' => self::FINALIDADES,
+            'species' => \App\Models\Livestock\AnimalSpecies::withoutGlobalScopes()
+                ->where('is_active', true)
+                ->orderBy('nome')
+                ->get(['id', 'nome', 'slug', 'gestao']),
         ]);
     }
 
@@ -86,9 +97,15 @@ class AnimalLotController extends Controller
                 $data['quantidade_atual'] = $data['quantidade_inicial'];
             }
         }
-        AnimalLot::create($data);
+        $lote = AnimalLot::create($data);
 
-        return redirect()->route('admin.rebanho.lotes.index')
+        // Preserva contexto da espécie no redirect (consistente com Animals).
+        $params = [];
+        if (! empty($lote->species_id)) {
+            $params['species_id'] = $lote->species_id;
+        }
+
+        return redirect()->route('admin.rebanho.lotes.index', $params)
             ->with('success', 'Lote criado.');
     }
 
@@ -145,6 +162,12 @@ class AnimalLotController extends Controller
             'lot' => $lote,
             'farms' => Farm::orderBy('nome')->get(['id', 'nome']),
             'finalidades' => self::FINALIDADES,
+            // Sem species[], o Form não detecta isLoteAgregado e esconde
+            // os campos quantidade/peso médio (Ave/Peixe). Bug pego no QA.
+            'species' => \App\Models\Livestock\AnimalSpecies::withoutGlobalScopes()
+                ->where('is_active', true)
+                ->orderBy('nome')
+                ->get(['id', 'nome', 'slug', 'gestao', 'profile']),
         ]);
     }
 
@@ -153,7 +176,12 @@ class AnimalLotController extends Controller
         $data = $this->validated($request, $lote->id);
         $lote->update($data);
 
-        return redirect()->route('admin.rebanho.lotes.index')
+        $params = [];
+        if (! empty($lote->species_id)) {
+            $params['species_id'] = $lote->species_id;
+        }
+
+        return redirect()->route('admin.rebanho.lotes.index', $params)
             ->with('success', 'Lote atualizado.');
     }
 

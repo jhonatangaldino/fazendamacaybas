@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -66,11 +66,18 @@ const linkNovoAnimal = computed(() => {
     const params = especieAtiva.value ? { species_id: especieAtiva.value.id } : {};
     return route('admin.rebanho.animais.create', params);
 });
+// species_id, lot_id, location_id chegam como STRING no query (?species_id=1)
+// mas o <option :value="s.id"> usa o number. Sem cast o select renderiza
+// vazio (UX: usuário não vê que está filtrado). Cast pra number sempre.
+const toNumOrEmpty = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : '';
+};
 const filtros = reactive({
     search: props.filters?.search ?? '',
-    species_id: props.filters?.species_id ?? '',
-    lot_id: props.filters?.lot_id ?? '',
-    location_id: props.filters?.location_id ?? '',
+    species_id: toNumOrEmpty(props.filters?.species_id),
+    lot_id: toNumOrEmpty(props.filters?.lot_id),
+    location_id: toNumOrEmpty(props.filters?.location_id),
     status: props.filters?.status ?? '',
     categoria: props.filters?.categoria ?? '',
 });
@@ -157,6 +164,16 @@ function confirmarEventoRapido() {
 // =========================================================================
 const vendaAberta = ref(false);
 useBodyScrollLock(computed(() => !!eventoRapido.value || vendaAberta.value));
+
+// ESC fecha modais inline da página (eventoRapido + vendaAberta).
+// ConfirmModal já tem ESC próprio via componente.
+function handleEsc(e) {
+    if (e.key !== 'Escape') return;
+    if (eventoRapido.value) { e.stopPropagation(); eventoRapido.value = null; return; }
+    if (vendaAberta.value) { e.stopPropagation(); vendaAberta.value = false; return; }
+}
+onMounted(() => window.addEventListener('keydown', handleEsc));
+onBeforeUnmount(() => window.removeEventListener('keydown', handleEsc));
 // ⚠ `data` colide com método .data() do useForm — usar data_venda + transform
 const vendaForm = useForm({
     animal_ids: [], data_venda: '', partner_id: null, observacoes: '',
@@ -531,6 +548,16 @@ function doDelete() {
                     <ActionIcon type="delete" title="Excluir" @click="confirmDelete = row" />
                 </div>
             </div>
+        </div>
+
+        <!-- Paginação — bug crítico: sem isso, com >25 animais o user só via os primeiros e
+             não tinha como acessar o resto. Backend já paginate(25); só faltava renderizar links. -->
+        <div v-if="animals.links && animals.links.length > 3" class="mt-4 flex gap-2 flex-wrap justify-end">
+            <Link v-for="link in animals.links" :key="link.label"
+                  :href="link.url ?? '#'"
+                  v-html="link.label"
+                  :class="['btn-outline btn-sm', link.active ? '!bg-macaybas-primary !text-white !border-transparent' : '', !link.url ? 'opacity-40 pointer-events-none' : '']"
+                  :preserve-state="true" :preserve-scroll="true" only="['animals']" />
         </div>
 
         <ConfirmModal :show="!!confirmDelete" title="Excluir animal"

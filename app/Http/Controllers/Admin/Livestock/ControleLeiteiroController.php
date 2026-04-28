@@ -43,21 +43,37 @@ class ControleLeiteiroController extends Controller
         $inicioMes = $mesRef->copy()->startOfMonth();
         $fimMes    = $mesRef->copy()->endOfMonth();
 
-        // ── Vacas em lactação no mês: têm pelo menos um evento de
-        // controle_leiteiro OU ordenha dentro do intervalo.
-        $eventosLeite = AnimalEvent::whereIn('tipo', ['controle_leiteiro', 'ordenha'])
+        // Filtro por espécie (Bovino, Búfalo, Caprino…). Sem filtro mistura
+        // todas e o usuário do dashboard de Búfalo via vacas (bug detectado em QA).
+        $speciesId = $request->integer('species_id') ?: null;
+        $species = null;
+        if ($speciesId) {
+            $species = \App\Models\Livestock\AnimalSpecies::withoutGlobalScopes()->find($speciesId);
+        }
+
+        // ── Animais em lactação no mês: têm pelo menos um evento de
+        // controle_leiteiro OU ordenha dentro do intervalo + species do filtro.
+        $eventosLeiteQuery = AnimalEvent::whereIn('tipo', ['controle_leiteiro', 'ordenha'])
             ->whereBetween('data', [$inicioMes->toDateString(), $fimMes->toDateString()])
-            ->whereNotNull('animal_id')
+            ->whereNotNull('animal_id');
+
+        if ($speciesId) {
+            $animalIdsDaEspecie = Animal::where('species_id', $speciesId)->pluck('id');
+            $eventosLeiteQuery->whereIn('animal_id', $animalIdsDaEspecie);
+        }
+
+        $eventosLeite = $eventosLeiteQuery
             ->orderBy('data')
             ->get(['id', 'animal_id', 'data', 'producao_litros', 'ordenhas', 'observacoes']);
 
         $animalIds = $eventosLeite->pluck('animal_id')->unique()->values();
 
-        // Dados das vacas em lactação (ordem por identificação)
-        $vacas = Animal::whereIn('id', $animalIds)
+        // Dados das fêmeas em lactação (ordem por identificação)
+        $vacasQuery = Animal::whereIn('id', $animalIds)
             ->with(['breed:id,nome', 'lot:id,nome'])
-            ->orderBy('identificacao')
-            ->get(['id', 'identificacao', 'nome', 'sexo', 'breed_id', 'lot_id', 'data_nascimento']);
+            ->orderBy('identificacao');
+        if ($speciesId) $vacasQuery->where('species_id', $speciesId);
+        $vacas = $vacasQuery->get(['id', 'identificacao', 'nome', 'sexo', 'breed_id', 'lot_id', 'data_nascimento']);
 
         // Indexa eventos por animal para lookup rápido
         $eventosPorAnimal = $eventosLeite->groupBy('animal_id');
@@ -101,10 +117,10 @@ class ControleLeiteiroController extends Controller
         })->values();
 
         // ── Contagem de categorias no dia do controle (último dia do mês)
-        $contagem = $this->contarCategorias($fimMes);
+        $contagem = $this->contarCategorias($fimMes, $speciesId);
 
         // ── Histórico dos últimos 12 meses
-        $historico = $this->historicoMensal($mesRef);
+        $historico = $this->historicoMensal($mesRef, $speciesId);
 
         // ── Totais do mês
         $totalLitrosMes  = $linhas->sum('total_litros');
@@ -114,6 +130,20 @@ class ControleLeiteiroController extends Controller
         // Maior produtora do mês
         $top = $linhas->sortByDesc('total_litros')->first();
         $topProdutora = $top && $top['total_litros'] > 0 ? $top : null;
+
+        // Labels adaptam à espécie ("Vacas" → "Búfalas" → "Cabras")
+        $labelFemea = match (true) {
+            $species?->slug === 'bufalo'  => 'Búfalas',
+            $species?->slug === 'caprino' => 'Cabras',
+            $species?->slug === 'ovino'   => 'Ovelhas',
+            default                        => 'Vacas',
+        };
+        $labelCriaF = match (true) {
+            $species?->slug === 'bufalo'  => 'Bezerras (búfalas)',
+            $species?->slug === 'caprino' => 'Cabritas',
+            $species?->slug === 'ovino'   => 'Cordeiras',
+            default                        => 'Bezerras',
+        };
 
         return Inertia::render('Admin/Livestock/ControleLeiteiro/Dashboard', [
             'mes_ref'           => $mesRef->format('Y-m'),
@@ -125,6 +155,13 @@ class ControleLeiteiroController extends Controller
             'linhas'            => $linhas,
             'contagem'          => $contagem,
             'historico'         => $historico,
+            'species'           => $species ? [
+                'id' => $species->id,
+                'nome' => $species->nome,
+                'slug' => $species->slug,
+            ] : null,
+            'label_femea'       => $labelFemea,    // "Vacas" / "Búfalas" / "Cabras"
+            'label_cria_f'      => $labelCriaF,    // "Bezerras" / "Cabritas" / "Cordeiras"
             'totais' => [
                 'total_litros_mes'  => round($totalLitrosMes, 1),
                 'vacas_ordenhadas'  => $vacasOrdenhadas,
@@ -145,11 +182,12 @@ class ControleLeiteiroController extends Controller
      *   - bezerras:    F + idade ≤ 12 meses
      *   - machos:      M (qualquer idade)
      */
-    private function contarCategorias(Carbon $dataRef): array
+    private function contarCategorias(Carbon $dataRef, ?int $speciesId = null): array
     {
-        $animais = Animal::where('status', 'ativo')
-            ->select('id', 'sexo', 'data_nascimento')
-            ->get();
+        $q = Animal::where('status', 'ativo')
+            ->select('id', 'sexo', 'data_nascimento');
+        if ($speciesId) $q->where('species_id', $speciesId);
+        $animais = $q->get();
 
         $vacasSecas = 0;
         $novilhas   = 0;
@@ -216,18 +254,23 @@ class ControleLeiteiroController extends Controller
      * Histórico dos últimos 12 meses (do mês de referência pra trás).
      * Para cada mês: total de litros e nº de vacas ordenhadas.
      */
-    private function historicoMensal(Carbon $mesRef): array
+    private function historicoMensal(Carbon $mesRef, ?int $speciesId = null): array
     {
         $rows = [];
+        $animalIdsDaEspecie = null;
+        if ($speciesId) {
+            $animalIdsDaEspecie = Animal::where('species_id', $speciesId)->pluck('id');
+        }
         for ($i = 11; $i >= 0; $i--) {
             $m = $mesRef->copy()->subMonths($i)->startOfMonth();
             $inicio = $m->copy()->startOfMonth()->toDateString();
             $fim    = $m->copy()->endOfMonth()->toDateString();
 
-            $eventos = AnimalEvent::whereIn('tipo', ['controle_leiteiro', 'ordenha'])
+            $q = AnimalEvent::whereIn('tipo', ['controle_leiteiro', 'ordenha'])
                 ->whereBetween('data', [$inicio, $fim])
-                ->whereNotNull('animal_id')
-                ->get(['animal_id', 'producao_litros', 'ordenhas']);
+                ->whereNotNull('animal_id');
+            if ($animalIdsDaEspecie) $q->whereIn('animal_id', $animalIdsDaEspecie);
+            $eventos = $q->get(['animal_id', 'producao_litros', 'ordenhas']);
 
             $totalLitros = 0;
             foreach ($eventos as $ev) {

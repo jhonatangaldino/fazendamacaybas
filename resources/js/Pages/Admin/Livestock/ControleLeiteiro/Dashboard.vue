@@ -15,6 +15,9 @@ const props = defineProps({
     contagem:          { type: Object, required: true },
     historico:         { type: Array,  required: true },
     totais:            { type: Object, required: true },
+    species:           { type: Object, default: null },     // {id, nome, slug}
+    label_femea:       { type: String, default: 'Vacas' },   // Búfalas / Cabras / Ovelhas
+    label_cria_f:      { type: String, default: 'Bezerras' },
 });
 
 const isMesAtual = computed(() => props.mes_ref === props.mes_atual);
@@ -41,15 +44,15 @@ function fmtNum(n, casas = 1) {
         <template #page-title>Rebanho · Controle Leiteiro</template>
 
         <PageHeader
-            :title="`Controle Leiteiro · ${mes_label}`"
-            subtitle="Quadro mensal DROVET+ — produção por vaca, contagem de categorias e histórico"
+            :title="`Controle Leiteiro${species ? ' · '+species.nome : ''} · ${mes_label}`"
+            :subtitle="`Quadro mensal DROVET+ — produção por ${label_femea.toLowerCase().slice(0,-1)}, contagem de categorias e histórico`"
         >
             <template #actions>
-                <Link :href="route('admin.rebanho.controle-leiteiro.dashboard', { mes: mes_anterior })"
+                <Link :href="route('admin.rebanho.controle-leiteiro.dashboard', species ? { mes: mes_anterior, species_id: species.id } : { mes: mes_anterior })"
                       class="btn-outline" title="Mês anterior">←</Link>
-                <Link v-if="!isMesAtual" :href="route('admin.rebanho.controle-leiteiro.dashboard')"
+                <Link v-if="!isMesAtual" :href="route('admin.rebanho.controle-leiteiro.dashboard', species ? { species_id: species.id } : {})"
                       class="btn-outline">Hoje</Link>
-                <Link :href="route('admin.rebanho.controle-leiteiro.dashboard', { mes: mes_posterior })"
+                <Link :href="route('admin.rebanho.controle-leiteiro.dashboard', species ? { mes: mes_posterior, species_id: species.id } : { mes: mes_posterior })"
                       class="btn-outline" title="Mês seguinte">→</Link>
                 <Link :href="route('admin.fluxos.controle-leiteiro')" class="btn-primary">
                     + Novo controle do mês
@@ -68,7 +71,7 @@ function fmtNum(n, casas = 1) {
                 <div class="text-xs text-slate-500 mt-1">litros produzidos</div>
             </div>
             <div class="card p-4">
-                <div class="text-xs uppercase tracking-wider font-semibold text-slate-500">Vacas ordenhadas</div>
+                <div class="text-xs uppercase tracking-wider font-semibold text-slate-500">{{ label_femea }} ordenhadas</div>
                 <div class="text-3xl font-bold text-slate-900 mt-1">
                     {{ totais.vacas_ordenhadas }}
                 </div>
@@ -190,11 +193,11 @@ function fmtNum(n, casas = 1) {
                         <div class="text-2xl mb-1">🥛</div>
                         <div class="text-xs uppercase tracking-wider font-semibold text-amber-800">Em lactação</div>
                         <div class="text-3xl font-bold text-amber-900 mt-1">{{ contagem.vacas_lactacao }}</div>
-                        <div class="text-xs text-amber-700 mt-1">vacas produzindo</div>
+                        <div class="text-xs text-amber-700 mt-1">{{ label_femea.toLowerCase() }} produzindo</div>
                     </div>
                     <div class="rounded-xl ring-2 ring-sky-200 bg-sky-50 p-4">
                         <div class="text-2xl mb-1">💧</div>
-                        <div class="text-xs uppercase tracking-wider font-semibold text-sky-800">Vacas Secas</div>
+                        <div class="text-xs uppercase tracking-wider font-semibold text-sky-800">{{ label_femea }} Secas</div>
                         <div class="text-3xl font-bold text-sky-900 mt-1">{{ contagem.vacas_secas }}</div>
                         <div class="text-xs text-sky-700 mt-1">não estão dando leite</div>
                     </div>
@@ -206,9 +209,9 @@ function fmtNum(n, casas = 1) {
                     </div>
                     <div class="rounded-xl ring-2 ring-pink-200 bg-pink-50 p-4">
                         <div class="text-2xl mb-1">🐮</div>
-                        <div class="text-xs uppercase tracking-wider font-semibold text-pink-800">Bezerras</div>
+                        <div class="text-xs uppercase tracking-wider font-semibold text-pink-800">{{ label_cria_f }}</div>
                         <div class="text-3xl font-bold text-pink-900 mt-1">{{ contagem.bezerras }}</div>
-                        <div class="text-xs text-pink-700 mt-1">terneiras até 1 ano</div>
+                        <div class="text-xs text-pink-700 mt-1">filhotes fêmeas até 1 ano</div>
                     </div>
                     <div class="rounded-xl ring-2 ring-slate-200 bg-slate-50 p-4">
                         <div class="text-2xl mb-1">🐂</div>

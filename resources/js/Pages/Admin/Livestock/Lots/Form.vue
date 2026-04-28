@@ -44,6 +44,13 @@ const selectedSpecies = computed(() =>
 const isLoteAgregado = computed(() => selectedSpecies.value?.gestao === 'lote');
 const speciesEmoji = computed(() => selectedSpecies.value ? emojiEspecie(selectedSpecies.value.nome) : '🏷');
 
+// Voltar/Cancelar preserva species_id pra não perder contexto (Ave/Peixe).
+const voltarUrl = computed(() => {
+    return form.species_id
+        ? route('admin.rebanho.lotes.index', { species_id: form.species_id })
+        : route('admin.rebanho.lotes.index');
+});
+
 function submit() {
     if (isEdit) {
         form.put(route('admin.rebanho.lotes.update', props.lot.id));
@@ -63,7 +70,7 @@ function submit() {
             :subtitle="isEdit ? 'Ajuste os dados e salve.' : 'Um lote agrupa animais por finalidade comum. Exemplo: \'Engorda Q1 2026\', \'Vacas leiteiras\'.'"
         >
             <template #actions>
-                <Link :href="route('admin.rebanho.lotes.index')" class="btn-outline">← Voltar</Link>
+                <Link :href="voltarUrl" class="btn-outline">← Voltar</Link>
             </template>
         </PageHeader>
 
@@ -161,7 +168,7 @@ function submit() {
                 </label>
 
                 <div class="flex justify-end gap-3 pt-4">
-                    <Link :href="route('admin.rebanho.lotes.index')" class="btn-outline">Cancelar</Link>
+                    <Link :href="voltarUrl" class="btn-outline">Cancelar</Link>
                     <button type="submit" :disabled="form.processing" class="btn-primary">
                         {{ form.processing ? 'Salvando…' : (isEdit ? 'Salvar alterações' : 'Criar lote') }}
                     </button>

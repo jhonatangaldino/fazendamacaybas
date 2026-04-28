@@ -37,11 +37,15 @@ class AnimalLotEventController extends Controller
     public function store(Request $request, AnimalLot $lot): RedirectResponse
     {
         $data = $request->validate([
-            'tipo' => ['required', 'in:pesagem,vacinacao,medicacao,vermifugacao,mortalidade,observacao,biometria_amostral,postura_diaria,alimentacao,qualidade_agua'],
+            'tipo' => ['required', 'in:pesagem,vacinacao,medicacao,vermifugacao,mortalidade,observacao,biometria_amostral,postura_diaria,alimentacao,qualidade_agua,movimentacao'],
             'data' => ['required', 'date', 'before_or_equal:today'],
-            'quantidade_animais' => ['required', 'integer', 'min:1'],
+            // quantidade_animais: pra eventos que se aplicam ao LOTE INTEIRO
+            // (postura, biometria, qualidade água, alimentação) é opcional —
+            // default = quantidade_atual do lote.
+            'quantidade_animais' => ['nullable', 'integer', 'min:1'],
+            'quantidade_baixa' => ['nullable', 'integer', 'min:1'], // alias usado em mortalidade
 
-            // Pesagem amostral/biomassa: peso é peso médio CALCULADO (já vem do front)
+            // Pesagem amostral/biomassa: peso é peso médio CALCULADO
             'peso' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
 
             // Vacina/medicação/vermífugo
@@ -51,15 +55,51 @@ class AnimalLotEventController extends Controller
             'via_aplicacao' => ['nullable', 'string', 'max:30'],
             'responsavel' => ['nullable', 'string', 'max:120'],
 
+            // Eventos agregados específicos
+            'quantidade_ovos' => ['nullable', 'integer', 'min:0'],
+            'peso_medio_amostra' => ['nullable', 'numeric', 'min:0'],
+            'quantidade_amostra' => ['nullable', 'integer', 'min:1'],
+            'kg_racao' => ['nullable', 'numeric', 'min:0'],
+            'ph' => ['nullable', 'numeric', 'min:0', 'max:14'],
+            'temperatura_agua' => ['nullable', 'numeric', 'min:0', 'max:60'],
+            'oxigenio_dissolvido' => ['nullable', 'numeric', 'min:0'],
+
             'observacoes' => ['nullable', 'string'],
         ], [
             'data.before_or_equal' => 'A data do evento não pode ser futura.',
-            'quantidade_animais.min' => 'Informe pelo menos 1 animal.',
         ]);
 
+        // Default qtde para eventos que afetam lote inteiro
+        $qtdeAfetada = $data['quantidade_animais'] ?? null;
+        if ($data['tipo'] === 'mortalidade') {
+            $qtdeAfetada = $data['quantidade_baixa'] ?? $qtdeAfetada;
+            if (empty($qtdeAfetada)) {
+                return back()->with('error', 'Mortalidade exige a quantidade de baixas.');
+            }
+        }
+        // Eventos de manejo do lote inteiro (não exigem qtde do user)
+        if (in_array($data['tipo'], ['postura_diaria', 'biometria_amostral', 'qualidade_agua', 'alimentacao'], true)) {
+            $qtdeAfetada = $qtdeAfetada ?? $lot->quantidade_atual;
+        }
+        if (empty($qtdeAfetada)) {
+            return back()->with('error', 'Informe quantos animais foram afetados pelo evento.');
+        }
+
         // Validações de domínio condicional
-        if ($data['tipo'] === 'pesagem' && empty($data['peso'])) {
-            return back()->with('error', 'Pesagem do lote exige o peso médio calculado.');
+        if ($data['tipo'] === 'pesagem' && empty($data['peso']) && empty($data['peso_medio_amostra'])) {
+            return back()->with('error', 'Pesagem do lote exige o peso médio.');
+        }
+        if ($data['tipo'] === 'biometria_amostral' && empty($data['peso_medio_amostra'])) {
+            return back()->with('error', 'Biometria amostral exige o peso médio da amostra.');
+        }
+        if ($data['tipo'] === 'postura_diaria' && empty($data['quantidade_ovos'])) {
+            return back()->with('error', 'Postura diária exige a quantidade de ovos.');
+        }
+        if ($data['tipo'] === 'alimentacao' && empty($data['kg_racao'])) {
+            return back()->with('error', 'Alimentação exige a quantidade de ração (kg).');
+        }
+        if ($data['tipo'] === 'qualidade_agua' && (! isset($data['ph']) || $data['ph'] === '')) {
+            return back()->with('error', 'Qualidade da água exige pelo menos o pH.');
         }
         if ($data['tipo'] === 'vacinacao' && empty($data['vacina'])) {
             return back()->with('error', 'Vacinação exige o nome da vacina.');
@@ -69,40 +109,47 @@ class AnimalLotEventController extends Controller
         }
 
         // Quantidade não pode passar do efetivo atual
-        if ($data['quantidade_animais'] > $lot->quantidade_atual) {
-            return back()->with('error', "Você informou {$data['quantidade_animais']} animais mas o lote tem apenas {$lot->quantidade_atual}.");
+        if ($qtdeAfetada > $lot->quantidade_atual) {
+            return back()->with('error', "Você informou {$qtdeAfetada} animais mas o lote tem apenas {$lot->quantidade_atual}.");
         }
 
-        DB::transaction(function () use ($lot, $data, $request) {
+        DB::transaction(function () use ($lot, $data, $request, $qtdeAfetada) {
             AnimalEvent::create([
                 'animal_id' => null,
                 'lot_id' => $lot->id,
-                'quantidade_animais' => $data['quantidade_animais'],
+                'quantidade_animais' => $qtdeAfetada,
                 'tipo' => $data['tipo'],
                 'data' => $data['data'],
-                'peso' => $data['peso'] ?? null,
+                'peso' => $data['peso'] ?? $data['peso_medio_amostra'] ?? null,
                 'vacina' => $data['vacina'] ?? null,
                 'medicamento' => $data['medicamento'] ?? null,
                 'dose' => $data['dose'] ?? null,
                 'via_aplicacao' => $data['via_aplicacao'] ?? null,
                 'responsavel' => $data['responsavel'] ?? null,
                 'observacoes' => $data['observacoes'] ?? null,
+                'quantidade_ovos' => $data['quantidade_ovos'] ?? null,
+                'peso_medio_amostra' => $data['peso_medio_amostra'] ?? null,
+                'quantidade_amostra' => $data['quantidade_amostra'] ?? null,
+                'kg_racao' => $data['kg_racao'] ?? null,
+                'ph' => $data['ph'] ?? null,
+                'temperatura_agua' => $data['temperatura_agua'] ?? null,
+                'oxigenio_dissolvido' => $data['oxigenio_dissolvido'] ?? null,
                 'created_by' => $request->user()?->id,
                 'farm_id' => $lot->farm_id,
             ]);
 
             // Efeitos colaterais por tipo:
-            if ($data['tipo'] === 'pesagem' && ! empty($data['peso'])) {
-                // Atualiza peso médio do lote (fonte de verdade para lotes agregados)
-                $lot->update(['peso_medio_kg' => $data['peso']]);
+            if (in_array($data['tipo'], ['pesagem', 'biometria_amostral'], true)) {
+                $pesoNovo = $data['peso'] ?? $data['peso_medio_amostra'] ?? null;
+                if ($pesoNovo) {
+                    $lot->update(['peso_medio_kg' => $pesoNovo]);
+                }
             }
 
             if ($data['tipo'] === 'mortalidade') {
-                // Decrementa o efetivo do lote
-                $novoEfetivo = max(0, $lot->quantidade_atual - $data['quantidade_animais']);
+                $novoEfetivo = max(0, $lot->quantidade_atual - $qtdeAfetada);
                 $update = ['quantidade_atual' => $novoEfetivo];
                 if ($novoEfetivo === 0) {
-                    // Lote zerado pode ser encerrado automaticamente
                     $update['data_fim'] = $data['data'];
                 }
                 $lot->update($update);
@@ -110,12 +157,16 @@ class AnimalLotEventController extends Controller
         });
 
         $msg = match ($data['tipo']) {
-            'pesagem' => "Pesagem registrada · peso médio do lote atualizado para {$data['peso']} kg.",
-            'mortalidade' => "Mortalidade registrada · {$data['quantidade_animais']} animais. Efetivo restante do lote: " . $lot->fresh()->quantidade_atual,
-            'vacinacao' => "Vacinação aplicada em {$data['quantidade_animais']} animais do lote.",
-            'medicacao' => "Medicação aplicada em {$data['quantidade_animais']} animais do lote.",
-            'vermifugacao' => "Vermifugação aplicada em {$data['quantidade_animais']} animais do lote.",
-            default => "Evento registrado em {$data['quantidade_animais']} animais do lote.",
+            'pesagem' => "Pesagem registrada · peso médio do lote atualizado.",
+            'biometria_amostral' => "Biometria registrada · peso médio: {$data['peso_medio_amostra']} kg",
+            'postura_diaria' => "Postura registrada · {$data['quantidade_ovos']} ovos coletados.",
+            'mortalidade' => "Mortalidade registrada · {$qtdeAfetada} animais. Efetivo restante: " . $lot->fresh()->quantidade_atual,
+            'alimentacao' => "Alimentação registrada · {$data['kg_racao']} kg de ração.",
+            'qualidade_agua' => "Qualidade da água registrada · pH {$data['ph']}.",
+            'vacinacao' => "Vacinação aplicada em {$qtdeAfetada} animais do lote.",
+            'medicacao' => "Medicação aplicada em {$qtdeAfetada} animais do lote.",
+            'vermifugacao' => "Vermifugação aplicada em {$qtdeAfetada} animais do lote.",
+            default => "Evento registrado em {$qtdeAfetada} animais do lote.",
         };
 
         return back()->with('success', $msg);

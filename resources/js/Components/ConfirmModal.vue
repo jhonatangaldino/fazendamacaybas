@@ -1,5 +1,5 @@
 <script setup>
-import { toRef } from 'vue';
+import { toRef, onMounted, onBeforeUnmount } from 'vue';
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 
 const props = defineProps({
@@ -10,8 +10,14 @@ const props = defineProps({
     cancelText: { type: String, default: 'Cancelar' },
     variant: { type: String, default: 'danger' }, // danger | primary
 });
-defineEmits(['confirm', 'cancel']);
+const emit = defineEmits(['confirm', 'cancel']);
 useBodyScrollLock(toRef(props, 'show'));
+
+function handleEsc(e) {
+    if (e.key === 'Escape' && props.show) { e.stopPropagation(); emit('cancel'); }
+}
+onMounted(() => window.addEventListener('keydown', handleEsc));
+onBeforeUnmount(() => window.removeEventListener('keydown', handleEsc));
 </script>
 
 <template>

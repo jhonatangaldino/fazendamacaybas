@@ -24,6 +24,13 @@ class AnimalEvent extends Model
         'location_origem_id', 'location_destino_id',
         'observacoes', 'created_by',
         'tenant_id', 'farm_id',
+        // Ordenha (manhã/tarde — padrão DROVET)
+        'producao_litros', 'litros_manha', 'litros_tarde', 'ordenhas',
+        // Eventos agregados em lote (Ave/Peixe)
+        'quantidade_ovos', 'peso_medio_amostra', 'quantidade_amostra',
+        'kg_racao', 'ph', 'temperatura_agua', 'oxigenio_dissolvido',
+        // Reprodução
+        'gestacao_dias', 'data_prevista_parto',
     ];
 
     protected $casts = [
@@ -32,6 +39,18 @@ class AnimalEvent extends Model
         'dose' => 'decimal:3',
         'valor' => 'decimal:2',
         'quantidade_animais' => 'integer',
+        'quantidade_ovos' => 'integer',
+        'quantidade_amostra' => 'integer',
+        'peso_medio_amostra' => 'decimal:3',
+        'kg_racao' => 'decimal:2',
+        'ph' => 'decimal:2',
+        'temperatura_agua' => 'decimal:1',
+        'oxigenio_dissolvido' => 'decimal:2',
+        'litros_manha' => 'decimal:1',
+        'litros_tarde' => 'decimal:1',
+        'producao_litros' => 'decimal:1',
+        'ordenhas' => 'array',
+        'data_prevista_parto' => 'date',
     ];
 
     /**

@@ -31,6 +31,14 @@ async function excluir(l) {
     if (! ok) return;
     router.delete(route('admin.rebanho.lotes.destroy', l.id), { preserveScroll: true });
 }
+
+// Toggle ativo/inativo direto da lista — backend já tinha rota,
+// faltava conectar o badge. Agora é botão clicável.
+function toggleAtivo(lote) {
+    router.post(route('admin.rebanho.lotes.toggle', lote.id), {}, {
+        preserveScroll: true, preserveState: true, only: ['lots'],
+    });
+}
 </script>
 
 <template>
@@ -86,9 +94,11 @@ async function excluir(l) {
                 <span class="font-mono">{{ row.animais_count ?? 0 }}</span>
             </template>
             <template #cell-status="{ row }">
-                <span :class="row.is_active ? 'badge-green' : 'badge-slate'">
+                <button @click="toggleAtivo(row)"
+                        :class="row.is_active ? 'badge-toggle-green' : 'badge-toggle-slate'"
+                        :title="row.is_active ? 'Clique para desativar' : 'Clique para ativar'">
                     {{ row.is_active ? 'ativo' : 'inativo' }}
-                </span>
+                </button>
             </template>
             <template #cell-acoes="{ row }">
                 <div class="flex gap-1 justify-end">
@@ -99,5 +109,13 @@ async function excluir(l) {
                 </div>
             </template>
         </DataTable>
+
+        <!-- Paginação (faltava — backend pagina 30/pg) -->
+        <div v-if="lots.links && lots.links.length > 3" class="mt-4 flex gap-2 flex-wrap justify-end">
+            <Link v-for="link in lots.links" :key="link.label"
+                  :href="link.url ?? '#'"
+                  v-html="link.label"
+                  :class="['btn-outline btn-sm', link.active ? '!bg-macaybas-primary !text-white !border-transparent' : '', !link.url ? 'opacity-40 pointer-events-none' : '']" />
+        </div>
     </AdminLayout>
 </template>

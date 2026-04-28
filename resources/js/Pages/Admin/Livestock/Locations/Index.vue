@@ -95,9 +95,11 @@ async function excluir(loc) {
                 <span class="font-mono">{{ row.animais_count ?? 0 }}</span>
             </template>
             <template #cell-status="{ row }">
-                <span :class="row.is_active ? 'badge-green' : 'badge-slate'">
+                <button @click="toggle(row)"
+                        :class="row.is_active ? 'badge-toggle-green' : 'badge-toggle-slate'"
+                        :title="row.is_active ? 'Clique para desativar' : 'Clique para ativar'">
                     {{ row.is_active ? 'ativo' : 'inativo' }}
-                </span>
+                </button>
             </template>
             <template #cell-acoes="{ row }">
                 <div class="flex gap-1 justify-end">
@@ -108,5 +110,13 @@ async function excluir(loc) {
                 </div>
             </template>
         </DataTable>
+
+        <!-- Paginação (faltava — backend pagina 30/pg) -->
+        <div v-if="locations.links && locations.links.length > 3" class="mt-4 flex gap-2 flex-wrap justify-end">
+            <Link v-for="link in locations.links" :key="link.label"
+                  :href="link.url ?? '#'"
+                  v-html="link.label"
+                  :class="['btn-outline btn-sm', link.active ? '!bg-macaybas-primary !text-white !border-transparent' : '', !link.url ? 'opacity-40 pointer-events-none' : '']" />
+        </div>
     </AdminLayout>
 </template>
