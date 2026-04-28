@@ -3,63 +3,38 @@
 namespace App\Http\Controllers\Admin\Financial;
 
 use App\Models\Financial\FinancialAccount;
-use App\Models\Financial\FinancialTransaction;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\DB;
+use App\Services\Metrics\FinancialMetrics;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * FinancialIndexController — B4.4 fix
+ * FinancialIndexController — Hub Financeiro
  *
- * Antes: /admin/financeiro fazia redirect para /admin/financeiro/transacoes
- * (2 URLs para a mesma tela, identificado como bug arquitetural).
- *
- * Agora: hub financeiro com cards de navegação + KPIs rápidos.
- * /admin/financeiro/transacoes continua sendo a lista detalhada.
+ * REFATORADO 2026-04-28 (METRICS-AUDIT): KPIs agora consumidos de
+ * FinancialMetrics (fonte única de verdade). Antes este controller tinha
+ * fórmulas inline que divergiam sutilmente do Painel/Lista/Relatório:
+ *   - `contas_pagar`/`contas_receber` aceitavam vencimentos passados (sem
+ *     filtro `>= hoje`); Painel exigia `>= hoje`.
+ *   - `atrasadas` contava receita+despesa; AlertsService só despesa.
+ * Ambos os bugs corrigidos pela centralização.
  */
 class FinancialIndexController extends Controller
 {
-    public function __invoke(): Response
+    public function __invoke(FinancialMetrics $metrics): Response
     {
-        $hoje = now()->startOfDay();
-        $primeiroDiaMes = now()->startOfMonth();
-        $ultimoDiaMes = now()->endOfMonth();
-
-        $saldoTotal = (float) FinancialAccount::query()
-            ->where('is_active', true)
-            ->sum('saldo_atual');
-
+        $saldoTotal = $metrics->saldoTotalContas();
         $contasAtivas = FinancialAccount::query()->where('is_active', true)->count();
 
-        $receitasMes = (float) FinancialTransaction::query()
-            ->where('tipo', 'receita')
-            ->where('status', 'pago')
-            ->whereBetween('data_pagamento', [$primeiroDiaMes, $ultimoDiaMes])
-            ->sum('valor');
+        $receitasMes = $metrics->receitasNoPeriodo('mes_atual');
+        $despesasMes = $metrics->despesasNoPeriodo('mes_atual');
 
-        $despesasMes = (float) FinancialTransaction::query()
-            ->where('tipo', 'despesa')
-            ->where('status', 'pago')
-            ->whereBetween('data_pagamento', [$primeiroDiaMes, $ultimoDiaMes])
-            ->sum('valor');
+        // aPagar/aReceber retornam ['count', 'valor', 'lista']
+        $aPagar = $metrics->aPagar(30);
+        $aReceber = $metrics->aReceber(30);
 
-        $contasPagar = FinancialTransaction::query()
-            ->where('tipo', 'despesa')
-            ->where('status', 'pendente')
-            ->where('data_vencimento', '<=', $hoje->copy()->addDays(30))
-            ->count();
-
-        $contasReceber = FinancialTransaction::query()
-            ->where('tipo', 'receita')
-            ->where('status', 'pendente')
-            ->where('data_vencimento', '<=', $hoje->copy()->addDays(30))
-            ->count();
-
-        $atrasadas = FinancialTransaction::query()
-            ->where('status', 'pendente')
-            ->where('data_vencimento', '<', $hoje)
-            ->count();
+        // atrasadas SÓ DESPESAS (decisão de produto)
+        $atrasadas = $metrics->atrasadas();
 
         return Inertia::render('Admin/Financial/Hub', [
             'kpis' => [
@@ -68,9 +43,9 @@ class FinancialIndexController extends Controller
                 'receitas_mes' => $receitasMes,
                 'despesas_mes' => $despesasMes,
                 'saldo_mes' => $receitasMes - $despesasMes,
-                'contas_pagar' => $contasPagar,
-                'contas_receber' => $contasReceber,
-                'atrasadas' => $atrasadas,
+                'contas_pagar' => $aPagar['count'],
+                'contas_receber' => $aReceber['count'],
+                'atrasadas' => $atrasadas['count'],
             ],
         ]);
     }

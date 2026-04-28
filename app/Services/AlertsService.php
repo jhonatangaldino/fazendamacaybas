@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Subscription;
 use App\Domain\Billing\Models\Tenant;
-use App\Models\Financial\FinancialTransaction;
-use App\Models\Task\Task;
+use App\Services\Metrics\FinancialMetrics;
+use App\Services\Metrics\TarefasMetrics;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -38,6 +38,26 @@ class AlertsService
         'info' => 2,
     ];
 
+    /**
+     * REFATORADO 2026-04-28 (METRICS-AUDIT): financeiro + tarefas agora vêm
+     * de FinancialMetrics/TarefasMetrics (fonte única de verdade), garantindo
+     * que badges/alerts batam EXATAMENTE com Painel/Hub/Lista.
+     *
+     * Bugs corrigidos:
+     *   - Antes Painel contava receita+despesa como "atrasadas"; AlertsService
+     *     só despesa. Agora ambos usam `FinancialMetrics::atrasadas()` (despesa).
+     *   - Antes badge usava `<= today` enquanto alerta usava `< today + = today`
+     *     separado. Agora ambos usam `atrasadas() + vencendoHoje()`.
+     *   - Antes Painel incluía em_andamento como atrasada; AlertsService só
+     *     pendente. Agora ambos usam `TarefasMetrics::atrasadas()` (inclui
+     *     em_andamento — decisão de produto: tarefa em andamento mas vencida
+     *     ainda é atrasada, vai concluir tarde).
+     */
+    public function __construct(
+        private readonly FinancialMetrics $financialMetrics,
+        private readonly TarefasMetrics $tarefasMetrics,
+    ) {}
+
     public function forTenant(int $tenantId, ?int $farmId = null): array
     {
         $alerts = [];
@@ -67,19 +87,12 @@ class AlertsService
             }
         }
 
-        // ─── FINANCEIRO ───────────────────────────────────────────
+        // ─── FINANCEIRO (via FinancialMetrics) ───────────────────────────────────────────
         // Conta apenas da fazenda atualmente selecionada quando $farmId vem.
-        // Sem isso, tenant com 2+ fazendas vazava contadores de uma na outra
-        // (ex.: Filial QA mostrava "1 conta vence hoje" sendo despesa da Sede).
+        // Sem isso, tenant com 2+ fazendas vazava contadores de uma na outra.
         if (Schema::hasTable('financial_transactions')) {
-            $finQuery = FinancialTransaction::query()
-                ->where('tenant_id', $tenantId)
-                ->when($farmId, fn ($q) => $q->where('farm_id', $farmId))
-                ->where('tipo', 'despesa')
-                ->where('status', 'pendente');
-
-            $vencidas = (clone $finQuery)->whereDate('data_vencimento', '<', today())->count();
-            $hoje = (clone $finQuery)->whereDate('data_vencimento', today())->count();
+            $vencidas = $this->financialMetrics->atrasadas($tenantId, $farmId)['count'];
+            $hoje = $this->financialMetrics->vencendoHoje($tenantId, $farmId)['count'];
 
             if ($vencidas > 0) {
                 $alerts[] = $this->mk('financeiro_vencidas', 'critico',
@@ -97,14 +110,9 @@ class AlertsService
             }
         }
 
-        // ─── TAREFAS ──────────────────────────────────────────────
+        // ─── TAREFAS (via TarefasMetrics) ──────────────────────────────────────────────
         if (Schema::hasTable('tasks')) {
-            $atrasadas = Task::query()
-                ->where('tenant_id', $tenantId)
-                ->when($farmId, fn ($q) => $q->where('farm_id', $farmId))
-                ->where('status', 'pendente')
-                ->whereDate('data_vencimento', '<', today())
-                ->count();
+            $atrasadas = $this->tarefasMetrics->atrasadas($tenantId, $farmId);
 
             if ($atrasadas > 0) {
                 $alerts[] = $this->mk('tarefas_atrasadas', 'critico',
@@ -135,26 +143,22 @@ class AlertsService
     {
         $badges = [];
 
+        // ─── FINANCEIRO (via FinancialMetrics::badgeAtencaoFinanceira) ──────────
+        // Antes a query usava `<= today` (inclui hoje), mas forTenant usava
+        // `< today` + `= today` separados — divergência sutil. Agora ambos
+        // usam o mesmo método: badge mostra atrasadas + vencendo hoje.
         if (Schema::hasTable('financial_transactions')) {
-            $vencidas = FinancialTransaction::query()
-                ->where('tenant_id', $tenantId)
-                ->when($farmId, fn ($q) => $q->where('farm_id', $farmId))
-                ->where('tipo', 'despesa')
-                ->where('status', 'pendente')
-                ->whereDate('data_vencimento', '<=', today())
-                ->count();
-            if ($vencidas > 0) {
-                $badges['admin.financeiro.index'] = ['n' => $vencidas, 'sev' => 'critico'];
+            $atencao = $this->financialMetrics->badgeAtencaoFinanceira($tenantId, $farmId);
+            if ($atencao > 0) {
+                $badges['admin.financeiro.index'] = ['n' => $atencao, 'sev' => 'critico'];
             }
         }
 
+        // ─── TAREFAS (via TarefasMetrics::atrasadas) ──────────
+        // Antes: badge SÓ pendente; Painel também incluía em_andamento.
+        // Agora: ambos usam o mesmo método (inclui em_andamento — decisão de produto).
         if (Schema::hasTable('tasks')) {
-            $atrasadas = Task::query()
-                ->where('tenant_id', $tenantId)
-                ->when($farmId, fn ($q) => $q->where('farm_id', $farmId))
-                ->where('status', 'pendente')
-                ->whereDate('data_vencimento', '<', today())
-                ->count();
+            $atrasadas = $this->tarefasMetrics->atrasadas($tenantId, $farmId);
             if ($atrasadas > 0) {
                 $badges['admin.tarefas.index'] = ['n' => $atrasadas, 'sev' => 'critico'];
             }

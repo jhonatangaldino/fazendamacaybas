@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Financial\FinancialTransaction;
-use App\Models\Livestock\Animal;
 use App\Models\Stock\StockItem;
 use App\Models\Task\Task;
 use App\Services\Livestock\LivestockMetricsService;
