@@ -211,10 +211,15 @@ function logout() {
              ANTES: max-h-[calc(100vh-4rem)] cortava itens em iOS Safari porque
              100vh ignora a barra de URL inferior, deixando "Faturas/Usuários"
              inacessíveis. h-screen + dvh resolve em viewports modernos. -->
+        <!-- Sidebar fixa.
+             height = 100dvh quando sem impersonation,
+             height = calc(100dvh - 40px) quando banner amarelo IMPERSONAÇÃO ativo.
+             Sem isso, o último item do menu (Perfis/Faturas) cai abaixo do
+             viewport quando há banner empurrando 40px pra baixo. -->
         <aside
             :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', 'md:translate-x-0', impersonation ? 'top-10' : 'top-0']"
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:flex-shrink-0 flex flex-col h-screen"
-            style="height: 100dvh;"
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:flex-shrink-0 flex flex-col"
+            :style="impersonation ? 'height: calc(100dvh - 40px); bottom: auto;' : 'height: 100dvh; bottom: auto;'"
         >
             <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10 flex-shrink-0">
                 <img v-if="siteLogo"
