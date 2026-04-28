@@ -182,10 +182,16 @@ function salvarEvento() {
 }
 
 async function removerEvento(event) {
+    // Texto humanizado: data em pt-BR (dd/mm/aaaa) e tipo com label legível
+    // do EVENT_CATALOG (ex: "pesagem" → "Pesagem", "postura_diaria" → "Postura (ovos)").
+    // Antes mostrava ISO/UTC ("2025-12-01T03:00:00.000000Z") e tipo cru.
+    const dataLegivel = event.data ? dataBR(event.data) : 'data desconhecida';
+    const labelEvento = EVENT_CATALOG[event.tipo]?.label || event.tipo || 'evento';
     const ok = await confirmModal({
-        title: 'Remover evento do histórico',
-        message: `Remover o evento "${event.tipo || 'evento'}" de ${event.data || ''} do histórico deste animal? Métricas calculadas a partir deste evento (ex.: peso, ganho) serão revistas.`,
-        confirmText: 'Remover evento',
+        title: `Remover ${labelEvento.toLowerCase()}?`,
+        message: `Tem certeza que quer apagar o registro de ${labelEvento.toLowerCase()} do dia ${dataLegivel}?\n\nIsso é permanente. Indicadores que dependem deste evento (peso atual, ganho médio, produção do mês) serão recalculados.`,
+        confirmText: 'Sim, remover',
+        cancelText: 'Cancelar',
         variant: 'danger',
     });
     if (! ok) return;
