@@ -56,16 +56,44 @@ class ReportController extends Controller
             ->get();
 
         // ─── Rebanho ───
-        $rebanhoPorEspecie = Animal::ativos()
+        // Inclui CABEÇAS em LOTES AGREGADOS (Ave/Peixe gestao=lote) — sem isso
+        // o relatório mostrava "Ave: 1" mesmo com 4500 cabeças em lotes.
+        // Bug detectado pelo dono — painel mostrava 7876, modal/relatório 1956.
+        $rebanhoIndividualPorEspecie = Animal::ativos()
             ->leftJoin('animal_species', 'animals.species_id', '=', 'animal_species.id')
             ->select(DB::raw("COALESCE(animal_species.nome, 'Sem espécie') as especie"), DB::raw('COUNT(*) as total'))
             ->groupBy('especie')
-            ->get();
+            ->pluck('total', 'especie');
 
-        $rebanhoPorSexo = Animal::ativos()
+        $rebanhoAgregadoPorEspecie = \App\Models\Livestock\AnimalLot::where('animal_lots.is_active', true)
+            ->leftJoin('animal_species', 'animal_lots.species_id', '=', 'animal_species.id')
+            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->where('gestao', 'lote'))
+            ->select(DB::raw("COALESCE(animal_species.nome, 'Sem espécie') as especie"), DB::raw('SUM(animal_lots.quantidade_atual) as total'))
+            ->groupBy('especie')
+            ->pluck('total', 'especie');
+
+        $todasEspecies = collect($rebanhoIndividualPorEspecie->keys())
+            ->merge($rebanhoAgregadoPorEspecie->keys())
+            ->unique();
+        $rebanhoPorEspecie = $todasEspecies->map(fn ($e) => (object) [
+            'especie' => $e,
+            'total' => (int) ($rebanhoIndividualPorEspecie[$e] ?? 0) + (int) ($rebanhoAgregadoPorEspecie[$e] ?? 0),
+        ])->sortByDesc('total')->values();
+
+        // Por sexo: lotes agregados (Ave/Peixe) não têm sexo individualmente;
+        // soma dele entra como "indefinido" pra refletir realidade.
+        $sexoIndividual = Animal::ativos()
             ->select('sexo', DB::raw('COUNT(*) as total'))
             ->groupBy('sexo')
             ->pluck('total', 'sexo');
+        $totalAgregado = (int) \App\Models\Livestock\AnimalLot::where('is_active', true)
+            ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->where('gestao', 'lote'))
+            ->sum('quantidade_atual');
+        $rebanhoPorSexo = collect($sexoIndividual);
+        if ($totalAgregado > 0) {
+            // Marca como "L" (lote) pra UI poder distinguir se quiser
+            $rebanhoPorSexo['L'] = $totalAgregado;
+        }
 
         // ─── Estoque crítico ───
         $estoqueCritico = StockItem::query()
@@ -127,7 +155,8 @@ class ReportController extends Controller
             'rebanho' => [
                 'por_especie' => $rebanhoPorEspecie,
                 'por_sexo' => $rebanhoPorSexo,
-                'total' => $rebanhoPorEspecie->sum('total'),
+                // Total = individuais + agregados — bate com card "Rebanho" do painel principal
+                'total' => (int) $rebanhoPorEspecie->sum('total'),
             ],
             'estoque_critico' => $estoqueCritico,
             'produtividade' => $produtividade,
