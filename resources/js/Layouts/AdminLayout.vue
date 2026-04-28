@@ -352,11 +352,16 @@ function logout() {
                                     <Link
                                         :href="child.href"
                                         @click="sidebarOpen = false"
-                                        :class="[child.currentMatch?.(page.url) ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white']"
+                                        :class="[
+                                            child.currentMatch?.(page.url) ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white',
+                                            (child.badge === 0 || child.badge === '0') ? 'opacity-60' : '',
+                                        ]"
                                         class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition"
                                     >
                                         <span class="flex-1 truncate">{{ child.label }}</span>
-                                        <span v-if="child.badge != null" class="text-[10px] text-white/50">{{ child.badge }}</span>
+                                        <span v-if="child.badge != null"
+                                              :class="(child.badge === 0 || child.badge === '0') ? 'text-white/30' : 'text-white/50'"
+                                              class="text-[10px]">{{ child.badge }}</span>
                                     </Link>
                                 </li>
                             </ul>

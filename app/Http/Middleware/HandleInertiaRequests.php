@@ -164,10 +164,11 @@ class HandleInertiaRequests extends Middleware
                     'nome' => $f->nome,
                 ])->values()->all();
             },
-            // Espécies do tenant pra renderizar submenu dinâmico de Rebanho.
-            // Só lista espécies que TÊM ANIMAIS ativos (evita poluir o menu
-            // com 11 espécies vazias). Cache 10min — espécie nova/animal
-            // novo aparece no submenu na próxima request fria.
+            // Espécies do catálogo (TODAS as ativas) pra renderizar submenu de
+            // Rebanho. Mostra mesmo as espécies sem animais ainda — assim o
+            // master/dono pode clicar em qualquer uma pra fazer o primeiro
+            // cadastro daquela espécie. Animals_count vem como 0 quando vazio
+            // (frontend mostra badge "0" como cinza pra distinguir).
             'tenantSpecies' => function () use ($request) {
                 $effectiveTenantId = $this->effectiveTenantId($request);
                 if ($effectiveTenantId === null) return [];
@@ -175,21 +176,12 @@ class HandleInertiaRequests extends Middleware
                     "tenant_species_with_count.{$effectiveTenantId}",
                     now()->addMinutes(10),
                     function () use ($effectiveTenantId) {
-                        // NOTA: species pode ser do tenant 1 (catálogo "global"),
-                        // mas o que importa pro menu é se o tenant ATUAL tem
-                        // animais ativos referenciando essa species. Filtra
-                        // animals_count pelo tenant_id do ANIMAL via SQL bruto
-                        // (whereHas com BelongsToTenantScope na relação `animals`
-                        // restringia indevidamente).
+                        // withoutGlobalScopes pra não restringir species pelo tenant
+                        // (catálogo é "global", animals é que tem tenant_id).
+                        // SQL bruto no count pra evitar BelongsToTenantScope na
+                        // relação animals que travava resultado em vazio.
                         $species = AnimalSpecies::withoutGlobalScopes()
                             ->where('is_active', true)
-                            ->whereExists(function ($q) use ($effectiveTenantId) {
-                                $q->select(\DB::raw(1))
-                                  ->from('animals')
-                                  ->whereColumn('animals.species_id', 'animal_species.id')
-                                  ->where('animals.status', 'ativo')
-                                  ->where('animals.tenant_id', $effectiveTenantId);
-                            })
                             ->orderBy('nome')
                             ->get(['id', 'nome', 'slug', 'gestao', 'profile']);
 
