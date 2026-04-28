@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin\Wizards;
 
 use App\Http\Controllers\Controller;
 use App\Models\Livestock\Animal;
-use App\Models\Task;
+use App\Models\Task\Task;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
