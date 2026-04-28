@@ -409,7 +409,13 @@ class AnimalController extends Controller
         // badges automáticos na ficha (prenhe, seca, última produção).
         $statusReprodutivo = $this->calcularStatusReprodutivo($events);
 
-        $animal->load(['species:id,nome,slug,allowed_events', 'breed:id,nome', 'lot:id,nome', 'location:id,nome,tipo', 'farm:id,nome', 'fornecedor:id,nome']);
+        // Species e breeds são referência universal (compartilhadas via tenant 1).
+        // withoutGlobalScopes evita que clientes novos vejam species=null.
+        $animal->load([
+            'species' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome', 'slug', 'allowed_events'),
+            'breed' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome'),
+            'lot:id,nome', 'location:id,nome,tipo', 'farm:id,nome', 'fornecedor:id,nome',
+        ]);
         $acoesRapidas = $this->montarAcoesRapidas($animal);
 
         return Inertia::render('Admin/Livestock/Animals/Show', [
@@ -470,13 +476,14 @@ class AnimalController extends Controller
         'postura_diaria'      => ['emoji' => '🥚', 'label' => 'Postura', 'desc' => 'Ovos coletados', 'wizard' => null],
         'mortalidade'         => ['emoji' => '⚰️', 'label' => 'Mortalidade', 'desc' => 'Registrar morte', 'wizard' => null],
 
-        // ── Wizards externos (fluxo complexo ou multi-vaca)
-        // controle_leiteiro REMOVIDO daqui — pra single-vaca usa-se 'ordenha'
-        // (modal in-page). Controle leiteiro multi-vaca permanece no Hub.
+        // exame_toque também é MODAL in-page (single fêmea = modal, igual aos outros)
         'exame_toque' => [
-            'emoji' => '🩺', 'label' => 'Exame de toque', 'desc' => 'Palpação · DPP automática',
-            'wizard' => 'admin.fluxos.exame-toque', 'sexo' => 'F',
+            'emoji' => '🩺', 'label' => 'Exame de toque', 'desc' => 'Palpação · saber se está prenhe',
+            'wizard' => null, 'sexo' => 'F',
         ],
+        // ── Wizards externos (fluxo complexo ou multi-vaca)
+        // controle_leiteiro e exame_toque foram REMOVIDOS daqui — single-fêmea
+        // = modal in-page. Multi-fêmea (batch) permanece nos wizards do Hub.
         'venda' => [
             'emoji' => '💰', 'label' => 'Vender', 'desc' => 'Saída + receita financeira',
             'wizard' => 'admin.fluxos.venda-animal',
