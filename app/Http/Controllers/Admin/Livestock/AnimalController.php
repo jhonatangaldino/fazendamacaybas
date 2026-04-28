@@ -211,9 +211,17 @@ class AnimalController extends Controller
             'photo_url' => $animal->photoUrl(),
         ]) : null;
 
+        // Species/breeds são REFERÊNCIA UNIVERSAL (compartilhada entre tenants).
+        // Vivem em tenant_id=1 (sistema). withoutGlobalScopes evita que tenants
+        // novos vejam o select vazio — mesmo padrão do index() acima.
+        $species = AnimalSpecies::withoutGlobalScope(\App\Domain\Tenancy\Scopes\BelongsToTenantScope::class)
+            ->where('is_active', true)
+            ->with(['breeds' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'species_id', 'nome')])
+            ->get();
+
         return Inertia::render('Admin/Livestock/Animals/Form', [
             'animal' => $animalPayload,
-            'species' => AnimalSpecies::where('is_active', true)->with(['breeds:id,species_id,nome'])->get(),
+            'species' => $species,
             'lots' => AnimalLot::where('is_active', true)->get(['id', 'nome', 'codigo']),
             'locations' => AnimalLocation::ativos()->orderBy('tipo')->orderBy('nome')->get(['id', 'nome', 'tipo']),
             'farms' => Farm::where('is_active', true)->get(['id', 'nome']),
