@@ -59,7 +59,7 @@ function exit() {
 
             <button
                 @click="exit"
-                class="flex-shrink-0 px-3 py-1 rounded-md bg-slate-900 text-amber-300 text-xs font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 focus:ring-offset-amber-500"
+                class="flex-shrink-0 inline-flex items-center justify-center px-4 py-2 min-h-9 md:min-h-0 rounded-md bg-slate-900 text-amber-300 text-sm md:text-xs font-semibold hover:bg-slate-800 active:bg-slate-700 touch-manipulation focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 focus:ring-offset-amber-500"
             >
                 Sair
             </button>

@@ -270,7 +270,7 @@ function logout() {
              viewport quando há banner empurrando 40px pra baixo. -->
         <aside
             :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', 'md:translate-x-0', impersonation ? 'top-10' : 'top-0']"
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:flex-shrink-0 flex flex-col"
+            class="fixed inset-y-0 left-0 z-40 w-72 md:w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:flex-shrink-0 flex flex-col"
             :style="impersonation ? 'height: calc(100dvh - 40px); bottom: auto;' : 'height: 100dvh; bottom: auto;'"
         >
             <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10 flex-shrink-0">
@@ -285,12 +285,12 @@ function logout() {
                 </div>
             </div>
 
-            <!-- pb-20 (80px) + safe-area: garante respiro entre último item do menu
-                 e a borda inferior. Antes pb-8 (32px) deixava "Perfis e permissões"
-                 colado na barra inferior em iPhone/iPad. -->
+            <!-- Mobile: tap targets ≥44px (min-h-11), texto base (16px), padding generoso.
+                 Desktop (md+): compacto (text-sm, py-2). Tudo via classes responsivas.
+                 pb-20 (80px) + safe-area: respiro entre último item e borda inferior. -->
             <nav class="p-3 space-y-6 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-20" style="padding-bottom: max(5rem, env(safe-area-inset-bottom, 0) + 2rem);">
                 <div v-for="section in visibleMenu" :key="section.section">
-                    <h3 class="text-xs uppercase tracking-widest text-white/40 px-3 mb-2">{{ section.section }}</h3>
+                    <h3 class="text-[11px] md:text-xs uppercase tracking-widest text-white/40 px-3 mb-2">{{ section.section }}</h3>
                     <ul class="space-y-1">
                         <li v-for="item in section.items" :key="item.label">
                             <!-- Item EXPANSÍVEL (Rebanho com submenus por espécie):
@@ -300,14 +300,14 @@ function logout() {
                                     :href="route(item.route)"
                                     @click="sidebarOpen = false; trackMenuHit(item.route)"
                                     :class="[route().current(item.route + '*') ? 'bg-white/10 text-white' : 'hover:bg-white/5 hover:text-white']"
-                                    class="flex-1 flex items-center gap-3 rounded-l-lg px-3 py-2 text-sm transition"
+                                    class="flex-1 flex items-center gap-3 rounded-l-lg px-3 py-3 md:py-2 text-base md:text-sm min-h-11 md:min-h-0 transition touch-manipulation"
                                 >
-                                    <Icon :name="item.icon" :size="20" :stroke-width="1.7" />
+                                    <Icon :name="item.icon" :size="22" :stroke-width="1.7" class="md:!w-5 md:!h-5 flex-shrink-0" />
                                     <span class="flex-1">{{ item.label }}</span>
                                     <span
                                         v-if="menuBadges[item.route]"
                                         :class="[
-                                            'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold',
+                                            'inline-flex items-center justify-center min-w-[22px] h-6 md:min-w-[20px] md:h-5 px-1.5 rounded-full text-[11px] md:text-[10px] font-bold',
                                             menuBadges[item.route].sev === 'critico' ? 'bg-rose-500 text-white' : 'bg-amber-400 text-amber-900',
                                         ]"
                                     >
@@ -315,9 +315,9 @@ function logout() {
                                     </span>
                                 </Link>
                                 <button @click="toggleMenu(item.route)" type="button"
-                                        class="px-2 rounded-r-lg hover:bg-white/5 text-white/60 hover:text-white transition"
+                                        class="px-3 md:px-2 min-h-11 md:min-h-0 rounded-r-lg hover:bg-white/5 text-white/60 hover:text-white transition touch-manipulation"
                                         :aria-label="isExpanded(item.route) ? 'Recolher' : 'Expandir'">
-                                    <svg class="h-4 w-4 transition-transform" :class="isExpanded(item.route) ? 'rotate-90' : ''"
+                                    <svg class="h-5 w-5 md:h-4 md:w-4 transition-transform" :class="isExpanded(item.route) ? 'rotate-90' : ''"
                                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                     </svg>
@@ -329,14 +329,14 @@ function logout() {
                                 :href="route(item.route)"
                                 @click="sidebarOpen = false; trackMenuHit(item.route)"
                                 :class="[route().current(item.route + '*') ? 'bg-white/10 text-white' : 'hover:bg-white/5 hover:text-white']"
-                                class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition"
+                                class="flex items-center gap-3 rounded-lg px-3 py-3 md:py-2 text-base md:text-sm min-h-11 md:min-h-0 transition touch-manipulation"
                             >
-                                <Icon :name="item.icon" :size="20" :stroke-width="1.7" />
+                                <Icon :name="item.icon" :size="22" :stroke-width="1.7" class="md:!w-5 md:!h-5 flex-shrink-0" />
                                 <span class="flex-1">{{ item.label }}</span>
                                 <span
                                     v-if="menuBadges[item.route]"
                                     :class="[
-                                        'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold',
+                                        'inline-flex items-center justify-center min-w-[22px] h-6 md:min-w-[20px] md:h-5 px-1.5 rounded-full text-[11px] md:text-[10px] font-bold',
                                         menuBadges[item.route].sev === 'critico'
                                             ? 'bg-rose-500 text-white'
                                             : 'bg-amber-400 text-amber-900',
@@ -348,7 +348,7 @@ function logout() {
                             </Link>
 
                             <!-- Submenus dinâmicos (só renderiza se expandido) -->
-                            <ul v-if="item.expandable && isExpanded(item.route)" class="mt-1 ml-7 space-y-0.5 border-l border-white/10 pl-2">
+                            <ul v-if="item.expandable && isExpanded(item.route)" class="mt-1 ml-4 md:ml-7 space-y-0.5 border-l border-white/10 pl-2 md:pl-2">
                                 <li v-for="child in item.children()" :key="child.label">
                                     <Link
                                         :href="child.href"
@@ -357,12 +357,12 @@ function logout() {
                                             child.currentMatch?.(page.url) ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white',
                                             (child.badge === 0 || child.badge === '0') ? 'opacity-60' : '',
                                         ]"
-                                        class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition"
+                                        class="flex items-center gap-2 rounded-md px-3 md:px-2 py-2.5 md:py-1.5 text-sm md:text-xs min-h-10 md:min-h-0 transition touch-manipulation"
                                     >
                                         <span class="flex-1 truncate">{{ child.label }}</span>
                                         <span v-if="child.badge != null"
                                               :class="(child.badge === 0 || child.badge === '0') ? 'text-white/30' : 'text-white/50'"
-                                              class="text-[10px]">{{ child.badge }}</span>
+                                              class="text-xs md:text-[10px]">{{ child.badge }}</span>
                                     </Link>
                                 </li>
                             </ul>
@@ -382,13 +382,19 @@ function logout() {
                  que conteúdo do main NUNCA fique visível atrás do header durante
                  scroll. Antes shadow-sm + border-b 1px deixava títulos do main
                  parecerem 'meio cortados' em qualquer rolagem mínima. -->
-            <header class="sticky top-0 z-20 h-16 flex items-center justify-between bg-white shadow-md px-4 lg:px-8">
-                <button @click="sidebarOpen = !sidebarOpen" class="md:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
-                    <svg class="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <header class="sticky top-0 z-20 h-16 flex items-center justify-between bg-white shadow-md px-3 lg:px-8 gap-2">
+                <!-- Mobile: hambúrguer com tap target ≥44px (era p-2 = 36px) + título da página visível -->
+                <button @click="sidebarOpen = !sidebarOpen"
+                        class="md:hidden inline-flex items-center justify-center min-h-11 min-w-11 rounded-md hover:bg-slate-100 active:bg-slate-200 touch-manipulation"
+                        aria-label="Abrir menu">
+                    <svg class="h-7 w-7 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
 
-                <div class="hidden md:block">
-                    <h1 class="text-lg font-semibold text-slate-900"><slot name="page-title">Painel</slot></h1>
+                <!-- Título: agora visível em mobile também (era hidden) — orienta o usuário -->
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-base md:text-lg font-semibold text-slate-900 truncate">
+                        <slot name="page-title">Painel</slot>
+                    </h1>
                 </div>
 
                 <div class="flex items-center gap-3 relative">
@@ -431,15 +437,17 @@ function logout() {
                         <span class="hidden xl:inline">Ver site público</span>
                     </a>
 
-                    <button @click="userMenuOpen = !userMenuOpen" class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100">
+                    <button @click="userMenuOpen = !userMenuOpen"
+                            class="flex items-center gap-2 p-1.5 min-h-11 min-w-11 md:min-h-0 md:min-w-0 rounded-lg hover:bg-slate-100 active:bg-slate-200 touch-manipulation"
+                            aria-label="Menu do usuário">
                         <img v-if="user?.avatar"
                              :src="user.avatar"
-                             class="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200">
-                        <div v-else class="h-8 w-8 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center text-sm font-semibold">
+                             class="h-9 w-9 md:h-8 md:w-8 rounded-full object-cover ring-1 ring-slate-200">
+                        <div v-else class="h-9 w-9 md:h-8 md:w-8 rounded-full bg-macaybas-primary-100 text-macaybas-primary-800 flex items-center justify-center text-sm font-semibold">
                             {{ user?.name?.[0]?.toUpperCase() }}
                         </div>
                         <span class="text-sm font-medium text-slate-700 hidden xl:block whitespace-nowrap">{{ (user?.name || '').split(' ')[0] }}</span>
-                        <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <svg class="h-4 w-4 text-slate-500 hidden md:inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
 
                     <div v-if="userMenuOpen" @click.away="userMenuOpen = false"
