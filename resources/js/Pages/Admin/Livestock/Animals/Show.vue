@@ -425,6 +425,76 @@ const eventoLabel = (tipo) => ({
     compra: 'Compra',
     venda: 'Venda',
 })[tipo] || tipo;
+
+// ═══════ TIPOS DE EVENTO INTELIGENTES NO MODAL ═══════
+//
+// O backend já calcula `animal.acoes_rapidas` filtrado por:
+//   • allowed_events da espécie (peixe não vacina, ave_postura não pesa)
+//   • sexo do animal (macho não tem ordenha/exame_toque/secagem)
+//   • idade reprodutiva (futuramente)
+//
+// Aqui combinamos:
+//   1. tipos de acoes_rapidas (já filtrados — fonte da verdade do domínio)
+//   2. + universais (ciclo de vida e logística — qualquer animal pode)
+//
+// Resultado: select do modal mostra APENAS o que faz sentido pra ESTE animal,
+// nem 1 opção a mais, nem 1 a menos. Espelha o ACOES_CATALOGO do backend.
+const TIPOS_UNIVERSAIS = [
+    'observacao', 'movimentacao', 'movimentacao_local',
+    'compra', 'venda', 'mortalidade', 'nascimento',
+];
+
+// Catálogo visual completo (label + emoji). Refletir aqui qualquer adição em ACOES_CATALOGO do backend.
+const CATALOGO_TIPOS = {
+    pesagem:             { emoji: '⚖️', label: 'Pesagem' },
+    ordenha:             { emoji: '🥛', label: 'Ordenha (litros produzidos)' },
+    vacinacao:           { emoji: '💉', label: 'Vacinação' },
+    medicacao:           { emoji: '💊', label: 'Medicação' },
+    vermifugacao:        { emoji: '🧴', label: 'Vermifugação' },
+    reproducao:          { emoji: '❤️', label: 'Cobertura (cruzamento ou IA)' },
+    exame_toque:         { emoji: '🩺', label: 'Exame de toque (palpação)' },
+    secagem:             { emoji: '💧', label: 'Secagem' },
+    ferrageamento:       { emoji: '🐎', label: 'Ferrageamento' },
+    tosquia:             { emoji: '✂️', label: 'Tosquia' },
+    castracao:           { emoji: '🔪', label: 'Castração' },
+    biometria_amostral:  { emoji: '🐟', label: 'Biometria amostral' },
+    qualidade_agua:      { emoji: '💧', label: 'Qualidade da água' },
+    alimentacao:         { emoji: '🌾', label: 'Alimentação' },
+    postura_diaria:      { emoji: '🥚', label: 'Postura' },
+    movimentacao:        { emoji: '🔄', label: 'Mudar de lote (grupo)' },
+    movimentacao_local:  { emoji: '📍', label: 'Mover de pasto (local físico)' },
+    venda:               { emoji: '💰', label: 'Venda (encerra ciclo · gera receita)' },
+    compra:              { emoji: '🛒', label: 'Compra' },
+    mortalidade:         { emoji: '⚰️', label: 'Mortalidade (encerra ciclo)' },
+    nascimento:          { emoji: '🐣', label: 'Nascimento' },
+    observacao:          { emoji: '📝', label: 'Observação' },
+};
+
+// Ordem visual do select (mais usados primeiro, ciclo de vida no final)
+const ORDEM_PREFERIDA = [
+    'pesagem', 'ordenha', 'vacinacao', 'medicacao', 'vermifugacao',
+    'reproducao', 'exame_toque', 'secagem',
+    'ferrageamento', 'tosquia', 'castracao',
+    'biometria_amostral', 'qualidade_agua', 'alimentacao', 'postura_diaria',
+    'movimentacao', 'movimentacao_local',
+    'venda', 'mortalidade', 'observacao',
+];
+
+const tiposPermitidosNoModal = computed(() => {
+    const tiposEspecificos = (props.animal.acoes_rapidas || []).map(a => a.tipo);
+    const set = new Set([...tiposEspecificos, ...TIPOS_UNIVERSAIS]);
+    return ORDEM_PREFERIDA
+        .filter(t => set.has(t) && CATALOGO_TIPOS[t])
+        .map(t => ({ value: t, ...CATALOGO_TIPOS[t] }));
+});
+
+// Se o tipo selecionado deixar de fazer sentido (ex.: usuário trocou animal
+// e o tipo atual não está mais na lista), fallback pra primeira opção válida.
+watch(tiposPermitidosNoModal, (lista) => {
+    if (! lista.length) return;
+    const valido = lista.some(o => o.value === eventForm.tipo);
+    if (! valido) eventForm.tipo = lista[0].value;
+});
 </script>
 
 <template>
@@ -834,27 +904,15 @@ const eventoLabel = (tipo) => ({
                         <div class="sm:col-span-2">
                             <InputLabel value="Tipo de evento *" />
                             <select v-model="eventForm.tipo" class="form-select">
-                                <option value="pesagem">⚖️ Pesagem</option>
-                                <option value="ordenha">🥛 Ordenha (litros produzidos)</option>
-                                <option value="vacinacao">💉 Vacinação</option>
-                                <option value="medicacao">💊 Medicação</option>
-                                <option value="vermifugacao">🧴 Vermifugação</option>
-                                <option value="reproducao">❤️ Cobertura (cruzamento ou IA)</option>
-                                <option value="exame_toque">🩺 Exame de toque (palpação)</option>
-                                <option value="secagem">💧 Secagem</option>
-                                <option value="ferrageamento">🐎 Ferrageamento</option>
-                                <option value="tosquia">✂️ Tosquia</option>
-                                <option value="castracao">🔪 Castração</option>
-                                <option value="biometria_amostral">🐟 Biometria amostral</option>
-                                <option value="qualidade_agua">💧 Qualidade da água</option>
-                                <option value="alimentacao">🌾 Alimentação</option>
-                                <option value="postura_diaria">🥚 Postura</option>
-                                <option value="movimentacao">🔄 Mudar de lote (grupo)</option>
-                                <option value="movimentacao_local">📍 Mover de pasto (local físico)</option>
-                                <option value="venda">💰 Venda (encerra ciclo · gera receita)</option>
-                                <option value="mortalidade">⚰️ Mortalidade (encerra ciclo)</option>
-                                <option value="observacao">📝 Observação</option>
+                                <option v-for="opt in tiposPermitidosNoModal" :key="opt.value" :value="opt.value">
+                                    {{ opt.emoji }} {{ opt.label }}
+                                </option>
                             </select>
+                            <p class="text-xs text-slate-500 mt-1">
+                                Lista filtrada para <strong>{{ animal.species?.nome?.toLowerCase() || 'esta espécie' }}</strong>
+                                {{ animal.sexo === 'F' ? '· fêmea' : '· macho' }} —
+                                {{ tiposPermitidosNoModal.length }} {{ tiposPermitidosNoModal.length === 1 ? 'tipo aplicável' : 'tipos aplicáveis' }}.
+                            </p>
                         </div>
                         <div>
                             <InputLabel value="Data *" />
