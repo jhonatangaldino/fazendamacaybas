@@ -428,11 +428,118 @@ const chartOptions = computed(() => {
     };
 });
 
+// ═══════ EVOLUÇÃO LEITEIRA · gráfico de produção ao longo do tempo ═══════
+//
+// Pega eventos tipo controle_leiteiro/ordenha com producao_litros e plota
+// linha temporal. Só faz sentido pra fêmeas em manejo leiteiro.
+const ordenhasOrdenadas = computed(() => {
+    return [...props.events]
+        .filter(e => (e.tipo === 'controle_leiteiro' || e.tipo === 'ordenha') && (e.producao_litros || (e.ordenhas && e.ordenhas.length)))
+        .map(e => {
+            // Soma litros: prefere producao_litros (cache); fallback array de ordenhas
+            let litros = parseFloat(e.producao_litros || 0);
+            if (! litros && Array.isArray(e.ordenhas)) {
+                litros = e.ordenhas.reduce((acc, o) => acc + parseFloat(o.litros || 0), 0);
+            }
+            return { data: e.data, litros, tipo: e.tipo };
+        })
+        .filter(e => e.litros > 0)
+        .sort((a, b) => a.data < b.data ? -1 : 1);
+});
+
+const totalOrdenhas = computed(() => ordenhasOrdenadas.value.length);
+const totalLitrosTotal = computed(() => ordenhasOrdenadas.value.reduce((acc, e) => acc + e.litros, 0));
+const mediaLitros = computed(() =>
+    totalOrdenhas.value > 0 ? totalLitrosTotal.value / totalOrdenhas.value : 0
+);
+
+// Mostra a tab leiteira só pra fêmea com pelo menos 1 controle/ordenha
+const temEvolucaoLeiteira = computed(() =>
+    props.animal?.sexo === 'F' && totalOrdenhas.value >= 1
+);
+
+const chartLeiteData = computed(() => {
+    const ords = ordenhasOrdenadas.value;
+    const litros = ords.map(o => o.litros);
+    const maior = Math.max(...litros, 0);
+    const menor = Math.min(...litros, 0);
+    const ultimo = ords.length - 1;
+
+    return {
+        labels: ords.map(o => dataBR(o.data)),
+        datasets: [{
+            label: 'Litros produzidos',
+            data: litros,
+            borderColor: '#0891b2',  // ciano (associado a leite/líquido)
+            backgroundColor: 'rgba(8, 145, 178, 0.1)',
+            borderWidth: 2.5,
+            tension: 0.25,
+            fill: true,
+            pointRadius: ords.map((o, i) => i === ultimo ? 9 : (o.litros === maior ? 7 : 5)),
+            pointHoverRadius: 10,
+            pointBackgroundColor: ords.map((o, i) =>
+                i === ultimo ? '#0891b2' :
+                (o.litros === maior ? '#f59e0b' :
+                 o.litros === menor && o.litros !== maior ? '#f97316' : '#ffffff')
+            ),
+            pointBorderColor: ords.map((o, i) => i === ultimo ? '#ffffff' : '#0891b2'),
+            pointBorderWidth: 2,
+        }],
+    };
+});
+
+const chartLeiteOptions = computed(() => {
+    const ords = ordenhasOrdenadas.value;
+    const litros = ords.map(o => o.litros);
+    const maior = Math.max(...litros, 0);
+    const menor = Math.min(...litros, 0);
+    const ultimo = ords.length - 1;
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => {
+                        const v = ctx.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 1 });
+                        const i = ctx.dataIndex;
+                        let tag = '';
+                        if (i === ultimo) tag = ' · ÚLTIMO controle';
+                        else if (litros[i] === maior) tag = ' · 🏆 maior produção';
+                        else if (litros[i] === menor) tag = ' · ⚠ menor produção';
+                        return `${v} L${tag}`;
+                    },
+                },
+            },
+        },
+        scales: {
+            y: {
+                ticks: { callback: (v) => `${v} L` },
+                grid: { color: 'rgba(148, 163, 184, 0.15)' },
+            },
+            x: { grid: { display: false } },
+        },
+    };
+});
+
 const eventoIcone = (tipo) => ({
     pesagem: '⚖️',
     vacinacao: '💉',
     medicacao: '💊',
+    vermifugacao: '🧴',
     reproducao: '❤️',
+    exame_toque: '🩺',
+    secagem: '💧',
+    controle_leiteiro: '🥛',
+    ordenha: '🥛',
+    ferrageamento: '🐎',
+    tosquia: '✂️',
+    castracao: '🔪',
+    biometria_amostral: '🐟',
+    qualidade_agua: '💧',
+    alimentacao: '🌾',
+    postura_diaria: '🥚',
     movimentacao: '🔄',         // mudança de LOTE (grupo)
     movimentacao_local: '📍',   // mudança de PASTO (local físico)
     observacao: '📝',
@@ -443,11 +550,26 @@ const eventoIcone = (tipo) => ({
     venda: '💰',
 })[tipo] || '📌';
 
+// Humaniza tipo técnico (snake_case) → label pt-BR. Antes a timeline mostrava
+// "exame_toque", "controle_leiteiro", "vermifugacao" crus quando o tipo não
+// estava mapeado — bug detectado pelo PO em ficha do animal.
 const eventoLabel = (tipo) => ({
     pesagem: 'Pesagem',
     vacinacao: 'Vacinação',
     medicacao: 'Medicação',
-    reproducao: 'Reprodução',
+    vermifugacao: 'Vermifugação',
+    reproducao: 'Cobertura (cruzamento ou IA)',
+    exame_toque: 'Exame de toque',
+    secagem: 'Secagem',
+    controle_leiteiro: 'Controle leiteiro',
+    ordenha: 'Ordenha',
+    ferrageamento: 'Ferrageamento',
+    tosquia: 'Tosquia',
+    castracao: 'Castração',
+    biometria_amostral: 'Biometria amostral',
+    qualidade_agua: 'Qualidade da água',
+    alimentacao: 'Alimentação',
+    postura_diaria: 'Postura',
     movimentacao: 'Mudança de lote',
     movimentacao_local: 'Mudança de pasto',
     observacao: 'Observação',
@@ -456,7 +578,7 @@ const eventoLabel = (tipo) => ({
     mortalidade: 'Mortalidade',
     compra: 'Compra',
     venda: 'Venda',
-})[tipo] || tipo;
+})[tipo] || tipo.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 // ═══════ TIPOS DE EVENTO INTELIGENTES NO MODAL ═══════
 //
@@ -921,6 +1043,12 @@ watch(tiposPermitidosNoModal, (lista) => {
                     class="py-3 border-b-2 font-medium transition-colors">
                 📈 Evolução de peso
             </button>
+            <!-- Tab leiteira aparece SÓ pra fêmea com pelo menos 1 controle/ordenha -->
+            <button v-if="temEvolucaoLeiteira" @click="activeTab = 'leite'"
+                    :class="activeTab === 'leite' ? 'border-macaybas-primary text-macaybas-primary' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                    class="py-3 border-b-2 font-medium transition-colors">
+                🥛 Evolução leiteira
+            </button>
         </div>
 
         <!-- Timeline -->
@@ -973,6 +1101,46 @@ watch(tiposPermitidosNoModal, (lista) => {
                 </div>
                 <div v-else class="h-80">
                     <Line :data="chartData" :options="chartOptions" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Evolução leiteira · só pra fêmea em manejo leiteiro -->
+        <div v-if="activeTab === 'leite'" class="card">
+            <div class="card-body">
+                <!-- KPIs leiteiros antes do gráfico -->
+                <div class="grid grid-cols-3 gap-3 mb-5">
+                    <div class="rounded-lg bg-cyan-50 ring-1 ring-cyan-100 p-4">
+                        <div class="text-xs uppercase tracking-wider font-semibold text-cyan-800">Total registrado</div>
+                        <div class="text-2xl font-bold text-cyan-900 mt-1">
+                            {{ totalLitrosTotal.toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }}
+                            <span class="text-sm font-medium">L</span>
+                        </div>
+                        <div class="text-xs text-cyan-700 mt-1">{{ totalOrdenhas }} controle(s)</div>
+                    </div>
+                    <div class="rounded-lg bg-emerald-50 ring-1 ring-emerald-100 p-4">
+                        <div class="text-xs uppercase tracking-wider font-semibold text-emerald-800">Média por controle</div>
+                        <div class="text-2xl font-bold text-emerald-900 mt-1">
+                            {{ mediaLitros.toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }}
+                            <span class="text-sm font-medium">L</span>
+                        </div>
+                        <div class="text-xs text-emerald-700 mt-1">média histórica</div>
+                    </div>
+                    <div class="rounded-lg bg-amber-50 ring-1 ring-amber-100 p-4">
+                        <div class="text-xs uppercase tracking-wider font-semibold text-amber-800">Maior produção</div>
+                        <div class="text-2xl font-bold text-amber-900 mt-1">
+                            {{ Math.max(...ordenhasOrdenadas.map(o => o.litros), 0).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) }}
+                            <span class="text-sm font-medium">L</span>
+                        </div>
+                        <div class="text-xs text-amber-700 mt-1">pico histórico</div>
+                    </div>
+                </div>
+
+                <div v-if="totalOrdenhas < 2" class="text-center py-10 text-slate-500">
+                    São necessários pelo menos 2 controles leiteiros para exibir o gráfico de evolução.
+                </div>
+                <div v-else class="h-80">
+                    <Line :data="chartLeiteData" :options="chartLeiteOptions" />
                 </div>
             </div>
         </div>

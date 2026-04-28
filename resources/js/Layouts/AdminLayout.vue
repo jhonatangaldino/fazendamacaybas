@@ -213,7 +213,7 @@ function logout() {
              inacessíveis. h-screen + dvh resolve em viewports modernos. -->
         <aside
             :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', 'md:translate-x-0', impersonation ? 'top-10' : 'top-0']"
-            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:static md:flex-shrink-0 flex flex-col h-screen md:h-auto"
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-macaybas-primary-950 text-slate-300 transform transition-transform md:flex-shrink-0 flex flex-col h-screen"
             style="height: 100dvh;"
         >
             <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10 flex-shrink-0">
@@ -228,7 +228,10 @@ function logout() {
                 </div>
             </div>
 
-            <nav class="p-3 space-y-6 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-8">
+            <!-- pb-20 (80px) + safe-area: garante respiro entre último item do menu
+                 e a borda inferior. Antes pb-8 (32px) deixava "Perfis e permissões"
+                 colado na barra inferior em iPhone/iPad. -->
+            <nav class="p-3 space-y-6 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-20" style="padding-bottom: max(5rem, env(safe-area-inset-bottom, 0) + 2rem);">
                 <div v-for="section in visibleMenu" :key="section.section">
                     <h3 class="text-xs uppercase tracking-widest text-white/40 px-3 mb-2">{{ section.section }}</h3>
                     <ul class="space-y-1">
@@ -262,8 +265,10 @@ function logout() {
 
         <div v-if="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black/40 z-30 md:hidden"></div>
 
-        <!-- MAIN -->
-        <div class="flex-1 flex flex-col min-w-0 w-full">
+        <!-- MAIN — margin-left compensa sidebar fixed em desktop (≥768px).
+             Antes usava md:static que jogava sidebar no fluxo normal e ela
+             subia junto com scroll em listas grandes. -->
+        <div class="flex-1 flex flex-col min-w-0 w-full md:ml-64">
             <!-- TOPBAR -->
             <header :class="['sticky z-20 h-16 flex items-center justify-between bg-white border-b border-slate-200 px-4 lg:px-8', stickyTop]">
                 <button @click="sidebarOpen = !sidebarOpen" class="md:hidden p-2 rounded-md hover:bg-slate-100" aria-label="Menu">
