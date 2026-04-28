@@ -20,6 +20,20 @@ const siteNome = computed(() => page.props.settings?.nome || 'Macaybas');
 const menuUsage = computed(() => page.props.menuUsage || {});
 const menuUsageGlobal = computed(() => page.props.menuUsageGlobal || {});
 
+// Espécies do tenant pra renderizar submenu dinâmico de Rebanho
+import { emojiEspecie } from '@/utils/emojiEspecie.js';
+const tenantSpecies = computed(() => page.props.tenantSpecies || []);
+
+// Estado de expansão dos menus pais (persiste em localStorage por chave)
+const expandedMenus = ref(JSON.parse(localStorage.getItem('admin_menu_expanded') || '{}'));
+function toggleMenu(key) {
+    expandedMenus.value = { ...expandedMenus.value, [key]: ! expandedMenus.value[key] };
+    localStorage.setItem('admin_menu_expanded', JSON.stringify(expandedMenus.value));
+}
+function isExpanded(key) {
+    return !! expandedMenus.value[key];
+}
+
 // Badges de contagem nos itens do menu (vindos do AlertsService).
 // Estrutura: { 'admin.financeiro.index': { n: 3, sev: 'critico' }, ... }
 const menuBadges = computed(() => page.props.menuBadges || {});
@@ -141,9 +155,30 @@ const menu = computed(() => [
         section: 'Operação',
         items: [
             { label: 'Financeiro', route: 'admin.financeiro.index', icon: 'cash', perm: 'operational.financeiro.view', feature: 'financeiro' },
-            { label: 'Rebanho', route: 'admin.rebanho.index', icon: 'cow', perm: 'operational.rebanho.view', feature: 'rebanho' },
-            { label: '↳ Lotes', route: 'admin.rebanho.lotes.index', icon: 'users-group', perm: 'operational.rebanho.view', feature: 'rebanho' },
-            { label: '↳ Locais (pastos)', route: 'admin.rebanho.locais.index', icon: 'map-pin', perm: 'operational.rebanho.view', feature: 'rebanho' },
+            // Rebanho expansível: ao expandir mostra submenu dinâmico por espécie
+            // (apenas espécies COM animais ativos no tenant) + Lotes + Locais.
+            // Click direto no "Rebanho" vai pra listagem agregada (todos animais).
+            {
+                label: 'Rebanho', route: 'admin.rebanho.index', icon: 'cow',
+                perm: 'operational.rebanho.view', feature: 'rebanho',
+                expandable: true,
+                children: () => [
+                    ...tenantSpecies.value.map(s => ({
+                        label: `${emojiEspecie(s.nome)} ${s.nome}`,
+                        href: route('admin.rebanho.animais.index', { species_id: s.id }),
+                        badge: s.animals_count,
+                        currentMatch: (currentUrl) => {
+                            try {
+                                const u = new URL(currentUrl, window.location.origin);
+                                return u.pathname === '/admin/rebanho/animais'
+                                    && u.searchParams.get('species_id') === String(s.id);
+                            } catch { return false; }
+                        },
+                    })),
+                    { label: '🏷 Lotes', href: route('admin.rebanho.lotes.index') },
+                    { label: '📍 Locais (pastos)', href: route('admin.rebanho.locais.index') },
+                ],
+            },
             { label: 'Agrícola', route: 'admin.agricola.index', icon: 'wheat', perm: 'operational.agricola.view', feature: 'agricola' },
             { label: 'Estoque', route: 'admin.estoque.index', icon: 'box', perm: 'operational.estoque.view', feature: 'estoque' },
             { label: 'Máquinas', route: 'admin.maquinas.index', icon: 'truck', perm: 'operational.maquinas.view', feature: 'maquinas' },
@@ -258,7 +293,39 @@ function logout() {
                     <h3 class="text-xs uppercase tracking-widest text-white/40 px-3 mb-2">{{ section.section }}</h3>
                     <ul class="space-y-1">
                         <li v-for="item in section.items" :key="item.label">
+                            <!-- Item EXPANSÍVEL (Rebanho com submenus por espécie):
+                                 row contém Link pra navegar + botão pra expandir -->
+                            <div v-if="item.expandable" class="flex items-stretch">
+                                <Link
+                                    :href="route(item.route)"
+                                    @click="sidebarOpen = false; trackMenuHit(item.route)"
+                                    :class="[route().current(item.route + '*') ? 'bg-white/10 text-white' : 'hover:bg-white/5 hover:text-white']"
+                                    class="flex-1 flex items-center gap-3 rounded-l-lg px-3 py-2 text-sm transition"
+                                >
+                                    <Icon :name="item.icon" :size="20" :stroke-width="1.7" />
+                                    <span class="flex-1">{{ item.label }}</span>
+                                    <span
+                                        v-if="menuBadges[item.route]"
+                                        :class="[
+                                            'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold',
+                                            menuBadges[item.route].sev === 'critico' ? 'bg-rose-500 text-white' : 'bg-amber-400 text-amber-900',
+                                        ]"
+                                    >
+                                        {{ menuBadges[item.route].n > 99 ? '99+' : menuBadges[item.route].n }}
+                                    </span>
+                                </Link>
+                                <button @click="toggleMenu(item.route)" type="button"
+                                        class="px-2 rounded-r-lg hover:bg-white/5 text-white/60 hover:text-white transition"
+                                        :aria-label="isExpanded(item.route) ? 'Recolher' : 'Expandir'">
+                                    <svg class="h-4 w-4 transition-transform" :class="isExpanded(item.route) ? 'rotate-90' : ''"
+                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <!-- Item NORMAL -->
                             <Link
+                                v-else
                                 :href="route(item.route)"
                                 @click="sidebarOpen = false; trackMenuHit(item.route)"
                                 :class="[route().current(item.route + '*') ? 'bg-white/10 text-white' : 'hover:bg-white/5 hover:text-white']"
@@ -279,6 +346,21 @@ function logout() {
                                     {{ menuBadges[item.route].n > 99 ? '99+' : menuBadges[item.route].n }}
                                 </span>
                             </Link>
+
+                            <!-- Submenus dinâmicos (só renderiza se expandido) -->
+                            <ul v-if="item.expandable && isExpanded(item.route)" class="mt-1 ml-7 space-y-0.5 border-l border-white/10 pl-2">
+                                <li v-for="child in item.children()" :key="child.label">
+                                    <Link
+                                        :href="child.href"
+                                        @click="sidebarOpen = false"
+                                        :class="[child.currentMatch?.(page.url) ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white']"
+                                        class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition"
+                                    >
+                                        <span class="flex-1 truncate">{{ child.label }}</span>
+                                        <span v-if="child.badge != null" class="text-[10px] text-white/50">{{ child.badge }}</span>
+                                    </Link>
+                                </li>
+                            </ul>
                         </li>
                     </ul>
                 </div>

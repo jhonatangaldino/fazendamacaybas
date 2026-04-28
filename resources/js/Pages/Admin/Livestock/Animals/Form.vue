@@ -16,9 +16,21 @@ import InputDecimal from '@/Components/InputDecimal.vue';
 const props = defineProps({ animal: Object, species: Array, lots: Array, locations: { type: Array, default: () => [] }, farms: Array, partners: Array });
 const isEdit = !!props.animal;
 
+// Pré-seleciona espécie via ?species_id=X (vem do menu lateral por espécie ou
+// do botão "Cadastrar bovino/ave/etc" da Index contextual). Em edição, usa
+// o species_id do animal carregado. Sem nada na URL, cai no primeiro species.
+function speciesIdInicial() {
+    if (props.animal?.species_id) return props.animal.species_id;
+    try {
+        const fromUrl = Number(new URLSearchParams(window.location.search).get('species_id'));
+        if (fromUrl && props.species.find(s => s.id === fromUrl)) return fromUrl;
+    } catch {}
+    return props.species[0]?.id ?? '';
+}
+
 const form = useForm({
     farm_id: props.animal?.farm_id ?? props.farms[0]?.id ?? null,
-    species_id: props.animal?.species_id ?? props.species[0]?.id ?? '',
+    species_id: speciesIdInicial(),
     breed_id: props.animal?.breed_id ?? null,
     lot_id: props.animal?.lot_id ?? null,
     location_id: props.animal?.location_id ?? null,

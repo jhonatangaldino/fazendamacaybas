@@ -1,8 +1,11 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
+import { emojiEspecie } from '@/utils/emojiEspecie.js';
+
+const page = usePage();
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import MobileFilters from '@/Components/MobileFilters.vue';
@@ -31,6 +34,37 @@ const pesoMedio = computed(() => {
     const total = Number(props.resumo.peso_total || 0);
     const n = Number(props.resumo.ativos_com_peso || 0);
     return n > 0 ? total / n : 0;
+});
+
+// Espécie selecionada via filtro vindo da URL — quando vem do menu lateral
+// (item "Bovinos", "Aves" etc.), o título da página vira contextual da
+// espécie e o botão de cadastro pré-fixa species_id pra abrir já contexto.
+// Usa tenantSpecies (compartilhado via Inertia, já filtrado pelo backend) em
+// vez de props.species — esta última pode vir vazia quando species ficam
+// num "catálogo global" (tenant_id=1) e o BelongsToTenantScope filtra fora.
+const especieAtiva = computed(() => {
+    const id = Number(props.filters?.species_id);
+    if (! id) return null;
+    const fromTenant = (page.props.tenantSpecies || []).find(s => s.id === id);
+    if (fromTenant) return fromTenant;
+    return props.species?.find(s => s.id === id) ?? null;
+});
+const tituloHeader = computed(() => {
+    if (! especieAtiva.value) return 'Animais';
+    return `${emojiEspecie(especieAtiva.value.nome)} ${especieAtiva.value.nome}`;
+});
+const subtituloHeader = computed(() => {
+    if (! especieAtiva.value) return 'Cadastro individual com histórico incremental de pesagens, vacinas e eventos';
+    const totais = props.resumo?.ativos > 0 ? `${props.resumo.ativos} ${especieAtiva.value.nome.toLowerCase()}(s) ativo(s)` : `Nenhum ${especieAtiva.value.nome.toLowerCase()} ativo`;
+    return totais + ' · cadastros, eventos e ações específicas dessa espécie';
+});
+const labelBotaoNovo = computed(() => {
+    if (! especieAtiva.value) return 'Novo animal';
+    return `+ Cadastrar ${especieAtiva.value.nome.toLowerCase()}`;
+});
+const linkNovoAnimal = computed(() => {
+    const params = especieAtiva.value ? { species_id: especieAtiva.value.id } : {};
+    return route('admin.rebanho.animais.create', params);
 });
 const filtros = reactive({
     search: props.filters?.search ?? '',
@@ -252,15 +286,15 @@ function doDelete() {
     <Head title="Rebanho — Animais" />
     <AdminLayout>
         <template #page-title>Rebanho</template>
-        <PageHeader title="Animais" subtitle="Cadastro individual com histórico incremental de pesagens, vacinas e eventos">
+        <PageHeader :title="tituloHeader" :subtitle="subtituloHeader">
             <template #actions>
                 <!-- BLOCO 4.3 — Hierarquia invertida: Vender é a ação core do dono (faz mais), Cadastrar é raro -->
                 <!-- Dashboard leiteiro só aparece se a fazenda PRATICA manejo leiteiro (raça/categoria leite ou eventos) -->
                 <Link v-if="tem_manejo_leiteiro" :href="route('admin.rebanho.controle-leiteiro.dashboard')" class="btn-outline" title="Quadro mensal DROVET com produção, categorias e histórico">
                     📊 Dashboard leiteiro
                 </Link>
-                <Link :href="route('admin.rebanho.animais.create')" class="btn-outline" title="Cadastrar animal individualmente">
-                    Novo animal
+                <Link :href="linkNovoAnimal" class="btn-outline" :title="labelBotaoNovo">
+                    {{ labelBotaoNovo }}
                 </Link>
                 <Link :href="route('admin.fluxos.venda-animal')" class="btn-primary" title="Fluxo guiado em 5 passos — ação principal do dono">
                     💰 Vender animal

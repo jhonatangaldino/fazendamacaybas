@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use App\Domain\Billing\Models\Tenant;
 use App\Domain\Billing\PlanFeatures;
 use App\Models\Farm;
+use App\Models\Livestock\Animal;
+use App\Models\Livestock\AnimalSpecies;
 use App\Models\MenuUsage;
 use App\Models\Setting;
 use App\Services\AlertsService;
@@ -161,6 +163,41 @@ class HandleInertiaRequests extends Middleware
                     'id' => (int) $f->id,
                     'nome' => $f->nome,
                 ])->values()->all();
+            },
+            // Espécies do tenant pra renderizar submenu dinâmico de Rebanho.
+            // Só lista espécies que TÊM ANIMAIS ativos (evita poluir o menu
+            // com 11 espécies vazias). Cache 10min — espécie nova/animal
+            // novo aparece no submenu na próxima request fria.
+            'tenantSpecies' => function () use ($request) {
+                $effectiveTenantId = $this->effectiveTenantId($request);
+                if ($effectiveTenantId === null) return [];
+                return Cache::remember(
+                    "tenant_species_with_count.{$effectiveTenantId}",
+                    now()->addMinutes(10),
+                    function () use ($effectiveTenantId) {
+                        // NOTA: species pode ser do tenant 1 (catálogo "global"),
+                        // mas o que importa pro menu é se o tenant ATUAL tem
+                        // animais ativos referenciando essa species. Filtra
+                        // animals_count pelo tenant_id do ANIMAL.
+                        return AnimalSpecies::query()
+                            ->where('is_active', true)
+                            ->whereHas('animals', fn ($q) =>
+                                $q->where('status', 'ativo')->where('tenant_id', $effectiveTenantId))
+                            ->withCount(['animals' => fn ($q) =>
+                                $q->where('status', 'ativo')->where('tenant_id', $effectiveTenantId)])
+                            ->orderBy('nome')
+                            ->get(['id', 'nome', 'slug', 'gestao', 'profile'])
+                            ->map(fn ($s) => [
+                                'id' => $s->id,
+                                'nome' => $s->nome,
+                                'slug' => $s->slug,
+                                'gestao' => $s->gestao,
+                                'profile' => $s->profile,
+                                'animals_count' => $s->animals_count,
+                            ])
+                            ->all();
+                    }
+                );
             },
             'settings' => fn () => [
                 'logo' => Setting::getValue('site.logo'),
