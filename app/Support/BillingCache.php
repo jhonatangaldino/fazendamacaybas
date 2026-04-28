@@ -30,14 +30,18 @@ class BillingCache
     public const TTL_MASTER_KPIS    = 300;   // 5 min
     public const TTL_TENANT_DASH    = 300;   // 5 min (tenant dashboard subiu de 90s)
 
-    public static function alertsKey(?int $tenantId): string
+    public static function alertsKey(?int $tenantId, ?int $farmId = null): string
     {
-        return 'bcache.alerts.t' . ($tenantId ?? 'master') . ':' . today()->toDateString();
+        // Inclui farm_id na chave: tenants multi-farm precisam de cache
+        // separado por fazenda (badges/alertas filtram por farm).
+        $farm = $farmId ? '.f' . $farmId : '';
+        return 'bcache.alerts.t' . ($tenantId ?? 'master') . $farm . ':' . today()->toDateString();
     }
 
-    public static function menuBadgesKey(?int $tenantId): string
+    public static function menuBadgesKey(?int $tenantId, ?int $farmId = null): string
     {
-        return 'bcache.badges.t' . ($tenantId ?? 'master') . ':' . today()->toDateString();
+        $farm = $farmId ? '.f' . $farmId : '';
+        return 'bcache.badges.t' . ($tenantId ?? 'master') . $farm . ':' . today()->toDateString();
     }
 
     public static function tenantFeaturesKey(int $tenantId): string

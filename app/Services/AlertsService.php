@@ -68,11 +68,13 @@ class AlertsService
         }
 
         // ─── FINANCEIRO ───────────────────────────────────────────
-        // Conta por tenant — não filtra por farm aqui (o usuário sempre vê o todo
-        // dos alertas; ele decide se entra na fazenda específica para resolver).
+        // Conta apenas da fazenda atualmente selecionada quando $farmId vem.
+        // Sem isso, tenant com 2+ fazendas vazava contadores de uma na outra
+        // (ex.: Filial QA mostrava "1 conta vence hoje" sendo despesa da Sede).
         if (Schema::hasTable('financial_transactions')) {
             $finQuery = FinancialTransaction::query()
                 ->where('tenant_id', $tenantId)
+                ->when($farmId, fn ($q) => $q->where('farm_id', $farmId))
                 ->where('tipo', 'despesa')
                 ->where('status', 'pendente');
 
@@ -99,6 +101,7 @@ class AlertsService
         if (Schema::hasTable('tasks')) {
             $atrasadas = Task::query()
                 ->where('tenant_id', $tenantId)
+                ->when($farmId, fn ($q) => $q->where('farm_id', $farmId))
                 ->where('status', 'pendente')
                 ->whereDate('data_vencimento', '<', today())
                 ->count();
@@ -122,14 +125,20 @@ class AlertsService
     /**
      * Counters para badges no menu da sidebar.
      * Reaproveita as queries acima — estrutura otimizada para 1 query por bloco.
+     *
+     * IMPORTANTE: respeitar farm_id quando informado. Sem esse filtro, tenant
+     * multi-farm mostrava badge "1" no Financeiro de uma fazenda mesmo a
+     * despesa pertencendo a outra — vazamento entre fazendas detectado pelo
+     * PO em 2026-04-28 (Filial QA com badge contando dívida da Sede).
      */
-    public function menuBadgesForTenant(int $tenantId): array
+    public function menuBadgesForTenant(int $tenantId, ?int $farmId = null): array
     {
         $badges = [];
 
         if (Schema::hasTable('financial_transactions')) {
             $vencidas = FinancialTransaction::query()
                 ->where('tenant_id', $tenantId)
+                ->when($farmId, fn ($q) => $q->where('farm_id', $farmId))
                 ->where('tipo', 'despesa')
                 ->where('status', 'pendente')
                 ->whereDate('data_vencimento', '<=', today())
@@ -142,6 +151,7 @@ class AlertsService
         if (Schema::hasTable('tasks')) {
             $atrasadas = Task::query()
                 ->where('tenant_id', $tenantId)
+                ->when($farmId, fn ($q) => $q->where('farm_id', $farmId))
                 ->where('status', 'pendente')
                 ->whereDate('data_vencimento', '<', today())
                 ->count();

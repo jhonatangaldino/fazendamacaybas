@@ -176,11 +176,15 @@ class HandleInertiaRequests extends Middleware
                 $user = $request->user();
                 if (! $user) return [];
                 $effectiveTenantId = $this->effectiveTenantId($request);
-                $key = BillingCache::alertsKey($effectiveTenantId);
-                return Cache::remember($key, BillingCache::TTL_ALERTS, function () use ($effectiveTenantId) {
+                // Respeita farm_id atual: tenant multi-farm vê alertas só da fazenda
+                // selecionada, evitando vazamento entre fazendas (bug detectado por
+                // PO 2026-04-28: Filial vazia mostrava "1 conta vence hoje" da Sede).
+                $farmId = $user->current_farm_id;
+                $key = BillingCache::alertsKey($effectiveTenantId, $farmId);
+                return Cache::remember($key, BillingCache::TTL_ALERTS, function () use ($effectiveTenantId, $farmId) {
                     $service = app(AlertsService::class);
                     return $effectiveTenantId
-                        ? $service->forTenant($effectiveTenantId)
+                        ? $service->forTenant($effectiveTenantId, $farmId)
                         : $service->forMaster();
                 });
             },
@@ -188,11 +192,12 @@ class HandleInertiaRequests extends Middleware
                 $user = $request->user();
                 if (! $user) return [];
                 $effectiveTenantId = $this->effectiveTenantId($request);
-                $key = BillingCache::menuBadgesKey($effectiveTenantId);
-                return Cache::remember($key, BillingCache::TTL_ALERTS, function () use ($effectiveTenantId) {
+                $farmId = $user->current_farm_id;
+                $key = BillingCache::menuBadgesKey($effectiveTenantId, $farmId);
+                return Cache::remember($key, BillingCache::TTL_ALERTS, function () use ($effectiveTenantId, $farmId) {
                     $service = app(AlertsService::class);
                     return $effectiveTenantId
-                        ? $service->menuBadgesForTenant($effectiveTenantId)
+                        ? $service->menuBadgesForTenant($effectiveTenantId, $farmId)
                         : $service->menuBadgesForMaster();
                 });
             },
