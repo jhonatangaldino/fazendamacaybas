@@ -178,24 +178,37 @@ class HandleInertiaRequests extends Middleware
                         // NOTA: species pode ser do tenant 1 (catálogo "global"),
                         // mas o que importa pro menu é se o tenant ATUAL tem
                         // animais ativos referenciando essa species. Filtra
-                        // animals_count pelo tenant_id do ANIMAL.
-                        return AnimalSpecies::query()
+                        // animals_count pelo tenant_id do ANIMAL via SQL bruto
+                        // (whereHas com BelongsToTenantScope na relação `animals`
+                        // restringia indevidamente).
+                        $species = AnimalSpecies::withoutGlobalScopes()
                             ->where('is_active', true)
-                            ->whereHas('animals', fn ($q) =>
-                                $q->where('status', 'ativo')->where('tenant_id', $effectiveTenantId))
-                            ->withCount(['animals' => fn ($q) =>
-                                $q->where('status', 'ativo')->where('tenant_id', $effectiveTenantId)])
+                            ->whereExists(function ($q) use ($effectiveTenantId) {
+                                $q->select(\DB::raw(1))
+                                  ->from('animals')
+                                  ->whereColumn('animals.species_id', 'animal_species.id')
+                                  ->where('animals.status', 'ativo')
+                                  ->where('animals.tenant_id', $effectiveTenantId);
+                            })
                             ->orderBy('nome')
-                            ->get(['id', 'nome', 'slug', 'gestao', 'profile'])
-                            ->map(fn ($s) => [
-                                'id' => $s->id,
-                                'nome' => $s->nome,
-                                'slug' => $s->slug,
-                                'gestao' => $s->gestao,
-                                'profile' => $s->profile,
-                                'animals_count' => $s->animals_count,
-                            ])
-                            ->all();
+                            ->get(['id', 'nome', 'slug', 'gestao', 'profile']);
+
+                        $counts = \DB::table('animals')
+                            ->select('species_id', \DB::raw('COUNT(*) as cnt'))
+                            ->where('status', 'ativo')
+                            ->where('tenant_id', $effectiveTenantId)
+                            ->whereIn('species_id', $species->pluck('id'))
+                            ->groupBy('species_id')
+                            ->pluck('cnt', 'species_id');
+
+                        return $species->map(fn ($s) => [
+                            'id' => $s->id,
+                            'nome' => $s->nome,
+                            'slug' => $s->slug,
+                            'gestao' => $s->gestao,
+                            'profile' => $s->profile,
+                            'animals_count' => (int) ($counts[$s->id] ?? 0),
+                        ])->all();
                     }
                 );
             },
