@@ -63,6 +63,90 @@ class AnimalController extends Controller
         'pet',
     ];
 
+    /**
+     * Dashboard inicial por espécie — abre quando master clica num submenu
+     * de "Rebanho > Bovino/Ave/etc.". Mostra KPIs adaptados ao profile da
+     * espécie (mamífero terrestre vs ave de postura vs aquicultura) +
+     * grid de ações rápidas + atalho pra "ver todos" e "cadastrar novo".
+     *
+     * Bind por slug pra URL ficar legível: /admin/rebanho/bovino, /admin/rebanho/ave.
+     * AnimalSpecies fica em tenant_id=1 (catálogo global) — withoutGlobalScopes
+     * pra resolver o slug independente do tenant atual.
+     */
+    public function dashboardEspecie(Request $request, string $speciesSlug)
+    {
+        $species = AnimalSpecies::withoutGlobalScopes()
+            ->where('slug', $speciesSlug)
+            ->where('is_active', true)
+            ->firstOrFail(['id', 'nome', 'slug', 'gestao', 'profile', 'allowed_events']);
+
+        $tenantId = (int) (auth()->user()->tenant_id ?? app('tenant_id'));
+
+        // KPIs base (todos os profiles): ativos, sexo, peso médio, vendidos/baixas mês
+        $animaisQuery = Animal::where('species_id', $species->id);
+        $totalAtivos = (clone $animaisQuery)->where('status', 'ativo')->count();
+        $sexoM = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'M')->count();
+        $sexoF = (clone $animaisQuery)->where('status', 'ativo')->where('sexo', 'F')->count();
+        $vendidosMes = (clone $animaisQuery)->where('status', 'vendido')
+            ->where('updated_at', '>=', now()->startOfMonth())->count();
+        $baixasMes = (clone $animaisQuery)->whereIn('status', ['morto', 'abatido'])
+            ->where('updated_at', '>=', now()->startOfMonth())->count();
+
+        // Peso médio do último evento de pesagem por animal — usa subquery
+        // simples (compatível MySQL/SQLite/Pg). Só vale pra gestao=individual.
+        $pesoMedio = null;
+        if ($species->gestao === 'individual') {
+            $animalIds = (clone $animaisQuery)->where('status', 'ativo')->pluck('id')->all();
+            if (count($animalIds) > 0) {
+                // Pega o último peso de cada animal (subquery por id máximo).
+                $ultimosPesoIds = DB::table('animal_events')
+                    ->whereIn('animal_id', $animalIds)
+                    ->where('tipo', 'pesagem')
+                    ->whereNotNull('peso')
+                    ->select(DB::raw('MAX(id) as id'))
+                    ->groupBy('animal_id')
+                    ->pluck('id');
+                if ($ultimosPesoIds->count() > 0) {
+                    $pesoMedio = (float) AnimalEvent::whereIn('id', $ultimosPesoIds)->avg('peso');
+                }
+            }
+        }
+
+        // Eventos recentes (últimos 7 dias) — útil pro master ver atividade
+        $eventosRecentes = AnimalEvent::whereHas('animal', fn ($q) =>
+            $q->where('species_id', $species->id))
+            ->where('data', '>=', now()->subDays(7)->toDateString())
+            ->count();
+
+        // Lots e locations relevantes pra esta espécie (filtragem rápida)
+        $lots = AnimalLot::where('is_active', true)
+            ->whereHas('animals', fn ($q) => $q->where('species_id', $species->id)->where('status', 'ativo'))
+            ->orderBy('nome')
+            ->get(['id', 'nome']);
+
+        return Inertia::render('Admin/Livestock/EspecieDashboard', [
+            'species' => [
+                'id' => $species->id,
+                'nome' => $species->nome,
+                'slug' => $species->slug,
+                'gestao' => $species->gestao,
+                'profile' => $species->profile,
+                'allowed_events' => $species->allowed_events,
+            ],
+            'kpis' => [
+                'total_ativos' => $totalAtivos,
+                'sexo_m' => $sexoM,
+                'sexo_f' => $sexoF,
+                'vendidos_mes' => $vendidosMes,
+                'baixas_mes' => $baixasMes,
+                'peso_medio' => $pesoMedio ? round($pesoMedio, 2) : null,
+                'eventos_7d' => $eventosRecentes,
+                'lots_count' => $lots->count(),
+            ],
+            'lots' => $lots,
+        ]);
+    }
+
     public function index(Request $request)
     {
         // Reference data multi-tenant: species/breed estão em tenant_id=1 (sistema)

@@ -165,13 +165,14 @@ const menu = computed(() => [
                 expandable: true,
                 children: () => tenantSpecies.value.map(s => ({
                     label: `${emojiEspecie(s.nome)} ${s.nome}`,
-                    href: route('admin.rebanho.animais.index', { species_id: s.id }),
+                    href: route('admin.rebanho.especies.dashboard', { especie: s.slug }),
                     badge: s.animals_count,
                     currentMatch: (currentUrl) => {
                         try {
                             const u = new URL(currentUrl, window.location.origin);
-                            return u.pathname === '/admin/rebanho/animais'
-                                && u.searchParams.get('species_id') === String(s.id);
+                            // Match dashboard da espécie OU listagem filtrada por species_id
+                            return u.pathname === `/admin/rebanho/especies/${s.slug}`
+                                || (u.pathname === '/admin/rebanho/animais' && u.searchParams.get('species_id') === String(s.id));
                         } catch { return false; }
                     },
                 })),

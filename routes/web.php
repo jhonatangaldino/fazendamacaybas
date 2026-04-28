@@ -486,6 +486,9 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
     // ------- REBANHO -------
     Route::middleware('permission:operational.rebanho.view')->group(function () {
         Route::get('rebanho', LivestockIndexController::class)->name('rebanho.index');
+        Route::get('rebanho/especies/{especie}', [AnimalController::class, 'dashboardEspecie'])
+            ->whereAlphaNumeric('especie')
+            ->name('rebanho.especies.dashboard');
         Route::get('rebanho/animais', [AnimalController::class, 'index'])->name('rebanho.animais.index');
         Route::get('rebanho/animais/novo', [AnimalController::class, 'create'])->middleware('permission:operational.rebanho.animais.create')->name('rebanho.animais.create');
         Route::post('rebanho/animais', [AnimalController::class, 'store'])->middleware('permission:operational.rebanho.animais.create')->name('rebanho.animais.store');
