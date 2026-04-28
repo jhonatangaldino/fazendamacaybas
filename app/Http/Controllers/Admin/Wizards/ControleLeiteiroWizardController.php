@@ -39,7 +39,12 @@ class ControleLeiteiroWizardController extends Controller
         $vacas = Animal::ativos()
             ->where('sexo', 'F')
             ->whereHas('species', fn ($q) => $q->withoutGlobalScopes()->whereIn('slug', ['bovino', 'bovino-leite']))
-            ->with(['species:id,nome,slug', 'breed:id,nome', 'lot:id,nome'])
+            // withoutGlobalScopes em species/breed (catálogos globais, tenant_id=1)
+            ->with([
+                'species' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome', 'slug'),
+                'breed'   => fn ($q) => $q->withoutGlobalScopes()->select('id', 'nome'),
+                'lot:id,nome',
+            ])
             ->select('id', 'identificacao', 'nome', 'sexo', 'species_id', 'breed_id', 'lot_id', 'data_nascimento')
             ->orderBy('identificacao')
             ->get()

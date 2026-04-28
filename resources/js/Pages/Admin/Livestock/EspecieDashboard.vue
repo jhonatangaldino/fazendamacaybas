@@ -68,9 +68,21 @@ const modalAberto = ref(false);
 const tipoAtivo = ref(null);
 const { toast } = useToast();
 function abrirModal(tipo) {
-    if (props.animals.length === 0) {
-        toast.warning(`Cadastre pelo menos um ${props.species.nome.toLowerCase()} antes de registrar eventos.`);
-        return;
+    // Validação adaptativa por gestão:
+    //   • gestao=lote (Ave/Peixe): precisa de LOTE ativo (não animais individuais)
+    //   • gestao=individual: precisa de pelo menos 1 Animal cadastrado
+    // Antes a validação só olhava `animals.length` — bloqueava Peixe com 9 lotes.
+    if (isLote.value) {
+        const lotesAtivos = (props.lots || []).filter(l => (l.quantidade_atual ?? 0) > 0);
+        if (lotesAtivos.length === 0) {
+            toast.warning(`Cadastre pelo menos um lote de ${props.species.nome.toLowerCase()} com cabeças ativas antes de registrar eventos.`);
+            return;
+        }
+    } else {
+        if (props.animals.length === 0) {
+            toast.warning(`Cadastre pelo menos um ${props.species.nome.toLowerCase()} antes de registrar eventos.`);
+            return;
+        }
     }
     tipoAtivo.value = tipo;
     modalAberto.value = true;

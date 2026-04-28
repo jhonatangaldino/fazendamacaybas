@@ -195,10 +195,14 @@ class HandleInertiaRequests extends Middleware
                             ->pluck('cnt', 'species_id');
 
                         // Cabeças em lotes agregados (gestao=lote — Ave/Peixe).
-                        // Sem isso a sidebar mostra "Ave: 0" mesmo com 2581 cabeças.
+                        // CRÍTICO: filtrar por tenant_id — \DB::table() é Query Builder
+                        // direto, NÃO aplica BelongsToTenantScope. Sem este where()
+                        // os lotes de TODOS os tenants eram somados (vazamento de
+                        // dados entre clientes — bug detectado pelo usuário).
                         $countsAgregado = \DB::table('animal_lots')
                             ->select('species_id', \DB::raw('COALESCE(SUM(quantidade_atual), 0) as cnt'))
                             ->where('is_active', true)
+                            ->where('tenant_id', $effectiveTenantId)
                             ->whereIn('species_id', $species->where('gestao', 'lote')->pluck('id'))
                             ->groupBy('species_id')
                             ->pluck('cnt', 'species_id');

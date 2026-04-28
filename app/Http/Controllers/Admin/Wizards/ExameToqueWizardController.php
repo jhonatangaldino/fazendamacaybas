@@ -96,8 +96,12 @@ class ExameToqueWizardController extends Controller
             })
             ->values();
 
-        // Veterinários cadastrados como parceiros (tipo prestador)
+        // Veterinários cadastrados como parceiros (tipo prestador).
+        // CRÍTICO filtrar tenant_id — DB::table NÃO aplica BelongsToTenantScope.
+        // Sem isso veterinários de outros tenants apareceriam no select.
+        $tenantIdAtivo = (int) (auth()->user()->tenant_id ?? app('tenant_id'));
         $veterinarios = DB::table('partners')
+            ->where('tenant_id', $tenantIdAtivo)
             ->where('tipo', 'prestador')
             ->where('is_active', true)
             ->orderBy('nome')
