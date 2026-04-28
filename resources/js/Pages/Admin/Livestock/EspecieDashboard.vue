@@ -25,6 +25,7 @@ import { allowedEventsFor, EVENT_CATALOG } from '@/utils/animalProfile.js';
 const props = defineProps({
     species: { type: Object, required: true },
     kpis: { type: Object, required: true },
+    kpis_profile: { type: Object, default: null },
     lots: { type: Array, default: () => [] },
 });
 
@@ -153,6 +154,29 @@ const COLOR_CLASSES = {
                     <span class="text-base">{{ card.icon }}</span>
                 </div>
                 <div class="mt-1 text-2xl font-serif font-bold">{{ card.valor }}</div>
+            </div>
+        </div>
+
+        <!-- Indicadores específicos por profile (leite, postura, aquicultura) -->
+        <div v-if="kpis_profile" class="rounded-2xl bg-white ring-1 ring-slate-200 p-5 mb-6">
+            <div class="flex items-start justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">{{ kpis_profile.titulo }}</h3>
+                <Link v-if="kpis_profile.link"
+                      :href="kpis_profile.link"
+                      class="text-xs text-macaybas-primary-700 hover:underline font-medium">
+                    {{ kpis_profile.link_label || 'Ver detalhes' }} →
+                </Link>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div v-for="card in kpis_profile.cards" :key="card.label"
+                     class="rounded-xl ring-1 p-3"
+                     :class="COLOR_CLASSES[card.cor] ?? COLOR_CLASSES.slate">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] uppercase tracking-widest font-semibold opacity-80">{{ card.label }}</span>
+                        <span class="text-base">{{ card.icon }}</span>
+                    </div>
+                    <div class="mt-1 text-xl font-serif font-bold">{{ card.valor }}</div>
+                </div>
             </div>
         </div>
 

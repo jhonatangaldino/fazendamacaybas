@@ -139,6 +139,10 @@ class AnimalController extends Controller
             $totalAtivos = (int) ($cabecasAgregadas + $totalAtivos);
         }
 
+        // KPIs específicos por profile — só calcula o que faz sentido pra
+        // a espécie. Cada perfil tem métricas próprias do mercado.
+        $kpisProfile = $this->kpisProfileEspecie($species);
+
         return Inertia::render('Admin/Livestock/EspecieDashboard', [
             'species' => [
                 'id' => $species->id,
@@ -158,8 +162,100 @@ class AnimalController extends Controller
                 'eventos_7d' => $eventosRecentes,
                 'lots_count' => $lots->count(),
             ],
+            'kpis_profile' => $kpisProfile,
             'lots' => $lots,
         ]);
+    }
+
+    /**
+     * KPIs específicos do profile — cada perfil tem métricas próprias.
+     * Retorna ['profile' => 'ruminante_leite', 'cards' => [...]] ou null
+     * quando o profile não tem KPIs especiais (ex.: pet, equino).
+     */
+    private function kpisProfileEspecie(AnimalSpecies $species): ?array
+    {
+        $profile = $species->profile;
+
+        if ($profile === 'ruminante_leite') {
+            // Litros mês atual + comparação com mês anterior + vacas em lactação
+            $animalIds = Animal::where('species_id', $species->id)
+                ->where('status', 'ativo')->pluck('id');
+            $litrosMesAtual = (float) AnimalEvent::whereIn('animal_id', $animalIds)
+                ->where('tipo', 'ordenha')
+                ->where('data', '>=', now()->startOfMonth()->toDateString())
+                ->sum('producao_litros');
+            $litrosMesAnterior = (float) AnimalEvent::whereIn('animal_id', $animalIds)
+                ->where('tipo', 'ordenha')
+                ->whereBetween('data', [
+                    now()->subMonth()->startOfMonth()->toDateString(),
+                    now()->subMonth()->endOfMonth()->toDateString(),
+                ])
+                ->sum('producao_litros');
+            $vacasEmLactacao = AnimalEvent::whereIn('animal_id', $animalIds)
+                ->where('tipo', 'ordenha')
+                ->where('data', '>=', now()->subDays(30)->toDateString())
+                ->distinct('animal_id')
+                ->count('animal_id');
+            $variacao = $litrosMesAnterior > 0
+                ? round((($litrosMesAtual - $litrosMesAnterior) / $litrosMesAnterior) * 100, 1)
+                : null;
+
+            return [
+                'profile' => 'ruminante_leite',
+                'titulo' => '🥛 Indicadores de produção leiteira',
+                'link' => route('admin.rebanho.controle-leiteiro.dashboard'),
+                'link_label' => 'Ver dashboard completo',
+                'cards' => [
+                    ['label' => 'Litros este mês', 'valor' => round($litrosMesAtual, 1).' L', 'cor' => 'sky', 'icon' => '🥛'],
+                    ['label' => 'Mês anterior', 'valor' => round($litrosMesAnterior, 1).' L', 'cor' => 'slate', 'icon' => '📅'],
+                    ['label' => 'Variação', 'valor' => $variacao !== null ? ($variacao >= 0 ? '+' : '').$variacao.'%' : '—', 'cor' => $variacao !== null && $variacao >= 0 ? 'emerald' : 'rose', 'icon' => $variacao !== null && $variacao >= 0 ? '📈' : '📉'],
+                    ['label' => 'Em lactação', 'valor' => $vacasEmLactacao, 'cor' => 'amber', 'icon' => '🐄'],
+                ],
+            ];
+        }
+
+        if ($profile === 'ave_postura') {
+            // Postura: total ovos no mês + média/dia (últimos 7d) + aves em postura
+            $animalIds = Animal::where('species_id', $species->id)
+                ->where('status', 'ativo')->pluck('id');
+            $ovosMes = (int) AnimalEvent::whereIn('animal_id', $animalIds)
+                ->where('tipo', 'postura_diaria')
+                ->where('data', '>=', now()->startOfMonth()->toDateString())
+                ->sum('peso'); // postura usa coluna `peso` pra qtd ovos (legado)
+            $eventos7d = AnimalEvent::whereIn('animal_id', $animalIds)
+                ->where('tipo', 'postura_diaria')
+                ->where('data', '>=', now()->subDays(7)->toDateString())
+                ->get(['data', 'peso']);
+            $mediaDia = $eventos7d->count() > 0 ? round($eventos7d->sum('peso') / 7, 0) : 0;
+
+            return [
+                'profile' => 'ave_postura',
+                'titulo' => '🥚 Indicadores de postura',
+                'cards' => [
+                    ['label' => 'Ovos este mês', 'valor' => number_format($ovosMes, 0, ',', '.'), 'cor' => 'amber', 'icon' => '🥚'],
+                    ['label' => 'Média/dia (7d)', 'valor' => number_format($mediaDia, 0, ',', '.'), 'cor' => 'sky', 'icon' => '📊'],
+                ],
+            ];
+        }
+
+        if ($profile === 'aquicultura_lote') {
+            // Última biometria + total cabeças nos lotes agregados
+            $ultimaBio = AnimalEvent::whereHas('animal', fn ($q) => $q->where('species_id', $species->id))
+                ->where('tipo', 'biometria_amostral')
+                ->orderByDesc('data')
+                ->first(['data', 'peso']);
+
+            return [
+                'profile' => 'aquicultura_lote',
+                'titulo' => '🐟 Indicadores de aquicultura',
+                'cards' => [
+                    ['label' => 'Última biometria', 'valor' => $ultimaBio?->data?->format('d/m/Y') ?? '—', 'cor' => 'sky', 'icon' => '📏'],
+                    ['label' => 'Peso médio amostra', 'valor' => $ultimaBio?->peso ? round($ultimaBio->peso, 2).' g' : '—', 'cor' => 'slate', 'icon' => '⚖️'],
+                ],
+            ];
+        }
+
+        return null;
     }
 
     public function index(Request $request)
