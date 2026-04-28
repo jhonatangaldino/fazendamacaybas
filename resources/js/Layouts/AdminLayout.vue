@@ -505,11 +505,12 @@ function logout() {
                 </div>
             </header>
 
-            <!-- Main: respiro entre topbar sticky e o conteúdo. Padding fixo
-                 (não dobra com offset da tarja). O wrapper externo já empurra
-                 40px abaixo da tarja quando impersona — adicionar pt extra
-                 aqui criava o "espaço grande" reportado pelo dono. -->
-            <main class="flex-1 px-4 pb-4 lg:px-8 lg:pb-8 pt-6 lg:pt-8 min-w-0 w-full max-w-full overflow-x-hidden">
+            <!-- Main: respiro mínimo entre topbar e o título da página.
+                 pt-3/lg:pt-4 (12/16px) — só o suficiente pra não colar.
+                 Antes pt-6/lg:pt-8 (24/32px) era considerado "espaço branco
+                 grande demais" pelo dono. Cada página controla seu próprio
+                 espaçamento interno via mb-* nos blocos de saudação. -->
+            <main class="flex-1 px-4 pb-4 lg:px-8 lg:pb-8 pt-3 lg:pt-4 min-w-0 w-full max-w-full overflow-x-hidden">
                 <AlertBar />
                 <slot />
             </main>

@@ -242,7 +242,7 @@ const menu = [
                 </div>
             </header>
 
-            <main class="flex-1 px-4 pb-4 lg:px-8 lg:pb-8 pt-4 lg:pt-8 min-w-0 w-full max-w-full overflow-x-hidden">
+            <main class="flex-1 px-4 pb-4 lg:px-8 lg:pb-8 pt-3 lg:pt-4 min-w-0 w-full max-w-full overflow-x-hidden">
                 <AlertBar />
                 <slot />
             </main>
