@@ -18,6 +18,8 @@ class AnimalLot extends Model
 
     protected $fillable = [
         'farm_id', 'codigo', 'nome', 'descricao', 'finalidade', 'is_active', 'tenant_id',
+        // 2026-04-28 · vinculação direta a species (cadastro de lote sem Animal)
+        'species_id',
         // RN4 · gestão agregada (aves/peixes/abelhas)
         'gestao_modo', 'quantidade_inicial', 'quantidade_atual',
         // Auditoria 2026-04-27 · campos do lote agregado (massa)
@@ -50,6 +52,11 @@ class AnimalLot extends Model
     public function animals(): HasMany
     {
         return $this->hasMany(Animal::class, 'lot_id');
+    }
+
+    public function species(): BelongsTo
+    {
+        return $this->belongsTo(AnimalSpecies::class);
     }
 
     public function tenant(): BelongsTo

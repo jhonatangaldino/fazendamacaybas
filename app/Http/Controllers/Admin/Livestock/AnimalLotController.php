@@ -53,18 +53,39 @@ class AnimalLotController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(\Illuminate\Http\Request $request): Response
     {
+        // Pré-seleção de espécie via ?species_id=X (vem do dashboard de espécie
+        // gestão lote: "+ Novo lote de Ave/Peixe").
+        $prefillSpeciesId = $request->integer('species_id') ?: null;
+
         return Inertia::render('Admin/Livestock/Lots/Form', [
             'lot' => null,
             'farms' => Farm::orderBy('nome')->get(['id', 'nome']),
             'finalidades' => self::FINALIDADES,
+            'species' => \App\Models\Livestock\AnimalSpecies::withoutGlobalScopes()
+                ->where('is_active', true)
+                ->orderBy('nome')
+                ->get(['id', 'nome', 'gestao', 'profile']),
+            'prefillSpeciesId' => $prefillSpeciesId,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
+        // gestao_modo=agregada quando species é gestao=lote — sinaliza que
+        // o lote NÃO tem 1 Animal por cabeça (cadastro consolidado).
+        if (! empty($data['species_id'])) {
+            $species = \App\Models\Livestock\AnimalSpecies::withoutGlobalScopes()->find($data['species_id']);
+            if ($species && $species->gestao === 'lote') {
+                $data['gestao_modo'] = 'agregada';
+            }
+            // quantidade_atual = quantidade_inicial ao criar (sem mortalidade ainda)
+            if (! empty($data['quantidade_inicial'])) {
+                $data['quantidade_atual'] = $data['quantidade_inicial'];
+            }
+        }
         AnimalLot::create($data);
 
         return redirect()->route('admin.rebanho.lotes.index')
@@ -157,6 +178,7 @@ class AnimalLotController extends Controller
     {
         return $request->validate([
             'farm_id' => ['nullable', 'exists:farms,id'],
+            'species_id' => ['nullable', 'exists:animal_species,id'],
             'codigo' => [
                 'required', 'string', 'max:30',
                 Rule::unique('animal_lots', 'codigo')->ignore($ignoreId),
@@ -165,6 +187,11 @@ class AnimalLotController extends Controller
             'finalidade' => ['nullable', Rule::in(array_keys(self::FINALIDADES))],
             'descricao' => ['nullable', 'string'],
             'is_active' => ['boolean'],
+            // Campos de lote agregado (ave/peixe) — quando preenchidos
+            // sinalizam cadastro em massa (gestao_modo=agregada no store).
+            'quantidade_inicial' => ['nullable', 'numeric', 'min:1'],
+            'peso_medio_kg' => ['nullable', 'numeric', 'min:0'],
+            'data_inicio' => ['nullable', 'date'],
         ]);
     }
 }

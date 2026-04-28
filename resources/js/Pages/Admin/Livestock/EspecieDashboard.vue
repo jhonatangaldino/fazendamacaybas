@@ -117,13 +117,27 @@ const COLOR_CLASSES = {
 
         <PageHeader :title="`${emoji} ${species.nome}`"
                     :subtitle="kpis.total_ativos > 0
-                        ? `${kpis.total_ativos} ${species.nome.toLowerCase()}(s) ativo(s) — visão geral, ações rápidas e cadastro`
-                        : `Nenhum ${species.nome.toLowerCase()} cadastrado ainda — comece pelo botão de cadastro abaixo`">
+                        ? (isLote
+                            ? `${kpis.total_ativos} cabeça(s) em ${kpis.lots_count} lote(s) — visão geral, ações rápidas e cadastro`
+                            : `${kpis.total_ativos} ${species.nome.toLowerCase()}(s) ativo(s) — visão geral, ações rápidas e cadastro`)
+                        : (isLote
+                            ? `Nenhum lote de ${species.nome.toLowerCase()} cadastrado ainda — comece criando um lote abaixo`
+                            : `Nenhum ${species.nome.toLowerCase()} cadastrado ainda — comece pelo botão de cadastro abaixo`)">
             <template #actions>
                 <Link :href="route('admin.rebanho.animais.index', { species_id: species.id })" class="btn-outline">
                     📋 Ver todos
                 </Link>
-                <Link :href="route('admin.rebanho.animais.create', { species_id: species.id })" class="btn-primary">
+                <!-- Pra espécies de gestão LOTE (Ave/Peixe), botão principal é
+                     "Novo lote" (cadastro em massa). Pra espécies individuais
+                     (Bovino/Pet/etc.), continua "Cadastrar [animal]" único. -->
+                <Link v-if="isLote"
+                      :href="route('admin.rebanho.lotes.create', { species_id: species.id })"
+                      class="btn-primary">
+                    + Novo lote de {{ species.nome.toLowerCase() }}s
+                </Link>
+                <Link v-else
+                      :href="route('admin.rebanho.animais.create', { species_id: species.id })"
+                      class="btn-primary">
                     + Cadastrar {{ species.nome.toLowerCase() }}
                 </Link>
             </template>
@@ -174,14 +188,23 @@ const COLOR_CLASSES = {
             </div>
         </div>
 
-        <!-- Empty state — quando ainda não tem nenhum animal cadastrado -->
+        <!-- Empty state — quando ainda não tem nenhum animal/lote cadastrado -->
         <div v-if="kpis.total_ativos === 0" class="rounded-2xl bg-macaybas-primary-50 ring-1 ring-macaybas-primary-200 p-8 text-center">
             <div class="text-5xl mb-3">{{ emoji }}</div>
             <h3 class="text-lg font-semibold text-macaybas-primary-900 mb-1">Comece a usar {{ species.nome }}</h3>
-            <p class="text-sm text-macaybas-primary-800 mb-4">
+            <p class="text-sm text-macaybas-primary-800 mb-4" v-if="isLote">
+                {{ species.nome }} é gerido em LOTE. Cadastre o primeiro lote informando quantas cabeças entraram (ex.: 1000 frangos chegaram em abril).
+            </p>
+            <p class="text-sm text-macaybas-primary-800 mb-4" v-else>
                 Cadastre o primeiro {{ species.nome.toLowerCase() }} e comece a registrar pesagens, vacinas, eventos e venda.
             </p>
-            <Link :href="route('admin.rebanho.animais.create', { species_id: species.id })"
+            <Link v-if="isLote"
+                  :href="route('admin.rebanho.lotes.create', { species_id: species.id })"
+                  class="btn-primary inline-flex items-center gap-2">
+                + Cadastrar primeiro lote
+            </Link>
+            <Link v-else
+                  :href="route('admin.rebanho.animais.create', { species_id: species.id })"
                   class="btn-primary inline-flex items-center gap-2">
                 + Cadastrar primeiro {{ species.nome.toLowerCase() }}
             </Link>

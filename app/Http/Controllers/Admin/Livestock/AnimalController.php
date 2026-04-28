@@ -118,11 +118,26 @@ class AnimalController extends Controller
             ->where('data', '>=', now()->subDays(7)->toDateString())
             ->count();
 
-        // Lots e locations relevantes pra esta espécie (filtragem rápida)
+        // Lots relevantes pra esta espécie (3 vinculações possíveis):
+        //  - lot.species_id = species.id (lote agregado novo, sem Animal individual)
+        //  - lot tem animals com species_id = species.id (lote convencional)
+        // Pra lote agregado (gestao_modo='agregada'), KPIs vêm do próprio lote.
         $lots = AnimalLot::where('is_active', true)
-            ->whereHas('animals', fn ($q) => $q->where('species_id', $species->id)->where('status', 'ativo'))
+            ->where(function ($q) use ($species) {
+                $q->where('species_id', $species->id)
+                  ->orWhereHas('animals', fn ($qq) => $qq->where('species_id', $species->id)->where('status', 'ativo'));
+            })
             ->orderBy('nome')
-            ->get(['id', 'nome']);
+            ->get(['id', 'nome', 'gestao_modo', 'quantidade_atual']);
+
+        // Pra espécies de gestão lote (Ave/Peixe), o "total ativos" não vem
+        // da contagem de Animal — vem da soma de quantidade_atual dos lotes
+        // agregados (cadastrados como massa).
+        if ($species->gestao === 'lote') {
+            $cabecasAgregadas = (float) $lots->where('gestao_modo', 'agregada')->sum('quantidade_atual');
+            // Soma com Animals individuais legados (quem ainda cadastrou 1 a 1)
+            $totalAtivos = (int) ($cabecasAgregadas + $totalAtivos);
+        }
 
         return Inertia::render('Admin/Livestock/EspecieDashboard', [
             'species' => [
