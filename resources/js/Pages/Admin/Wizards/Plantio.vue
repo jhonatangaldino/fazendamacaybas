@@ -176,7 +176,7 @@ function reiniciar() {
                 </div>
 
                 <div v-if="cropsLocal.length > 0" class="text-right">
-                    <button type="button" @click="novaCultura.abrir()" class="text-sm text-macaybas-primary hover:underline">
+                    <button type="button" @click="novaCultura.abrir()" class="inline-flex items-center min-h-9 px-2 text-sm text-macaybas-primary hover:underline lg:min-h-0 lg:px-0">
                         + Cadastrar nova cultura
                     </button>
                 </div>

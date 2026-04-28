@@ -205,7 +205,7 @@ function reiniciar() {
                                         </option>
                                     </select>
                                     <button type="button" @click="abrirNovoItem(idx)"
-                                            class="mt-1 text-xs text-macaybas-primary hover:underline">
+                                            class="inline-flex items-center min-h-9 px-2 mt-1 text-xs text-macaybas-primary hover:underline lg:min-h-0 lg:px-0">
                                         + Cadastrar produto novo
                                     </button>
                                 </div>

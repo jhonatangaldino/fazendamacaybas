@@ -155,7 +155,7 @@ function reiniciar() {
                 </div>
 
                 <div v-if="itensLocal.length > 0" class="text-right">
-                    <button @click="novoItem.abrir()" class="text-sm text-macaybas-primary hover:underline">
+                    <button @click="novoItem.abrir()" class="inline-flex items-center min-h-9 px-2 text-sm text-macaybas-primary hover:underline lg:min-h-0 lg:px-0">
                         + Cadastrar item novo
                     </button>
                 </div>
