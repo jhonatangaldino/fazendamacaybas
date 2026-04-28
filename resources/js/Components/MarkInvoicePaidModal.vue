@@ -31,6 +31,7 @@ useBodyScrollLock(aberto);
 const dataPagamento = ref(new Date().toISOString().slice(0, 10));
 const metodoPagamento = ref('pix');
 const observacao = ref('');
+const externalPaymentId = ref('');
 const enviando = ref(false);
 
 const METODOS = [
@@ -48,6 +49,7 @@ watch(() => props.invoice, (n) => {
         dataPagamento.value = new Date().toISOString().slice(0, 10);
         metodoPagamento.value = 'pix';
         observacao.value = '';
+        externalPaymentId.value = '';
         enviando.value = false;
     }
 });
@@ -68,6 +70,7 @@ function confirmar() {
         data_pagamento: dataPagamento.value,
         metodo_pagamento: metodoPagamento.value,
         observacao_pagamento: observacao.value?.trim() || null,
+        external_payment_id: externalPaymentId.value?.trim() || null,
     }, {
         preserveScroll: true,
         onSuccess: () => {
@@ -143,10 +146,23 @@ function confirmar() {
                         </div>
 
                         <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">
+                                ID da transação bancária <span class="font-normal lowercase text-slate-400">(opcional)</span>
+                            </label>
+                            <input type="text" v-model="externalPaymentId" maxlength="50"
+                                   placeholder="Ex.: E60701190202604281147DY5BTFRI8ZD"
+                                   class="form-input font-mono text-xs">
+                            <p class="text-xs text-slate-500 mt-1">
+                                Cole aqui o "ID da transação" do comprovante PIX (E2E) ou nº de TED.
+                                Fica gravado pra trilha de auditoria/conciliação.
+                            </p>
+                        </div>
+
+                        <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Observação <span class="font-normal lowercase text-slate-400">(opcional)</span></label>
                             <textarea v-model="observacao" rows="2" maxlength="500"
-                                      placeholder="Nº transação, comprovante, banco recebedor..."
-                                      class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm resize-none"></textarea>
+                                      placeholder="Anotações livres sobre o pagamento..."
+                                      class="form-textarea resize-none"></textarea>
                         </div>
 
                         <div class="text-xs text-amber-800 bg-amber-50 ring-1 ring-amber-200 rounded-md px-2.5 py-1.5">

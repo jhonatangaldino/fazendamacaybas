@@ -52,29 +52,43 @@ class InvoiceController extends Controller
         }
 
         if ($q !== '') {
-            // Casa busca de 4 jeitos:
+            // Casa busca de 6 jeitos:
             //  1. MAC-000037 → tira "MAC-" e zeros → id = 37 (match exato global único)
             //  2. 37         → numérico puro → id = 37
             //  3. INV-202604-0001 → substring no `numero`
             //  4. nome cliente → substring em tenant.nome
+            //  5. VALOR exato (ex.: "199,00", "1.00", "1") → match em valor decimal
+            //  6. external_payment_id (E2E PIX colado do comprovante) — substring
             $idMatch = null;
             if (preg_match('/^MAC-?(\d+)$/i', trim($q), $m)) {
                 $idMatch = (int) ltrim($m[1], '0') ?: 0;
             } elseif (ctype_digit(str_replace([' ', '-'], '', $q))) {
                 $idMatch = (int) ltrim(str_replace([' ', '-'], '', $q), '0') ?: 0;
             }
-            $query->where(function ($w) use ($q, $idMatch) {
+            // Tenta interpretar como valor monetário BR ou US (199,00 ou 199.00 ou 199)
+            $valorMatch = null;
+            $candidato = str_replace(['R$', ' '], '', $q);
+            $candidato = str_replace(',', '.', $candidato);
+            if (is_numeric($candidato) && (float) $candidato > 0) {
+                $valorMatch = (float) $candidato;
+            }
+            $query->where(function ($w) use ($q, $idMatch, $valorMatch) {
                 if ($idMatch && $idMatch > 0) {
                     $w->orWhere('id', $idMatch);
                 }
+                if ($valorMatch !== null) {
+                    $w->orWhere('valor', $valorMatch);
+                }
                 $w->orWhere('numero', 'like', "%{$q}%")
+                  ->orWhere('external_payment_id', 'like', "%{$q}%")
                   ->orWhereHas('tenant', fn ($t) => $t->where('nome', 'like', "%{$q}%"));
             });
         }
 
         $invoices = $query->get([
-            'id', 'tenant_id', 'subscription_id', 'numero',
+            'id', 'tenant_id', 'subscription_id', 'numero', 'tipo',
             'valor', 'status', 'data_emissao', 'data_vencimento', 'data_pagamento',
+            'external_payment_id', 'pix_txid',
         ]);
 
         return Inertia::render('Master/Cobrancas/Index', [
@@ -82,6 +96,7 @@ class InvoiceController extends Controller
                 'id' => $i->id,
                 'numero' => $i->numero,
                 'referencia_curta' => $i->referencia_curta,
+                'tipo' => $i->tipo,
                 'tenant_id' => $i->tenant_id,
                 'tenant_nome' => $i->tenant?->nome,
                 'valor' => (float) $i->valor,
@@ -89,6 +104,8 @@ class InvoiceController extends Controller
                 'data_emissao' => $i->data_emissao?->format('d/m/Y'),
                 'data_vencimento' => $i->data_vencimento?->format('d/m/Y'),
                 'data_pagamento' => $i->data_pagamento?->format('d/m/Y'),
+                'external_payment_id' => $i->external_payment_id,
+                'pix_txid' => $i->pix_txid,
             ])->values(),
             'filter_status' => $status,
             'filter_q' => $q,
@@ -290,10 +307,13 @@ class InvoiceController extends Controller
     {
         // BLOCO 4.3 — processo seguro: aceita data_pagamento, método e observação.
         // Método e observação ficam em `meta.payment` (Invoice já tem coluna meta JSON).
+        // external_payment_id (E2E PIX, ID TED etc.) vai pra coluna própria — fica
+        // pesquisável e visível na lista (PO 2026-04-28: trilha de conciliação).
         $validated = $request->validate([
             'data_pagamento' => ['nullable', 'date', 'before_or_equal:today'],
             'metodo_pagamento' => ['nullable', 'in:pix,transferencia,dinheiro,boleto,cartao,outro'],
             'observacao_pagamento' => ['nullable', 'string', 'max:500'],
+            'external_payment_id' => ['nullable', 'string', 'max:50'],
         ]);
 
         $meta = $invoice->meta ?? [];
@@ -309,6 +329,7 @@ class InvoiceController extends Controller
         $invoice->update([
             'status' => 'paid',
             'data_pagamento' => $validated['data_pagamento'] ?? now()->toDateString(),
+            'external_payment_id' => $validated['external_payment_id'] ?? null,
             'meta' => $meta,
         ]);
 

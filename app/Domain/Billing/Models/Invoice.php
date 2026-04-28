@@ -31,6 +31,7 @@ class Invoice extends Model
         'data_emissao',
         'data_vencimento',
         'data_pagamento',
+        'external_payment_id',
         'pix_txid',
         'pix_payload',
         'pix_qrcode_base64',

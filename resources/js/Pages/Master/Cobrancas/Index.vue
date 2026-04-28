@@ -126,7 +126,7 @@ async function marcarPendente(invoice) {
                     <input
                         v-model="buscaQuery"
                         type="search"
-                        placeholder="Buscar por MAC-0008, 0008 ou nome do cliente"
+                        placeholder="MAC-0008, valor (199,00), nome do cliente, ou ID da transação PIX"
                         class="w-full pl-9 pr-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary-500 focus:outline-none text-sm"
                     >
                 </div>
@@ -209,7 +209,12 @@ async function marcarPendente(invoice) {
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ i.data_vencimento }}</td>
-                            <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ i.data_pagamento || '—' }}</td>
+                            <td class="px-4 py-3 text-slate-600 whitespace-nowrap">
+                                {{ i.data_pagamento || '—' }}
+                                <div v-if="i.external_payment_id" class="text-[11px] text-slate-400 font-mono mt-0.5" :title="i.external_payment_id">
+                                    🔗 {{ i.external_payment_id.length > 16 ? i.external_payment_id.slice(0, 12) + '…' : i.external_payment_id }}
+                                </div>
+                            </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="inline-flex items-center gap-2">
                                     <Link :href="route('master.cobrancas.pix', i.id)"
@@ -262,6 +267,9 @@ async function marcarPendente(invoice) {
                         <span class="text-xs text-slate-500">venc. {{ i.data_vencimento }}</span>
                     </div>
                     <div v-if="i.data_pagamento" class="text-xs text-emerald-700 mt-0.5">Pago em {{ i.data_pagamento }}</div>
+                    <div v-if="i.external_payment_id" class="text-[11px] text-slate-500 font-mono mt-0.5 truncate" :title="i.external_payment_id">
+                        🔗 {{ i.external_payment_id }}
+                    </div>
 
                     <!-- linha 4: ações com label -->
                     <div class="mt-3 flex items-center gap-2">
