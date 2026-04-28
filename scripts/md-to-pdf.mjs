@@ -220,13 +220,29 @@ function buildHtml(bodyHtml, title = 'Documento') {
   th { background: #f0fdf4; color: #166534; font-weight: 600; text-align: left; }
   tr:nth-child(even) td { background: #f9fafb; }
 
-  /* Imagens — bloco de tela inteira, com sombra suave */
+  /* Imagens — bloco de tela inteira, com sombra suave.
+     Reforço de page-break: cada imagem é uma "unidade visual" indivisível.
+     • page-break-inside/break-inside: avoid → não quebra a imagem em si
+     • page-break-before/after: auto → mas evita órfãos: imagem isolada no fim
+       de página com legenda na próxima — usar wrapper section.section-card. */
   img {
     max-width: 100%; height: auto; display: block;
     margin: 8pt auto;
     border: 1px solid #d1d5db; border-radius: 4pt;
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     page-break-inside: avoid; break-inside: avoid;
+    page-break-after: avoid; break-after: avoid;
+  }
+  /* Parágrafo logo após imagem — fica na mesma página da imagem */
+  img + p { page-break-before: avoid; break-before: avoid; }
+
+  /* Badge "NOVO" inline (chamado da v2.0) */
+  .badge-novo {
+    display: inline-block; vertical-align: middle;
+    background: #16a34a; color: white;
+    font-size: 8pt; font-weight: 700;
+    padding: 2pt 6pt; border-radius: 10pt;
+    margin-left: 6pt; letter-spacing: 0.4pt;
   }
 
   /* Citação */

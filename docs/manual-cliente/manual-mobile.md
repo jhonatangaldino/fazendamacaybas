@@ -7,7 +7,7 @@
 </div>
 <div class="cover-meta">
 <strong>Versão 2.0</strong><br>
-Edição __EDICAO__ — Abril/2026<br>
+Edição Celular — Abril/2026<br>
 Sistema de Gestão Rural Macaybas<br>
 <small>Inclui Dashboard Leiteiro · Tabela DROVET · Tab Evolução Leiteira</small>
 </div>
@@ -121,7 +121,7 @@ Verifique a pasta <strong>spam / lixo eletrônico</strong>. Se não estiver lá,
 
 Acesse o link enviado no e-mail de boas-vindas. Você verá esta tela:
 
-![Tela de login](screenshots/__IMG__/01-login.png)
+![Tela de login](screenshots/mobile/01-login.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -167,7 +167,7 @@ A senha temporária <strong>expira em 2 horas</strong> após você recebê-la. S
 
 Após o login, você cai no **Hub** — a tela que pergunta **"O que você quer fazer agora?"** e oferece atalhos diretos para as ações mais comuns.
 
-![Hub — tela inicial após o login](screenshots/__IMG__/02-hub.png)
+![Hub — tela inicial após o login](screenshots/mobile/02-hub.png)
 
 ## 2.1 Conhecendo o Hub
 
@@ -217,7 +217,7 @@ Ações <strong>mais raras</strong>: cadastrar novo animal, vender animal, regis
 
 O Painel é o **resumo gerencial** da fazenda: quantos animais, saldo do mês, alertas pendentes, últimos lançamentos.
 
-![Painel — visão geral](screenshots/__IMG__/03-dashboard.png)
+![Painel — visão geral](screenshots/mobile/03-dashboard.png)
 
 <div class="field">
 <div class="field-label">Como abrir</div>
@@ -259,7 +259,7 @@ Cada atalho é um **caminho guiado**: você responde 3-5 perguntas e o sistema f
 Você fez pesagem de um ou mais animais (pesagem mensal, balança nova, antes da venda).
 </div>
 
-![Pesar animal](screenshots/__IMG__/w01-pesar.png)
+![Pesar animal](screenshots/mobile/w01-pesar.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -287,7 +287,7 @@ O sistema atualiza o peso atual do animal e guarda no histórico. Depois você p
 Entrou um animal novo na fazenda — nascimento, compra, transferência.
 </div>
 
-![Cadastrar animal](screenshots/__IMG__/w02-cadastrar-animal.png)
+![Cadastrar animal](screenshots/mobile/w02-cadastrar-animal.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -318,7 +318,7 @@ Está cadastrando 10 animais do mesmo lote? O sistema lembra do lote da última 
 Vacina, medicação, parto, cobertura, doença, morte — qualquer ocorrência com o animal.
 </div>
 
-![Evento de rebanho](screenshots/__IMG__/w03-evento-rebanho.png)
+![Evento de rebanho](screenshots/mobile/w03-evento-rebanho.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -347,7 +347,7 @@ Tudo fica registrado no histórico do animal. Depois você consegue ver na ficha
 Venda para frigorífico, leilão ou particular.
 </div>
 
-![Vender animal](screenshots/__IMG__/w04-vender-animal.png)
+![Vender animal](screenshots/mobile/w04-vender-animal.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -381,7 +381,7 @@ Venda para frigorífico, leilão ou particular.
 Comprou ração, pagou veterinário, pagou conta de luz — qualquer saída de dinheiro.
 </div>
 
-![Registrar despesa](screenshots/__IMG__/w05-despesa.png)
+![Registrar despesa](screenshots/mobile/w05-despesa.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -407,7 +407,7 @@ Comprou ração, pagou veterinário, pagou conta de luz — qualquer saída de d
 Entrou dinheiro: venda de leite, queijo, animais (use "Vender animal" se for gado).
 </div>
 
-![Registrar receita](screenshots/__IMG__/w06-receita.png)
+![Registrar receita](screenshots/mobile/w06-receita.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -425,7 +425,7 @@ Igual ao registro de despesa, mas para entradas. Categorias típicas: Venda de l
 Chegou ração, semente, vacina ou qualquer produto para entrar no estoque.
 </div>
 
-![Receber mercadoria](screenshots/__IMG__/w07-receber-mercadoria.png)
+![Receber mercadoria](screenshots/mobile/w07-receber-mercadoria.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -450,7 +450,7 @@ Chegou ração, semente, vacina ou qualquer produto para entrar no estoque.
 Fez contagem de inventário e o saldo do sistema está diferente do físico (sobrou ou faltou).
 </div>
 
-![Ajustar estoque](screenshots/__IMG__/w08-ajustar-estoque.png)
+![Ajustar estoque](screenshots/mobile/w08-ajustar-estoque.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -474,7 +474,7 @@ Fez contagem de inventário e o saldo do sistema está diferente do físico (sob
 Você usou o produto: deu ração para os bezerros, plantou a semente, aplicou o medicamento.
 </div>
 
-![Saída do estoque](screenshots/__IMG__/w09-saida-estoque.png)
+![Saída do estoque](screenshots/mobile/w09-saida-estoque.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -498,7 +498,7 @@ Você usou o produto: deu ração para os bezerros, plantou a semente, aplicou o
 Aplicou veneno, fertilizante ou herbicida no pasto ou na lavoura.
 </div>
 
-![Aplicar produto](screenshots/__IMG__/w10-aplicar-produto.png)
+![Aplicar produto](screenshots/mobile/w10-aplicar-produto.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -523,7 +523,7 @@ Aplicou veneno, fertilizante ou herbicida no pasto ou na lavoura.
 Trator quebrou, fez revisão ou troca de óleo.
 </div>
 
-![Arrumar máquina](screenshots/__IMG__/w11-arrumar-maquina.png)
+![Arrumar máquina](screenshots/mobile/w11-arrumar-maquina.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -548,7 +548,7 @@ Trator quebrou, fez revisão ou troca de óleo.
 Lembrar de fazer algo nos próximos dias — vacinar, adubar, consertar cerca.
 </div>
 
-![Criar tarefa](screenshots/__IMG__/w12-criar-tarefa.png)
+![Criar tarefa](screenshots/mobile/w12-criar-tarefa.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -578,7 +578,7 @@ A tarefa aparece no Painel até ser concluída. Quem é responsável recebe noti
 Guardar GTA, nota fiscal, foto, contrato ou qualquer arquivo importante.
 </div>
 
-![Anexar documento](screenshots/__IMG__/w13-anexar-documento.png)
+![Anexar documento](screenshots/mobile/w13-anexar-documento.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -602,7 +602,7 @@ Guardar GTA, nota fiscal, foto, contrato ou qualquer arquivo importante.
 Plantou milho, soja, capim ou qualquer cultura.
 </div>
 
-![Registrar plantio](screenshots/__IMG__/w14-plantio.png)
+![Registrar plantio](screenshots/mobile/w14-plantio.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -627,7 +627,7 @@ Plantou milho, soja, capim ou qualquer cultura.
 Terminou de colher.
 </div>
 
-![Registrar colheita](screenshots/__IMG__/w15-colheita.png)
+![Registrar colheita](screenshots/mobile/w15-colheita.png)
 
 <div class="field">
 <div class="field-label">Passo a passo</div>
@@ -656,7 +656,7 @@ Tudo que você cadastrou nos atalhos rápidos aparece organizado nestas áreas. 
 
 ## 5.1 Rebanho · Animais
 
-![Lista de animais](screenshots/__IMG__/c01-rebanho-animais.png)
+![Lista de animais](screenshots/mobile/c01-rebanho-animais.png)
 
 Lista de todos os animais ativos. Você pode:
 
@@ -670,7 +670,7 @@ Lista de todos os animais ativos. Você pode:
 
 ## 5.2 Rebanho · Lotes
 
-![Lotes](screenshots/__IMG__/c02-rebanho-lotes.png)
+![Lotes](screenshots/mobile/c02-rebanho-lotes.png)
 
 **Lotes são agrupamentos lógicos** — "Vacas Leiteiras 2026", "Engorda Q1", "Descarte". Use para organizar animais com manejo parecido.
 
@@ -680,7 +680,7 @@ Lista de todos os animais ativos. Você pode:
 
 ## 5.3 Rebanho · Locais (pastos)
 
-![Locais](screenshots/__IMG__/c03-rebanho-locais.png)
+![Locais](screenshots/mobile/c03-rebanho-locais.png)
 
 **Locais são espaços físicos** — Pasto da Sede, Piquete da Maternidade. Cada animal tem **um lote** e **um local**.
 
@@ -699,7 +699,7 @@ Lista de todos os animais ativos. Você pode:
 
 ## 5.4 Parceiros
 
-![Parceiros](screenshots/__IMG__/c04-parceiros.png)
+![Parceiros](screenshots/mobile/c04-parceiros.png)
 
 Cadastro de **fornecedores · clientes · prestadores · funcionários terceirizados**.
 
@@ -718,7 +718,7 @@ Cadastro de **fornecedores · clientes · prestadores · funcionários terceiriz
 
 ## 5.5 Financeiro
 
-![Financeiro](screenshots/__IMG__/c05-financeiro.png)
+![Financeiro](screenshots/mobile/c05-financeiro.png)
 
 Resumo do mês: entradas, saídas, saldo, contas a pagar e a receber.
 
@@ -728,7 +728,7 @@ Resumo do mês: entradas, saídas, saldo, contas a pagar e a receber.
 
 ## 5.5.1 Financeiro · Transações
 
-![Transações](screenshots/__IMG__/c06-financeiro-trans.png)
+![Transações](screenshots/mobile/c06-financeiro-trans.png)
 
 Lista detalhada de todas as despesas e receitas. Filtre por categoria, parceiro, período e status (pago / pendente / atrasado).
 
@@ -738,7 +738,7 @@ Lista detalhada de todas as despesas e receitas. Filtre por categoria, parceiro,
 
 ## 5.5.2 Financeiro · Contas
 
-![Contas financeiras](screenshots/__IMG__/s01-fin-contas.png)
+![Contas financeiras](screenshots/mobile/s01-fin-contas.png)
 
 Cadastro de **contas e caixas** — Caixa Principal, Banco do Brasil, Bradesco, etc. Cada transação financeira é vinculada a uma conta.
 
@@ -748,7 +748,7 @@ Cadastro de **contas e caixas** — Caixa Principal, Banco do Brasil, Bradesco, 
 
 ## 5.6 Estoque
 
-![Estoque](screenshots/__IMG__/c07-estoque.png)
+![Estoque](screenshots/mobile/c07-estoque.png)
 
 Visão geral do estoque com **alertas de baixa** (itens abaixo do mínimo).
 
@@ -758,7 +758,7 @@ Visão geral do estoque com **alertas de baixa** (itens abaixo do mínimo).
 
 ## 5.6.1 Estoque · Itens
 
-![Itens do estoque](screenshots/__IMG__/c08-estoque-itens.png)
+![Itens do estoque](screenshots/mobile/c08-estoque-itens.png)
 
 Cadastro completo de produtos: rações, sementes, vacinas, sal mineral, ferramentas.
 
@@ -768,7 +768,7 @@ Cadastro completo de produtos: rações, sementes, vacinas, sal mineral, ferrame
 
 ## 5.6.2 Estoque · Movimentos
 
-![Movimentos do estoque](screenshots/__IMG__/s02-estoque-mov.png)
+![Movimentos do estoque](screenshots/mobile/s02-estoque-mov.png)
 
 Histórico completo de **entradas e saídas** do estoque, com data, quantidade, origem e motivo.
 
@@ -778,7 +778,7 @@ Histórico completo de **entradas e saídas** do estoque, com data, quantidade, 
 
 ## 5.6.3 Estoque · Armazéns
 
-![Armazéns](screenshots/__IMG__/s03-estoque-armaz.png)
+![Armazéns](screenshots/mobile/s03-estoque-armaz.png)
 
 Cadastro dos **locais físicos** onde o estoque é guardado: Galpão Principal, Depósito Sul, etc.
 
@@ -788,7 +788,7 @@ Cadastro dos **locais físicos** onde o estoque é guardado: Galpão Principal, 
 
 ## 5.7 Agrícola
 
-![Agrícola](screenshots/__IMG__/c12-agricola.png)
+![Agrícola](screenshots/mobile/c12-agricola.png)
 
 Visão geral da área agrícola: talhões, plantios, colheitas e aplicações.
 
@@ -798,7 +798,7 @@ Visão geral da área agrícola: talhões, plantios, colheitas e aplicações.
 
 ## 5.7.1 Agrícola · Talhões
 
-![Talhões](screenshots/__IMG__/s04-agricola-talhoes.png)
+![Talhões](screenshots/mobile/s04-agricola-talhoes.png)
 
 **Talhões são as áreas plantadas** — divisões da fazenda onde acontecem plantios. Cada talhão tem área (ha), cultura corrente e histórico.
 
@@ -808,7 +808,7 @@ Visão geral da área agrícola: talhões, plantios, colheitas e aplicações.
 
 ## 5.7.2 Agrícola · Plantios
 
-![Plantios](screenshots/__IMG__/s05-agricola-plant.png)
+![Plantios](screenshots/mobile/s05-agricola-plant.png)
 
 Lista das safras plantadas: cultura, talhão, data, quantidade de semente, status (em curso / colhido).
 
@@ -818,7 +818,7 @@ Lista das safras plantadas: cultura, talhão, data, quantidade de semente, statu
 
 ## 5.7.3 Agrícola · Colheitas
 
-![Colheitas](screenshots/__IMG__/s06-agricola-colh.png)
+![Colheitas](screenshots/mobile/s06-agricola-colh.png)
 
 Histórico das colheitas: quanto foi colhido, quando, destino (silo, venda, consumo).
 
@@ -828,7 +828,7 @@ Histórico das colheitas: quanto foi colhido, quando, destino (silo, venda, cons
 
 ## 5.7.4 Agrícola · Aplicações
 
-![Aplicações](screenshots/__IMG__/s07-agricola-aplic.png)
+![Aplicações](screenshots/mobile/s07-agricola-aplic.png)
 
 Registro de aplicações de defensivos, fertilizantes e herbicidas — por talhão e produto.
 
@@ -838,7 +838,7 @@ Registro de aplicações de defensivos, fertilizantes e herbicidas — por talh�
 
 ## 5.8 Máquinas
 
-![Máquinas](screenshots/__IMG__/c13-maquinas.png)
+![Máquinas](screenshots/mobile/c13-maquinas.png)
 
 Cadastro de **tratores, implementos e veículos** com histórico de uso e manutenções.
 
@@ -848,7 +848,7 @@ Cadastro de **tratores, implementos e veículos** com histórico de uso e manute
 
 ## 5.8.1 Máquinas · Manutenções
 
-![Manutenções](screenshots/__IMG__/s08-maq-manut.png)
+![Manutenções](screenshots/mobile/s08-maq-manut.png)
 
 Histórico de cada manutenção: tipo (preventiva/corretiva), descrição, custo, oficina ou responsável.
 
@@ -858,7 +858,7 @@ Histórico de cada manutenção: tipo (preventiva/corretiva), descrição, custo
 
 ## 5.9 Funcionários
 
-![Funcionários](screenshots/__IMG__/s09-funcionarios.png)
+![Funcionários](screenshots/mobile/s09-funcionarios.png)
 
 Cadastro dos seus funcionários e colaboradores: dados pessoais, função, vínculo, contatos.
 
@@ -868,7 +868,7 @@ Cadastro dos seus funcionários e colaboradores: dados pessoais, função, vínc
 
 ## 5.10 Tarefas
 
-![Tarefas](screenshots/__IMG__/c09-tarefas.png)
+![Tarefas](screenshots/mobile/c09-tarefas.png)
 
 Lista de pendências organizadas por urgência. Marque como concluída quando terminar.
 
@@ -878,7 +878,7 @@ Lista de pendências organizadas por urgência. Marque como concluída quando te
 
 ## 5.11 Documentos
 
-![Documentos](screenshots/__IMG__/c10-documentos.png)
+![Documentos](screenshots/mobile/c10-documentos.png)
 
 Arquivos anexados ao longo do tempo. Pesquise por categoria, animal ou parceiro.
 
@@ -888,7 +888,7 @@ Arquivos anexados ao longo do tempo. Pesquise por categoria, animal ou parceiro.
 
 ## 5.12 Relatórios
 
-![Relatórios](screenshots/__IMG__/c11-relatorios.png)
+![Relatórios](screenshots/mobile/c11-relatorios.png)
 
 Relatórios gerenciais para tomada de decisão: rebanho, financeiro, produção, custos. Exportáveis em PDF e Excel.
 
@@ -898,7 +898,7 @@ Relatórios gerenciais para tomada de decisão: rebanho, financeiro, produção,
 
 ## 5.13 Usuários (acessos)
 
-![Usuários](screenshots/__IMG__/s10-usuarios.png)
+![Usuários](screenshots/mobile/s10-usuarios.png)
 
 Gestão de quem tem acesso ao sistema da sua fazenda. Atribua **perfis de permissão** (Dono · Gerente · Veterinário · Agrônomo · Financeiro · Administrativo · Funcionário · Auditor · Visitante).
 
@@ -910,7 +910,7 @@ Gestão de quem tem acesso ao sistema da sua fazenda. Atribua **perfis de permis
 
 Reproduz em tela o **quadro mensal DROVET+ de papel**: produção por vaca, contagem de categorias e histórico anual. Acesse via botão **📊 Dashboard leiteiro** no topo da listagem de Animais (só aparece se você tem manejo leiteiro — gado de corte, equino ou aquicultura não vê).
 
-![Dashboard Leiteiro mensal](screenshots/__IMG__/c14-dashboard-leiteiro.png)
+![Dashboard Leiteiro mensal](screenshots/mobile/c14-dashboard-leiteiro.png)
 
 <div class="field">
 <div class="field-label">4 KPIs do mês</div>
@@ -982,7 +982,7 @@ Esse dashboard só aparece pra fazendas com manejo leiteiro (vaca categorizada c
 
 Quando você clica em um animal na lista, abre a **ficha completa** dele — uma das telas mais úteis do sistema.
 
-![Ficha do animal — histórico completo](screenshots/__IMG__/d01-animal-historico.png)
+![Ficha do animal — histórico completo](screenshots/mobile/d01-animal-historico.png)
 
 <div class="field">
 <div class="field-label">O que você encontra na ficha</div>
@@ -1015,7 +1015,7 @@ Quando você clica em um animal na lista, abre a **ficha completa** dele — uma
 
 Para vacas em lactação, a ficha mostra uma **terceira aba** ao lado de "Linha do tempo" e "Evolução de peso":
 
-![Evolução leiteira — gráfico de produção](screenshots/__IMG__/d07-animal-evolucao-leiteira.png)
+![Evolução leiteira — gráfico de produção](screenshots/mobile/d07-animal-evolucao-leiteira.png)
 
 <div class="callout info">
 <strong>📊 Quando aparece</strong><br>
@@ -1049,7 +1049,7 @@ A aba <strong>🥛 Evolução leiteira</strong> só aparece para <strong>fêmeas
 
 Para **fêmeas leiteiras de raças reconhecidas** (Holandesa, Pardo Suíço, Girolando, Jersolando, Jersey), a ficha mostra um **card de avaliação DROVET**:
 
-![Card DROVET — avaliação de crescimento](screenshots/__IMG__/d08-animal-drovet-card.png)
+![Card DROVET — avaliação de crescimento](screenshots/mobile/d08-animal-drovet-card.png)
 
 <div class="field">
 <div class="field-label">O que o card mostra</div>
@@ -1073,7 +1073,7 @@ Entre <strong>8 e 12 meses</strong> (fase de puberdade), as fêmeas <strong>não
 
 ## 6.2 Editar animal
 
-![Edição de animal](screenshots/__IMG__/d02-animal-editar.png)
+![Edição de animal](screenshots/mobile/d02-animal-editar.png)
 
 A tela de edição reabre o cadastro completo. Você pode mudar:
 
@@ -1094,7 +1094,7 @@ Toda alteração fica registrada na auditoria com seu nome, horário e <strong>o
 
 ## 6.3 Editar lote
 
-![Edição de lote](screenshots/__IMG__/d03-lote-editar.png)
+![Edição de lote](screenshots/mobile/d03-lote-editar.png)
 
 </section>
 
@@ -1102,7 +1102,7 @@ Toda alteração fica registrada na auditoria com seu nome, horário e <strong>o
 
 ## 6.4 Editar parceiro
 
-![Edição de parceiro](screenshots/__IMG__/d04-parceiro-editar.png)
+![Edição de parceiro](screenshots/mobile/d04-parceiro-editar.png)
 
 </section>
 
@@ -1110,7 +1110,7 @@ Toda alteração fica registrada na auditoria com seu nome, horário e <strong>o
 
 ## 6.5 Editar item de estoque
 
-![Edição de item](screenshots/__IMG__/d05-item-editar.png)
+![Edição de item](screenshots/mobile/d05-item-editar.png)
 
 </section>
 
@@ -1128,7 +1128,7 @@ Os atalhos rápidos resolvem 90% dos casos. Para cadastros mais detalhados, use 
 
 ## 7.1 Cadastro completo de animal
 
-![Cadastro animal — formulário completo](screenshots/__IMG__/f01-animal-novo.png)
+![Cadastro animal — formulário completo](screenshots/mobile/f01-animal-novo.png)
 
 Tudo que o atalho rápido pede + **mãe, pai, raça, número de registro, valor de aquisição, observações**.
 
@@ -1138,7 +1138,7 @@ Tudo que o atalho rápido pede + **mãe, pai, raça, número de registro, valor 
 
 ## 7.2 Cadastro de lote
 
-![Cadastro de lote](screenshots/__IMG__/f04-lote-novo.png)
+![Cadastro de lote](screenshots/mobile/f04-lote-novo.png)
 
 Definir um agrupamento de animais com finalidade específica (leite, engorda, descarte, etc).
 
@@ -1148,7 +1148,7 @@ Definir um agrupamento de animais com finalidade específica (leite, engorda, de
 
 ## 7.3 Cadastro de local (pasto)
 
-![Cadastro de local](screenshots/__IMG__/f05-local-novo.png)
+![Cadastro de local](screenshots/mobile/f05-local-novo.png)
 
 Definir um espaço físico (pasto, piquete, baia) com área em hectares e capacidade.
 
@@ -1158,7 +1158,7 @@ Definir um espaço físico (pasto, piquete, baia) com área em hectares e capaci
 
 ## 7.4 Cadastro completo de parceiro
 
-![Cadastro parceiro — formulário completo](screenshots/__IMG__/f02-parceiro-novo.png)
+![Cadastro parceiro — formulário completo](screenshots/mobile/f02-parceiro-novo.png)
 
 Tudo do atalho + **CPF/CNPJ, IE, endereço completo, observações**.
 
@@ -1168,7 +1168,7 @@ Tudo do atalho + **CPF/CNPJ, IE, endereço completo, observações**.
 
 ## 7.5 Cadastro completo de item de estoque
 
-![Cadastro item — formulário completo](screenshots/__IMG__/f03-estoque-item-novo.png)
+![Cadastro item — formulário completo](screenshots/mobile/f03-estoque-item-novo.png)
 
 Tudo do atalho + **código de barras, marca, registro MS, custo médio, estoque mínimo e máximo**.
 
@@ -1178,7 +1178,7 @@ Tudo do atalho + **código de barras, marca, registro MS, custo médio, estoque 
 
 ## 7.6 Cadastro completo de transação financeira
 
-![Cadastro transação](screenshots/__IMG__/f06-trans-novo.png)
+![Cadastro transação](screenshots/mobile/f06-trans-novo.png)
 
 Mais detalhes que o atalho de despesa/receita: **conta, centro de custo, parcelamento, recorrência, número do documento**.
 
@@ -1285,4 +1285,4 @@ contato@fazendamacaybas.com.br
 
 ---
 
-*Manual produzido pela equipe Fazenda Macaybas — Versão 1.0 · Edição __EDICAO__ · Abril/2026*
+*Manual produzido pela equipe Fazenda Macaybas — Versão 1.0 · Edição Celular · Abril/2026*

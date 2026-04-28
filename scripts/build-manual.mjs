@@ -20,7 +20,7 @@ for (const v of VARIANTS) {
         .replaceAll('__IMG__', v.id)
         .replaceAll('__EDICAO__', v.label);
     const mdPath = resolve(ROOT, `docs/manual-cliente/manual-${v.id}.md`);
-    const pdfPath = resolve(ROOT, `docs/manual-cliente/Manual-Cliente-${v.label}-v1.0.pdf`);
+    const pdfPath = resolve(ROOT, `docs/manual-cliente/Manual-Cliente-${v.label}-v2.0.pdf`);
     await writeFile(mdPath, md, 'utf8');
     console.log(`\n→ Gerando ${v.label} (${v.id})...`);
     execSync(`node "${resolve(ROOT, 'scripts/md-to-pdf.mjs')}" "${mdPath}" "${pdfPath}"`, { stdio: 'inherit' });
