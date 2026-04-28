@@ -9,6 +9,7 @@ import InputMoney from '@/Components/InputMoney.vue';
 import BarcodeScanner from '@/Components/BarcodeScanner.vue';
 import { useToast } from '@/composables/useToast.js';
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
+import InputDecimal from '@/Components/InputDecimal.vue';
 
 const { toast } = useToast();
 const props = defineProps({ item: Object, categories: Array });
@@ -422,11 +423,11 @@ const unidades = ['un', 'kg', 'g', 'l', 'ml', 'sc', 'cx', 'pc', 'm', 'm2', 'm3',
                     </div>
                     <div>
                         <InputLabel value="Estoque mínimo" />
-                        <input type="number" step="0.001" min="0" v-model="form.estoque_minimo" class="form-input">
+                        <InputDecimal v-model="form.estoque_minimo" :decimals="3" :min="0" placeholder="0,000" />
                     </div>
                     <div>
                         <InputLabel value="Estoque máximo (opcional)" />
-                        <input type="number" step="0.001" min="0" v-model="form.estoque_maximo" class="form-input">
+                        <InputDecimal v-model="form.estoque_maximo" :decimals="3" :min="0" placeholder="0,000" />
                     </div>
                     <div>
                         <InputLabel value="Custo médio (R$/un)" />

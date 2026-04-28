@@ -10,6 +10,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import { hojeBR } from '@/utils/format.js';
 import { useInlineCreate } from '@/composables/useInlineCreate.js';
 
@@ -174,10 +175,9 @@ function reiniciar() {
 
                 <div>
                     <InputLabel :value="`Diferença em ${itemAtual?.unidade || 'un'} (use negativo se faltou)`" />
-                    <input v-model="form.quantidade" type="number" step="0.01" inputmode="decimal"
-                           data-cy="input-quantidade"
-                           placeholder="Ex: 5 ou -3"
-                           class="form-input text-2xl py-4 font-mono">
+                    <InputDecimal v-model="form.quantidade" :decimals="2"
+                                  placeholder="Ex: 5 ou -3"
+                                  input-class="form-input text-2xl py-4 font-mono" />
                 </div>
 
                 <div>

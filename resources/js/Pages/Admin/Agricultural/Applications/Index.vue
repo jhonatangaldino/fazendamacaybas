@@ -7,6 +7,7 @@ import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import InputDate from '@/Components/InputDate.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR, hojeBR } from '@/utils/format.js';
@@ -94,7 +95,7 @@ const tipoLabel = {
                     </select>
                 </div>
                 <div class="sm:col-span-2"><InputLabel value="Produto" /><input v-model="form.produto" required class="form-input"></div>
-                <div><InputLabel value="Quantidade" /><input type="number" step="0.0001" v-model="form.quantidade" required class="form-input"></div>
+                <div><InputLabel value="Quantidade" /><InputDecimal v-model="form.quantidade" :decimals="4" :min="0" placeholder="0,0000" required /></div>
                 <div>
                     <InputLabel value="Unidade" />
                     <select v-model="form.unidade" class="form-select">

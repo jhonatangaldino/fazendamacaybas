@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
@@ -90,21 +90,21 @@ function eventBadge(ev) {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-slate-700 mb-1">Cliente</label>
-                    <select v-model="filtros.tenant_id" class="w-full px-2 py-1.5 rounded-lg ring-1 ring-slate-200 text-sm">
+                    <select v-model="filtros.tenant_id" class="form-input">
                         <option value="">Todos</option>
                         <option v-for="t in tenants" :key="t.id" :value="t.id">{{ t.nome }}</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-700 mb-1">Tipo de evento</label>
-                    <select v-model="filtros.event" class="w-full px-2 py-1.5 rounded-lg ring-1 ring-slate-200 text-sm">
+                    <select v-model="filtros.event" class="form-input">
                         <option value="">Todos</option>
                         <option v-for="e in eventos" :key="e" :value="e">{{ eventBadge(e).label }}</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-700 mb-1">Módulo</label>
-                    <select v-model="filtros.subject_type" class="w-full px-2 py-1.5 rounded-lg ring-1 ring-slate-200 text-sm">
+                    <select v-model="filtros.subject_type" class="form-input">
                         <option value="">Todos</option>
                         <option v-for="s in subject_types" :key="s.value" :value="s.value">{{ s.label }}</option>
                     </select>
@@ -112,11 +112,11 @@ function eventBadge(ev) {
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs font-medium text-slate-700 mb-1">De</label>
-                        <input v-model="filtros.data_inicio" type="date" class="w-full px-2 py-1.5 rounded-lg ring-1 ring-slate-200 text-sm">
+                        <input v-model="filtros.data_inicio" type="date" class="form-input">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-700 mb-1">Até</label>
-                        <input v-model="filtros.data_fim" type="date" class="w-full px-2 py-1.5 rounded-lg ring-1 ring-slate-200 text-sm">
+                        <input v-model="filtros.data_fim" type="date" class="form-input">
                     </div>
                 </div>
             </div>

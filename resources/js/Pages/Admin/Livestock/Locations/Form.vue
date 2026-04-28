@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import InputLabel from '@/Components/InputLabel.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 
 const props = defineProps({
     location: Object,
@@ -82,15 +83,11 @@ const precisaArea = () => ['pasto', 'piquete'].includes(form.tipo);
                 <div v-if="precisaArea()" class="grid grid-cols-2 gap-3">
                     <div>
                         <InputLabel value="Área (hectares)" />
-                        <input v-model="form.area_ha" type="number" step="0.01" min="0" inputmode="decimal"
-                               placeholder="Ex: 20.5"
-                               class="form-input">
+                        <InputDecimal v-model="form.area_ha" :decimals="2" :min="0" placeholder="Ex: 20,5" />
                     </div>
                     <div>
                         <InputLabel value="Capacidade (UA) — opcional" />
-                        <input v-model="form.capacidade_ua" type="number" step="0.01" min="0" inputmode="decimal"
-                               placeholder="Ex: 40"
-                               class="form-input">
+                        <InputDecimal v-model="form.capacidade_ua" :decimals="2" :min="0" placeholder="Ex: 40" />
                         <p class="text-xs text-slate-500 mt-0.5">Quantas unidades-animal cabem aqui.</p>
                     </div>
                 </div>

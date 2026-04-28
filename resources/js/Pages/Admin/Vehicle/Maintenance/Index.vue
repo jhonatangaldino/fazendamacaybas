@@ -7,6 +7,7 @@ import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import InputDate from '@/Components/InputDate.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR } from '@/utils/format.js';
@@ -97,7 +98,7 @@ const statusBadge = (s) => ({
                 <div class="sm:col-span-3"><InputLabel value="Descrição do serviço" /><input v-model="form.descricao" required class="form-input"></div>
                 <div><InputLabel value="Data prevista" /><InputDate v-model="form.data_prevista" /></div>
                 <div><InputLabel value="Data realizada" /><InputDate v-model="form.data_realizada" /></div>
-                <div><InputLabel value="Leitura medidor" /><input type="number" step="0.01" v-model="form.medidor" class="form-input"></div>
+                <div><InputLabel value="Leitura medidor" /><InputDecimal v-model="form.medidor" :decimals="2" :min="0" placeholder="0,00" /></div>
                 <div><InputLabel value="Valor peças" /><InputMoney v-model="form.valor_pecas" /></div>
                 <div><InputLabel value="Valor serviço" /><InputMoney v-model="form.valor_servico" /></div>
                 <div>

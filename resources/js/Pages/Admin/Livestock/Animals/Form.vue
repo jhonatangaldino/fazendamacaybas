@@ -11,6 +11,7 @@ import AvatarUpload from '@/Components/AvatarUpload.vue';
 import { router } from '@inertiajs/vue3';
 import { emojiEspecie } from '@/utils/emojiEspecie.js';
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
+import InputDecimal from '@/Components/InputDecimal.vue';
 
 const props = defineProps({ animal: Object, species: Array, lots: Array, locations: { type: Array, default: () => [] }, farms: Array, partners: Array });
 const isEdit = !!props.animal;
@@ -550,7 +551,7 @@ onMounted(() => {
 
                     <div v-if="showPesoNascimento">
                         <InputLabel value="Peso ao nascer (kg)" />
-                        <input type="number" step="0.01" v-model="form.peso_nascimento" class="form-input">
+                        <InputDecimal v-model="form.peso_nascimento" :decimals="2" :min="0" placeholder="0,00" />
                         <p class="text-xs text-slate-400 mt-1">Valor único (imutável). Pesagens seguintes vão em <em>Histórico ⚖</em>.</p>
                     </div>
 

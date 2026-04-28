@@ -15,6 +15,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import { hojeBR, dataBR } from '@/utils/format.js';
 
 const props = defineProps({
@@ -266,10 +267,9 @@ function reiniciar() {
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <InputLabel :value="form.field_ids.length > 1 ? 'Quantidade total' : 'Quantidade'" />
-                        <input v-model="form.quantidade" type="number" step="0.1" min="0" inputmode="decimal"
-                               data-cy="input-quantidade"
-                               placeholder="Ex: 100"
-                               class="form-input text-xl py-3 font-mono">
+                        <InputDecimal v-model="form.quantidade" :decimals="1" :min="0"
+                                      placeholder="Ex: 100"
+                                      input-class="form-input text-xl py-3 font-mono" />
                     </div>
                     <div>
                         <InputLabel value="Unidade" />

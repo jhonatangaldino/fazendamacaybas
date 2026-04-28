@@ -13,6 +13,7 @@ import WizardStepper from '@/Components/WizardStepper.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import { hojeBR, dataBR, brl } from '@/utils/format.js';
 import { useInlineCreate } from '@/composables/useInlineCreate.js';
 
@@ -221,10 +222,9 @@ function reiniciar() {
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
                                     <InputLabel value="Quantidade" class="!text-xs" />
-                                    <input v-model="row.quantidade" type="number" step="0.01" min="0"
-                                           inputmode="decimal" :data-cy="`input-quantidade-${idx}`"
-                                           class="form-input py-2 font-mono"
-                                           :placeholder="getItem(row.item_id)?.unidade || '0'">
+                                    <InputDecimal v-model="row.quantidade" :decimals="2" :min="0"
+                                                  :placeholder="getItem(row.item_id)?.unidade || '0'"
+                                                  input-class="form-input py-2 font-mono" />
                                 </div>
                                 <div>
                                     <InputLabel value="Preço unit. (opcional)" class="!text-xs" />

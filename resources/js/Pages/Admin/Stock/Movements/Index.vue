@@ -8,6 +8,7 @@ import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import InputDate from '@/Components/InputDate.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR, hojeBR } from '@/utils/format.js';
@@ -204,7 +205,7 @@ const bannerContextual = computed(() => ({
                 </div>
                 <div>
                     <InputLabel value="Quantidade" />
-                    <input type="number" step="0.001" min="0" v-model="form.quantidade" class="form-input" required>
+                    <InputDecimal v-model="form.quantidade" :decimals="3" :min="0" placeholder="0,000" required />
                     <InputError :message="form.errors.quantidade" />
                 </div>
                 <div>

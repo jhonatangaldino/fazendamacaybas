@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 /**
  * Assistente guiado — Registrar receita (dinheiro que entrou).
  *
@@ -268,12 +268,12 @@ function reiniciar() {
                                 <div>
                                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Nome *</label>
                                     <input v-model="contaInlineForm.nome" type="text" placeholder="Ex.: Banco do Brasil PJ"
-                                           class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                                           class="form-input">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Tipo *</label>
                                     <select v-model="contaInlineForm.tipo"
-                                            class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                                            class="form-input">
                                         <option value="corrente">Conta corrente</option>
                                         <option value="poupanca">Poupança</option>
                                         <option value="caixa">Caixa interno</option>

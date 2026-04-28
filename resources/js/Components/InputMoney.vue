@@ -4,6 +4,7 @@ import { computed } from 'vue';
 const props = defineProps({
     modelValue: { type: [String, Number], default: '' },
     placeholder: { type: String, default: 'R$ 0,00' },
+    disabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -34,6 +35,7 @@ const display = computed({
         :value="display"
         @input="display = $event.target.value"
         :placeholder="placeholder"
+        :disabled="disabled"
         inputmode="numeric"
         class="form-input text-right font-mono"
     />

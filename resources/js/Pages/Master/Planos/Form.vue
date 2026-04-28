@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
+import InputMoney from '@/Components/InputMoney.vue';
 
 const props = defineProps({
     plan: { type: Object, default: null },
@@ -100,8 +101,8 @@ function submit() {
                             v-model="form.nome"
                             type="text"
                             autocomplete="off"
-                            class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm"
-                            :class="form.errors.nome ? 'ring-red-400' : ''"
+                            class="form-input"
+                            :class="form.errors.nome ? 'ring-2 ring-red-400' : ''"
                             placeholder="Ex.: Profissional"
                         >
                         <p v-if="form.errors.nome" class="mt-1 text-xs text-red-600">{{ form.errors.nome }}</p>
@@ -116,8 +117,8 @@ function submit() {
                             @input="slugTouched = true"
                             type="text"
                             autocomplete="off"
-                            class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm font-mono"
-                            :class="form.errors.slug ? 'ring-red-400' : ''"
+                            class="form-input font-mono"
+                            :class="form.errors.slug ? 'ring-2 ring-red-400' : ''"
                             placeholder="profissional"
                         >
                         <p v-if="form.errors.slug" class="mt-1 text-xs text-red-600">{{ form.errors.slug }}</p>
@@ -128,14 +129,11 @@ function submit() {
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">
                         Preço mensal (R$) <span class="text-red-500">*</span>
                     </label>
-                    <input
-                        v-model.number="form.preco_mensal"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        class="w-full max-w-xs px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm font-mono"
+                    <InputMoney
+                        v-model="form.preco_mensal"
                         :class="form.errors.preco_mensal ? 'ring-red-400' : ''"
-                    >
+                        class="max-w-xs"
+                    />
                     <p v-if="form.errors.preco_mensal" class="mt-1 text-xs text-red-600">{{ form.errors.preco_mensal }}</p>
                 </div>
 
@@ -148,8 +146,9 @@ function submit() {
                         <input
                             v-model.number="form.max_farms"
                             type="number"
+                            inputmode="numeric"
                             min="0"
-                            class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm font-mono"
+                            class="form-input font-mono"
                             placeholder="vazio = sem limite"
                         >
                         <p v-if="form.errors.max_farms" class="mt-1 text-xs text-red-600">{{ form.errors.max_farms }}</p>
@@ -162,8 +161,9 @@ function submit() {
                         <input
                             v-model.number="form.max_users"
                             type="number"
+                            inputmode="numeric"
                             min="0"
-                            class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm font-mono"
+                            class="form-input font-mono"
                             placeholder="vazio = sem limite"
                         >
                         <p v-if="form.errors.max_users" class="mt-1 text-xs text-red-600">{{ form.errors.max_users }}</p>

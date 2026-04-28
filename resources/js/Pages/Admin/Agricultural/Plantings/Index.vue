@@ -7,6 +7,7 @@ import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import InputDate from '@/Components/InputDate.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import { brl, dataBR, hojeBR } from '@/utils/format.js';
@@ -99,7 +100,7 @@ const statusBadge = (s) => ({
                 </div>
                 <div><InputLabel value="Data do plantio" /><InputDate v-model="form.data_plantio" /></div>
                 <div><InputLabel value="Previsão de colheita" /><InputDate v-model="form.previsao_colheita" /></div>
-                <div><InputLabel value="Área plantada (ha)" /><input type="number" step="0.0001" v-model="form.area_plantada_ha" required class="form-input"></div>
+                <div><InputLabel value="Área plantada (ha)" /><InputDecimal v-model="form.area_plantada_ha" :decimals="4" :min="0" placeholder="0,0000" required /></div>
                 <div><InputLabel value="Custo previsto" /><InputMoney v-model="form.custo_previsto" /></div>
                 <div><InputLabel value="Custo real" /><InputMoney v-model="form.custo_real" /></div>
                 <div>

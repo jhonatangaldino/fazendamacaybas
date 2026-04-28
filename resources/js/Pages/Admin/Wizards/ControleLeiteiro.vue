@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 /**
  * Wizard "Controle do leite" — multi-passo, padrão Aplicar Vacina/Despesa.
  *
@@ -12,6 +12,7 @@ import { Head, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 
 const props = defineProps({
     vacas: Array,
@@ -142,7 +143,7 @@ function dataBR(iso) {
                         :value="form.data_controle"
                         @input="form.data_controle = $event.target.value"
                         type="date"
-                        class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
+                        class="form-input"
                     >
                 </div>
 
@@ -205,7 +206,7 @@ function dataBR(iso) {
                                 </div>
                                 <div class="flex-1 relative">
                                     <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Litros</label>
-                                    <input v-model="o.litros" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0.0" class="w-full px-3 py-2.5 pr-9 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base font-mono text-right">
+                                    <InputDecimal v-model="o.litros" :decimals="1" :min="0" placeholder="0,0" input-class="w-full px-3 py-2.5 pr-9 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base font-mono text-right" />
                                     <span class="absolute right-3 top-7 text-xs text-slate-400">L</span>
                                 </div>
                                 <button v-if="linha.ordenhas.length > 1" type="button" @click="removerOrdenha(linha, idx)" class="flex-shrink-0 w-9 h-10 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center" title="Remover">×</button>

@@ -13,6 +13,7 @@ import WizardStepper from '@/Components/WizardStepper.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import { brl, dataBR, hojeBR } from '@/utils/format.js';
 import { emojiEspecie } from '@/utils/emojiEspecie.js';
 import { useInlineCreate } from '@/composables/useInlineCreate.js';
@@ -246,8 +247,8 @@ function reiniciar() {
                         </div>
                         <div>
                             <InputLabel value="Peso médio em kg (opcional)" />
-                            <input v-model.number="form.peso_medio_kg" type="number" step="0.001" min="0"
-                                   class="form-input py-3 font-mono" placeholder="0,045" />
+                            <InputDecimal v-model="form.peso_medio_kg" :decimals="3" :min="0"
+                                          input-class="form-input py-3 font-mono" placeholder="0,045" />
                             <p class="text-xs text-slate-500 mt-1">Peso por unidade. Ex.: pintinho 45g = 0,045.</p>
                         </div>
                     </div>
@@ -421,8 +422,8 @@ function reiniciar() {
                     </div>
                     <div>
                         <InputLabel value="Peso ao nascer (kg)" />
-                        <input v-model="form.peso_nascimento" type="number" step="0.01" min="0"
-                            class="form-input font-mono" placeholder="Ex.: 35.5" />
+                        <InputDecimal v-model="form.peso_nascimento" :decimals="2" :min="0"
+                                      input-class="form-input font-mono" placeholder="Ex.: 35,5" />
                     </div>
                 </div>
 

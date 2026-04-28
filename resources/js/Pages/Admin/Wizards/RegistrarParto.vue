@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 /**
  * Wizard "Registrar parto" — disparado ao concluir tarefa com auto_action='parto'.
  *
@@ -138,7 +138,7 @@ const statusLabels = {
                     <input
                         v-model="form.data_parto"
                         type="date"
-                        class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
+                        class="form-input"
                     >
                     <p class="mt-1 text-xs text-slate-500">Pode ser hoje ou alguns dias atrás (parto fora do horário previsto).</p>
                 </div>
@@ -169,7 +169,7 @@ const statusLabels = {
                     </label>
                     <select
                         v-model="form.pai_id"
-                        class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"
+                        class="form-input"
                     >
                         <option value="">— não informado —</option>
                         <option v-for="m in machos" :key="m.id" :value="m.id">
@@ -207,7 +207,7 @@ const statusLabels = {
                             v-model="form.novo_lote_nome"
                             type="text"
                             placeholder="Nome do novo lote"
-                            class="mt-3 w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-sm"
+                            class="mt-3 form-input"
                             @click.stop
                         >
                     </label>
@@ -219,7 +219,7 @@ const statusLabels = {
                         <select
                             v-if="form.lote_destino === 'existente'"
                             v-model="form.lote_existente_id"
-                            class="mt-3 w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-sm"
+                            class="mt-3 form-input"
                             @click.stop
                         >
                             <option value="">— escolha um lote —</option>
@@ -268,7 +268,7 @@ const statusLabels = {
                             <input
                                 v-model="f.identificacao"
                                 type="text"
-                                class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-sm font-mono"
+                                class="form-input font-mono"
                             >
                         </div>
                         <div>
@@ -295,12 +295,12 @@ const statusLabels = {
                                 min="0"
                                 inputmode="decimal"
                                 placeholder="Ex.: 35"
-                                class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-sm font-mono"
+                                class="form-input font-mono"
                             >
                         </div>
                         <div>
                             <label class="block text-xs text-slate-600 mb-1">Status</label>
-                            <select v-model="f.status" class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-sm">
+                            <select v-model="f.status" class="form-input">
                                 <option value="vivo">Vivo</option>
                                 <option value="natimorto">Natimorto</option>
                                 <option value="morto_pos_parto">Morreu após parto</option>

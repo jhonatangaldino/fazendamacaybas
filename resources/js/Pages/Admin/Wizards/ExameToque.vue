@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 /**
  * Wizard "Exame de toque" — multi-passo, padrão do sistema.
  *
@@ -191,11 +191,11 @@ const veterinarioNome = computed(() => {
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Data do exame</label>
-                        <input :value="form.data_exame" @input="form.data_exame = $event.target.value" type="date" class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base">
+                        <input :value="form.data_exame" @input="form.data_exame = $event.target.value" type="date" class="form-input">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Veterinário</label>
-                        <select v-model="form.partner_id" class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base">
+                        <select v-model="form.partner_id" class="form-input">
                             <option value="">— sem cadastro —</option>
                             <option v-for="v in veterinarios" :key="v.id" :value="v.id">{{ v.nome }}</option>
                         </select>
@@ -214,18 +214,18 @@ const veterinarioNome = computed(() => {
                 <div v-if="form.gestacao_status === 'prenhe'" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Dias de gestação</label>
-                        <input v-model.number="form.gestacao_dias" type="number" inputmode="numeric" min="0" max="340" placeholder="Ex.: 60" class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base font-mono">
+                        <input v-model.number="form.gestacao_dias" type="number" inputmode="numeric" min="0" max="340" placeholder="Ex.: 60" class="form-input font-mono">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">DPP <span class="text-slate-400 normal-case">(calculada)</span></label>
-                        <input :value="form.data_prevista_parto" @input="form.data_prevista_parto = $event.target.value" type="date" class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base">
+                        <input :value="form.data_prevista_parto" @input="form.data_prevista_parto = $event.target.value" type="date" class="form-input">
                         <p class="text-xs text-emerald-700 mt-1">✓ Calculada automaticamente — pode editar.</p>
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Observações</label>
-                    <textarea v-model="form.observacoes" rows="2" placeholder="Anotações do exame (opcional)" class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"></textarea>
+                    <textarea v-model="form.observacoes" rows="2" placeholder="Anotações do exame (opcional)" class="form-input"></textarea>
                 </div>
 
                 <div class="flex justify-between pt-4 border-t border-slate-100">

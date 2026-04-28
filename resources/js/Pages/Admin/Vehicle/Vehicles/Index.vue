@@ -8,6 +8,7 @@ import ConfirmModal from '@/Components/ConfirmModal.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMasked from '@/Components/InputMasked.vue';
 import { brl, dataBR } from '@/utils/format.js';
@@ -276,7 +277,7 @@ function doDelete() {
                     </div>
                     <div>
                         <InputLabel value="Leitura atual" />
-                        <input type="number" step="0.01" v-model="form.medidor_atual" class="form-input">
+                        <InputDecimal v-model="form.medidor_atual" :decimals="2" :min="0" placeholder="0,00" />
                     </div>
 
                     <div>

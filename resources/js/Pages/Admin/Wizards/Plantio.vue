@@ -12,6 +12,7 @@ import WizardStepper from '@/Components/WizardStepper.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
 import InputMoney from '@/Components/InputMoney.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import { brl, dataBR, hojeBR } from '@/utils/format.js';
 import { useInlineCreate } from '@/composables/useInlineCreate.js';
 
@@ -225,10 +226,10 @@ function reiniciar() {
 
                 <div v-if="form.field_ids.length === 1" class="max-w-md">
                     <InputLabel value="Área plantada (ha) *" />
-                    <input v-model="form.area_plantada_ha" type="number" step="0.01" min="0.01"
-                        :max="fieldsSelecionados[0]?.area_ha"
-                        data-cy="input-area"
-                        class="form-input text-lg font-mono py-3" />
+                    <InputDecimal v-model="form.area_plantada_ha" :decimals="2" :min="0.01"
+                                  :max="fieldsSelecionados[0]?.area_ha"
+                                  placeholder="0,00"
+                                  input-class="form-input text-lg font-mono py-3" />
                     <p class="text-xs text-slate-500 mt-1">
                         Talhão tem {{ fieldsSelecionados[0]?.area_ha }} ha — pode plantar parte dele.
                     </p>
@@ -419,8 +420,8 @@ function reiniciar() {
                         </div>
                         <div>
                             <InputLabel value="Área total (ha) *" />
-                            <input v-model="novoTalhao.form.value.area_ha" type="number" step="0.01" min="0.01"
-                                class="form-input" placeholder="Ex.: 12.5" />
+                            <InputDecimal v-model="novoTalhao.form.value.area_ha" :decimals="2" :min="0.01"
+                                          placeholder="Ex.: 12,5" />
                         </div>
                     </div>
                     <p v-if="novoTalhao.erro.value" class="mt-3 text-xs text-red-700">{{ novoTalhao.erro.value }}</p>

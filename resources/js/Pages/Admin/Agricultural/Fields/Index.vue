@@ -6,6 +6,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import { useAutoReload } from '@/composables/useAutoReload.js';
 
@@ -71,11 +72,11 @@ function doDelete() {
                         <option v-for="f in farms" :key="f.id" :value="f.id">{{ f.nome }}</option>
                     </select>
                 </div>
-                <div><InputLabel value="Área (ha)" /><input type="number" step="0.0001" v-model="form.area_ha" required class="form-input"></div>
+                <div><InputLabel value="Área (ha)" /><InputDecimal v-model="form.area_ha" :decimals="4" :min="0" placeholder="0,0000" required /></div>
                 <div><InputLabel value="Tipo de solo" /><input v-model="form.tipo_solo" class="form-input" placeholder="Ex: Latossolo"></div>
                 <div class="sm:col-span-3"><InputLabel value="Localização / referência" /><input v-model="form.localizacao" class="form-input"></div>
-                <div><InputLabel value="Latitude" /><input type="number" step="0.0000001" v-model="form.latitude" class="form-input"></div>
-                <div><InputLabel value="Longitude" /><input type="number" step="0.0000001" v-model="form.longitude" class="form-input"></div>
+                <div><InputLabel value="Latitude" /><InputDecimal v-model="form.latitude" :decimals="7" placeholder="-15,7942" /></div>
+                <div><InputLabel value="Longitude" /><InputDecimal v-model="form.longitude" :decimals="7" placeholder="-47,8822" /></div>
                 <div class="sm:col-span-3"><InputLabel value="Descrição" /><textarea v-model="form.descricao" rows="2" class="form-textarea"></textarea></div>
                 <div class="sm:col-span-3 flex justify-between items-center">
                     <label class="flex items-center gap-2 text-sm">

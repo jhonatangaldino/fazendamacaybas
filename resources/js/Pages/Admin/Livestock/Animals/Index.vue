@@ -12,6 +12,7 @@ import InputMoney from '@/Components/InputMoney.vue';
 import { dataBR, brl, hojeBR } from '@/utils/format.js';
 import { tableActionsFor, EVENT_CATALOG, vendaConfigFor } from '@/utils/animalProfile.js';
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
+import InputDecimal from '@/Components/InputDecimal.vue';
 
 const props = defineProps({
     animals: Object,
@@ -520,11 +521,11 @@ function doDelete() {
                         </div>
                         <div v-if="eventoTipo === 'pesagem' || eventoTipo === 'biometria_amostral'">
                             <InputLabel :value="eventoTipo === 'biometria_amostral' ? 'Peso médio do lote (kg) *' : 'Peso (kg) *'" />
-                            <input type="number" step="0.01" min="0" v-model="eventoForm.peso" class="form-input" required>
+                            <InputDecimal v-model="eventoForm.peso" :decimals="2" :min="0" placeholder="0,00" required />
                         </div>
                         <div v-if="eventoTipo === 'ordenha'">
                             <InputLabel value="Volume (litros) *" />
-                            <input type="number" step="0.01" min="0" v-model="eventoForm.peso" class="form-input" required>
+                            <InputDecimal v-model="eventoForm.peso" :decimals="2" :min="0" placeholder="0,00" required />
                         </div>
                         <div v-if="eventoTipo === 'postura_diaria'">
                             <InputLabel value="Ovos coletados *" />
@@ -536,7 +537,7 @@ function doDelete() {
                                 <input v-model="eventoForm.vacina" class="form-input" placeholder="Ex: Febre Aftosa" required>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div><InputLabel value="Dose (ml)" /><input type="number" step="0.01" v-model="eventoForm.dose" class="form-input"></div>
+                                <div><InputLabel value="Dose (ml)" /><InputDecimal v-model="eventoForm.dose" :decimals="2" :min="0" placeholder="0,00" /></div>
                                 <div><InputLabel value="Via" /><input v-model="eventoForm.via_aplicacao" class="form-input" placeholder="subcutânea"></div>
                             </div>
                         </template>
@@ -587,7 +588,7 @@ function doDelete() {
                         <!-- Campo peso médio por cabeça (bovino, suíno, ovino) -->
                         <div v-if="perguntaPesoMedio">
                             <InputLabel value="Peso médio por cabeça (kg) *" />
-                            <input type="number" step="0.01" min="0" v-model="vendaForm.peso_medio" class="form-input" placeholder="Ex: 480">
+                            <InputDecimal v-model="vendaForm.peso_medio" :decimals="2" :min="0" placeholder="Ex: 480" />
                             <p v-if="vendaForm.peso_medio" class="text-xs text-slate-500 mt-1">
                                 Total estimado: {{ (Number(vendaForm.peso_medio) * nCabecas).toLocaleString('pt-BR', {maximumFractionDigits: 2}) }} kg
                             </p>
@@ -595,7 +596,7 @@ function doDelete() {
                         <!-- Campo quantidade direta (peixe, aves, ovos) -->
                         <div v-else-if="vendaForm.unidade !== 'cabeca'">
                             <InputLabel :value="`Quantidade (${vendaForm.unidade}) *`" />
-                            <input type="number" step="0.001" min="0" v-model="vendaForm.quantidade" class="form-input">
+                            <InputDecimal v-model="vendaForm.quantidade" :decimals="3" :min="0" placeholder="0,000" />
                         </div>
                         <!-- Venda por cabeça fixa: só precisa valor por cabeça -->
                         <div v-else>

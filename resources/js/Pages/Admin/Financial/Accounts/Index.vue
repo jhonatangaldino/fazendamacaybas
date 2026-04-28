@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 /**
  * BLOCO 4.3 RN3 — CRUD UI de Contas Financeiras (tenant area).
  * Padrão obrigatório B4.3: tabela desktop + cards mobile + ações com label.
@@ -9,6 +9,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
+import InputMoney from '@/Components/InputMoney.vue';
 
 const { confirm } = useConfirm();
 
@@ -197,39 +198,38 @@ function brl(v) {
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Nome *</label>
                             <input v-model="form.nome" type="text" required
                                    placeholder="Ex.: Banco do Brasil PJ"
-                                   class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                                   class="form-input">
                             <p v-if="form.errors.nome" class="text-xs text-red-700 mt-1">{{ form.errors.nome }}</p>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Tipo *</label>
-                            <select v-model="form.tipo" required class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                            <select v-model="form.tipo" required class="form-input">
                                 <option v-for="(label, value) in tipos" :key="value" :value="value">{{ label }}</option>
                             </select>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Banco</label>
-                                <input v-model="form.banco" type="text" class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:outline-none text-sm">
+                                <input v-model="form.banco" type="text" class="form-input">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Saldo inicial (R$)</label>
-                                <input v-model.number="form.saldo_inicial" type="number" step="0.01" :disabled="!! editing"
-                                       class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:outline-none text-sm disabled:bg-slate-100">
+                                <InputMoney v-model="form.saldo_inicial" :disabled="!! editing" />
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Agência</label>
-                                <input v-model="form.agencia" type="text" class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:outline-none text-sm">
+                                <input v-model="form.agencia" type="text" class="form-input">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Conta</label>
-                                <input v-model="form.conta" type="text" class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:outline-none text-sm">
+                                <input v-model="form.conta" type="text" class="form-input">
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Observação</label>
-                            <textarea v-model="form.observacoes" rows="2" class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:outline-none text-sm resize-none"></textarea>
+                            <textarea v-model="form.observacoes" rows="2" class="form-textarea resize-none"></textarea>
                         </div>
                         <div class="flex items-center justify-end gap-2 pt-2">
                             <button type="button" @click="showForm = false"

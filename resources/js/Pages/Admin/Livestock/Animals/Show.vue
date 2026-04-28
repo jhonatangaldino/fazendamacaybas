@@ -4,6 +4,7 @@ import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
+import InputDecimal from '@/Components/InputDecimal.vue';
 
 const { confirm: confirmModal } = useConfirm();
 import PageHeader from '@/Components/PageHeader.vue';
@@ -1176,7 +1177,7 @@ watch(tiposPermitidosNoModal, (lista) => {
                         <!-- Pesagem -->
                         <div v-if="eventForm.tipo === 'pesagem'">
                             <InputLabel value="Peso (kg) *" />
-                            <input type="number" step="0.01" min="0" v-model="eventForm.peso" class="form-input" required>
+                            <InputDecimal v-model="eventForm.peso" :decimals="2" :min="0" placeholder="0,00" required />
                             <p v-if="eventForm.errors.peso" class="text-xs text-red-600 mt-1">{{ eventForm.errors.peso }}</p>
                         </div>
 
@@ -1198,7 +1199,7 @@ watch(tiposPermitidosNoModal, (lista) => {
                                 </div>
                                 <div class="flex-1 relative">
                                     <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Litros</label>
-                                    <input v-model="o.litros" type="number" step="0.1" min="0" max="99.99" placeholder="0.0" class="w-full px-3 py-2 pr-8 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-sm font-mono text-right">
+                                    <InputDecimal v-model="o.litros" :decimals="1" :min="0" :max="99.99" placeholder="0,0" input-class="w-full px-3 py-2 pr-8 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-sm font-mono text-right" />
                                     <span class="absolute right-3 top-7 text-xs text-slate-400">L</span>
                                 </div>
                                 <button v-if="eventForm.ordenhas.length > 1" type="button" @click="removerOrdenhaModal(idx)" class="flex-shrink-0 w-9 h-10 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center" title="Remover">×</button>
@@ -1251,20 +1252,20 @@ watch(tiposPermitidosNoModal, (lista) => {
                         <!-- Vermifugação -->
                         <template v-if="eventForm.tipo === 'vermifugacao'">
                             <div class="sm:col-span-2"><InputLabel value="Vermífugo" /><input v-model="eventForm.medicamento" class="form-input" placeholder="Ex: Ivermectina"></div>
-                            <div><InputLabel value="Dose (ml)" /><input type="number" step="0.01" v-model="eventForm.dose" class="form-input"></div>
+                            <div><InputLabel value="Dose (ml)" /><InputDecimal v-model="eventForm.dose" :decimals="2" :min="0" placeholder="0,00" /></div>
                         </template>
 
                         <!-- Vacinação -->
                         <template v-if="eventForm.tipo === 'vacinacao'">
                             <div class="sm:col-span-2"><InputLabel value="Vacina *" /><input v-model="eventForm.vacina" class="form-input" placeholder="Ex: Febre Aftosa"></div>
-                            <div><InputLabel value="Dose (ml)" /><input type="number" step="0.01" v-model="eventForm.dose" class="form-input"></div>
+                            <div><InputLabel value="Dose (ml)" /><InputDecimal v-model="eventForm.dose" :decimals="2" :min="0" placeholder="0,00" /></div>
                             <div><InputLabel value="Via aplicação" /><input v-model="eventForm.via_aplicacao" class="form-input" placeholder="Ex: subcutânea"></div>
                         </template>
 
                         <!-- Medicação -->
                         <template v-if="eventForm.tipo === 'medicacao'">
                             <div class="sm:col-span-2"><InputLabel value="Medicamento *" /><input v-model="eventForm.medicamento" class="form-input" placeholder="Ex: Ivermectina"></div>
-                            <div><InputLabel value="Dose" /><input type="number" step="0.01" v-model="eventForm.dose" class="form-input"></div>
+                            <div><InputLabel value="Dose" /><InputDecimal v-model="eventForm.dose" :decimals="2" :min="0" placeholder="0,00" /></div>
                             <div><InputLabel value="Via aplicação" /><input v-model="eventForm.via_aplicacao" class="form-input"></div>
                         </template>
 

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 /**
  * Wizard "Secar vaca" — multi-passo, padrão do sistema.
  *
@@ -179,17 +179,17 @@ function diasParaPartoLabel(d) {
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Data da secagem</label>
-                    <input :value="form.data_secagem" @input="form.data_secagem = $event.target.value" type="date" class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base">
+                    <input :value="form.data_secagem" @input="form.data_secagem = $event.target.value" type="date" class="form-input">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Medicamento aplicado <span class="text-slate-400 normal-case">(opcional)</span></label>
-                    <input v-model="form.medicamento" type="text" placeholder="Ex.: Mamivete LA, Cefalonium, etc" class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base">
+                    <input v-model="form.medicamento" type="text" placeholder="Ex.: Mamivete LA, Cefalonium, etc" class="form-input">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Observações <span class="text-slate-400 normal-case">(opcional)</span></label>
-                    <textarea v-model="form.observacoes" rows="3" placeholder="Tratamento efetuado, dose, etc" class="w-full px-4 py-3 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-macaybas-primary focus:outline-none text-base"></textarea>
+                    <textarea v-model="form.observacoes" rows="3" placeholder="Tratamento efetuado, dose, etc" class="form-input"></textarea>
                 </div>
 
                 <div class="flex justify-between pt-4 border-t border-slate-100">

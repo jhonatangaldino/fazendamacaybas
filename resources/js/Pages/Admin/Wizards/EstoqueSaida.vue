@@ -11,6 +11,7 @@ import PageHeader from '@/Components/PageHeader.vue';
 import WizardStepper from '@/Components/WizardStepper.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputDate from '@/Components/InputDate.vue';
+import InputDecimal from '@/Components/InputDecimal.vue';
 import { dataBR, hojeBR } from '@/utils/format.js';
 import { useInlineCreate } from '@/composables/useInlineCreate.js';
 
@@ -178,9 +179,9 @@ function reiniciar() {
                 <div class="grid sm:grid-cols-2 gap-4">
                     <div>
                         <InputLabel :value="'Quantidade que saiu (' + (itemSelecionado?.unidade ?? '') + ')'" />
-                        <input v-model="form.quantidade" type="number" step="0.01" min="0.01"
-                            data-cy="input-quantidade"
-                            class="form-input text-xl py-3 font-mono" />
+                        <InputDecimal v-model="form.quantidade" :decimals="2" :min="0.01"
+                                      placeholder="0,00"
+                                      input-class="form-input text-xl py-3 font-mono" />
                         <p v-if="ultrapassaSaldo" class="text-xs text-amber-700 mt-1">
                             ⚠ Saída maior que o saldo atual ({{ saldoAntes }} {{ itemSelecionado?.unidade }}). Sistema permite — ajuste depois com "Ajustar estoque" se preciso.
                         </p>

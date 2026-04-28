@@ -1,8 +1,9 @@
-<script setup>
+﻿<script setup>
 import { ref, computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
+import InputMoney from '@/Components/InputMoney.vue';
 
 const { confirm } = useConfirm();
 
@@ -170,7 +171,7 @@ function gerarCobranca() {
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Plano</label>
                             <select
                                 v-model="form.plan_id"
-                                class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm"
+                                class="form-input"
                                 :class="form.errors.plan_id ? 'ring-red-400' : ''"
                             >
                                 <option :value="null" disabled>Selecione um plano</option>
@@ -197,11 +198,11 @@ function gerarCobranca() {
                         <div class="grid sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Período: início <span class="text-xs text-slate-500 font-normal">(opcional)</span></label>
-                                <input v-model="form.current_period_start" type="date" class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm">
+                                <input v-model="form.current_period_start" type="date" class="form-input">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Período: fim <span class="text-xs text-slate-500 font-normal">(opcional)</span></label>
-                                <input v-model="form.current_period_end" type="date" class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm">
+                                <input v-model="form.current_period_end" type="date" class="form-input">
                             </div>
                         </div>
 
@@ -231,19 +232,14 @@ function gerarCobranca() {
                 <form v-else @submit.prevent="gerarCobranca" class="space-y-3">
                     <div>
                         <label class="block text-xs font-medium text-slate-700 mb-1">Valor (R$)</label>
-                        <input
-                            v-model.number="invoiceForm.valor"
-                            type="number" step="0.01" min="0"
-                            class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm font-mono"
-                            :class="invoiceForm.errors.valor ? 'ring-red-400' : ''"
-                        >
+                        <InputMoney v-model="invoiceForm.valor" :class="invoiceForm.errors.valor ? 'ring-red-400' : ''" />
                         <p v-if="invoiceForm.errors.valor" class="mt-1 text-xs text-red-600">{{ invoiceForm.errors.valor }}</p>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-700 mb-1">Emissão</label>
                         <input
                             v-model="invoiceForm.data_emissao" type="date"
-                            class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm"
+                            class="form-input"
                             :class="invoiceForm.errors.data_emissao ? 'ring-red-400' : ''"
                         >
                         <p v-if="invoiceForm.errors.data_emissao" class="mt-1 text-xs text-red-600">{{ invoiceForm.errors.data_emissao }}</p>
@@ -252,7 +248,7 @@ function gerarCobranca() {
                         <label class="block text-xs font-medium text-slate-700 mb-1">Vencimento</label>
                         <input
                             v-model="invoiceForm.data_vencimento" type="date"
-                            class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm"
+                            class="form-input"
                             :class="invoiceForm.errors.data_vencimento ? 'ring-red-400' : ''"
                         >
                         <p v-if="invoiceForm.errors.data_vencimento" class="mt-1 text-xs text-red-600">{{ invoiceForm.errors.data_vencimento }}</p>
