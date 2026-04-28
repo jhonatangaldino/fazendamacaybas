@@ -22,7 +22,12 @@ class FaturasController extends Controller
 {
     public function index(): Response
     {
-        $tenantId = auth()->user()->tenant_id;
+        // Usa o tenant resolvido pelo middleware ResolveTenant (respeita
+        // impersonation: master operando como tenant tem auth()->user()->tenant_id
+        // = NULL, mas app('tenant_id') = ID do tenant impersonado).
+        // Bug reportado pelo PO em 2026-04-28: fatura avulsa não aparecia
+        // pro tenant quando master impersonava.
+        $tenantId = app()->bound('tenant_id') ? (int) app('tenant_id') : (int) (auth()->user()->tenant_id ?? 0);
         $hoje = today()->toDateString();
 
         // Faturas visíveis: aparece_em é null (legado, sempre visível) OU <= hoje
