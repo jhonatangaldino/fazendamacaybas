@@ -155,30 +155,29 @@ const menu = computed(() => [
         section: 'Operação',
         items: [
             { label: 'Financeiro', route: 'admin.financeiro.index', icon: 'cash', perm: 'operational.financeiro.view', feature: 'financeiro' },
-            // Rebanho expansível: ao expandir mostra submenu dinâmico por espécie
-            // (apenas espécies COM animais ativos no tenant) + Lotes + Locais.
-            // Click direto no "Rebanho" vai pra listagem agregada (todos animais).
+            // Rebanho expansível: ao expandir mostra submenu dinâmico SOMENTE
+            // por espécie (apenas as COM animais ativos no tenant). Lotes e
+            // Locais ficam separados — são entidades estruturais que servem
+            // pra MAIS coisas que só rebanho (ex.: um "lote" de ração no estoque).
             {
                 label: 'Rebanho', route: 'admin.rebanho.index', icon: 'cow',
                 perm: 'operational.rebanho.view', feature: 'rebanho',
                 expandable: true,
-                children: () => [
-                    ...tenantSpecies.value.map(s => ({
-                        label: `${emojiEspecie(s.nome)} ${s.nome}`,
-                        href: route('admin.rebanho.animais.index', { species_id: s.id }),
-                        badge: s.animals_count,
-                        currentMatch: (currentUrl) => {
-                            try {
-                                const u = new URL(currentUrl, window.location.origin);
-                                return u.pathname === '/admin/rebanho/animais'
-                                    && u.searchParams.get('species_id') === String(s.id);
-                            } catch { return false; }
-                        },
-                    })),
-                    { label: '🏷 Lotes', href: route('admin.rebanho.lotes.index') },
-                    { label: '📍 Locais (pastos)', href: route('admin.rebanho.locais.index') },
-                ],
+                children: () => tenantSpecies.value.map(s => ({
+                    label: `${emojiEspecie(s.nome)} ${s.nome}`,
+                    href: route('admin.rebanho.animais.index', { species_id: s.id }),
+                    badge: s.animals_count,
+                    currentMatch: (currentUrl) => {
+                        try {
+                            const u = new URL(currentUrl, window.location.origin);
+                            return u.pathname === '/admin/rebanho/animais'
+                                && u.searchParams.get('species_id') === String(s.id);
+                        } catch { return false; }
+                    },
+                })),
             },
+            { label: '↳ Lotes', route: 'admin.rebanho.lotes.index', icon: 'users-group', perm: 'operational.rebanho.view', feature: 'rebanho' },
+            { label: '↳ Locais (pastos)', route: 'admin.rebanho.locais.index', icon: 'map-pin', perm: 'operational.rebanho.view', feature: 'rebanho' },
             { label: 'Agrícola', route: 'admin.agricola.index', icon: 'wheat', perm: 'operational.agricola.view', feature: 'agricola' },
             { label: 'Estoque', route: 'admin.estoque.index', icon: 'box', perm: 'operational.estoque.view', feature: 'estoque' },
             { label: 'Máquinas', route: 'admin.maquinas.index', icon: 'truck', perm: 'operational.maquinas.view', feature: 'maquinas' },
