@@ -34,6 +34,25 @@ class Animal extends Model
         static::created($invalidate);
         static::updated($invalidate);
         static::deleted($invalidate);
+
+        // F8-A3 (QA Deep 2026-04-29) · cascade soft-delete dos eventos.
+        // Animal usa SoftDeletes; animal_events tem cascadeOnDelete na FK.
+        // Mas cascadeOnDelete dispara só em hard-delete, NÃO em soft-delete.
+        // Resultado: animal_events ficavam "órfãos lógicos" (referenciando
+        // animal soft-deleted). Aqui marcamos os eventos do animal como
+        // deletados também — mantém integridade referencial lógica.
+        // animal_events não usa SoftDeletes; usamos hard-delete dos eventos
+        // (são informação derivada, não primária).
+        static::deleting(function (Animal $a) {
+            // Só dispara em soft-delete (forceDelete não passa por aqui)
+            if (! $a->isForceDeleting()) {
+                AnimalEvent::where('animal_id', $a->id)->delete();
+            }
+        });
+
+        // F8-A3 · restore também reativa eventos? Não — eventos são deletados
+        // no soft-delete. Se quiser restore com histórico preservado, mudar
+        // para soft-delete em animal_events também (refactor maior).
     }
 
     protected $fillable = [

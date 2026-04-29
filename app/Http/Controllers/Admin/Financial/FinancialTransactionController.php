@@ -119,8 +119,50 @@ class FinancialTransactionController extends Controller
         return redirect()->route('admin.financeiro.transacoes.index')->with('success', 'Lançamento atualizado.');
     }
 
-    public function destroy(FinancialTransaction $transacao)
+    /**
+     * F8-B2 (QA Deep 2026-04-29) · transação PAGA não pode ser excluída
+     * sem estorno. Antes deletava direto, deixando saldo da conta
+     * falsamente alto (caixa "ressuscitava" R$ pagos).
+     *
+     * Agora:
+     *   - Pendente/atrasada → soft-delete normal
+     *   - Paga → exige estorno explícito (?estorno=1) que cria
+     *     contra-lançamento com mesma quantia e tipo invertido (despesa
+     *     paga → receita "estorno", receita paga → despesa "estorno"),
+     *     marca a transação como 'estornada' e PRESERVA o histórico.
+     *   - Bloqueio sem ?estorno=1 retorna erro descritivo.
+     */
+    public function destroy(Request $request, FinancialTransaction $transacao)
     {
+        if ($transacao->status === 'pago' && ! $request->boolean('estorno')) {
+            return back()->with('error', 'Esta transação já foi paga. Use a opção "Estornar" para reverter o pagamento e preservar o histórico.');
+        }
+
+        if ($transacao->status === 'pago' && $request->boolean('estorno')) {
+            // Cria contra-lançamento de estorno + marca original como 'estornada'.
+            // Ambas as ações na mesma transação DB pra atomicidade.
+            \DB::transaction(function () use ($transacao) {
+                FinancialTransaction::create([
+                    'tenant_id' => $transacao->tenant_id,
+                    'farm_id' => $transacao->farm_id,
+                    'tipo' => $transacao->tipo === 'despesa' ? 'receita' : 'despesa',
+                    'descricao' => 'Estorno · '.$transacao->descricao,
+                    'valor' => $transacao->valor,
+                    'data_vencimento' => now()->toDateString(),
+                    'data_pagamento' => now()->toDateString(),
+                    'status' => 'pago',
+                    'category_id' => $transacao->category_id,
+                    'partner_id' => $transacao->partner_id,
+                    'numero_documento' => 'ESTORNO:'.$transacao->id,
+                    'observacoes' => 'Estorno automático da transação #'.$transacao->id,
+                ]);
+
+                $transacao->update(['status' => 'estornada']);
+            });
+
+            return back()->with('success', 'Pagamento estornado · contra-lançamento criado · histórico preservado.');
+        }
+
         $transacao->delete();
 
         return back()->with('success', 'Lançamento excluído.');

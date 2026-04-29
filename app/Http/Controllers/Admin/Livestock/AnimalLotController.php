@@ -197,6 +197,14 @@ class AnimalLotController extends Controller
             return back()->with('error', 'Este lote tem animais. Mova os animais antes de excluir.');
         }
 
+        // F8-A4 (QA Deep 2026-04-29): lote AGREGADO (Ave/Peixe) não tem
+        // animals individuais — passa direto pelo check anterior. Mas tem
+        // `quantidade_atual` representando cabeças massa. Antes deletava
+        // sem warning, perdendo histórico de 100+ cabeças. Agora bloqueia.
+        if ($lote->gestao_modo === 'agregada' && (int) $lote->quantidade_atual > 0) {
+            return back()->with('error', 'Este lote tem '.$lote->quantidade_atual.' cabeças. Registre mortalidade total ou venda antes de excluir.');
+        }
+
         // Defensivo: ANTES retornávamos sucesso mesmo se o delete silenciosamente
         // falhasse. Bug detectado pelo QA E2E (BUG-B-002): toast confirmava
         // remoção mas o lote persistia em produção. Agora checamos retorno

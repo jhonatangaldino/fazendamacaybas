@@ -131,8 +131,28 @@ class PartnerController extends Controller
         return redirect()->route('admin.parceiros.index')->with('success', 'Parceiro atualizado.');
     }
 
+    /**
+     * F8-C1 (QA Deep 2026-04-29) · parceiro com transações financeiras
+     * vinculadas não pode ser excluído. Antes soft-deletava direto e os
+     * joins financeiros depois retornavam parceiro NULL, perdendo
+     * rastreabilidade do histórico.
+     *
+     * Agora:
+     *   - Tem transações → bloqueia, sugere inativar (toggle is_active)
+     *   - Sem transações → soft-delete normal
+     *
+     * Coerente com o padrão de Vehicle/Field (já têm proteção).
+     */
     public function destroy(Partner $parceiro)
     {
+        $countTrans = \DB::table('financial_transactions')
+            ->where('partner_id', $parceiro->id)
+            ->count();
+
+        if ($countTrans > 0) {
+            return back()->with('error', "Este parceiro tem {$countTrans} transação(ões) vinculada(s). Inative-o ao invés de excluir, pra preservar o histórico financeiro.");
+        }
+
         $parceiro->delete();
 
         return back()->with('success', 'Parceiro excluído.');

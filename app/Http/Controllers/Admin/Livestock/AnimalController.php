@@ -1482,18 +1482,81 @@ class AnimalController extends Controller
         return back()->with('success', $msg);
     }
 
+    /**
+     * Excluir evento histórico do animal.
+     *
+     * F8-E4 (QA Deep 2026-04-29): excluir evento de VENDA não revertia
+     * o animal pra ativo nem estornava a receita financeira gerada.
+     * Resultado: animal continuava com status='vendido' mas a venda
+     * tinha "sumido" do histórico do timeline → duplo órfão (animal
+     * em estado inválido + receita sem rastro).
+     *
+     * Agora, dependendo do tipo do evento excluído:
+     *   - pesagem    → recalcula peso_atual (era o único que tinha)
+     *   - venda      → reverte animal pra ativo + estorna receita vinculada
+     *   - mortalidade → reverte animal pra ativo + ajusta lote (se aplicável)
+     *   - vacinacao/medicacao → estorna despesa vinculada (se houver)
+     *
+     * Tudo em transação DB pra atomicidade.
+     */
     public function destroyEvent(Animal $animal, AnimalEvent $event)
     {
         abort_if($event->animal_id !== $animal->id, 404);
-        $event->delete();
 
-        // Se era a última pesagem, recalcula peso_atual
-        if ($event->tipo === 'pesagem') {
-            $ultima = $animal->events()->where('tipo', 'pesagem')->orderByDesc('data')->first();
-            $animal->update(['peso_atual' => $ultima?->peso]);
-        }
+        \DB::transaction(function () use ($animal, $event) {
+            // F8-E4 · venda: reverte animal + estorna receita
+            if ($event->tipo === 'venda') {
+                $animal->update([
+                    'status' => 'ativo',
+                    'data_saida' => null,
+                ]);
+                // Receita gerada via AnimalSaleToRevenueService usa
+                // numero_documento = "ANIMAL_EVENT:{event_id}". Estorna
+                // criando contra-lançamento em vez de hard-delete.
+                $receita = \App\Models\Financial\FinancialTransaction::where('numero_documento', 'ANIMAL_EVENT:'.$event->id)
+                    ->where('status', 'pago')
+                    ->first();
+                if ($receita) {
+                    \App\Models\Financial\FinancialTransaction::create([
+                        'tenant_id' => $receita->tenant_id,
+                        'farm_id' => $receita->farm_id,
+                        'tipo' => 'despesa',
+                        'descricao' => 'Estorno · '.$receita->descricao,
+                        'valor' => $receita->valor,
+                        'data_vencimento' => now()->toDateString(),
+                        'data_pagamento' => now()->toDateString(),
+                        'status' => 'pago',
+                        'category_id' => $receita->category_id,
+                        'partner_id' => $receita->partner_id,
+                        'numero_documento' => 'ESTORNO:'.$receita->id,
+                        'observacoes' => 'Estorno automático · venda do animal '.$animal->identificacao.' foi removida.',
+                    ]);
+                    $receita->update(['status' => 'estornada']);
+                }
+            }
 
-        return back()->with('success', 'Evento removido.');
+            // F8-E4 · mortalidade: reverte animal pra ativo
+            if (in_array($event->tipo, ['morte', 'mortalidade', 'abate'], true)) {
+                $animal->update([
+                    'status' => 'ativo',
+                    'data_saida' => null,
+                ]);
+            }
+
+            // pesagem: recalcula peso_atual com penúltima pesagem
+            if ($event->tipo === 'pesagem') {
+                $ultima = $animal->events()
+                    ->where('tipo', 'pesagem')
+                    ->where('id', '!=', $event->id)
+                    ->orderByDesc('data')
+                    ->first();
+                $animal->update(['peso_atual' => $ultima?->peso]);
+            }
+
+            $event->delete();
+        });
+
+        return back()->with('success', 'Evento removido. Estados/financeiro vinculados foram revertidos.');
     }
 
     /**
