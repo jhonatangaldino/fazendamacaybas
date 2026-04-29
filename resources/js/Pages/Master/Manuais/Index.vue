@@ -162,16 +162,26 @@ function baixar(manual) {
                     </div>
                 </div>
 
+                <div v-if="! manual.enviavel" class="mt-3 px-3 py-2 rounded-lg bg-amber-50 ring-1 ring-amber-200 text-xs text-amber-800">
+                    🔒 <strong>Uso interno</strong> · este manual não pode ser enviado a clientes.
+                </div>
+
                 <div class="mt-5 flex flex-col sm:flex-row gap-2">
                     <button
                         type="button"
                         @click="baixar(manual)"
-                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white ring-1 ring-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50 flex-1"
+                        :class="[
+                            'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold flex-1',
+                            manual.enviavel
+                                ? 'bg-white ring-1 ring-slate-300 text-slate-700 hover:bg-slate-50'
+                                : 'bg-macaybas-primary-700 text-white hover:bg-macaybas-primary-800 shadow-sm'
+                        ]"
                     >
                         <Icon name="download" :size="16" />
                         Baixar
                     </button>
                     <button
+                        v-if="manual.enviavel"
                         type="button"
                         @click="abrirModalEnvio(manual)"
                         class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800 flex-1 shadow-sm"

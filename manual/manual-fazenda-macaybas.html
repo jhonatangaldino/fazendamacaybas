@@ -437,24 +437,12 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
     </div>
 
     <div class="secao-grupo">
-        <h2>🏢 Master (administradores da plataforma)</h2>
-        <ul>
-            <li><a href="#master-intro">51. O que é a área Master</a></li>
-            <li><a href="#master-tenants">52. Gestão de clientes (tenants)</a></li>
-            <li><a href="#master-planos">53. Planos e features</a></li>
-            <li><a href="#master-cobrancas">54. Cobranças e validar comprovantes</a></li>
-            <li><a href="#master-atividades">55. Auditoria (atividades)</a></li>
-            <li><a href="#master-manuais-distrib">56. Distribuição de manuais</a></li>
-        </ul>
-    </div>
-
-    <div class="secao-grupo">
         <h2>🔍 Apoio</h2>
         <ul>
-            <li><a href="#faq">57. Perguntas frequentes (FAQ)</a></li>
-            <li><a href="#solucao">58. Soluções rápidas</a></li>
-            <li><a href="#glossario">59. Glossário</a></li>
-            <li><a href="#suporte">60. Como pedir ajuda</a></li>
+            <li><a href="#faq">51. Perguntas frequentes (FAQ)</a></li>
+            <li><a href="#solucao">52. Soluções rápidas</a></li>
+            <li><a href="#glossario">53. Glossário</a></li>
+            <li><a href="#suporte">54. Como pedir ajuda</a></li>
         </ul>
     </div>
 </section>
@@ -1150,40 +1138,33 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 </section>
 
 <section class="pagina">
-    <h2>Dashboards de cada espécie</h2>
-    <p>Cada espécie tem um dashboard adaptado às suas particularidades. Aqui um resumo visual:</p>
+    <h2>Dashboard de espécie · exemplo (Bovino)</h2>
+    <p>Cada espécie tem o seu dashboard adaptado. Abaixo o exemplo do Bovino — KPIs no topo (ativos, peso médio, lotes, ordenhadas), produção leiteira e gráficos de distribuição por sexo e por etária:</p>
 
-    <div class="comparacao">
-        <div>
-            <div class="titulo-comparacao">🐄 Bovino</div>
-            <div class="caixa-print"><img src="screenshots/especies/bovino.png" alt="Bovino"></div>
-        </div>
-        <div>
-            <div class="titulo-comparacao">🐔 Ave (lote)</div>
-            <div class="caixa-print"><img src="screenshots/especies/ave.png" alt="Ave"></div>
-        </div>
+    <div class="caixa-print">
+        <img src="screenshots/especies/bovino.png" alt="Dashboard Bovino">
+        <div class="legenda">Dashboard Bovino · KPIs + indicadores leiteiros + gráficos</div>
     </div>
 
-    <div class="comparacao">
-        <div>
-            <div class="titulo-comparacao">🐟 Peixe (lote)</div>
-            <div class="caixa-print"><img src="screenshots/especies/peixe.png" alt="Peixe"></div>
-        </div>
-        <div>
-            <div class="titulo-comparacao">🐎 Equino</div>
-            <div class="caixa-print"><img src="screenshots/especies/equino.png" alt="Equino"></div>
-        </div>
-    </div>
+    <h2>Variações por espécie</h2>
+    <p>O dashboard é adaptado à espécie. Cada uma mostra apenas os KPIs e ações que fazem sentido pra ela:</p>
 
-    <div class="comparacao">
-        <div>
-            <div class="titulo-comparacao">🐖 Suíno</div>
-            <div class="caixa-print"><img src="screenshots/especies/suino.png" alt="Suíno"></div>
-        </div>
-        <div>
-            <div class="titulo-comparacao">🐐 Caprino</div>
-            <div class="caixa-print"><img src="screenshots/especies/caprino.png" alt="Caprino"></div>
-        </div>
+    <table>
+        <tr><th>Espécie</th><th>O que muda no dashboard</th></tr>
+        <tr><td>🐄 <strong>Bovino</strong></td><td>KPIs leiteiros (litros mês, vacas em lactação), gráfico distribuição por sexo e etária, ações: pesar, vacinar, ordenhar, cobertura, mover, vender</td></tr>
+        <tr><td>🐎 <strong>Equino</strong></td><td>Sem leite. Adiciona ferrageamento. KPIs: ativos, peso médio, atividade</td></tr>
+        <tr><td>🐖 <strong>Suíno</strong></td><td>Sem leite. KPIs: ativos, peso médio. Reprodução: cobertura + desmame</td></tr>
+        <tr><td>🐐 <strong>Caprino</strong> / 🐃 <strong>Búfalo</strong></td><td>Igual Bovino (leite + corte). Mesma tela, dados próprios</td></tr>
+        <tr><td>🐑 <strong>Ovino</strong></td><td>Sem leite. Adiciona tosquia. KPIs: ativos, lã estimada</td></tr>
+        <tr><td>🐔 <strong>Ave (lote)</strong></td><td>KPIs por lote: cabeças, postura diária, mortalidade. Sem cadastro individual</td></tr>
+        <tr><td>🐟 <strong>Peixe (lote)</strong></td><td>KPIs: cabeças, biomassa, qualidade da água. Ações: alimentação, biometria amostral</td></tr>
+        <tr><td>🐶 <strong>Cão</strong> / 🐱 <strong>Gato</strong></td><td>Modo pet: foco em vacina/vermifugar/observação. Sem reprodução comercial</td></tr>
+        <tr><td>🐰 <strong>Coelho</strong></td><td>Cunicultura: pesar, cobertura, parto. Cria por matriz</td></tr>
+    </table>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Como acessar o dashboard de cada espécie</div>
+        Sidebar → <em>Rebanho</em> → escolhe a espécie no submenu (aparece o número de animais ativos ao lado de cada uma).
     </div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
@@ -2644,147 +2625,10 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
 
-<!-- ============================== MASTER ============================== -->
-<section class="pagina" id="master-intro">
-    <h1 class="titulo-secao">51. Área Master</h1>
-    <p class="subtitulo-secao">Para administradores da plataforma · não da fazenda</p>
-
-    <p>A <strong>área Master</strong> é exclusiva para a equipe que administra a plataforma (quem oferece o sistema). Não é para usuários comuns da fazenda.</p>
-
-    <p>O endereço Master é diferente: <code>fazendamacaybas.com.br</code> (sem o "app").</p>
-
-    <p>Esta seção é informativa — para que você saiba que essa área existe, quem usa, e o que faz.</p>
-
-    <div class="caixa-print">
-        <img src="screenshots/master/master-dashboard.png" alt="Master dashboard">
-        <div class="legenda">Dashboard Master · KPIs da plataforma</div>
-    </div>
-
-    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
-</section>
-
-<section class="pagina" id="master-tenants">
-    <h1 class="titulo-secao">52. Gestão de clientes (tenants)</h1>
-    <p class="subtitulo-secao">Master · cada cliente é um "tenant"</p>
-
-    <p>O Master gerencia os clientes contratantes. Pode criar tenant novo, editar dados, suspender, impersonar (entrar como o cliente para ajudar/auditar).</p>
-
-    <div class="caixa-print">
-        <img src="screenshots/master/master-tenants.png" alt="Master tenants">
-        <div class="legenda">Lista de clientes</div>
-    </div>
-
-    <p>Cada cliente tem dados próprios totalmente isolados — um cliente nunca vê dado de outro.</p>
-
-    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
-</section>
-
-<section class="pagina" id="master-planos">
-    <h1 class="titulo-secao">53. Planos e features</h1>
-    <p class="subtitulo-secao">Master · controle de pacotes contratados</p>
-
-    <div class="caixa-print">
-        <img src="screenshots/master/master-planos.png" alt="Master planos">
-        <div class="legenda">Planos cadastrados</div>
-    </div>
-
-    <p>Master define os planos disponíveis (Básico, Premium, Enterprise) com preço mensal, número máximo de fazendas, número máximo de usuários e quais módulos estão incluídos. Quando o Master desativa um módulo de um plano, os clientes daquele plano deixam de ver aquele menu na hora.</p>
-
-    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
-</section>
-
-<section class="pagina" id="master-cobrancas">
-    <h1 class="titulo-secao">54. Cobranças e validar comprovantes</h1>
-    <p class="subtitulo-secao">Master · checa pagamentos enviados pelos clientes</p>
-
-    <div class="caixa-print">
-        <img src="screenshots/master/master-cobrancas.png" alt="Master cobranças">
-        <div class="legenda">Cobranças</div>
-    </div>
-
-    <p>Quando um cliente paga uma fatura e envia o comprovante, vai parar aqui aguardando aprovação. O Master clica no comprovante, confere valor e data, e:</p>
-    <ul style="padding-left: 25px; margin: 8px 0;">
-        <li><strong>Aprovar</strong>: marca como Pago e gera protocolo</li>
-        <li><strong>Rejeitar</strong>: informa o motivo (ex.: "comprovante de outro valor"), cliente é notificado</li>
-    </ul>
-
-    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
-</section>
-
-<section class="pagina" id="master-atividades">
-    <h1 class="titulo-secao">55. Auditoria (atividades)</h1>
-    <p class="subtitulo-secao">Master · log de tudo que acontece</p>
-
-    <div class="caixa-print">
-        <img src="screenshots/master/master-atividades.png" alt="Master atividades">
-        <div class="legenda">Log de auditoria</div>
-    </div>
-
-    <p>Toda ação importante (criação de tenant, edição de plano, validação de comprovante, login do master) fica registrada com data/hora/usuário. Filtra por evento, usuário, tenant e período.</p>
-
-    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
-</section>
-
-<!-- ============================== MASTER · MANUAIS ============================== -->
-<section class="pagina" id="master-manuais-distrib">
-    <h1 class="titulo-secao">56. Distribuição de manuais</h1>
-    <p class="subtitulo-secao">Master · enviar manual ao cliente direto pelo sistema</p>
-
-    <p>O Master pode <strong>baixar</strong> o manual do usuário ou <strong>enviar por e-mail</strong> direto pra qualquer dono de fazenda — sem precisar abrir o e-mail manualmente, anexar arquivo, etc. O sistema cuida de tudo.</p>
-
-    <div class="caixa-print">
-        <img src="screenshots/master/master-manuais.png" alt="Master · Manuais">
-        <div class="legenda">Tela de distribuição de manuais</div>
-    </div>
-
-    <h2>Como enviar o manual</h2>
-
-    <div class="passo">
-        <div class="num">1</div>
-        <div class="conteudo">No menu Master, clique em <strong>"Manuais"</strong>.</div>
-    </div>
-    <div class="passo">
-        <div class="num">2</div>
-        <div class="conteudo">No card "Manual do Usuário", clique em <strong>"Enviar manual"</strong> (botão verde à direita).</div>
-    </div>
-    <div class="passo">
-        <div class="num">3</div>
-        <div class="conteudo">Modal abre. Em <strong>"Cliente"</strong>, selecione a fazenda da lista (mostra todos os clientes ativos).</div>
-    </div>
-    <div class="passo">
-        <div class="num">4</div>
-        <div class="conteudo">Em <strong>"Dono da fazenda"</strong>, escolha quem vai receber. <em>Aparecem só usuários com perfil "dono_fazenda" ATIVOS</em> daquele cliente — funcionários operacionais e perfis específicos não aparecem.</div>
-    </div>
-    <div class="passo">
-        <div class="num">5</div>
-        <div class="conteudo"><strong>Mensagem personalizada</strong> (opcional): pode adicionar um recado antes do conteúdo do e-mail. Ex.: "Conforme conversamos no telefone, segue manual atualizado."</div>
-    </div>
-    <div class="passo">
-        <div class="num">6</div>
-        <div class="conteudo">Clique <strong>"Enviar agora"</strong>. O sistema:
-            <ul style="padding-left: 20px; margin: 4px 0;">
-                <li>Otimiza imagens do manual (PNG → JPEG q=75 via GD): ~45 MB → ~12 MB</li>
-                <li>Se cabe em 20 MB: anexa o HTML self-contained ao e-mail</li>
-                <li>Se passa de 20 MB: gera link assinado de 30 dias e coloca CTA "Baixar" no corpo do e-mail</li>
-                <li>Registra a ação no log de auditoria (master.atividades)</li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="box box-dica">
-        <div class="titulo">💡 Filtro de segurança</div>
-        Mesmo se alguém tentar adulterar o formulário, o servidor re-valida que o destinatário pertence ao cliente selecionado, é dono e está ativo. Não há como enviar pra outro tenant ou pra usuário desativado.
-    </div>
-
-    <h2>Como baixar (sem enviar)</h2>
-    <p>Se você quer só ter o arquivo localmente — pra mandar pelo WhatsApp, anexar manualmente em outro e-mail, ou imprimir — clica em <strong>"Baixar"</strong> em vez de "Enviar manual". Download direto do HTML self-contained (~12 MB).</p>
-
-    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
-</section>
 
 <!-- ============================== FAQ ============================== -->
 <section class="pagina" id="faq">
-    <h1 class="titulo-secao">57. Perguntas frequentes</h1>
+    <h1 class="titulo-secao">51. Perguntas frequentes</h1>
     <p class="subtitulo-secao">Dúvidas que aparecem no dia a dia</p>
 
     <div class="qa">
@@ -3004,7 +2848,7 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 
 <!-- ============================== SOLUÇÃO DE PROBLEMAS ============================== -->
 <section class="pagina" id="solucao">
-    <h1 class="titulo-secao">58. Soluções rápidas</h1>
+    <h1 class="titulo-secao">52. Soluções rápidas</h1>
     <p class="subtitulo-secao">Quando algo não funciona como esperado</p>
 
     <table>
@@ -3056,7 +2900,7 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 
 <!-- ============================== GLOSSÁRIO ============================== -->
 <section class="pagina" id="glossario">
-    <h1 class="titulo-secao">59. Glossário</h1>
+    <h1 class="titulo-secao">53. Glossário</h1>
     <p class="subtitulo-secao">Palavras que aparecem no sistema</p>
 
     <dl class="glossario">
@@ -3147,7 +2991,7 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 
 <!-- ============================== SUPORTE ============================== -->
 <section class="pagina" id="suporte">
-    <h1 class="titulo-secao">60. Como pedir ajuda</h1>
+    <h1 class="titulo-secao">54. Como pedir ajuda</h1>
     <p class="subtitulo-secao">Quando precisar de suporte</p>
 
     <p>Algo deu errado e nada na seção 57 resolve? Faça assim:</p>

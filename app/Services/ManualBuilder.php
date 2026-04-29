@@ -24,10 +24,17 @@ use RuntimeException;
 class ManualBuilder
 {
     public const MANUAL_USUARIO = 'manual-fazenda-macaybas';
+    public const MANUAL_MASTER = 'manual-master';
 
     /**
      * Catálogo de manuais disponíveis.
-     * Quando criar mais (master, vet, etc.), adicionar aqui.
+     *
+     * - MANUAL_USUARIO: pro dono e equipe da fazenda (cliente final).
+     *   ENVIÁVEL pelo master via /master/manuais → Enviar manual.
+     *
+     * - MANUAL_MASTER: documentação interna da equipe que opera a plataforma
+     *   (impersonação, billing, auditoria). NÃO ENVIÁVEL pra clientes.
+     *   Apenas download direto pelo master pra estudo interno.
      */
     public static function catalog(): array
     {
@@ -35,11 +42,22 @@ class ManualBuilder
             self::MANUAL_USUARIO => [
                 'slug' => self::MANUAL_USUARIO,
                 'titulo' => 'Manual do Usuário',
-                'descricao' => 'Manual completo pro dono e equipe da fazenda. Cobre todas as telas, ações, perfis e fluxos do dia a dia. Versão 1.0.',
-                'paginas_aprox' => 68,
-                'tamanho_aprox_mb' => 4.5,
+                'descricao' => 'Manual completo pro dono e equipe da fazenda. Cobre todas as telas, ações, perfis e fluxos do dia a dia. Pode ser enviado por e-mail aos clientes.',
+                'paginas_aprox' => 65,
+                'tamanho_aprox_mb' => 12,
                 'publico' => 'Dono da fazenda + funcionários',
                 'arquivo_base' => 'manual-fazenda-macaybas.html',
+                'enviavel' => true,
+            ],
+            self::MANUAL_MASTER => [
+                'slug' => self::MANUAL_MASTER,
+                'titulo' => 'Manual do Master',
+                'descricao' => 'Documentação interna da equipe que opera a plataforma. Cobre clientes, planos, cobranças, auditoria, CMS, impersonação. Apenas download — nunca compartilhar com clientes.',
+                'paginas_aprox' => 24,
+                'tamanho_aprox_mb' => 4,
+                'publico' => 'Equipe Master da plataforma (uso interno)',
+                'arquivo_base' => 'manual-master.html',
+                'enviavel' => false,
             ],
         ];
     }

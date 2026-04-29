@@ -149,6 +149,14 @@ class ManuaisController extends Controller
         $meta = ManualBuilder::find($slug);
         abort_if(! $meta, 404, 'Manual não encontrado');
 
+        // Bloqueia envio de manuais marcados como NÃO enviáveis (ex.: Manual
+        // do Master, que tem detalhes internos não destinados a clientes).
+        if (empty($meta['enviavel'])) {
+            return back()->with('error',
+                'Este manual é de uso interno e não pode ser enviado a clientes. Apenas download.'
+            );
+        }
+
         $data = $request->validate([
             'tenant_id' => ['required', 'integer', 'exists:tenants,id'],
             'user_id' => ['required', 'integer', 'exists:users,id'],
