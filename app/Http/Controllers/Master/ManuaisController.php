@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Master;
 use App\Domain\Billing\Models\Tenant;
 use App\Http\Controllers\Controller;
 use App\Mail\ManualUsuarioMail;
+use App\Models\ManualEnvio;
 use App\Models\User;
 use App\Services\ManualBuilder;
 use Illuminate\Http\JsonResponse;
@@ -58,9 +59,36 @@ class ManuaisController extends Controller
             ])
             ->values();
 
+        // Histórico de envios (últimos 50) com tracking de abertura
+        $envios = ManualEnvio::with(['recipient:id,name,email', 'tenant:id,nome'])
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'manual_slug' => $e->manual_slug,
+                'manual_titulo' => ManualBuilder::find($e->manual_slug)['titulo'] ?? $e->manual_slug,
+                'tenant' => ['id' => $e->tenant_id, 'nome' => $e->tenant?->nome ?? '(removido)'],
+                'recipient' => [
+                    'id' => $e->recipient_id,
+                    'name' => $e->recipient?->name ?? '(removido)',
+                    'email' => $e->recipient_email,
+                ],
+                'modo' => $e->modo,
+                'tamanho_kb' => $e->tamanho_kb,
+                'sent_at' => $e->created_at?->toIso8601String(),
+                'sent_at_human' => $e->created_at?->setTimezone('America/Sao_Paulo')?->format('d/m/Y H:i'),
+                'opened_at' => $e->opened_at?->toIso8601String(),
+                'opened_at_human' => $e->opened_at?->setTimezone('America/Sao_Paulo')?->format('d/m/Y H:i'),
+                'open_count' => $e->open_count,
+                'first_open_ip' => $e->first_open_ip,
+                'aberto' => $e->open_count > 0,
+            ])->values();
+
         return Inertia::render('Master/Manuais/Index', [
             'manuais' => array_values(ManualBuilder::catalog()),
             'tenants' => $tenants,
+            'envios' => $envios,
         ]);
     }
 
@@ -89,13 +117,30 @@ class ManuaisController extends Controller
     /**
      * Download público via signed URL (sem auth).
      *
-     * Usado como fallback quando o anexo do e-mail é grande demais. O
-     * recipiente clica no link do e-mail (válido 30 dias) e baixa direto.
-     * O middleware `signed` valida a assinatura HMAC — sem signature válida
-     * a request retorna 403.
+     * UTM tracking: a URL contém um token único (parâmetro ?t=) que mapeia
+     * pra um registro em manual_envios. Quando o destinatário clica:
+     *   - Validamos o token contra DB
+     *   - Marcamos opened_at, incrementamos open_count
+     *   - Registramos IP + User-Agent
+     *
+     * O middleware `signed` valida que a URL não foi adulterada (HMAC).
      */
-    public function downloadPublico(string $slug): Response
+    public function downloadPublico(Request $request, string $slug): Response
     {
+        $token = $request->query('t');
+        if ($token) {
+            // Match no DB → marca como aberto (mesmo se for re-clique)
+            $envio = ManualEnvio::where('token', $token)
+                ->where('manual_slug', $slug)
+                ->first();
+            if ($envio) {
+                $envio->markOpened(
+                    ip: $request->ip() ?? '0.0.0.0',
+                    userAgent: $request->userAgent(),
+                );
+            }
+        }
+
         return $this->download($slug);
     }
 
@@ -181,31 +226,45 @@ class ManuaisController extends Controller
             ])->withInput();
         }
 
-        // Monta o HTML self-contained e decide: anexo OU link signed.
-        // Limite seguro pra anexo de e-mail = 20 MB (Gmail/Outlook bloqueiam
-        // > 25 MB; deixamos margem). Acima disso → link com URL assinada
-        // de 30 dias, gerada via Laravel signed routes.
+        // ESTRATÉGIA: sempre LINK (sem anexo). Por que?
+        //   1. E-mail leve (~5 KB) renderiza estilizado em qualquer mobile
+        //      (Outlook/Hotmail entram em "plain-text mode" pra anexos > 1 MB)
+        //   2. Link assinado dá tracking: sabemos quando o cliente abriu
+        //   3. Link signed expira em 30 dias — segurança natural
+        // O anexo continua disponível via "Baixar" (download direto pelo master).
         try {
             $html = $this->builder->build($slug);
             $filename = $this->builder->filename($slug);
             $masterNome = $request->user()?->name;
-            $tamanhoBytes = strlen($html);
-            $limiteAnexoBytes = 20 * 1024 * 1024; // 20 MB
+            $tamanhoKb = (int) round(strlen($html) / 1024);
 
-            $modo = $tamanhoBytes <= $limiteAnexoBytes ? 'anexo' : 'link';
-            $downloadUrl = null;
-            if ($modo === 'link') {
-                $downloadUrl = URL::temporarySignedRoute(
-                    'manuais.publico',
-                    now()->addDays(30),
-                    ['slug' => $slug],
-                );
-            }
+            // 1. Cria registro de envio com token único pra rastreamento
+            $envio = ManualEnvio::create([
+                'token' => ManualEnvio::generateToken(),
+                'manual_slug' => $slug,
+                'sender_id' => $request->user()->id,
+                'tenant_id' => $data['tenant_id'],
+                'recipient_id' => $user->id,
+                'recipient_email' => $user->email,
+                'modo' => 'link',
+                'tamanho_kb' => $tamanhoKb,
+                'mensagem' => $data['mensagem'] ?? null,
+            ]);
+
+            // 2. Gera URL signed COM o token embutido (?t=xxx). Quando o
+            //    destinatário clica, downloadPublico() valida + marca opened.
+            $downloadUrl = URL::temporarySignedRoute(
+                'manuais.publico',
+                now()->addDays(30),
+                ['slug' => $slug, 't' => $envio->token],
+            );
+
+            $modo = 'link';
 
             Mail::to($user->email)->send(new ManualUsuarioMail(
                 destinatario: $user,
                 manualTitulo: $meta['titulo'],
-                manualHtml: $modo === 'anexo' ? $html : null,
+                manualHtml: null, // SEMPRE link, nunca anexo
                 manualFilename: $filename,
                 remetenteNome: $masterNome,
                 mensagemPersonalizada: $data['mensagem'] ?? null,

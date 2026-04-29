@@ -31,8 +31,10 @@ class SenhaRegenerada extends Mailable
 
     public function content(): Content
     {
+        // text: alternativo evita "Download full message" no Outlook mobile.
         return new Content(
             view: 'emails.senha-regenerada',
+            text: 'emails.senha-regenerada-text',
             with: [
                 'nome' => $this->user->name,
                 'email' => $this->user->email,

@@ -47,8 +47,13 @@ class ManualUsuarioMail extends Mailable
 
     public function content(): Content
     {
+        // Inclui versão TEXT além do HTML — sem ela, Outlook/Hotmail mobile
+        // mostram "Download full message" em vez de renderizar o estilo.
+        // Com plain-text alternativo, o cliente de e-mail decide qual usar
+        // e renderiza inline corretamente.
         return new Content(
             view: 'emails.manual-usuario',
+            text: 'emails.manual-usuario-text',
             with: [
                 'nome' => $this->destinatario->name,
                 'manualTitulo' => $this->manualTitulo,

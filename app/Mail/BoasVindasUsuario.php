@@ -34,8 +34,10 @@ class BoasVindasUsuario extends Mailable
 
     public function content(): Content
     {
+        // text: alternativo evita "Download full message" no Outlook mobile.
         return new Content(
             view: 'emails.boas-vindas',
+            text: 'emails.boas-vindas-text',
             with: [
                 'nome' => $this->user->name,
                 'email' => $this->user->email,

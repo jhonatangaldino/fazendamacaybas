@@ -306,6 +306,81 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 
 .mockup-modal.celular { max-width: 280px; }
 .mockup-modal.alerta .mockup-header { background: var(--vermelho); }
+
+/* ─── Responsivo mobile ─────────────────────────────────────────
+   Mobile (≤640px) reduz padding da página, fonte do corpo, e converte
+   tabelas em cartões empilhados (mais legíveis em tela estreita). */
+@media screen and (max-width: 640px) {
+    .pagina {
+        margin: 0;
+        padding: 18px 14px;
+        box-shadow: none;
+        max-width: 100%;
+        min-height: auto;
+    }
+    body { font-size: 10.5pt; }
+    h1.titulo-secao { font-size: 18pt; }
+    .subtitulo-secao { font-size: 10pt; }
+    h2 { font-size: 13pt; }
+    h3 { font-size: 11.5pt; }
+    .capa { padding: 30px 18px; min-height: auto; }
+    .capa h1 { font-size: 26pt; }
+    .capa .subtitulo { font-size: 14pt; }
+    .capa .descritivo { font-size: 11pt; }
+
+    /* Tabelas como cartões empilhados */
+    table {
+        display: block;
+        font-size: 10pt;
+    }
+    table thead {
+        display: none; /* cabeçalho some — cada linha vira um cartão */
+    }
+    table tbody, table tr {
+        display: block;
+        width: 100%;
+    }
+    table tr {
+        background: var(--cinza-7);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        padding: 4px 0;
+        border: 1px solid var(--cinza-5);
+    }
+    table td {
+        display: block;
+        padding: 6px 12px;
+        border: 0;
+    }
+    table td + td {
+        border-top: 1px dashed var(--cinza-4);
+    }
+
+    /* Comparações lado a lado viram empilhadas */
+    .comparacao {
+        grid-template-columns: 1fr;
+    }
+
+    /* Callouts menores */
+    .callout {
+        width: 22px;
+        height: 22px;
+        font-size: 10pt;
+    }
+
+    /* Topo flutuante mobile-friendly */
+    .topo-nav {
+        bottom: 12px !important;
+        right: 12px !important;
+        padding: 8px 14px !important;
+        font-size: 9pt !important;
+    }
+}
+
+/* Tablet (641-900px): só ajusta padding */
+@media screen and (min-width: 641px) and (max-width: 900px) {
+    .pagina { padding: 20mm 14mm; }
+}
 </style>
 </head>
 <body>
@@ -1115,21 +1190,21 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
     <h1 class="titulo-secao">11. As 11 espécies disponíveis</h1>
     <p class="subtitulo-secao">Cada uma com manejo adaptado</p>
 
-    <p>O sistema vem com 11 espécies pré-cadastradas, organizadas por <em>profile</em> (perfil de manejo) que define quais ações fazem sentido pra cada uma. Veja exemplos:</p>
+    <p>O sistema vem com 11 espécies pré-cadastradas. Cada uma tem o seu modo próprio de manejo — define quais ações fazem sentido (vaca dá leite, galinha põe ovo, peixe não vacina, etc.). Veja como elas são organizadas:</p>
 
     <table>
-        <tr><th>Espécie</th><th>Profile</th><th>Gestão</th><th>Ações típicas</th></tr>
-        <tr><td>🐄 Bovino</td><td>ruminante (corte/leite/misto)</td><td>Individual</td><td>Pesar, vacinar, ordenhar, cobertura, parto, vender</td></tr>
-        <tr><td>🐎 Equino</td><td>equino</td><td>Individual</td><td>Pesar, ferrageamento, vacinar</td></tr>
-        <tr><td>🐖 Suíno</td><td>suino</td><td>Individual</td><td>Pesar, vacinar, cobertura, desmame</td></tr>
-        <tr><td>🐐 Caprino</td><td>ruminante leite</td><td>Individual</td><td>Pesar, vacinar, ordenhar</td></tr>
-        <tr><td>🐑 Ovino</td><td>ruminante lã</td><td>Individual</td><td>Pesar, vacinar, tosquia</td></tr>
-        <tr><td>🐔 Ave</td><td>ave (postura/corte)</td><td>Lote agregado</td><td>Postura diária, biometria, alimentação, mortalidade</td></tr>
-        <tr><td>🐟 Peixe</td><td>aquicultura</td><td>Lote agregado</td><td>Biometria, qualidade da água, alimentação</td></tr>
-        <tr><td>🐶 Cão</td><td>pet</td><td>Individual</td><td>Vacinar, vermifugar, observação</td></tr>
-        <tr><td>🐱 Gato</td><td>pet</td><td>Individual</td><td>Idem cão</td></tr>
-        <tr><td>🐃 Búfalo</td><td>ruminante</td><td>Individual</td><td>Igual Bovino</td></tr>
-        <tr><td>🐰 Coelho</td><td>cunicultura</td><td>Individual</td><td>Pesar, vacinar, cobertura, parto</td></tr>
+        <tr><th>Espécie</th><th>Como cuidar</th><th>Tipo de manejo</th><th>Ações típicas</th></tr>
+        <tr><td>🐄 Bovino</td><td>Corte, leite ou misto</td><td>Individual (com brinco)</td><td>Pesar · vacinar · ordenhar · cobertura · parto · vender</td></tr>
+        <tr><td>🐎 Equino</td><td>Cavalo / égua</td><td>Individual</td><td>Pesar · ferrageamento · vacinar</td></tr>
+        <tr><td>🐖 Suíno</td><td>Porco / matriz</td><td>Individual</td><td>Pesar · vacinar · cobertura · desmame</td></tr>
+        <tr><td>🐐 Caprino</td><td>Cabra leiteira</td><td>Individual</td><td>Pesar · vacinar · ordenhar</td></tr>
+        <tr><td>🐑 Ovino</td><td>Ovelha pra lã</td><td>Individual</td><td>Pesar · vacinar · tosquia</td></tr>
+        <tr><td>🐔 Ave</td><td>Galinha de postura ou corte</td><td>Por lote (galpão inteiro)</td><td>Postura diária · biometria · alimentação · mortalidade</td></tr>
+        <tr><td>🐟 Peixe</td><td>Aquicultura (tilápia, etc.)</td><td>Por lote (tanque inteiro)</td><td>Biometria · qualidade da água · alimentação</td></tr>
+        <tr><td>🐶 Cão</td><td>Cão da fazenda</td><td>Individual</td><td>Vacinar · vermifugar · observação</td></tr>
+        <tr><td>🐱 Gato</td><td>Gato da fazenda</td><td>Individual</td><td>Mesmas ações do cão</td></tr>
+        <tr><td>🐃 Búfalo</td><td>Búfalo de leite ou corte</td><td>Individual</td><td>Mesmas ações do Bovino</td></tr>
+        <tr><td>🐰 Coelho</td><td>Cunicultura</td><td>Individual</td><td>Pesar · vacinar · cobertura · parto</td></tr>
     </table>
 
     <h2>Diferença entre "Individual" e "Lote agregado"</h2>
@@ -1203,7 +1278,7 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">5</div>
-        <div class="conteudo"><strong>Data de nascimento</strong> (obrigatório pra perfil ruminante): formato dd/mm/aaaa.</div>
+        <div class="conteudo"><strong>Data de nascimento</strong> (obrigatório pra Bovino, Caprino, Ovino e Búfalo): formato dd/mm/aaaa.</div>
     </div>
     <div class="passo">
         <div class="num">6</div>
@@ -2013,7 +2088,7 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 
     <div class="caixa-print">
         <img src="screenshots/desktop/22-faturas.png" alt="Faturas">
-        <div class="legenda">Faturas do tenant</div>
+        <div class="legenda">Suas faturas (mensalidade do sistema)</div>
     </div>
 
     <h2>Pagar uma fatura</h2>

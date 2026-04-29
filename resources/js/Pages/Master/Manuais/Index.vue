@@ -20,6 +20,7 @@ import { useToast } from '@/composables/useToast.js';
 const props = defineProps({
     manuais: { type: Array, default: () => [] },
     tenants: { type: Array, default: () => [] },
+    envios: { type: Array, default: () => [] },
 });
 
 const { toast } = useToast();
@@ -190,6 +191,68 @@ function baixar(manual) {
                         Enviar manual
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- ────── Histórico de envios + tracking ────── -->
+        <div class="mt-10">
+            <div class="flex items-end justify-between gap-4 mb-4">
+                <div>
+                    <h2 class="text-lg font-serif font-bold text-slate-900">Histórico de envios</h2>
+                    <p class="text-sm text-slate-600">Quem recebeu, quando, e se já abriu o manual.</p>
+                </div>
+                <div class="text-xs text-slate-500">
+                    Últimos {{ envios.length }} envios
+                </div>
+            </div>
+
+            <div v-if="envios.length === 0" class="rounded-xl bg-white ring-1 ring-slate-200 p-8 text-center text-sm text-slate-500">
+                Nenhum manual enviado ainda. Use "Enviar manual" no card acima pra começar.
+            </div>
+
+            <div v-else class="rounded-xl bg-white ring-1 ring-slate-200 overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 text-left">
+                            <th class="px-4 py-3 font-semibold">Manual</th>
+                            <th class="px-4 py-3 font-semibold">Cliente</th>
+                            <th class="px-4 py-3 font-semibold">Destinatário</th>
+                            <th class="px-4 py-3 font-semibold">Enviado em</th>
+                            <th class="px-4 py-3 font-semibold">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="e in envios"
+                            :key="e.id"
+                            class="border-t border-slate-100 hover:bg-slate-50/50"
+                        >
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-slate-900">{{ e.manual_titulo }}</div>
+                                <div class="text-xs text-slate-400">{{ e.modo }} · {{ Math.round(e.tamanho_kb / 1024 * 10) / 10 }} MB</div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-700">{{ e.tenant.nome }}</td>
+                            <td class="px-4 py-3">
+                                <div class="text-slate-700">{{ e.recipient.name }}</div>
+                                <div class="text-xs text-slate-400 truncate max-w-[200px]">{{ e.recipient.email }}</div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ e.sent_at_human }}</td>
+                            <td class="px-4 py-3">
+                                <div v-if="e.aberto" class="space-y-1">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+                                        <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                                        Aberto · {{ e.open_count }}× · {{ e.opened_at_human }}
+                                    </span>
+                                    <div v-if="e.first_open_ip" class="text-xs text-slate-400">IP {{ e.first_open_ip }}</div>
+                                </div>
+                                <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200">
+                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l3 2"/></svg>
+                                    Aguardando abertura
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 

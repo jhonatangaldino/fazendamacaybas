@@ -192,6 +192,37 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
         box-shadow: 0 4px 14px rgba(0,0,0,0.2); z-index: 100;
     }
 }
+
+/* ─── Responsivo mobile ───────────────────────────────────────── */
+@media screen and (max-width: 640px) {
+    .pagina {
+        margin: 0; padding: 18px 14px; box-shadow: none;
+        max-width: 100%; min-height: auto;
+    }
+    body { font-size: 10.5pt; }
+    h1.titulo-secao { font-size: 18pt; }
+    .subtitulo-secao { font-size: 10pt; }
+    h2 { font-size: 13pt; }
+    .capa { padding: 30px 18px; min-height: auto; }
+    .capa h1 { font-size: 26pt; }
+    .capa .subtitulo { font-size: 14pt; }
+
+    table { display: block; font-size: 10pt; }
+    table thead { display: none; }
+    table tbody, table tr { display: block; width: 100%; }
+    table tr {
+        background: var(--cinza-7); border-radius: 8px;
+        margin-bottom: 8px; padding: 4px 0;
+        border: 1px solid var(--cinza-5);
+    }
+    table td { display: block; padding: 6px 12px; border: 0; }
+    table td + td { border-top: 1px dashed var(--cinza-4); }
+
+    .topo-nav {
+        bottom: 12px !important; right: 12px !important;
+        padding: 8px 14px !important; font-size: 9pt !important;
+    }
+}
 </style>
 </head>
 <body>
@@ -203,7 +234,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <div class="logo">M</div>
     <h1>Manual do Master</h1>
     <div class="subtitulo">Sistema de Gestão · Fazenda Macaybas</div>
-    <div class="badge">Área Master · Plataforma SaaS</div>
+    <div class="badge">Área Master · Plataforma</div>
     <p class="descritivo">Documento exclusivo da equipe que administra a plataforma. Cobre gestão de clientes, planos, cobranças, auditoria e distribuição de manuais. Não compartilhar com clientes finais.</p>
     <div class="versao">
         Versão 1.0 · Abril de 2026<br>
@@ -220,20 +251,20 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
         <h2>📖 Para começar</h2>
         <ul>
             <li><a href="#introducao">1. O que é a área Master</a></li>
-            <li><a href="#perfil-admin-master">2. Perfil admin_master · diferenças vs dono_fazenda</a></li>
-            <li><a href="#login">3. Como entrar</a></li>
-            <li><a href="#dashboard">4. Painel master</a></li>
+            <li><a href="#perfil-admin-master">2. Administrador da Plataforma · o que pode</a></li>
+            <li><a href="#login">3. Como entrar no sistema</a></li>
+            <li><a href="#dashboard">4. Painel master · visão geral</a></li>
         </ul>
     </div>
 
     <div class="secao-grupo">
-        <h2>👥 Clientes (tenants)</h2>
+        <h2>👥 Clientes (clientes)</h2>
         <ul>
-            <li><a href="#tenants">5. Lista de clientes</a></li>
-            <li><a href="#criar-tenant">6. Criar novo cliente</a></li>
-            <li><a href="#editar-tenant">7. Editar / suspender cliente</a></li>
-            <li><a href="#impersonar">8. Impersonar (entrar como cliente)</a></li>
-            <li><a href="#usuarios-tenant">9. Reset de senha de funcionários</a></li>
+            <li><a href="#clientes">5. Lista de clientes</a></li>
+            <li><a href="#criar-cliente">6. Criar novo cliente</a></li>
+            <li><a href="#editar-cliente">7. Editar / suspender cliente</a></li>
+            <li><a href="#entrar como cliente">8. Impersonar (entrar como cliente)</a></li>
+            <li><a href="#usuarios-cliente">9. Reset de senha de funcionários</a></li>
         </ul>
     </div>
 
@@ -290,7 +321,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 
     <p>A <strong>área Master</strong> é o painel da equipe que opera a plataforma — não é para clientes finais. É onde você:</p>
     <ul style="padding-left: 25px; margin: 10px 0;">
-        <li>Cadastra novos clientes (tenants) e suas fazendas</li>
+        <li>Cadastra novos clientes (clientes) e suas fazendas</li>
         <li>Define planos, preços e features disponíveis</li>
         <li>Gera e valida cobranças mensais</li>
         <li>Audita o que cada cliente / funcionário está fazendo</li>
@@ -300,7 +331,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 
     <div class="box box-master">
         <div class="titulo">⚠️ Esse manual NÃO é para clientes</div>
-        Os clientes (donos de fazenda, funcionários) recebem o <strong>Manual do Usuário</strong> — separado deste. Esse documento contém detalhes internos (impersonação, auditoria, billing) que não devem ser expostos ao cliente final.
+        Os clientes (donos de fazenda, funcionários) recebem o <strong>Manual do Usuário</strong> — separado deste. Esse documento contém detalhes internos (sessão como cliente, auditoria, billing) que não devem ser expostos ao cliente final.
     </div>
 
     <h2>Endereço Master</h2>
@@ -314,52 +345,51 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
 
-<!-- ============================== 2. PERFIL ADMIN_MASTER ============================== -->
+<!-- ============================== 2. ADMINISTRADOR DA PLATAFORMA ============================== -->
 <section class="pagina" id="perfil-admin-master">
-    <h1 class="titulo-secao">2. Perfil admin_master · diferenças vs dono_fazenda</h1>
-    <p class="subtitulo-secao">Como o sistema separa as duas áreas</p>
+    <h1 class="titulo-secao">2. Administrador da Plataforma · o que pode (e o que não pode)</h1>
+    <p class="subtitulo-secao">Sua função vs a do Dono da Fazenda</p>
 
-    <p>O sistema tem duas hierarquias completamente isoladas:</p>
+    <p>O sistema tem dois mundos completamente separados:</p>
 
     <table>
-        <tr><th>Característica</th><th>admin_master</th><th>dono_fazenda</th></tr>
-        <tr><td>tenant_id no DB</td><td><code>NULL</code></td><td>id do tenant (ex.: 1061)</td></tr>
-        <tr><td>Acessa /master/*</td><td>✅ sim (middleware <code>enforce.master</code>)</td><td>❌ 403 forbidden</td></tr>
-        <tr><td>Acessa /admin/*</td><td>❌ redirect para /master/dashboard</td><td>✅ sim (com permissions)</td></tr>
-        <tr><td>Vê dados de quais clientes</td><td>todos</td><td>apenas o próprio tenant</td></tr>
-        <tr><td>Pode impersonar</td><td>✅ sim (vira o dono temporariamente)</td><td>❌ não</td></tr>
-        <tr><td>Login URL</td><td>app.fazendamacaybas.com.br/login</td><td>idem</td></tr>
+        <tr><th>Pode fazer…</th><th>Administrador da Plataforma (você)</th><th>Dono da Fazenda (cliente)</th></tr>
+        <tr><td>Acessar área Master (Painel, Clientes, Cobranças…)</td><td>✅ Sim</td><td>❌ Não — vê "acesso negado"</td></tr>
+        <tr><td>Acessar área operacional da fazenda (Rebanho, Financeiro…)</td><td>❌ Não — você é redirecionado pro Painel Master</td><td>✅ Sim — só da própria fazenda</td></tr>
+        <tr><td>Ver dados de outros clientes</td><td>✅ Todos os clientes</td><td>❌ Apenas a própria fazenda</td></tr>
+        <tr><td>Entrar como o cliente (ver pelos olhos dele)</td><td>✅ Sim, com aviso visível e tudo auditado</td><td>❌ Não</td></tr>
+        <tr><td>Definir quem é Administrador da Plataforma</td><td>❌ Não — só a equipe técnica via configuração interna</td><td>❌ Não</td></tr>
     </table>
 
     <div class="box box-aviso">
-        <div class="titulo">⚠️ admin_master é IRREVOGÁVEL via UI</div>
-        Não existe tela pra "promover" um usuário comum a admin_master. Apenas via tinker/seed direto no banco. É proteção contra escalation de privilégio acidental.
+        <div class="titulo">⚠️ Você não consegue criar outro Administrador da Plataforma sozinho</div>
+        O perfil "Administrador da Plataforma" não tem botão de "Promover" no sistema. Pra adicionar alguém novo nesse papel, é preciso pedir à equipe técnica fazer pelo banco diretamente. É uma proteção: ninguém vira "super-usuário" por engano nem por descuido.
     </div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
 
-<!-- ============================== 3. LOGIN ============================== -->
+<!-- ============================== 3. COMO ENTRAR ============================== -->
 <section class="pagina" id="login">
-    <h1 class="titulo-secao">3. Como entrar</h1>
-    <p class="subtitulo-secao">Acesso pelo subdomínio app.*</p>
+    <h1 class="titulo-secao">3. Como entrar no sistema</h1>
+    <p class="subtitulo-secao">Acesso à área Master</p>
 
     <div class="passo">
         <div class="num">1</div>
-        <div class="conteudo">Abra <code>app.fazendamacaybas.com.br/login</code> no navegador.</div>
+        <div class="conteudo">Abra o navegador (Chrome, Edge, Firefox ou Safari) e digite <strong>app.fazendamacaybas.com.br/login</strong>.</div>
     </div>
     <div class="passo">
         <div class="num">2</div>
-        <div class="conteudo">Digite seu e-mail e senha de master (cadastrado pela equipe técnica).</div>
+        <div class="conteudo">Digite seu e-mail e senha. Se ainda não tem conta, peça à equipe técnica pra criar.</div>
     </div>
     <div class="passo">
         <div class="num">3</div>
-        <div class="conteudo">Após autenticar, o sistema reconhece <code>tenant_id=NULL</code> e redireciona automaticamente pra <code>/master/dashboard</code>.</div>
+        <div class="conteudo">O sistema reconhece automaticamente que você é Administrador da Plataforma e te leva pro Painel Master.</div>
     </div>
 
     <div class="box box-info">
-        <div class="titulo">ℹ️ Por que o subdomínio app.*?</div>
-        O domínio raiz <code>fazendamacaybas.com.br</code> é a landing pública (CMS) e tem resolução de tenant que pode conflitar com login master. O subdomínio <code>app.*</code> não tem tenant resolution — login mais limpo.
+        <div class="titulo">ℹ️ Esqueci a senha</div>
+        Use o link "Esqueci minha senha" na tela de login. Se o e-mail não chegar (pode ir pro spam), peça à equipe técnica resetar manualmente.
     </div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
@@ -377,8 +407,8 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 
     <p>O painel mostra os números mais importantes da plataforma como negócio:</p>
     <ul style="padding-left: 25px; margin: 8px 0;">
-        <li><strong>Clientes ativos</strong> · total de tenants em uso</li>
-        <li><strong>Receita recorrente mensal (MRR)</strong> · soma das mensalidades dos clientes ativos</li>
+        <li><strong>Clientes ativos</strong> · total de clientes em uso</li>
+        <li><strong>Receita recorrente mensal (Receita Mensal Recorrente)</strong> · soma das mensalidades dos clientes ativos</li>
         <li><strong>Faturas em aberto</strong> · valor a receber</li>
         <li><strong>Comprovantes pendentes</strong> · clientes que enviaram comprovante e aguardam validação</li>
         <li><strong>Atividades recentes</strong> · últimos eventos significativos (novo cliente, fatura aprovada, etc.)</li>
@@ -388,30 +418,30 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 </section>
 
 <!-- ============================== 5. CLIENTES (TENANTS) ============================== -->
-<section class="pagina" id="tenants">
+<section class="pagina" id="clientes">
     <h1 class="titulo-secao">5. Lista de clientes</h1>
-    <p class="subtitulo-secao">Todos os tenants cadastrados na plataforma</p>
+    <p class="subtitulo-secao">Todos os clientes cadastrados na plataforma</p>
 
     <div class="caixa-print">
-        <img src="screenshots/master/master-tenants.png" alt="Master · Clientes">
+        <img src="screenshots/master/master-clientes.png" alt="Master · Clientes">
         <div class="legenda">Lista de clientes</div>
     </div>
 
-    <p>Em <em>Clientes</em> você vê todos os tenants cadastrados. Para cada um:</p>
+    <p>Em <em>Clientes</em> você vê todos os clientes cadastrados. Para cada um:</p>
     <ul style="padding-left: 25px; margin: 8px 0;">
-        <li>Nome, slug, documento (CNPJ/CPF)</li>
+        <li>Nome, endereço curto, documento (CNPJ/CPF)</li>
         <li>Plano contratado e status (ativo/suspenso/trial)</li>
         <li>Cidade, estado, contato</li>
-        <li>Ações: editar · usuários · fazendas · CMS · impersonar · suspender</li>
+        <li>Ações: editar · usuários · fazendas · CMS · entrar como cliente · suspender</li>
     </ul>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
 
 <!-- ============================== 6. CRIAR TENANT ============================== -->
-<section class="pagina" id="criar-tenant">
+<section class="pagina" id="criar-cliente">
     <h1 class="titulo-secao">6. Criar novo cliente</h1>
-    <p class="subtitulo-secao">Onboarding de um tenant novo</p>
+    <p class="subtitulo-secao">Cadastro inicial de um cliente novo</p>
 
     <div class="passo">
         <div class="num">1</div>
@@ -419,7 +449,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">2</div>
-        <div class="conteudo">Preencha dados básicos: nome da fazenda, slug (URL-friendly: ex. "fazenda-do-zé"), documento (CNPJ ou CPF), e-mail e telefone do dono.</div>
+        <div class="conteudo">Preencha dados básicos: nome da fazenda, endereço curto (amigável pra URL: ex. "fazenda-do-zé"), documento (CNPJ ou CPF), e-mail e telefone do dono.</div>
     </div>
     <div class="passo">
         <div class="num">3</div>
@@ -431,55 +461,55 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">5</div>
-        <div class="conteudo">Salvar. Sistema cria o tenant + 1 fazenda inicial ("Sede da Fazenda") + estrutura de CMS padrão.</div>
+        <div class="conteudo">Salvar. Sistema cria o cliente + 1 fazenda inicial ("Sede da Fazenda") + estrutura de CMS padrão.</div>
     </div>
     <div class="passo">
         <div class="num">6</div>
-        <div class="conteudo">Em seguida, vai em <em>Clientes → [novo] → Usuários</em> e cadastra o <strong>dono_fazenda</strong> (e-mail real do contratante). Sistema envia senha temp por e-mail.</div>
+        <div class="conteudo">Em seguida, vai em <em>Clientes → [novo] → Usuários</em> e cadastra o <strong>Dono da Fazenda</strong> (e-mail real do contratante). Sistema envia senha temp por e-mail.</div>
     </div>
 
     <div class="box box-dica">
-        <div class="titulo">💡 Boa prática · onboarding em 1 dia</div>
-        Após criar o tenant + dono: envie o <strong>Manual do Usuário</strong> via /master/manuais → "Enviar manual" pro novo dono. Ele recebe junto com o e-mail de boas-vindas e já entende o sistema.
+        <div class="titulo">💡 Boa prática · cadastro inicial em 1 dia</div>
+        Após criar o cliente + dono: envie o <strong>Manual do Usuário</strong> via /master/manuais → "Enviar manual" pro novo dono. Ele recebe junto com o e-mail de boas-vindas e já entende o sistema.
     </div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
 
 <!-- ============================== 7. EDITAR / SUSPENDER ============================== -->
-<section class="pagina" id="editar-tenant">
+<section class="pagina" id="editar-cliente">
     <h1 class="titulo-secao">7. Editar / suspender cliente</h1>
-    <p class="subtitulo-secao">Manutenção de tenants existentes</p>
+    <p class="subtitulo-secao">Manutenção de clientes existentes</p>
 
     <h2>Editar dados</h2>
-    <p>Em <em>Clientes → [tenant] → Editar</em>: muda nome, documento, contato, endereço. Slug NÃO pode mudar depois de criado (usado em URLs públicas e e-mails históricos).</p>
+    <p>Em <em>Clientes → [cliente] → Editar</em>: muda nome, documento, contato, endereço. Slug NÃO pode mudar depois de criado (usado em URLs públicas e e-mails históricos).</p>
 
     <h2>Suspender cliente</h2>
-    <p>Em <em>Clientes → [tenant] → Toggle status</em>: marca como suspenso. Efeito imediato:</p>
+    <p>Em <em>Clientes → [cliente] → Toggle status</em>: marca como suspenso. Efeito imediato:</p>
     <ul style="padding-left: 25px; margin: 8px 0;">
-        <li>Usuários do tenant continuam podendo logar mas veem tela <em>"Acesso suspenso. Entre em contato com o suporte."</em></li>
+        <li>Usuários do cliente continuam podendo logar mas veem tela <em>"Acesso suspenso. Entre em contato com o suporte."</em></li>
         <li>Dados ficam preservados (NÃO são deletados)</li>
         <li>Não pode lançar transações, criar registros</li>
     </ul>
 
     <div class="box box-perigo">
-        <div class="titulo">❗ NÃO existe DELETE de tenant via UI</div>
-        Por proteção contra perda acidental. Se precisar deletar (caso real, ex.: cliente solicitou direito ao esquecimento LGPD), é via tinker no servidor + backup obrigatório antes.
+        <div class="titulo">❗ NÃO existe DELETE de cliente via UI</div>
+        Por proteção contra perda acidental. Se precisar deletar (caso real, ex.: cliente solicitou direito ao esquecimento LGPD), é via ferramenta técnica do desenvolvedor + backup obrigatório antes.
     </div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
 
 <!-- ============================== 8. IMPERSONAR ============================== -->
-<section class="pagina" id="impersonar">
+<section class="pagina" id="entrar como cliente">
     <h1 class="titulo-secao">8. Impersonar (entrar como cliente)</h1>
     <p class="subtitulo-secao">Suporte em primeira pessoa</p>
 
-    <p>Quando um cliente reporta um bug ou tem dúvida operacional, em vez de pedir vídeo/print, você <strong>impersona</strong> — vira o usuário dele temporariamente e vê exatamente o que ele vê.</p>
+    <p>Quando um cliente reporta um bug ou tem dúvida operacional, em vez de pedir vídeo/print, você <strong>entra como o cliente</strong> — vira o usuário dele temporariamente e vê exatamente o que ele vê.</p>
 
     <div class="passo">
         <div class="num">1</div>
-        <div class="conteudo">Em <em>Clientes → [tenant] → ícone "🎭 Impersonar"</em>, escolha qual usuário do tenant você quer simular (geralmente o dono).</div>
+        <div class="conteudo">Em <em>Clientes → [cliente] → ícone "🎭 Impersonar"</em>, escolha qual usuário do cliente você quer simular (geralmente o dono).</div>
     </div>
     <div class="passo">
         <div class="num">2</div>
@@ -487,7 +517,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">3</div>
-        <div class="conteudo">Use o sistema como ele usaria. TUDO que você fizer fica registrado no log de auditoria com flag <code>impersonating=true</code> e seu nome master como causer.</div>
+        <div class="conteudo">Use o sistema como ele usaria. TUDO que você fizer fica registrado no log de auditoria registrado como "sessão Master entrando como cliente" e mostrando seu nome.</div>
     </div>
     <div class="passo">
         <div class="num">4</div>
@@ -495,10 +525,10 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
 
     <div class="box box-aviso">
-        <div class="titulo">⚠️ Princípios de impersonação</div>
+        <div class="titulo">⚠️ Princípios de sessão como cliente</div>
         <ul style="padding-left: 18px; margin-top: 4px;">
             <li>NUNCA impersone sem motivo registrado (suporte, auditoria, bug investigation)</li>
-            <li>NÃO crie/edite/delete dados durante impersonação a menos que estritamente necessário</li>
+            <li>NÃO crie/edite/delete dados durante sessão como cliente a menos que estritamente necessário</li>
             <li>Se precisar criar dado em nome do cliente, AVISE-O por e-mail/whatsapp ANTES</li>
             <li>Toda ação fica auditada — não há como esconder</li>
         </ul>
@@ -508,7 +538,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 </section>
 
 <!-- ============================== 9. RESET SENHA ============================== -->
-<section class="pagina" id="usuarios-tenant">
+<section class="pagina" id="usuarios-cliente">
     <h1 class="titulo-secao">9. Reset de senha de funcionários</h1>
     <p class="subtitulo-secao">Cliente liga reclamando que perdeu acesso</p>
 
@@ -516,7 +546,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 
     <div class="passo">
         <div class="num">1</div>
-        <div class="conteudo">Em <em>Clientes → [tenant] → Usuários</em>, encontre o usuário (nome ou e-mail).</div>
+        <div class="conteudo">Em <em>Clientes → [cliente] → Usuários</em>, encontre o usuário (nome ou e-mail).</div>
     </div>
     <div class="passo">
         <div class="num">2</div>
@@ -558,7 +588,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">2</div>
-        <div class="conteudo">Nome, slug, preço mensal, número máximo de fazendas e usuários.</div>
+        <div class="conteudo">Nome, endereço curto, preço mensal, número máximo de fazendas e usuários.</div>
     </div>
     <div class="passo">
         <div class="num">3</div>
@@ -566,7 +596,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">4</div>
-        <div class="conteudo">Salvar. Plano disponível pra atribuir a tenants novos.</div>
+        <div class="conteudo">Salvar. Plano disponível pra atribuir a clientes novos.</div>
     </div>
 
     <div class="box box-aviso">
@@ -580,14 +610,14 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 <!-- ============================== 11. ASSINATURAS ============================== -->
 <section class="pagina" id="assinaturas">
     <h1 class="titulo-secao">11. Assinaturas dos clientes</h1>
-    <p class="subtitulo-secao">Plano ativo de cada tenant</p>
+    <p class="subtitulo-secao">Plano ativo de cada cliente</p>
 
-    <p>Cada cliente tem 1 assinatura ativa, que define seu plano atual + estado da cobrança. Em <em>Clientes → [tenant] → Assinatura</em> você vê e edita.</p>
+    <p>Cada cliente tem 1 assinatura ativa, que define seu plano atual + estado da cobrança. Em <em>Clientes → [cliente] → Assinatura</em> você vê e edita.</p>
 
     <h2>Mudar plano de um cliente</h2>
     <div class="passo">
         <div class="num">1</div>
-        <div class="conteudo">Em <em>Clientes → [tenant] → Assinatura</em>, escolha novo plano no dropdown.</div>
+        <div class="conteudo">Em <em>Clientes → [cliente] → Assinatura</em>, escolha novo plano no dropdown.</div>
     </div>
     <div class="passo">
         <div class="num">2</div>
@@ -599,7 +629,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
 
     <h2>Cancelar assinatura</h2>
-    <p>Em <em>Clientes → [tenant] → Assinatura → Cancelar</em>: cliente continua com acesso até fim do período pago, depois é suspenso automaticamente. Dados ficam preservados (LGPD-friendly: cliente pode pedir reativação ou apagar via solicitação).</p>
+    <p>Em <em>Clientes → [cliente] → Assinatura → Cancelar</em>: cliente continua com acesso até fim do período pago, depois é suspenso automaticamente. Dados ficam preservados (LGPD-friendly: cliente pode pedir reativação ou apagar via solicitação).</p>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
@@ -643,8 +673,8 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
         <div class="num">2</div>
         <div class="conteudo">Escolha o tipo:
             <ul style="padding-left: 20px; margin: 4px 0;">
-                <li><strong>Mensal</strong>: gera 1 fatura para cada tenant ativo</li>
-                <li><strong>Única</strong>: gera 1 fatura para 1 tenant específico (ex.: cobrança extra)</li>
+                <li><strong>Mensal</strong>: gera 1 fatura para cada cliente ativo</li>
+                <li><strong>Única</strong>: gera 1 fatura para 1 cliente específico (ex.: cobrança extra)</li>
             </ul>
         </div>
     </div>
@@ -654,7 +684,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">4</div>
-        <div class="conteudo">Clique em <strong>"Preview"</strong> — sistema mostra a tabela de tenants × valor, sem gerar ainda. Confira.</div>
+        <div class="conteudo">Clique em <strong>"Preview"</strong> — sistema mostra a tabela de clientes × valor, sem gerar ainda. Confira.</div>
     </div>
     <div class="passo">
         <div class="num">5</div>
@@ -663,7 +693,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 
     <div class="box box-info">
         <div class="titulo">ℹ️ Tenants com fatura do mês já gerada</div>
-        Sistema NÃO duplica. Se já existe fatura "Maio/2026" para o tenant X, o wizard pula — gera apenas pros que ainda não tem.
+        Sistema NÃO duplica. Se já existe fatura "Maio/2026" para o cliente X, o wizard pula — gera apenas pros que ainda não tem.
     </div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
@@ -713,7 +743,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 <!-- ============================== 15. AUTO-APROVAÇÃO ============================== -->
 <section class="pagina" id="auto-aprovacao">
     <h1 class="titulo-secao">15. Auto-aprovação de comprovantes</h1>
-    <p class="subtitulo-secao">Automação opcional via OCR (Tesseract)</p>
+    <p class="subtitulo-secao">Automação opcional via leitura automática (OCR)</p>
 
     <p>Validar manual cada comprovante toma tempo. O sistema pode <strong>tentar aprovar sozinho</strong> via OCR (lê o comprovante PIX, extrai valor + E2E ID + beneficiário, e compara com a fatura).</p>
 
@@ -741,7 +771,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 
     <div class="box box-aviso">
         <div class="titulo">⚠️ OCR não substitui auditoria final</div>
-        Toda aprovação automática fica registrada com flag <code>auto_approved=true</code>. Se cliente reclamar de aprovação errada, é possível auditar e reverter.
+        Toda aprovação automática fica marcada como "Aprovação automática". Se cliente reclamar de aprovação errada, é possível auditar e reverter.
     </div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
@@ -757,7 +787,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
         <div class="legenda">Log de auditoria</div>
     </div>
 
-    <p>Toda ação significativa fica em <code>activity_log</code> (Spatie Activitylog). O Master vê o log GLOBAL (todos os tenants); cada cliente vê apenas o próprio.</p>
+    <p>Toda ação significativa fica em na tela de Auditoria. O Master vê o log GLOBAL (todos os clientes); cada cliente vê apenas o próprio.</p>
 
     <h2>Eventos auditados</h2>
     <ul style="padding-left: 25px; margin: 8px 0;">
@@ -782,7 +812,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <table>
         <tr><th>Filtro</th><th>Útil pra…</th></tr>
         <tr><td><strong>Tenant</strong></td><td>Investigar atividade de UM cliente específico</td></tr>
-        <tr><td><strong>Usuário (causer)</strong></td><td>Quem executou a ação (master ou usuário do tenant)</td></tr>
+        <tr><td><strong>Usuário (causer)</strong></td><td>Quem executou a ação (master ou usuário do cliente)</td></tr>
         <tr><td><strong>Tipo de evento</strong></td><td>created, updated, deleted, login, impersonate, etc.</td></tr>
         <tr><td><strong>Período</strong></td><td>De/até (formato dd/mm/aaaa)</td></tr>
         <tr><td><strong>Texto livre</strong></td><td>Busca em descrição da ação</td></tr>
@@ -791,7 +821,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <h2>Cenários comuns</h2>
     <div class="box box-info">
         <div class="titulo">Cliente diz que "alguém apagou um animal" do rebanho</div>
-        Filtra por: tenant=X, evento=deleted, modelo=Animal, período=últimos 7 dias. Vê quem fez e quando.
+        Filtra por: cliente=X, evento=deleted, modelo=Animal, período=últimos 7 dias. Vê quem fez e quando.
     </div>
     <div class="box box-info">
         <div class="titulo">Suspeita de master agindo de má fé</div>
@@ -831,11 +861,11 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">2</div>
-        <div class="conteudo">Em <strong>Cliente</strong>, escolha o tenant da lista (todos os ativos).</div>
+        <div class="conteudo">Em <strong>Cliente</strong>, escolha o cliente da lista (todos os ativos).</div>
     </div>
     <div class="passo">
         <div class="num">3</div>
-        <div class="conteudo">Em <strong>Dono da fazenda</strong>, escolha o destinatário. <em>Aparecem só usuários com perfil <code>dono_fazenda</code> e ativos</em> daquele cliente — funcionários operacionais não aparecem.</div>
+        <div class="conteudo">Em <strong>Dono da fazenda</strong>, escolha o destinatário. <em>Aparecem só usuários com perfil <strong>Dono da Fazenda</strong> e ativos</em> daquele cliente — funcionários operacionais não aparecem.</div>
     </div>
     <div class="passo">
         <div class="num">4</div>
@@ -855,7 +885,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 
     <div class="box box-master">
         <div class="titulo">🛡️ Validação de segurança no servidor</div>
-        Mesmo se alguém adulterar o formulário no front, o controller re-valida no banco que o user_id pertence ao tenant_id, é dono_fazenda E está ativo. Não há como enviar pra outro tenant ou pra usuário desativado.
+        Mesmo se alguém adulterar o formulário no front, o controller re-valida no banco que o user_id pertence ao vínculo do cliente, é Dono da Fazenda E está ativo. Não há como enviar pra outro cliente ou pra usuário desativado.
     </div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
@@ -866,7 +896,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <h1 class="titulo-secao">20. CMS da landing pública</h1>
     <p class="subtitulo-secao">Editar texto, imagens, banners do site</p>
 
-    <p>O Master controla a <strong>landing page pública</strong> de cada cliente. Cada tenant tem sua própria landing, editável via CMS sem mexer em código.</p>
+    <p>O Master controla a <strong>landing page pública</strong> de cada cliente. Cada cliente tem sua própria landing, editável via CMS sem mexer em código.</p>
 
     <h2>Estrutura do CMS</h2>
     <ul style="padding-left: 25px; margin: 8px 0;">
@@ -876,7 +906,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
         <li><strong>Configurações</strong>: nome do site, favicon, logo, redes sociais, contato</li>
     </ul>
 
-    <p>Acesso: <em>Clientes → [tenant] → CMS</em> (per-cliente) OU <em>CMS</em> no menu principal (para o tenant master, fazenda-macaybas).</p>
+    <p>Acesso: <em>Clientes → [cliente] → CMS</em> (per-cliente) OU <em>CMS</em> no menu principal (para o cliente master, fazenda-macaybas).</p>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
@@ -948,7 +978,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
         <li>Dia 1 do mês: rode <em>Cobranças → Gerar faturas (mensal)</em>. Confira preview antes.</li>
         <li>Dia 5: confira faturas geradas. Reenvie pra clientes que não receberam.</li>
         <li>Dia 15: lista de inadimplentes. Cobre primeiro por WhatsApp/e-mail. Suspenda só após 30+ dias.</li>
-        <li>Fim do mês: revisão de receita (MRR), churn, novos clientes.</li>
+        <li>Fim do mês: revisão de receita (Receita Mensal Recorrente), churn, novos clientes.</li>
     </ul>
 
     <h2>Quando o cliente reclama</h2>
@@ -958,7 +988,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">2</div>
-        <div class="conteudo">Vá em Auditoria, filtra por tenant + período. Provavelmente encontra o evento.</div>
+        <div class="conteudo">Vá em Auditoria, filtra por cliente + período. Provavelmente encontra o evento.</div>
     </div>
     <div class="passo">
         <div class="num">3</div>
@@ -966,7 +996,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     </div>
     <div class="passo">
         <div class="num">4</div>
-        <div class="conteudo">Reporte ao time técnico com tudo: tenant_id, user_id, URL, timestamps, ID da activity_log.</div>
+        <div class="conteudo">Reporte ao time técnico com tudo: vínculo do cliente, user_id, URL, timestamps, ID da activity_log.</div>
     </div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
@@ -982,7 +1012,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
         <tr>
             <td>"Acesso suspenso" ao logar como master</td>
             <td>Conta master desativada</td>
-            <td>Time técnico reativa via tinker</td>
+            <td>Time técnico reativa via ferramenta técnica</td>
         </tr>
         <tr>
             <td>Comprovante OCR retorna lixo</td>
@@ -990,7 +1020,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
             <td>Pede ao cliente reenviar foto melhor; valida manual</td>
         </tr>
         <tr>
-            <td>Wizard "Gerar faturas" não cria pra um tenant</td>
+            <td>Wizard "Gerar faturas" não cria pra um cliente</td>
             <td>Tenant suspenso ou sem assinatura ativa</td>
             <td>Reativa antes de gerar; confirma plano</td>
         </tr>
@@ -1000,14 +1030,14 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
             <td>Aguarda 5 min OU purge cache no painel</td>
         </tr>
         <tr>
-            <td>Não consegue impersonar (botão sumiu)</td>
-            <td>Tenant suspenso (impersonação bloqueada por segurança)</td>
-            <td>Reativa tenant temporariamente; impersona; suspende de novo</td>
+            <td>Não consegue entrar como cliente (botão sumiu)</td>
+            <td>Tenant suspenso (sessão como cliente bloqueada por segurança)</td>
+            <td>Reativa cliente temporariamente; entra como o cliente; suspende de novo</td>
         </tr>
         <tr>
             <td>Manual envio falha "destinatário inválido"</td>
-            <td>Cliente não tem dono_fazenda ativo cadastrado</td>
-            <td>Vai em Clientes → [tenant] → Usuários e cadastra/reativa o dono</td>
+            <td>Cliente não tem Dono da Fazenda ativo cadastrado</td>
+            <td>Vai em Clientes → [cliente] → Usuários e cadastra/reativa o dono</td>
         </tr>
         <tr>
             <td>Anexo de e-mail bouncing (rejected)</td>
@@ -1020,7 +1050,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <p>Bugs do sistema: reporta no canal técnico interno com:</p>
     <ul style="padding-left: 25px; margin: 8px 0;">
         <li>URL onde aconteceu</li>
-        <li>tenant_id (se aplicável) + user_id (se impersonando)</li>
+        <li>vínculo do cliente (se aplicável) + user_id (se impersonando)</li>
         <li>Timestamp aproximado</li>
         <li>Screenshot</li>
         <li>ID da activity_log relacionada (se já investigou)</li>
