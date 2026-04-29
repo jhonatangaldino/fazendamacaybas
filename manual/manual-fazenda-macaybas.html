@@ -444,16 +444,17 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
             <li><a href="#master-planos">53. Planos e features</a></li>
             <li><a href="#master-cobrancas">54. Cobranças e validar comprovantes</a></li>
             <li><a href="#master-atividades">55. Auditoria (atividades)</a></li>
+            <li><a href="#master-manuais-distrib">56. Distribuição de manuais</a></li>
         </ul>
     </div>
 
     <div class="secao-grupo">
         <h2>🔍 Apoio</h2>
         <ul>
-            <li><a href="#faq">56. Perguntas frequentes (FAQ)</a></li>
-            <li><a href="#solucao">57. Soluções rápidas</a></li>
-            <li><a href="#glossario">58. Glossário</a></li>
-            <li><a href="#suporte">59. Como pedir ajuda</a></li>
+            <li><a href="#faq">57. Perguntas frequentes (FAQ)</a></li>
+            <li><a href="#solucao">58. Soluções rápidas</a></li>
+            <li><a href="#glossario">59. Glossário</a></li>
+            <li><a href="#suporte">60. Como pedir ajuda</a></li>
         </ul>
     </div>
 </section>
@@ -1348,32 +1349,10 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
         <li>No <strong>show do animal</strong>: botão "+ Novo evento" → Pesar.</li>
     </ol>
 
-    <div class="mockup-modal">
-        <div class="mockup-header">⚖️ Pesar animal</div>
-        <div class="mockup-body">
-            <div class="campo">
-                <div class="lbl">Animal *</div>
-                BR-001 — Mimosa <span style="color: var(--cinza-3);">(último peso: 380kg)</span>
-            </div>
-            <div class="campo">
-                <div class="lbl">Peso (kg) *</div>
-                425.5
-            </div>
-            <div class="campo">
-                <div class="lbl">Data</div>
-                28/04/2026
-            </div>
-            <div class="campo">
-                <div class="lbl">Observação</div>
-                <span style="color: var(--cinza-3);">opcional…</span>
-            </div>
-        </div>
-        <div class="botoes">
-            <span class="botao secundario">Cancelar</span>
-            <span class="botao primario">Salvar</span>
-        </div>
+    <div class="caixa-print">
+        <img src="screenshots/modais/modal-pesagem.png" alt="Wizard de pesagem">
+        <div class="legenda">Wizard de pesagem · escolha o animal, informe o peso, salve</div>
     </div>
-    <div class="legenda" style="text-align: center; font-size: 9pt; color: var(--cinza-2); font-style: italic; margin-top: 4px;">Layout do modal de pesagem rápida</div>
 
     <h2>Passo a passo</h2>
     <div class="passo">
@@ -1412,40 +1391,10 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 
     <p>Vacinação, medicação e vermifugação seguem o mesmo padrão: dashboard da espécie → ação rápida → preencher modal.</p>
 
-    <div class="mockup-modal">
-        <div class="mockup-header">💉 Vacinar</div>
-        <div class="mockup-body">
-            <div class="campo">
-                <div class="lbl">Aplicar em *</div>
-                ◯ Animal individual &nbsp;&nbsp; ⬤ Lote inteiro
-            </div>
-            <div class="campo">
-                <div class="lbl">Lote *</div>
-                BL-002 — Vacas Leiteiras 2026 (32 cabeças)
-            </div>
-            <div class="campo">
-                <div class="lbl">Vacina *</div>
-                Aftosa Polivalente
-            </div>
-            <div class="campo">
-                <div class="lbl">Dose</div>
-                5ml
-            </div>
-            <div class="campo">
-                <div class="lbl">Via de aplicação</div>
-                Subcutânea
-            </div>
-            <div class="campo">
-                <div class="lbl">Responsável</div>
-                Dr. Carlos (vet)
-            </div>
-        </div>
-        <div class="botoes">
-            <span class="botao secundario">Cancelar</span>
-            <span class="botao primario">Salvar</span>
-        </div>
+    <div class="caixa-print">
+        <img src="screenshots/modais/modal-vacinacao.png" alt="Wizard de vacinação">
+        <div class="legenda">Wizard de vacinação · individual ou lote inteiro</div>
     </div>
-    <div class="legenda" style="text-align: center; font-size: 9pt; color: var(--cinza-2); font-style: italic; margin-top: 4px;">Layout do modal de vacinação</div>
 
     <h2>Vacinação</h2>
     <div class="passo">
@@ -2647,25 +2596,10 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
         <div class="conteudo">Salvar. Toast verde confirma.</div>
     </div>
 
-    <div class="mockup-modal celular">
-        <div class="mockup-header">⚖️ Pesar bovino</div>
-        <div class="mockup-body">
-            <div class="campo">
-                <div class="lbl">Brinco / Nome</div>
-                BR-001
-            </div>
-            <div class="campo">
-                <div class="lbl">Peso (kg)</div>
-                <span style="font-size: 14pt; font-weight: 700;">425,5</span>
-                <div style="font-size: 8.5pt; color: var(--cinza-3); margin-top: 2px;">teclado numérico aberto automaticamente</div>
-            </div>
-        </div>
-        <div class="botoes">
-            <span class="botao secundario">Cancelar</span>
-            <span class="botao primario">Salvar</span>
-        </div>
+    <div class="caixa-print mobile">
+        <img src="screenshots/mobile/modal-pesagem.png" alt="Wizard pesagem mobile">
+        <div class="legenda">Wizard de pesagem no celular</div>
     </div>
-    <div class="legenda" style="text-align: center; font-size: 9pt; color: var(--cinza-2); font-style: italic; margin-top: 4px;">Modal de pesagem otimizado pra celular (campos grandes, teclado numérico)</div>
 
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
@@ -2791,9 +2725,66 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
 
+<!-- ============================== MASTER · MANUAIS ============================== -->
+<section class="pagina" id="master-manuais-distrib">
+    <h1 class="titulo-secao">56. Distribuição de manuais</h1>
+    <p class="subtitulo-secao">Master · enviar manual ao cliente direto pelo sistema</p>
+
+    <p>O Master pode <strong>baixar</strong> o manual do usuário ou <strong>enviar por e-mail</strong> direto pra qualquer dono de fazenda — sem precisar abrir o e-mail manualmente, anexar arquivo, etc. O sistema cuida de tudo.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/master/master-manuais.png" alt="Master · Manuais">
+        <div class="legenda">Tela de distribuição de manuais</div>
+    </div>
+
+    <h2>Como enviar o manual</h2>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">No menu Master, clique em <strong>"Manuais"</strong>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">No card "Manual do Usuário", clique em <strong>"Enviar manual"</strong> (botão verde à direita).</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Modal abre. Em <strong>"Cliente"</strong>, selecione a fazenda da lista (mostra todos os clientes ativos).</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Em <strong>"Dono da fazenda"</strong>, escolha quem vai receber. <em>Aparecem só usuários com perfil "dono_fazenda" ATIVOS</em> daquele cliente — funcionários operacionais e perfis específicos não aparecem.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo"><strong>Mensagem personalizada</strong> (opcional): pode adicionar um recado antes do conteúdo do e-mail. Ex.: "Conforme conversamos no telefone, segue manual atualizado."</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo">Clique <strong>"Enviar agora"</strong>. O sistema:
+            <ul style="padding-left: 20px; margin: 4px 0;">
+                <li>Otimiza imagens do manual (PNG → JPEG q=75 via GD): ~45 MB → ~12 MB</li>
+                <li>Se cabe em 20 MB: anexa o HTML self-contained ao e-mail</li>
+                <li>Se passa de 20 MB: gera link assinado de 30 dias e coloca CTA "Baixar" no corpo do e-mail</li>
+                <li>Registra a ação no log de auditoria (master.atividades)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="box box-dica">
+        <div class="titulo">💡 Filtro de segurança</div>
+        Mesmo se alguém tentar adulterar o formulário, o servidor re-valida que o destinatário pertence ao cliente selecionado, é dono e está ativo. Não há como enviar pra outro tenant ou pra usuário desativado.
+    </div>
+
+    <h2>Como baixar (sem enviar)</h2>
+    <p>Se você quer só ter o arquivo localmente — pra mandar pelo WhatsApp, anexar manualmente em outro e-mail, ou imprimir — clica em <strong>"Baixar"</strong> em vez de "Enviar manual". Download direto do HTML self-contained (~12 MB).</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
 <!-- ============================== FAQ ============================== -->
 <section class="pagina" id="faq">
-    <h1 class="titulo-secao">56. Perguntas frequentes</h1>
+    <h1 class="titulo-secao">57. Perguntas frequentes</h1>
     <p class="subtitulo-secao">Dúvidas que aparecem no dia a dia</p>
 
     <div class="qa">
@@ -3013,7 +3004,7 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 
 <!-- ============================== SOLUÇÃO DE PROBLEMAS ============================== -->
 <section class="pagina" id="solucao">
-    <h1 class="titulo-secao">57. Soluções rápidas</h1>
+    <h1 class="titulo-secao">58. Soluções rápidas</h1>
     <p class="subtitulo-secao">Quando algo não funciona como esperado</p>
 
     <table>
@@ -3065,7 +3056,7 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 
 <!-- ============================== GLOSSÁRIO ============================== -->
 <section class="pagina" id="glossario">
-    <h1 class="titulo-secao">58. Glossário</h1>
+    <h1 class="titulo-secao">59. Glossário</h1>
     <p class="subtitulo-secao">Palavras que aparecem no sistema</p>
 
     <dl class="glossario">
@@ -3156,7 +3147,7 @@ th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
 
 <!-- ============================== SUPORTE ============================== -->
 <section class="pagina" id="suporte">
-    <h1 class="titulo-secao">59. Como pedir ajuda</h1>
+    <h1 class="titulo-secao">60. Como pedir ajuda</h1>
     <p class="subtitulo-secao">Quando precisar de suporte</p>
 
     <p>Algo deu errado e nada na seção 57 resolve? Faça assim:</p>
