@@ -94,15 +94,36 @@ class AnimalController extends Controller
         $pesoMedio = $metrics->pesoMedioPorEspecie($species->id);
         $eventosRecentes = $metrics->eventosUltimosNDias($species->id, 7);
 
-        // Lots relevantes pra esta espécie (lista usada pelo modal de evento
-        // agregado). Aqui mantemos a query original — não é uma métrica, é
-        // uma listagem pra UI escolher um lote.
+        // Lots relevantes pra esta espécie. Regra (2026-04-29):
+        //   "Um lote só aparece na página de uma espécie se CONTÉM pelo menos
+        //    1 animal vivo dessa espécie no contexto atual."
+        //
+        // Antes a query tinha `WHERE species_id = X OR has animals` — o `species_id`
+        // sozinho era frágil: bastava o lote ter species_id flagado pra aparecer
+        // mesmo sem nenhum animal da espécie. Resultado: lote agregado de
+        // GALINHA (40 cabeças) aparecia na página de BOVINO, e ao clicar
+        // mostrava 4 bovinos com lot_id mal apontado — UX totalmente quebrado.
+        //
+        // Nova regra:
+        //   • Lote AGREGADO (aves/peixes/abelhas — sem rows individuais):
+        //     mostra se gestao_modo='agregada' AND species_id=X AND quantidade_atual>0
+        //   • Lote INDIVIDUAL (bovino/equino/etc — 1 row por animal):
+        //     mostra se TEM ao menos 1 Animal ativo com species_id=X
+        //
+        // Também trazemos `animais_da_especie_count` pra UI exibir a contagem
+        // CORRETA da espécie no contexto (não o quantidade_atual da espécie
+        // dona do lote, que confundia em casos de mistura).
         $animaisQuery = Animal::where('species_id', $species->id);
         $lots = AnimalLot::where('is_active', true)
             ->where(function ($q) use ($species) {
-                $q->where('species_id', $species->id)
-                  ->orWhereHas('animals', fn ($qq) => $qq->where('species_id', $species->id)->where('status', 'ativo'));
+                $q->where(function ($qq) use ($species) {
+                    $qq->where('gestao_modo', 'agregada')
+                       ->where('species_id', $species->id)
+                       ->where('quantidade_atual', '>', 0);
+                })
+                ->orWhereHas('animals', fn ($qq) => $qq->where('species_id', $species->id)->where('status', 'ativo'));
             })
+            ->withCount(['animals as animais_da_especie_count' => fn ($qq) => $qq->where('species_id', $species->id)->where('status', 'ativo')])
             ->orderBy('nome')
             ->get(['id', 'nome', 'codigo', 'species_id', 'gestao_modo', 'quantidade_atual']);
 

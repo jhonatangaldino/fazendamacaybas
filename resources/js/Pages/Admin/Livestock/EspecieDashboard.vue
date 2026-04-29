@@ -343,8 +343,17 @@ function chartPieData(c) {
                             <div class="text-base font-semibold text-slate-900 truncate group-hover:text-macaybas-primary-800">
                                 🏷 {{ lot.nome }}
                             </div>
-                            <div v-if="lot.gestao_modo === 'agregada' && lot.quantidade_atual" class="text-xs text-slate-500 mt-1">
+                            <!-- Contagem CONTEXTUAL: mostra quantos animais DESTA espécie
+                                 estão no lote, não o quantidade_atual bruto (que pode ser
+                                 de outra espécie em lotes mistos/agregados).
+                                 - Se lote é agregado E pertence a esta espécie: mostra quantidade_atual
+                                 - Senão: mostra animais_da_especie_count (count de Animals individuais) -->
+                            <div v-if="lot.gestao_modo === 'agregada' && Number(lot.species_id) === Number(species.id) && lot.quantidade_atual"
+                                 class="text-xs text-slate-500 mt-1">
                                 {{ Math.round(lot.quantidade_atual) }} cabeça(s) no lote
+                            </div>
+                            <div v-else-if="lot.animais_da_especie_count > 0" class="text-xs text-slate-500 mt-1">
+                                {{ lot.animais_da_especie_count }} {{ species.nome.toLowerCase() }}(s) neste lote
                             </div>
                             <div v-else class="text-xs text-slate-500 mt-1">
                                 Lote convencional
