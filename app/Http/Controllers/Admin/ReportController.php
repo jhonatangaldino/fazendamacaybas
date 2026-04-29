@@ -30,8 +30,21 @@ class ReportController extends Controller
      */
     public function index(Request $request, LivestockMetricsService $metrics)
     {
+        // Validação defensiva: query string com lixo (?from=banana) NÃO PODE
+        // gerar HTTP 500. Bug F2-BUG-001 (QA Deep 2026-04-29): Carbon::parse
+        // lançava InvalidFormatException sem try/catch → erro 500 visível.
+        // Bug F2-BUG-002: from > to silencioso → swap se invertido.
+        $request->validate([
+            'from' => ['nullable', 'date'],
+            'to'   => ['nullable', 'date'],
+        ]);
+
         $from = $request->from ? Carbon::parse($request->from) : now()->startOfMonth();
         $to = $request->to ? Carbon::parse($request->to) : now()->endOfMonth();
+        if ($from->gt($to)) {
+            // Período invertido: troca pra evitar consultas com whereBetween vazio
+            [$from, $to] = [$to, $from];
+        }
 
         // ─── Financeiro ───
         $receitas = FinancialTransaction::query()
