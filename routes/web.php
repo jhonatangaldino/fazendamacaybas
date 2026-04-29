@@ -68,6 +68,39 @@ Route::get('/', [SiteController::class, 'home'])->name('site.home');
 Route::get('/c/{cliente:slug}', [SiteController::class, 'homeByCliente'])->name('site.home.cliente');
 Route::get('/health', [SiteController::class, 'health'])->name('site.health');
 
+// Política de Privacidade · LGPD-compliant.
+// Bug F4-HIGH (QA Deep 2026-04-29): footer linkava /politica-de-privacidade
+// que retornava 404. Página dedicada agora cobre LGPD Art. 18 + retenção +
+// compartilhamento (Hostinger, Google Maps, Bunny CDN).
+Route::view('/politica-de-privacidade', 'site.privacidade')->name('site.privacidade');
+
+// SEO · sitemap.xml referenciado em robots.txt mas não existia (F4-HIGH).
+Route::get('/sitemap.xml', function () {
+    $urls = [
+        ['loc' => url('/'), 'priority' => '1.0', 'changefreq' => 'monthly'],
+        ['loc' => url('/politica-de-privacidade'), 'priority' => '0.3', 'changefreq' => 'yearly'],
+        ['loc' => url('/login'), 'priority' => '0.5', 'changefreq' => 'monthly'],
+    ];
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>'.PHP_EOL;
+    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'.PHP_EOL;
+    foreach ($urls as $u) {
+        $xml .= '  <url><loc>'.$u['loc'].'</loc><changefreq>'.$u['changefreq'].'</changefreq><priority>'.$u['priority'].'</priority></url>'.PHP_EOL;
+    }
+    $xml .= '</urlset>';
+    return response($xml, 200, ['Content-Type' => 'application/xml']);
+})->name('site.sitemap');
+
+// Favicon legado · F4-MED. Crawlers/browsers pedem /favicon.ico antes de ler
+// <link rel="icon"> do HTML. Redireciona pro favicon real (custom do tenant
+// se houver, fallback /favicon.svg). Cache 1 dia.
+Route::get('/favicon.ico', function () {
+    $custom = \App\Models\Setting::getValue('site.favicon');
+    if ($custom) {
+        return redirect('/storage/'.$custom, 302);
+    }
+    return redirect('/favicon.svg', 302);
+})->name('site.favicon');
+
 // ===================== AUTENTICAÇÃO =====================
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
