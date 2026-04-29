@@ -19,7 +19,17 @@ const styles = {
 
 <template>
     <Teleport to="body">
-        <div class="fixed top-4 right-4 sm:top-6 sm:right-6 z-[75] flex flex-col gap-3 w-[calc(100vw-2rem)] sm:w-96 max-w-full pointer-events-none">
+        <!-- Acessibilidade · F7 (QA Deep 2026-04-29): live region NO CONTAINER
+             (sempre presente no DOM) garante que screen readers anunciem
+             toasts adicionados dinamicamente via TransitionGroup. Antes os
+             aria-live estavam só nos filhos (criados ad-hoc), e axe-core
+             reportava live-regions=0 em TODAS as rotas — toasts efetivamente
+             invisíveis pra usuários NVDA/JAWS. -->
+        <div class="fixed top-4 right-4 sm:top-6 sm:right-6 z-[75] flex flex-col gap-3 w-[calc(100vw-2rem)] sm:w-96 max-w-full pointer-events-none"
+             role="status"
+             aria-live="polite"
+             aria-atomic="false"
+             aria-relevant="additions">
             <TransitionGroup
                 enter-active-class="transition duration-300 ease-out"
                 enter-from-class="transform translate-x-full opacity-0"
@@ -31,9 +41,7 @@ const styles = {
             >
                 <div v-for="t in toasts" :key="t.id"
                      :class="[styles[t.type].bg, styles[t.type].border]"
-                     class="pointer-events-auto rounded-xl border shadow-lg p-4 flex items-start gap-3 backdrop-blur"
-                     role="status"
-                     aria-live="polite">
+                     class="pointer-events-auto rounded-xl border shadow-lg p-4 flex items-start gap-3 backdrop-blur">
                     <div :class="styles[t.type].iconBg"
                          class="h-8 w-8 rounded-full text-white flex items-center justify-center flex-shrink-0">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
