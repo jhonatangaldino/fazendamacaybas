@@ -30,6 +30,7 @@ use App\Http\Controllers\Master\ImpersonationController;
 use App\Http\Controllers\Master\InvoiceController;
 use App\Http\Controllers\Master\InvoiceWizardController;
 use App\Http\Controllers\Master\BillingConfigController;
+use App\Http\Controllers\Master\ManuaisController;
 use App\Http\Controllers\Master\MasterDashboardController;
 use App\Http\Controllers\Master\ActivityLogController;
 use App\Http\Controllers\Master\PlanController;
@@ -126,6 +127,15 @@ Route::middleware('auth')->group(function () {
         return app(\App\Http\Controllers\Admin\UserController::class)->removeAvatar($req, $req->user());
     })->name('me.avatar.remove');
 });
+
+// ===================== DOWNLOAD PÚBLICO DO MANUAL (signed URL) =====================
+// Usado apenas como fallback quando o anexo do e-mail é grande demais.
+// Master gera URL assinada com expiração de 30 dias e inclui no corpo do
+// e-mail. Recipiente clica e baixa sem precisar logar.
+// signed middleware valida a assinatura HMAC; rejeita 403 se adulterada.
+Route::get('manuais/{slug}/baixar-publico', [\App\Http\Controllers\Master\ManuaisController::class, 'downloadPublico'])
+    ->middleware('signed')
+    ->name('manuais.publico');
 
 // ===================== ÁREA MASTER (M1) =====================
 // Grupo /master/* — administração da plataforma SaaS.
@@ -270,6 +280,15 @@ Route::middleware(['auth', 'enforce.master'])->prefix('master')->name('master.')
         Route::put('fazendas/{farm}', [MasterFarmController::class, 'update'])->name('farms.update');
         Route::post('fazendas/{farm}/toggle', [MasterFarmController::class, 'toggle'])->name('farms.toggle');
     });
+
+    // ── Manuais (distribuição pelo Master) ──────────────────────────
+    // Master baixa o manual ou envia por e-mail pra dono da fazenda
+    // ativo de um cliente específico. Anexo é HTML self-contained
+    // (todas imagens em base64) gerado em runtime pelo ManualBuilder.
+    Route::get('manuais', [ManuaisController::class, 'index'])->name('manuais.index');
+    Route::get('manuais/{slug}/baixar', [ManuaisController::class, 'download'])->name('manuais.baixar');
+    Route::get('manuais/tenants/{tenant}/donos', [ManuaisController::class, 'donos'])->name('manuais.donos');
+    Route::post('manuais/{slug}/enviar', [ManuaisController::class, 'enviar'])->name('manuais.enviar');
 });
 
 // ===================== ÁREA ADMIN =====================

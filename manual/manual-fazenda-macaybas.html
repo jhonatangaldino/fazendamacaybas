@@ -1,0 +1,3194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual do Usuário · Fazenda Macaybas</title>
+<style>
+:root {
+    --verde: #166534;
+    --verde-claro: #f0fdf4;
+    --verde-borda: #bbf7d0;
+    --azul: #0369a1;
+    --laranja: #ea580c;
+    --vermelho: #dc2626;
+    --cinza-1: #1e293b;
+    --cinza-2: #475569;
+    --cinza-3: #94a3b8;
+    --cinza-4: #cbd5e1;
+    --cinza-5: #e2e8f0;
+    --cinza-6: #f1f5f9;
+    --cinza-7: #f8fafc;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: var(--cinza-1);
+    line-height: 1.65;
+    background: white;
+    font-size: 11pt;
+}
+.pagina {
+    max-width: 210mm;
+    min-height: 297mm;
+    margin: 20px auto;
+    padding: 22mm 18mm;
+    background: white;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    page-break-after: always;
+    position: relative;
+}
+.pagina:last-child { page-break-after: avoid; }
+.capa {
+    background: linear-gradient(135deg, var(--verde) 0%, var(--azul) 100%);
+    color: white; text-align: center;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    min-height: 297mm;
+}
+.capa .logo {
+    width: 130px; height: 130px; background: white; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 64pt; font-weight: 800; color: var(--verde);
+    margin-bottom: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+}
+.capa h1 { font-size: 38pt; font-weight: 800; margin-bottom: 10px; }
+.capa .subtitulo { font-size: 18pt; opacity: 0.9; margin-bottom: 40px; }
+.capa .descritivo { max-width: 65ch; margin-bottom: 60px; line-height: 1.7; }
+.capa .versao { opacity: 0.7; font-size: 10pt; }
+
+/* Sumário */
+.sumario h1 {
+    color: var(--verde); font-size: 26pt;
+    border-bottom: 3px solid var(--verde);
+    padding-bottom: 10px; margin-bottom: 18px;
+}
+.sumario .secao-grupo {
+    margin: 14px 0; padding: 14px;
+    background: var(--cinza-7);
+    border-left: 4px solid var(--verde);
+    border-radius: 6px;
+}
+.sumario .secao-grupo h2 {
+    color: var(--verde); font-size: 13pt; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+}
+.sumario ul { list-style: none; }
+.sumario li {
+    padding: 5px 0;
+    border-bottom: 1px dotted var(--cinza-4);
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 10.5pt;
+}
+.sumario li:last-child { border: 0; }
+.sumario a { color: var(--cinza-1); text-decoration: none; flex: 1; }
+.sumario a:hover { color: var(--verde); }
+
+/* Cabeçalhos */
+h1.titulo-secao {
+    color: var(--verde); font-size: 22pt;
+    margin-bottom: 6px; page-break-after: avoid;
+}
+.subtitulo-secao {
+    color: var(--cinza-2); font-size: 11pt;
+    border-bottom: 2px solid var(--verde-borda);
+    padding-bottom: 10px; margin-bottom: 18px; page-break-after: avoid;
+}
+h2 {
+    color: var(--verde); font-size: 15pt;
+    margin: 22px 0 10px 0; page-break-after: avoid;
+}
+h3 {
+    color: var(--cinza-1); font-size: 12.5pt;
+    margin: 18px 0 8px 0; page-break-after: avoid;
+}
+p { margin: 8px 0; }
+
+/* Imagens */
+.caixa-print {
+    margin: 16px 0; background: var(--cinza-7);
+    border-radius: 12px; padding: 10px;
+    page-break-inside: avoid;
+}
+.caixa-print .legenda {
+    font-size: 9pt; color: var(--cinza-2);
+    text-align: center; margin-top: 8px; font-style: italic;
+}
+.caixa-print img {
+    width: 100%; height: auto; display: block;
+    border-radius: 8px;
+    border: 1px solid var(--cinza-4);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+}
+.caixa-print.mobile { max-width: 320px; margin-left: auto; margin-right: auto; }
+.caixa-print.pequena { max-width: 480px; margin-left: auto; margin-right: auto; }
+
+.print-com-callouts { position: relative; display: block; }
+.callout {
+    position: absolute; width: 26px; height: 26px;
+    border-radius: 50%; background: var(--vermelho);
+    color: white; font-weight: 700; font-size: 12pt;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 3px white, 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 10;
+}
+.callout.azul { background: var(--azul); }
+.callout.laranja { background: var(--laranja); }
+.callout.verde { background: var(--verde); }
+
+.callouts-lista {
+    margin-top: 12px; padding: 10px 14px;
+    background: white; border: 1px solid var(--cinza-5); border-radius: 8px;
+}
+.callouts-lista ol { list-style: none; counter-reset: c; }
+.callouts-lista li {
+    counter-increment: c;
+    padding: 5px 0 5px 36px; position: relative; font-size: 10pt;
+}
+.callouts-lista li::before {
+    content: counter(c); position: absolute; left: 0; top: 4px;
+    width: 22px; height: 22px;
+    background: var(--vermelho); color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 9.5pt;
+}
+
+/* Boxes */
+.box {
+    margin: 12px 0; padding: 10px 14px;
+    border-radius: 8px; border-left: 4px solid;
+    page-break-inside: avoid; font-size: 10.5pt;
+}
+.box-info { background: #eff6ff; border-color: var(--azul); }
+.box-aviso { background: #fefce8; border-color: #ca8a04; }
+.box-perigo { background: #fef2f2; border-color: var(--vermelho); }
+.box-dica { background: #f0fdf4; border-color: var(--verde); }
+.box .titulo {
+    font-weight: 700; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px;
+}
+
+/* Comparação */
+.comparacao {
+    display: grid; grid-template-columns: 1.5fr 1fr;
+    gap: 14px; margin: 16px 0; page-break-inside: avoid;
+}
+.comparacao .caixa-print { margin: 0; }
+.comparacao .titulo-comparacao {
+    text-align: center; font-size: 9pt;
+    color: var(--cinza-3); text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 6px; font-weight: 700;
+}
+
+/* Tabela */
+table {
+    width: 100%; border-collapse: collapse;
+    margin: 14px 0; font-size: 10pt;
+    page-break-inside: avoid;
+}
+th, td { padding: 7px 11px; text-align: left; border-bottom: 1px solid var(--cinza-5); vertical-align: top; }
+th { background: var(--verde-claro); color: var(--verde); font-weight: 700; }
+
+/* Steps */
+.passo {
+    display: flex; gap: 12px; margin: 12px 0;
+    align-items: flex-start; page-break-inside: avoid;
+    font-size: 10.5pt;
+}
+.passo .num {
+    flex-shrink: 0; width: 30px; height: 30px;
+    background: var(--verde); color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 11pt;
+}
+.passo .conteudo { flex: 1; }
+
+.voltar-topo {
+    text-align: center; margin: 25px 0 0 0; font-size: 9pt;
+}
+.voltar-topo a {
+    color: var(--cinza-3); text-decoration: none;
+    padding: 4px 12px; border: 1px solid var(--cinza-5); border-radius: 4px;
+}
+
+/* Pergunta-resposta */
+.qa {
+    margin: 14px 0; padding: 12px 15px;
+    border-left: 3px solid var(--verde);
+    background: var(--verde-claro);
+    border-radius: 6px; page-break-inside: avoid;
+}
+.qa .pergunta {
+    font-weight: 700; color: var(--verde);
+    margin-bottom: 6px; display: flex; align-items: baseline; gap: 6px;
+}
+.qa .pergunta::before { content: "❓"; }
+
+/* Cenário */
+.cenario {
+    background: white; border: 2px dashed var(--azul);
+    padding: 14px 16px; margin: 16px 0;
+    border-radius: 8px; page-break-inside: avoid;
+}
+.cenario .titulo-cenario {
+    font-weight: 700; color: var(--azul); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px; font-size: 11pt;
+}
+
+/* Print */
+@media print {
+    body { background: white; }
+    .pagina { margin: 0; box-shadow: none; max-width: 100%; padding: 12mm; }
+    a { color: inherit; text-decoration: none; }
+    .voltar-topo, .topo-nav { display: none; }
+    h1, h2, h3 { page-break-after: avoid; }
+    img { page-break-inside: avoid; }
+    .caixa-print, .comparacao, .box, .passo, .callouts-lista, table, .qa, .cenario { page-break-inside: avoid; }
+}
+
+@media screen {
+    .topo-nav {
+        position: fixed; bottom: 20px; right: 20px;
+        background: var(--verde); color: white;
+        padding: 10px 18px; border-radius: 30px;
+        font-size: 10pt; text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.2); z-index: 100;
+    }
+}
+
+/* Glossário */
+.glossario dt { font-weight: 700; color: var(--verde); margin-top: 12px; }
+.glossario dd { margin-left: 20px; margin-bottom: 8px; font-size: 10.5pt; }
+
+/* Mockup de modal (substitui screenshots de modais que não foram capturados) */
+.mockup-modal {
+    margin: 16px auto; max-width: 380px; padding: 0;
+    background: white; border-radius: 12px;
+    border: 1px solid var(--cinza-4);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    page-break-inside: avoid; overflow: hidden;
+    font-size: 10pt;
+}
+.mockup-modal .mockup-header {
+    background: var(--verde); color: white;
+    padding: 10px 14px; font-weight: 700; font-size: 11pt;
+}
+.mockup-modal .mockup-body {
+    padding: 14px;
+}
+.mockup-modal .campo {
+    margin: 8px 0; padding: 8px 10px;
+    background: var(--cinza-7);
+    border: 1px dashed var(--cinza-4);
+    border-radius: 6px;
+    font-size: 9.5pt;
+}
+.mockup-modal .campo .lbl {
+    font-weight: 700; color: var(--cinza-2);
+    font-size: 8.5pt; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 2px;
+}
+.mockup-modal .botoes {
+    display: flex; gap: 8px;
+    padding: 10px 14px; background: var(--cinza-7);
+    justify-content: flex-end;
+}
+.mockup-modal .botao {
+    padding: 6px 14px; border-radius: 6px;
+    font-size: 9.5pt; font-weight: 600;
+}
+.mockup-modal .botao.primario { background: var(--verde); color: white; }
+.mockup-modal .botao.secundario { background: white; color: var(--cinza-2); border: 1px solid var(--cinza-4); }
+.mockup-modal .botao.perigo { background: var(--vermelho); color: white; }
+
+.mockup-modal.celular { max-width: 280px; }
+.mockup-modal.alerta .mockup-header { background: var(--vermelho); }
+</style>
+</head>
+<body>
+
+<a href="#topo" class="topo-nav">↑ Sumário</a>
+
+<!-- ============================== CAPA ============================== -->
+<section class="pagina capa" id="topo">
+    <div class="logo">M</div>
+    <h1>Manual do Usuário</h1>
+    <div class="subtitulo">Sistema de Gestão · Fazenda Macaybas</div>
+    <p class="descritivo">Tudo que você precisa saber pra usar o sistema com tranquilidade — do primeiro acesso até a venda do animal, do cadastro de despesas até o relatório anual. Computador e celular, todos os perfis, todas as funcionalidades.</p>
+    <div class="versao">
+        Versão 1.0 · Abril de 2026<br>
+        <span style="opacity: 0.6">fazendamacaybas.com.br</span>
+    </div>
+</section>
+
+<!-- ============================== SUMÁRIO ============================== -->
+<section class="pagina sumario" id="sumario">
+    <h1>Sumário</h1>
+    <p style="font-size: 10pt; color: var(--cinza-2); margin-bottom: 18px;">Clique em qualquer item para ir direto à seção. No final de cada seção, um botão "Voltar ao sumário" traz você de volta aqui.</p>
+
+    <div class="secao-grupo" style="border-left-color: var(--laranja);">
+        <h2 style="color: var(--laranja);">🚀 Quick start (leia primeiro)</h2>
+        <ul>
+            <li><a href="#como-usar-manual">★ Como usar este manual</a></li>
+            <li><a href="#primeiros-passos">★ Primeiros passos · 5 coisas pra fazer no Dia 1</a></li>
+            <li><a href="#cenarios-reais">★ Cenários reais · fluxos completos amarrados</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>📖 Para começar</h2>
+        <ul>
+            <li><a href="#introducao">1. O que é o sistema</a></li>
+            <li><a href="#conceitos">2. Conceitos básicos</a></li>
+            <li><a href="#perfis">3. Perfis de usuário</a></li>
+            <li><a href="#login">4. Como entrar (login + esqueci a senha)</a></li>
+            <li><a href="#trocar-senha">5. Trocar minha senha / minha foto</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>🧭 Telas gerais</h2>
+        <ul>
+            <li><a href="#inicio">6. Tela de Início</a></li>
+            <li><a href="#painel">7. Painel</a></li>
+            <li><a href="#navegacao">8. Como navegar (sidebar e topbar)</a></li>
+            <li><a href="#trocar-fazenda">9. Trocar de fazenda</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>🐄 Rebanho · cobertura completa</h2>
+        <ul>
+            <li><a href="#rebanho-hub">10. Hub do Rebanho</a></li>
+            <li><a href="#especies">11. As 11 espécies disponíveis</a></li>
+            <li><a href="#cadastrar-animal">12. Cadastrar animal individual</a></li>
+            <li><a href="#listagem-animais">13. Listagem de animais (filtros e pesquisa)</a></li>
+            <li><a href="#timeline-animal">14. Linha do tempo do animal</a></li>
+            <li><a href="#evento-pesar">15. Pesar um animal</a></li>
+            <li><a href="#evento-vacinar">16. Vacinar / medicar / vermifugar</a></li>
+            <li><a href="#evento-ordenha">17. Registrar ordenha</a></li>
+            <li><a href="#evento-mover">18. Mudar de lote ou local</a></li>
+            <li><a href="#evento-reproducao">19. Cobertura, exame de toque, parto</a></li>
+            <li><a href="#evento-mortalidade">20. Mortalidade</a></li>
+            <li><a href="#evento-apagar">21. Apagar um evento errado</a></li>
+            <li><a href="#lotes">22. Lotes</a></li>
+            <li><a href="#locais">23. Locais (pastos, currais, tanques)</a></li>
+            <li><a href="#controle-leiteiro">24. Controle Leiteiro</a></li>
+            <li><a href="#vender-animal">25. Vender animal (wizard)</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>💰 Financeiro</h2>
+        <ul>
+            <li><a href="#financeiro-hub">26. Hub Financeiro</a></li>
+            <li><a href="#cadastrar-despesa">27. Cadastrar despesa</a></li>
+            <li><a href="#cadastrar-receita">28. Cadastrar receita</a></li>
+            <li><a href="#marcar-paga">29. Marcar como paga</a></li>
+            <li><a href="#estornar">30. Estornar uma transação paga</a></li>
+            <li><a href="#anexar">31. Anexar comprovante / nota fiscal</a></li>
+            <li><a href="#categorias-fin">32. Categorias e centro de custo</a></li>
+            <li><a href="#faturas">33. Faturas (mensalidade do sistema)</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>🌾 Agrícola, 📦 Estoque, 🚜 Máquinas</h2>
+        <ul>
+            <li><a href="#agricola-hub">34. Hub Agrícola · Talhões · Plantios · Safras</a></li>
+            <li><a href="#aplicacao">35. Aplicação de defensivo (impacto cross)</a></li>
+            <li><a href="#estoque-hub">36. Hub Estoque · Itens · Movimentações · Armazéns</a></li>
+            <li><a href="#receber-mercadoria">37. Receber mercadoria (entrada)</a></li>
+            <li><a href="#saida-estoque">38. Saída / consumo</a></li>
+            <li><a href="#maquinas-hub">39. Hub Máquinas · Veículos</a></li>
+            <li><a href="#manutencao">40. Criar OS de manutenção</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>✅ Tarefas, 📄 Documentos, 🤝 Parceiros</h2>
+        <ul>
+            <li><a href="#tarefas">41. Tarefas (criar, atribuir, concluir)</a></li>
+            <li><a href="#documentos">42. Documentos (upload, vencimento)</a></li>
+            <li><a href="#parceiros">43. Parceiros (clientes/fornecedores)</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>🛠️ Administração</h2>
+        <ul>
+            <li><a href="#usuarios">44. Cadastrar funcionário (usuário do sistema)</a></li>
+            <li><a href="#permissoes">45. Perfis e permissões</a></li>
+            <li><a href="#relatorios">46. Relatórios consolidados</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>📱 Celular / Tablet (Mobile)</h2>
+        <ul>
+            <li><a href="#mob-acesso">47. Acessando pelo celular</a></li>
+            <li><a href="#mob-sidebar">48. Menu mobile (hambúrguer)</a></li>
+            <li><a href="#mob-fluxos">49. Fluxos rápidos no campo</a></li>
+            <li><a href="#mob-comparacao">50. Comparação de cada tela: Computador × Celular</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>🏢 Master (administradores da plataforma)</h2>
+        <ul>
+            <li><a href="#master-intro">51. O que é a área Master</a></li>
+            <li><a href="#master-tenants">52. Gestão de clientes (tenants)</a></li>
+            <li><a href="#master-planos">53. Planos e features</a></li>
+            <li><a href="#master-cobrancas">54. Cobranças e validar comprovantes</a></li>
+            <li><a href="#master-atividades">55. Auditoria (atividades)</a></li>
+        </ul>
+    </div>
+
+    <div class="secao-grupo">
+        <h2>🔍 Apoio</h2>
+        <ul>
+            <li><a href="#faq">56. Perguntas frequentes (FAQ)</a></li>
+            <li><a href="#solucao">57. Soluções rápidas</a></li>
+            <li><a href="#glossario">58. Glossário</a></li>
+            <li><a href="#suporte">59. Como pedir ajuda</a></li>
+        </ul>
+    </div>
+</section>
+
+<!-- ============================== COMO USAR ESTE MANUAL ============================== -->
+<section class="pagina" id="como-usar-manual">
+    <h1 class="titulo-secao" style="color: var(--laranja);">★ Como usar este manual</h1>
+    <p class="subtitulo-secao">Pra extrair o máximo dele em 2 minutos</p>
+
+    <div class="box box-dica">
+        <div class="titulo">💡 Em uma linha</div>
+        Este manual cobre 100% do sistema. Você não precisa ler tudo — só a parte que está fazendo agora.
+    </div>
+
+    <h2>3 jeitos de usar</h2>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><strong>Sou novo · primeiro dia no sistema</strong> — vai direto pra <a href="#primeiros-passos">Primeiros passos · 5 coisas pra fazer no Dia 1</a>. Cobre o ciclo completo de quando você loga pela primeira vez.</div>
+    </div>
+
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo"><strong>Quero fazer uma coisa específica</strong> (ex.: vender um boi, registrar pesagem, anexar nota fiscal) — abra o <a href="#sumario">Sumário</a> e clique no item. Cada seção tem o passo a passo da ação.</div>
+    </div>
+
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo"><strong>Tenho uma dúvida geral</strong> ("Como sei o que vence?", "Posso usar offline?", "Como cadastro raça nova?") — vai pra <a href="#faq">Perguntas frequentes (FAQ)</a> ou <a href="#solucao">Soluções rápidas</a>.</div>
+    </div>
+
+    <h2>Convenções deste manual</h2>
+
+    <table>
+        <tr><th>Símbolo</th><th>Significa</th></tr>
+        <tr><td>💡 Verde (Dica)</td><td>Truque pra ser mais rápido ou aproveitar melhor</td></tr>
+        <tr><td>ℹ️ Azul (Info)</td><td>Esclarecimento que evita confusão</td></tr>
+        <tr><td>⚠️ Amarelo (Aviso)</td><td>Atenção: ler antes de fazer</td></tr>
+        <tr><td>❗ Vermelho (Perigo)</td><td>Cuidado: pode causar dano nos seus dados</td></tr>
+        <tr><td>❓ Verde-claro</td><td>Pergunta-resposta direta (FAQ)</td></tr>
+        <tr><td>🔵 Azul tracejado</td><td>Cenário real (fluxo completo de uma situação)</td></tr>
+        <tr><td>1 2 3 (números)</td><td>Passo a passo numerado de uma ação</td></tr>
+        <tr><td>🔴 Bolinha vermelha numerada</td><td>Indica um item dentro do print da tela</td></tr>
+    </table>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Linguagem usada</div>
+        Tentamos usar palavras do dia a dia da fazenda — boi, vaca, lote, pasto, brinco, NF — e não termos técnicos. Quando uma palavra técnica é necessária (KPI, dashboard, hub), está explicada no <a href="#glossario">Glossário</a>.
+    </div>
+
+    <h2>Quando algo der errado</h2>
+    <ol style="padding-left: 25px; margin: 8px 0;">
+        <li>Olha as <a href="#solucao">Soluções rápidas</a> — cobre os erros mais comuns.</li>
+        <li>Lê a <a href="#faq">FAQ</a> — pode ter resposta direta.</li>
+        <li>Se ainda não resolver, vai em <a href="#suporte">Como pedir ajuda</a> com o screenshot do erro.</li>
+    </ol>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== PRIMEIROS PASSOS ============================== -->
+<section class="pagina" id="primeiros-passos">
+    <h1 class="titulo-secao" style="color: var(--laranja);">★ Primeiros passos · 5 coisas pra fazer no Dia 1</h1>
+    <p class="subtitulo-secao">Roteiro do dono no primeiro dia · 30 minutos</p>
+
+    <p>O sistema te dá liberdade para cadastrar tudo na ordem que você quiser, mas <strong>existe uma ordem mais inteligente</strong> que evita retrabalho. Siga este roteiro no Dia 1:</p>
+
+    <div class="cenario">
+        <div class="titulo-cenario">🎯 Resultado desejado no fim do Dia 1</div>
+        Você terá: senha trocada, equipe convidada, principais fornecedores cadastrados, primeiros animais ou plantios cadastrados. Pode operar normalmente do Dia 2 em diante.
+    </div>
+
+    <h2>Passo 1 · Trocar a senha temporária</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Você recebeu por e-mail uma senha temporária. Acesse <code>app.fazendamacaybas.com.br</code> e entre. O sistema te leva direto pra tela de troca de senha. Crie uma nova forte e anote num lugar seguro. <strong>Tempo: 2 min.</strong> · Detalhes em <a href="#login">seção 4</a>.</div>
+    </div>
+
+    <h2>Passo 2 · Atualizar nome, foto e dados da fazenda</h2>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Clique no avatar (canto superior direito) → "Alterar foto" e adicione uma foto sua. Em <em>Configurações da Fazenda</em>, confirme: nome, CNPJ/CPF, endereço, IE/IM se for o caso. Esses dados aparecem em relatórios e impressões. <strong>Tempo: 5 min.</strong></div>
+    </div>
+
+    <h2>Passo 3 · Cadastrar a equipe (funcionários que vão usar o sistema)</h2>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Em <em>Usuários → "+ Novo usuário"</em>, cadastre cada pessoa que vai usar o sistema (gerente, vet, ordenhador, financeiro). Escolha o perfil que combina com a função (veja <a href="#perfis">seção 3</a>). O sistema envia senha temp por e-mail pra cada um. <strong>Tempo: 1 min por pessoa.</strong> · Detalhes em <a href="#usuarios">seção 44</a>.</div>
+    </div>
+
+    <div class="box box-dica">
+        <div class="titulo">💡 Não cadastre a equipe inteira de uma vez</div>
+        Comece pelos 2-3 que vão usar mais (você + gerente + vet, por exemplo). Adicione os outros conforme precisar.
+    </div>
+
+    <h2>Passo 4 · Cadastrar parceiros principais (clientes/fornecedores)</h2>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Em <em>Parceiros → "+ Novo parceiro"</em>, cadastre os 3-5 mais usados:
+            <ul style="padding-left: 20px; margin: 4px 0;">
+                <li>Fornecedor de ração</li>
+                <li>Fornecedor de medicamentos/vacinas</li>
+                <li>Frigorífico ou laticínio (cliente principal)</li>
+                <li>Posto de combustível</li>
+            </ul>
+            <strong>Tempo: 5 min.</strong> Os outros entram à medida que aparecem em transações. Detalhes em <a href="#parceiros">seção 43</a>.
+        </div>
+    </div>
+
+    <h2>Passo 5 · Cadastrar dados operacionais (escolha um caminho)</h2>
+
+    <div class="passo">
+        <div class="num">5a</div>
+        <div class="conteudo"><strong>Tem rebanho?</strong> Vai em <em>Rebanho → escolhe a espécie</em>. Cadastre 2-3 animais primeiro pra entender a tela. Quando estiver confortável, cadastre o resto. <a href="#cadastrar-animal">Seção 12</a>.</div>
+    </div>
+
+    <div class="passo">
+        <div class="num">5b</div>
+        <div class="conteudo"><strong>Tem lavoura?</strong> Vai em <em>Agrícola → Talhões → "+ Novo talhão"</em>. Cadastre os talhões que existem. Depois cadastre plantios atuais. <a href="#agricola-hub">Seção 34</a>.</div>
+    </div>
+
+    <div class="passo">
+        <div class="num">5c</div>
+        <div class="conteudo"><strong>Tem máquinas?</strong> Vai em <em>Máquinas → Veículos → "+ Novo veículo"</em>. Cadastre caminhonete, trator, implementos. <a href="#maquinas-hub">Seção 39</a>.</div>
+    </div>
+
+    <div class="box box-aviso">
+        <div class="titulo">⚠️ Cadastros financeiros antigos</div>
+        Você NÃO precisa cadastrar transações financeiras antigas. Comece a registrar do mês atual em diante. Receitas e despesas históricas só servem se forem importantes pra um relatório específico — e nesse caso vale cadastrar manualmente as principais.
+    </div>
+
+    <h2>Após o Dia 1</h2>
+    <p>O sistema cresce com o uso. Daqui pra frente:</p>
+    <ul style="padding-left: 25px; margin: 8px 0;">
+        <li><strong>Toda manhã</strong>: abra o <a href="#painel">Painel</a> pra ver o que vence hoje (tarefas, contas).</li>
+        <li><strong>No campo</strong>: use o celular pra registrar pesagens, vacinas, ordenhas (<a href="#mob-fluxos">seção 49</a>).</li>
+        <li><strong>Ao final do mês</strong>: confira <a href="#relatorios">Relatórios</a> e bata os números do livro caixa.</li>
+    </ul>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== CENÁRIOS REAIS ============================== -->
+<section class="pagina" id="cenarios-reais">
+    <h1 class="titulo-secao" style="color: var(--laranja);">★ Cenários reais · fluxos completos amarrados</h1>
+    <p class="subtitulo-secao">"Como faço o ciclo todo dessa situação?"</p>
+
+    <p>O resto do manual é organizado por tela. Esta seção é organizada por <strong>situações reais da fazenda</strong> — você vê o fluxo do início ao fim, e cada passo aponta a seção que detalha aquela ação.</p>
+
+    <div class="cenario">
+        <div class="titulo-cenario">🐄 Cenário 1 · Comprei 50 bezerros pra engordar e revender em 18 meses</div>
+
+        <p style="margin-top: 8px;"><strong>Início — momento da compra:</strong></p>
+        <ol style="padding-left: 25px; margin: 6px 0;">
+            <li>Cadastre o vendedor em <em>Parceiros</em> (se for novo). <a href="#parceiros">Seção 43</a></li>
+            <li>Crie um lote: <em>Rebanho → Lotes → "+ Novo lote"</em>, ex.: "Engorda 2026 - Compra Junho". <a href="#lotes">Seção 22</a></li>
+            <li>Cadastre cada bezerro: <em>Bovino → "+ Cadastrar bovino"</em>. Categoria "Corte", origem "Comprado", informa fornecedor, data, valor unitário, lote criado acima. Repita pros 50 (sistema mantém dados do último cadastro como sugestão). <a href="#cadastrar-animal">Seção 12</a></li>
+            <li>O sistema cria automaticamente uma <strong>despesa pendente</strong> com o valor total. Você só precisa marcar como paga quando quitar. <a href="#marcar-paga">Seção 29</a></li>
+        </ol>
+
+        <p style="margin-top: 8px;"><strong>Durante o ciclo (cada 60-90 dias):</strong></p>
+        <ol style="padding-left: 25px; margin: 6px 0;">
+            <li>Pesa todos: dashboard Bovino → "Pesar" → digita brinco e peso, salva, próximo. <a href="#evento-pesar">Seção 15</a></li>
+            <li>Vacina contra aftosa, brucelose, etc. (vacinação em lote inteiro pra economizar tempo). <a href="#evento-vacinar">Seção 16</a></li>
+            <li>Move pra novo pasto quando precisar. <a href="#evento-mover">Seção 18</a></li>
+            <li>Registra cada compra de ração/insumo em <em>Estoque → Receber mercadoria</em> — gera despesa e atualiza estoque. <a href="#receber-mercadoria">Seção 37</a></li>
+        </ol>
+
+        <p style="margin-top: 8px;"><strong>Fim — venda:</strong></p>
+        <ol style="padding-left: 25px; margin: 6px 0;">
+            <li>Hub Início → "Vender animal" → modo "Múltiplos" → marca os 50 do lote. <a href="#vender-animal">Seção 25</a></li>
+            <li>Comprador (frigorífico), preço por arroba, total automático.</li>
+            <li>Salva. Sistema marca os 50 como "vendido" + cria receita no financeiro.</li>
+            <li>Quando o frigorífico pagar, marcar como pago em <em>Financeiro → Transações</em> e anexar comprovante. <a href="#marcar-paga">Seção 29</a></li>
+        </ol>
+
+        <p style="margin-top: 8px;"><strong>Pra ver lucro do ciclo:</strong> em <em>Relatórios</em>, filtra período da compra à venda. Receita de venda menos despesas (compra + ração + vacinas + manutenção) = lucro.</p>
+    </div>
+</section>
+
+<section class="pagina">
+    <div class="cenario">
+        <div class="titulo-cenario">🥛 Cenário 2 · Quero acompanhar a produção de leite das minhas vacas</div>
+
+        <ol style="padding-left: 25px; margin: 6px 0;">
+            <li>Cadastre as vacas em <em>Bovino</em> com Categoria "Leite" ou "Misto". <a href="#cadastrar-animal">Seção 12</a></li>
+            <li>Crie um lote "Vacas em Lactação" e mova as ordenhadas pra ele. <a href="#lotes">Seção 22</a></li>
+            <li><strong>Toda ordenha:</strong> Dashboard Bovino → "Registrar ordenha" → escolhe vaca, informa litros (manhã/tarde). Pode usar o celular no curral. <a href="#evento-ordenha">Seção 17</a></li>
+            <li><strong>Pra ver consolidado mensal:</strong> Rebanho → Controle Leiteiro. Mostra cada vaca em uma linha, dias do mês, quem é a top, média. <a href="#controle-leiteiro">Seção 24</a></li>
+            <li><strong>Pra ver evolução individual:</strong> abre o animal → aba "Evolução leiteira" — gráfico mostrando produção mensal. <a href="#timeline-animal">Seção 14</a></li>
+        </ol>
+    </div>
+
+    <div class="cenario">
+        <div class="titulo-cenario">🌽 Cenário 3 · Plantei soja num talhão · do plantio à colheita</div>
+
+        <ol style="padding-left: 25px; margin: 6px 0;">
+            <li>Cadastre o talhão (se ainda não tem): <em>Agrícola → Talhões → "+ Novo talhão"</em> com área em hectares. <a href="#agricola-hub">Seção 34</a></li>
+            <li>Cadastre a safra: ex. "Safra 2025/26 - Verão".</li>
+            <li>Cria o plantio: <em>Agrícola → Plantios → "+ Novo plantio"</em>, escolhe talhão, cultura "Soja", safra, área plantada, data.</li>
+            <li>Cadastra os insumos no estoque (sementes, herbicida, fertilizante) com valor unitário.</li>
+            <li><strong>Aplicações ao longo do ciclo:</strong> Hub Início → "Aplicar produto". Pra cada aplicação, sistema reduz estoque + cria despesa automática. <a href="#aplicacao">Seção 35</a></li>
+            <li><strong>No dia da colheita:</strong> abre o plantio → "Registrar colheita" → informa kg colhidos.</li>
+            <li><strong>Quando vender a produção:</strong> Financeiro → "+ Nova receita", categoria "Venda de safra", vincula ao plantio. <a href="#cadastrar-receita">Seção 28</a></li>
+            <li><strong>Lucro da safra:</strong> Relatórios filtra por período da safra. Receita - despesas vinculadas = lucro.</li>
+        </ol>
+    </div>
+
+    <div class="cenario">
+        <div class="titulo-cenario">📱 Cenário 4 · Funcionário no campo · ciclo de uma tarefa</div>
+
+        <p><strong>Você (dono/gerente) atribui:</strong></p>
+        <ol style="padding-left: 25px; margin: 6px 0;">
+            <li>Tarefas → "+ Nova tarefa" → "Vacinar lote A com Aftosa". Atribui ao Funcionário João, prioridade alta, prazo amanhã. <a href="#tarefas">Seção 41</a></li>
+        </ol>
+
+        <p><strong>João (no celular, no campo):</strong></p>
+        <ol style="padding-left: 25px; margin: 6px 0;">
+            <li>Recebe e-mail/notificação. Abre o sistema no celular. Vê a tarefa em <em>Tarefas</em> com badge urgente.</li>
+            <li>Vai no curral. Vacina os animais. Volta no celular, abre a tarefa, marca <strong>"Concluir"</strong>.</li>
+            <li>Anexa foto do lote vacinado (opcional). Pode também registrar a vacinação em <em>Bovino → Vacinar lote</em>. <a href="#evento-vacinar">Seção 16</a></li>
+        </ol>
+
+        <p><strong>Você vê o resultado:</strong></p>
+        <ol style="padding-left: 25px; margin: 6px 0;">
+            <li>Tarefa muda pra "Concluída". Aparece foto da execução.</li>
+            <li>Histórico de cada animal vacinado tem o evento "Vacinação Aftosa · 28/04/2026".</li>
+        </ol>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<section class="pagina">
+    <div class="cenario">
+        <div class="titulo-cenario">💰 Cenário 5 · Como sei o que vence essa semana (vacinas, contas, documentos, tarefas)?</div>
+
+        <p>O sistema concentra os alertas em quatro lugares:</p>
+
+        <table>
+            <tr><th>Tipo</th><th>Onde aparece</th><th>Como agir</th></tr>
+            <tr>
+                <td>📅 Tarefas com prazo próximo</td>
+                <td><a href="#tarefas">Tarefas</a> · badge na sidebar</td>
+                <td>Filtra "Vencendo nos próximos 7 dias" e executa</td>
+            </tr>
+            <tr>
+                <td>💸 Contas a pagar</td>
+                <td><a href="#financeiro-hub">Hub Financeiro</a> · card "A pagar nos próximos 30d"</td>
+                <td>Clica no card, lista filtrada, paga uma a uma</td>
+            </tr>
+            <tr>
+                <td>💰 Contas a receber</td>
+                <td>Hub Financeiro · card "A receber nos próximos 30d"</td>
+                <td>Confere se chegou o pagamento; cobra se atrasou</td>
+            </tr>
+            <tr>
+                <td>📄 Documentos vencendo</td>
+                <td><a href="#documentos">Documentos</a> · destaque vermelho</td>
+                <td>Renova certificado / contrato e atualiza no sistema</td>
+            </tr>
+            <tr>
+                <td>🐄 Vacina próxima do prazo</td>
+                <td>Dashboard da espécie · card "Vacinas em atraso"</td>
+                <td>Vacina e registra o evento</td>
+            </tr>
+            <tr>
+                <td>📦 Estoque baixo</td>
+                <td><a href="#estoque-hub">Estoque</a> · item em amarelo na lista</td>
+                <td>Compra reposição (e usa "Receber mercadoria" pra entrada)</td>
+            </tr>
+            <tr>
+                <td>💳 Fatura do sistema</td>
+                <td><a href="#faturas">Faturas</a></td>
+                <td>Paga e envia comprovante</td>
+            </tr>
+        </table>
+
+        <div class="box box-dica">
+            <div class="titulo">💡 Rotina sugerida</div>
+            Toda segunda de manhã, abra o <a href="#painel">Painel</a> + Hub Financeiro. Em 5 minutos você tem uma visão completa do que precisa ser feito na semana.
+        </div>
+    </div>
+
+    <div class="cenario">
+        <div class="titulo-cenario">🆕 Cenário 6 · Cadastrei um animal mas a raça/categoria que precisava não existe</div>
+
+        <p>Os campos com lista (raça, categoria, fornecedor) aceitam <strong>cadastro inline</strong>:</p>
+        <ol style="padding-left: 25px; margin: 6px 0;">
+            <li>Clica no campo, digita o nome novo.</li>
+            <li>Aparece opção <strong>"+ Adicionar nova: [o que digitou]"</strong>.</li>
+            <li>Clica e ela já fica disponível pra esse cadastro e os próximos.</li>
+        </ol>
+
+        <p>Funciona em: raça, categoria, fornecedor (parceiro), reprodutor, vacina, medicamento, tipo de manutenção. Pra editar/excluir cadastros existentes, vai na página de configuração de cada lista (geralmente em <em>Administração</em>).</p>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== INTRODUÇÃO ============================== -->
+<section class="pagina" id="introducao">
+    <h1 class="titulo-secao">1. O que é o sistema</h1>
+    <p class="subtitulo-secao">Em uma frase: tudo que sai do papel e da planilha vai pro sistema</p>
+
+    <p>O <strong>Sistema de Gestão Fazenda Macaybas</strong> é uma ferramenta para administrar uma fazenda inteira — do cadastro de cada animal ao lançamento da despesa do mês — sem precisar de planilha do Excel, caderno na cozinha ou WhatsApp espalhado.</p>
+
+    <h2>O que dá pra fazer no sistema</h2>
+    <table>
+        <tr><th>Área</th><th>Você consegue</th></tr>
+        <tr><td>🐄 Rebanho</td><td>Cadastrar animais, registrar pesagem, vacinação, mortalidade, ordenha. Vender com a receita já caindo no financeiro.</td></tr>
+        <tr><td>💰 Financeiro</td><td>Lançar receitas e despesas, marcar como pagas, anexar comprovante, ver saldo do mês, controlar fluxo de caixa.</td></tr>
+        <tr><td>🌾 Agrícola</td><td>Cadastrar talhões, plantios, safras e aplicações de defensivos.</td></tr>
+        <tr><td>📦 Estoque</td><td>Controlar entradas e saídas de insumos (ração, sementes, medicamentos), com alerta de estoque baixo.</td></tr>
+        <tr><td>🚜 Máquinas</td><td>Cadastrar veículos e implementos, registrar manutenções com custo.</td></tr>
+        <tr><td>✅ Tarefas</td><td>Atribuir tarefas a funcionários, com prazo e prioridade.</td></tr>
+        <tr><td>📄 Documentos</td><td>Guardar contratos, NFs, certificados sanitários com data de vencimento.</td></tr>
+        <tr><td>🤝 Parceiros</td><td>Cadastrar clientes e fornecedores, ver histórico de cada um.</td></tr>
+        <tr><td>📊 Relatórios</td><td>Visão consolidada de cada módulo com filtros por período.</td></tr>
+        <tr><td>👥 Usuários</td><td>Cadastrar funcionários, definir perfil e o que cada um pode fazer.</td></tr>
+    </table>
+
+    <div class="box box-dica">
+        <div class="titulo">💡 Princípio do sistema</div>
+        Tudo que você registra em um lugar atualiza automaticamente nos outros. Vendeu um boi → animal sai do rebanho ativo + receita aparece no financeiro. Aplicou herbicida no talhão → estoque do herbicida cai + despesa entra no financeiro. Sem retrabalho.
+    </div>
+
+    <h2>Para quem é</h2>
+    <p>O sistema atende a fazenda inteira — do dono ao funcionário no campo. Cada perfil vê apenas o que precisa pro seu trabalho. Detalhes em <a href="#perfis">Perfis de usuário</a>.</p>
+
+    <div class="box box-info" style="background: #fff7ed; border-color: var(--laranja);">
+        <div class="titulo">🚀 Tá começando agora?</div>
+        Vai direto em <a href="#primeiros-passos"><strong>★ Primeiros passos · 5 coisas pra fazer no Dia 1</strong></a>. Lá tem o roteiro do dono no primeiro dia, em 30 minutos.<br>
+        Tem situação concreta pra resolver? Veja <a href="#cenarios-reais"><strong>★ Cenários reais</strong></a>: 6 fluxos completos amarrando todas as telas.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== CONCEITOS ============================== -->
+<section class="pagina" id="conceitos">
+    <h1 class="titulo-secao">2. Conceitos básicos</h1>
+    <p class="subtitulo-secao">Quatro palavras que aparecem o tempo todo</p>
+
+    <h2>🏠 Fazenda</h2>
+    <p>É o "endereço" do seu negócio. Pode ser uma só (Sede) ou várias (Sede + Filial 1 + Retiro Norte). Cada animal, plantio, máquina, despesa pertence a UMA fazenda específica. Quando você tem mais de uma, aparece um seletor no topo da tela pra alternar — vide <a href="#trocar-fazenda">seção 9</a>.</p>
+
+    <h2>👤 Usuário</h2>
+    <p>É a pessoa que entra no sistema com e-mail e senha. Cada usuário tem um <strong>perfil</strong> (dono, gerente, vet…) que define o que ele consegue fazer.</p>
+
+    <h2>📅 Evento</h2>
+    <p>Toda ação registrada na vida de um animal ou lote — pesagem, vacinação, ordenha, mortalidade, venda — é um <em>evento</em>. Os eventos formam a <strong>Linha do tempo</strong> do animal, que é o histórico completo dele.</p>
+
+    <h2>📦 Lote</h2>
+    <p>Agrupamento de animais que andam juntos. Para Bovino e Equino, lote é organizacional ("Vacas Leiteiras 2026"). Para Ave e Peixe, o sistema gerencia o lote inteiro como uma massa de cabeças (você não cadastra cada galinha; cadastra um lote de 500 com peso médio).</p>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Importante</div>
+        Os números do seu rebanho, financeiro e estoque <strong>nunca</strong> precisam ser conferidos manualmente entre telas. O sistema usa fonte única de verdade — se vendeu 1 boi, todas as telas mostram o número novo na mesma hora.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== PERFIS ============================== -->
+<section class="pagina" id="perfis">
+    <h1 class="titulo-secao">3. Perfis de usuário</h1>
+    <p class="subtitulo-secao">O que cada perfil pode acessar e fazer</p>
+
+    <p>São 9 perfis, cada um com permissões diferentes. O dono define qual perfil cada funcionário tem na tela <em>Usuários</em>.</p>
+
+    <h2>🟢 Dono da fazenda</h2>
+    <p>Acesso total. Vê todos os módulos, pode criar/editar/excluir tudo, gerencia funcionários e perfis. É a pessoa que assinou o contrato do sistema.</p>
+
+    <h2>🔵 Gerente</h2>
+    <p>Operação completa: rebanho, financeiro, agrícola, estoque, máquinas, tarefas. <strong>Não pode</strong> mexer em usuários (cadastrar funcionários é só do dono).</p>
+
+    <h2>🩺 Veterinário</h2>
+    <p>Foco no rebanho clínico: cadastra animais, registra vacinações, medicações, mortalidade, controle leiteiro. <strong>Não acessa</strong> Financeiro nem Agrícola.</p>
+
+    <h2>🌽 Agrônomo</h2>
+    <p>Foco no agrícola: talhões, plantios, safras, aplicações de defensivo. <strong>Não acessa</strong> Rebanho nem Financeiro operacional.</p>
+
+    <h2>💼 Financeiro</h2>
+    <p>Foco em receitas, despesas, fluxo de caixa, faturas. <strong>Não acessa</strong> Rebanho nem Agrícola.</p>
+
+    <h2>📋 Administrativo</h2>
+    <p>Documentos e parceiros. Visão limitada de outros módulos.</p>
+
+    <h2>🏃 Funcionário (operacional)</h2>
+    <p>Tarefas atribuídas a ele + ações rápidas no rebanho (pesar, vacinar). <strong>Não acessa</strong> financeiro, relatórios, configurações.</p>
+
+    <h2>🔍 Auditor</h2>
+    <p>Visão de leitura em todos os módulos. Pode ver tudo, não pode editar nada.</p>
+
+    <h2>👁️ Visitante</h2>
+    <p>Acesso muito limitado. Apenas tela de Início. Útil para mostrar o sistema a alguém sem dar acesso real.</p>
+
+    <div class="box box-aviso">
+        <div class="titulo">⚠️ Como mudar o perfil de alguém</div>
+        Vai em <em>Usuários → clica no funcionário → Editar → escolhe novo perfil → salvar</em>. O acesso muda na próxima vez que ele logar.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== LOGIN ============================== -->
+<section class="pagina" id="login">
+    <h1 class="titulo-secao">4. Como entrar no sistema</h1>
+    <p class="subtitulo-secao">Login + primeiro acesso + esqueci a senha</p>
+
+    <h2>Endereço do sistema</h2>
+    <p>Abra o navegador (Chrome, Firefox, Edge ou Safari) e digite:</p>
+    <ul style="padding-left: 25px; margin: 10px 0;">
+        <li>Funcionário/dono da fazenda: <code>app.fazendamacaybas.com.br</code></li>
+        <li>Administrador da plataforma: <code>fazendamacaybas.com.br</code></li>
+    </ul>
+
+    <div class="caixa-print pequena">
+        <div class="print-com-callouts">
+            <img src="screenshots/desktop/01-login.png" alt="Tela de login">
+            <div class="callout" style="top: 38%; left: 35%;">1</div>
+            <div class="callout" style="top: 53%; left: 35%;">2</div>
+            <div class="callout azul" style="top: 67%; left: 35%;">3</div>
+            <div class="callout laranja" style="top: 78%; left: 35%;">4</div>
+        </div>
+        <div class="legenda">Tela de login</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>E-mail</strong>: o e-mail que você cadastrou (ou o dono cadastrou pra você).</li>
+            <li><strong>Senha</strong>: na primeira vez, é a senha temporária recebida por e-mail.</li>
+            <li><strong>Botão Entrar</strong>: clique pra acessar.</li>
+            <li><strong>Esqueci minha senha</strong>: se não lembra, clique aqui.</li>
+        </ol>
+    </div>
+</section>
+
+<section class="pagina">
+    <h2>Primeiro acesso</h2>
+    <p>Quando você entra com a senha temporária, o sistema te leva direto pra tela de troca de senha. Você precisa criar uma nova antes de continuar.</p>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Digite a senha temporária recebida por e-mail.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Crie uma nova senha forte: pelo menos 8 caracteres, com letras, números e um símbolo.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Confirme digitando a nova senha de novo.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Clique em "Salvar". O sistema te leva pra tela de Início.</div>
+    </div>
+
+    <div class="box box-aviso">
+        <div class="titulo">⚠️ A nova senha é a única que vai funcionar</div>
+        Anote em local seguro. A senha temporária deixa de funcionar após a primeira troca.
+    </div>
+
+    <h2>Esqueci minha senha — como recuperar</h2>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Na tela de login, clique em <strong>"Esqueci minha senha"</strong>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Digite seu e-mail e clique em "Enviar link".</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Aparece a mensagem: <em>"Se o e-mail estiver cadastrado, você receberá um link em alguns minutos."</em> Confira sua caixa de entrada (e o spam, por garantia).</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Clique no link do e-mail (válido por 1 hora). Crie uma senha nova. Pronto.</div>
+    </div>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Por que não diz se o e-mail existe?</div>
+        Por segurança. Se dissesse "e-mail não cadastrado" para qualquer pessoa, alguém mal-intencionado conseguiria descobrir quais e-mails têm conta no sistema. A mensagem é genérica de propósito.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== TROCAR SENHA ============================== -->
+<section class="pagina" id="trocar-senha">
+    <h1 class="titulo-secao">5. Trocar minha senha / minha foto</h1>
+    <p class="subtitulo-secao">Cuidando do seu perfil</p>
+
+    <h2>Trocar minha senha (depois de já estar logado)</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Clique no <strong>seu avatar</strong> (canto superior direito) → escolha "Alterar senha" no menu.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Digite a senha atual e a senha nova (mesmas regras: 8+ chars, letras, números, símbolo).</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Clique em "Salvar".</div>
+    </div>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ A nova senha não pode ser igual à atual</div>
+        O sistema bloqueia troca pela mesma senha (não fazia sentido).
+    </div>
+
+    <h2>Trocar minha foto de perfil</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Clique no <strong>seu avatar</strong> → "Alterar foto do perfil".</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Escolha uma imagem do seu computador/celular. JPG ou PNG, máximo 5MB.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Sistema corta a foto em formato circular automático e exibe.</div>
+    </div>
+
+    <h2>Sair do sistema (logout)</h2>
+    <p>Clique no seu avatar → "Sair". Volta pra tela de login. <strong>Sempre saia em computadores compartilhados.</strong></p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== INÍCIO ============================== -->
+<section class="pagina" id="inicio">
+    <h1 class="titulo-secao">6. Tela de Início</h1>
+    <p class="subtitulo-secao">"O que você quer fazer?" · ponto de partida</p>
+
+    <p>A tela de Início é o seu ponto de partida todos os dias. Em vez de menus e relatórios, ela pergunta diretamente: <em>"O que você quer fazer agora?"</em> e mostra os atalhos para as ações mais comuns.</p>
+
+    <div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/desktop/02-inicio-hub.png" alt="Tela de início">
+            <div class="callout" style="top: 8%; left: 1%;">1</div>
+            <div class="callout azul" style="top: 18%; left: 30%;">2</div>
+            <div class="callout laranja" style="top: 35%; left: 30%;">3</div>
+            <div class="callout verde" style="top: 92%; right: 2%;">4</div>
+        </div>
+        <div class="legenda">Tela de início no computador</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>Menu lateral</strong>: todos os módulos. Seções "Operação" e "Administração" agrupam telas similares.</li>
+            <li><strong>Saudação personalizada</strong>: "Bom dia/Boa tarde/Boa noite, [Seu nome]". Muda conforme o horário.</li>
+            <li><strong>Cards de ações rápidas</strong>: cada card abre um modal de cadastro rápido sem sair da tela.</li>
+            <li><strong>Topo</strong>: troca de fazenda (se &gt;1) e dropdown do seu usuário.</li>
+        </ol>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== PAINEL ============================== -->
+<section class="pagina" id="painel">
+    <h1 class="titulo-secao">7. Painel</h1>
+    <p class="subtitulo-secao">Visão geral · saldo, rebanho e tarefas em uma tela</p>
+
+    <p>O Painel mostra os números mais importantes da sua fazenda em tempo real — receitas e despesas do mês, saldo, total de animais ativos, tarefas pendentes. Tela ideal para abrir de manhã e ver onde está cada coisa.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/03-painel.png" alt="Painel">
+        <div class="legenda">Painel · visão geral da operação</div>
+    </div>
+
+    <h3>Os 4 cards principais do topo</h3>
+    <table>
+        <tr><th>Card</th><th>Mostra</th><th>Clicar te leva pra…</th></tr>
+        <tr><td>💰 Receitas do mês</td><td>Soma das receitas pagas</td><td>Lista filtrada de receitas</td></tr>
+        <tr><td>💸 Despesas do mês</td><td>Soma das despesas pagas</td><td>Lista filtrada de despesas</td></tr>
+        <tr><td>🟰 Saldo do mês</td><td>Receitas menos despesas</td><td>Detalhamento</td></tr>
+        <tr><td>🐄 Rebanho</td><td>Total de animais ativos</td><td>Hub do Rebanho</td></tr>
+    </table>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== NAVEGAÇÃO ============================== -->
+<section class="pagina" id="navegacao">
+    <h1 class="titulo-secao">8. Como navegar</h1>
+    <p class="subtitulo-secao">Sidebar (menu lateral) e Topbar (barra superior)</p>
+
+    <h2>Menu lateral (sidebar)</h2>
+    <p>O menu lateral organiza os módulos em três grupos:</p>
+
+    <ul style="padding-left: 25px; margin: 10px 0;">
+        <li><strong>Principal</strong>: Início e Painel</li>
+        <li><strong>Operação</strong>: Financeiro, Rebanho, Agrícola, Estoque, Máquinas, Funcionários, Tarefas, Documentos, Parceiros</li>
+        <li><strong>Relatórios</strong>: Relatórios consolidados</li>
+        <li><strong>Administração</strong>: Faturas, Usuários, Perfis e permissões</li>
+    </ul>
+
+    <p>O item <strong>Rebanho</strong> tem submenu — clica na seta pra abrir os atalhos por espécie (Bovino, Equino, Suíno…). Cada espécie tem o número de animais ativos ao lado.</p>
+
+    <h2>Topbar (barra do topo)</h2>
+    <p>A barra superior tem:</p>
+    <ul style="padding-left: 25px; margin: 10px 0;">
+        <li><strong>Título da página</strong> — onde você está agora</li>
+        <li><strong>Seletor de fazenda</strong> — se sua conta tem mais de 1 farm</li>
+        <li><strong>Avatar e dropdown</strong> — alterar foto, alterar senha, sair</li>
+    </ul>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== TROCAR FAZENDA ============================== -->
+<section class="pagina" id="trocar-fazenda">
+    <h1 class="titulo-secao">9. Trocar de fazenda</h1>
+    <p class="subtitulo-secao">Quando sua conta tem mais de uma unidade</p>
+
+    <p>Se sua empresa tem várias fazendas no sistema (Sede, Filial 1, Retiro), você precisa escolher qual delas vai operar. Cada fazenda tem seus próprios animais, contas, plantios, etc.</p>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">No topo da tela, ao lado do seu avatar, aparece um botão verde com o nome da fazenda atual (ex.: "Sede da Fazenda").</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Clique nesse botão. Abre um menu com as outras fazendas que você tem acesso.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Clique na fazenda desejada. O sistema atualiza tudo — animais, financeiro, etc. — pra mostrar só os dados daquela.</div>
+    </div>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Quando o seletor não aparece</div>
+        Se a sua conta só tem uma fazenda, o seletor fica oculto. Aparece automaticamente quando o dono cadastra uma segunda fazenda.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== REBANHO HUB ============================== -->
+<section class="pagina" id="rebanho-hub">
+    <h1 class="titulo-secao">10. Hub do Rebanho</h1>
+    <p class="subtitulo-secao">Sua porta de entrada pro rebanho</p>
+
+    <p>Quando você clica em "Rebanho" no menu, abre o Hub: uma tela com card por espécie cadastrada. Cada card mostra a quantidade ativa daquela espécie. Clique no card pra abrir o dashboard daquela espécie.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/10-rebanho-hub.png" alt="Hub Rebanho">
+        <div class="legenda">Hub Rebanho · uma tela por espécie</div>
+    </div>
+
+    <p>O Hub também mostra:</p>
+    <ul style="padding-left: 25px; margin: 8px 0;">
+        <li><strong>Total Ativo</strong>: soma de todas as cabeças de todas as espécies</li>
+        <li><strong>Atalhos</strong> pra Lotes e Locais (pastos)</li>
+    </ul>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== ESPÉCIES ============================== -->
+<section class="pagina" id="especies">
+    <h1 class="titulo-secao">11. As 11 espécies disponíveis</h1>
+    <p class="subtitulo-secao">Cada uma com manejo adaptado</p>
+
+    <p>O sistema vem com 11 espécies pré-cadastradas, organizadas por <em>profile</em> (perfil de manejo) que define quais ações fazem sentido pra cada uma. Veja exemplos:</p>
+
+    <table>
+        <tr><th>Espécie</th><th>Profile</th><th>Gestão</th><th>Ações típicas</th></tr>
+        <tr><td>🐄 Bovino</td><td>ruminante (corte/leite/misto)</td><td>Individual</td><td>Pesar, vacinar, ordenhar, cobertura, parto, vender</td></tr>
+        <tr><td>🐎 Equino</td><td>equino</td><td>Individual</td><td>Pesar, ferrageamento, vacinar</td></tr>
+        <tr><td>🐖 Suíno</td><td>suino</td><td>Individual</td><td>Pesar, vacinar, cobertura, desmame</td></tr>
+        <tr><td>🐐 Caprino</td><td>ruminante leite</td><td>Individual</td><td>Pesar, vacinar, ordenhar</td></tr>
+        <tr><td>🐑 Ovino</td><td>ruminante lã</td><td>Individual</td><td>Pesar, vacinar, tosquia</td></tr>
+        <tr><td>🐔 Ave</td><td>ave (postura/corte)</td><td>Lote agregado</td><td>Postura diária, biometria, alimentação, mortalidade</td></tr>
+        <tr><td>🐟 Peixe</td><td>aquicultura</td><td>Lote agregado</td><td>Biometria, qualidade da água, alimentação</td></tr>
+        <tr><td>🐶 Cão</td><td>pet</td><td>Individual</td><td>Vacinar, vermifugar, observação</td></tr>
+        <tr><td>🐱 Gato</td><td>pet</td><td>Individual</td><td>Idem cão</td></tr>
+        <tr><td>🐃 Búfalo</td><td>ruminante</td><td>Individual</td><td>Igual Bovino</td></tr>
+        <tr><td>🐰 Coelho</td><td>cunicultura</td><td>Individual</td><td>Pesar, vacinar, cobertura, parto</td></tr>
+    </table>
+
+    <h2>Diferença entre "Individual" e "Lote agregado"</h2>
+    <p><strong>Individual</strong>: você cadastra cada animal com brinco/identificação. Bovino, Equino, Suíno, Caprino, Ovino, Cão, Gato, Búfalo, Coelho seguem esse modelo.</p>
+    <p><strong>Lote agregado</strong>: você cadastra o lote inteiro com a quantidade de cabeças (ex.: "Lote galpão A — 500 galinhas"). Ave e Peixe usam esse modelo porque seria inviável cadastrar cada uma.</p>
+</section>
+
+<section class="pagina">
+    <h2>Dashboards de cada espécie</h2>
+    <p>Cada espécie tem um dashboard adaptado às suas particularidades. Aqui um resumo visual:</p>
+
+    <div class="comparacao">
+        <div>
+            <div class="titulo-comparacao">🐄 Bovino</div>
+            <div class="caixa-print"><img src="screenshots/especies/bovino.png" alt="Bovino"></div>
+        </div>
+        <div>
+            <div class="titulo-comparacao">🐔 Ave (lote)</div>
+            <div class="caixa-print"><img src="screenshots/especies/ave.png" alt="Ave"></div>
+        </div>
+    </div>
+
+    <div class="comparacao">
+        <div>
+            <div class="titulo-comparacao">🐟 Peixe (lote)</div>
+            <div class="caixa-print"><img src="screenshots/especies/peixe.png" alt="Peixe"></div>
+        </div>
+        <div>
+            <div class="titulo-comparacao">🐎 Equino</div>
+            <div class="caixa-print"><img src="screenshots/especies/equino.png" alt="Equino"></div>
+        </div>
+    </div>
+
+    <div class="comparacao">
+        <div>
+            <div class="titulo-comparacao">🐖 Suíno</div>
+            <div class="caixa-print"><img src="screenshots/especies/suino.png" alt="Suíno"></div>
+        </div>
+        <div>
+            <div class="titulo-comparacao">🐐 Caprino</div>
+            <div class="caixa-print"><img src="screenshots/especies/caprino.png" alt="Caprino"></div>
+        </div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== CADASTRAR ANIMAL ============================== -->
+<section class="pagina" id="cadastrar-animal">
+    <h1 class="titulo-secao">12. Cadastrar animal individual</h1>
+    <p class="subtitulo-secao">Passo a passo · Bovino, Equino, Suíno, Caprino, Ovino, Cão, Gato, Búfalo, Coelho</p>
+
+    <h2>Onde está o botão</h2>
+    <p>No dashboard da espécie (clique em Bovino no menu lateral, por exemplo), aparece um botão verde grande "+ Cadastrar bovino" no canto superior direito.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/forms/form-novo-animal-bovino.png" alt="Formulário de novo bovino">
+        <div class="legenda">Formulário de cadastro de bovino</div>
+    </div>
+
+    <h2>Passo a passo</h2>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><strong>Identificação</strong> (obrigatório): número do brinco ou código único. Ex.: "BR-001". É como o sistema vai chamar esse animal pra sempre.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo"><strong>Nome</strong> (opcional, mas recomendado): "Mimosa", "Estrela". Facilita identificar.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo"><strong>Sexo</strong> (obrigatório): Macho ou Fêmea.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo"><strong>Categoria</strong>: Corte, Leite, Reprodução, Misto. Define o uso do animal e habilita ações específicas (ex.: ordenha só aparece para "Leite" ou "Misto").</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo"><strong>Data de nascimento</strong> (obrigatório pra perfil ruminante): formato dd/mm/aaaa.</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo"><strong>Peso atual</strong>: em quilos. O sistema usa isso pra média de peso médio do rebanho.</div>
+    </div>
+    <div class="passo">
+        <div class="num">7</div>
+        <div class="conteudo"><strong>Raça</strong>: escolha da lista cadastrada. Se não tem, pode adicionar nova.</div>
+    </div>
+    <div class="passo">
+        <div class="num">8</div>
+        <div class="conteudo"><strong>Lote</strong>: o grupo de animais que ele pertence ("Vacas leiteiras 2026"). Pode deixar vazio.</div>
+    </div>
+    <div class="passo">
+        <div class="num">9</div>
+        <div class="conteudo"><strong>Local (pasto/curral)</strong>: onde ele tá fisicamente.</div>
+    </div>
+    <div class="passo">
+        <div class="num">10</div>
+        <div class="conteudo"><strong>Origem</strong>: nascido na fazenda, comprado, doado. Se comprado: informa o fornecedor (parceiro), data e valor.</div>
+    </div>
+    <div class="passo">
+        <div class="num">11</div>
+        <div class="conteudo"><strong>Foto</strong> (opcional): tira ou faz upload. Útil pra identificar visualmente depois.</div>
+    </div>
+    <div class="passo">
+        <div class="num">12</div>
+        <div class="conteudo"><strong>Salvar</strong>. O animal aparece na lista com badge "ativo".</div>
+    </div>
+
+    <div class="box box-dica">
+        <div class="titulo">💡 Cadastro em massa?</div>
+        Se você tá cadastrando 50 bezerros do mesmo lote/raça/data nascimento, o sistema preserva os dados do último cadastro como sugestão. Você só muda o brinco e dispara o próximo.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== LISTAGEM ============================== -->
+<section class="pagina" id="listagem-animais">
+    <h1 class="titulo-secao">13. Listagem de animais</h1>
+    <p class="subtitulo-secao">Onde encontrar, filtrar e pesquisar</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/12-rebanho-animais-lista.png" alt="Lista de animais">
+        <div class="legenda">Lista de animais com cards de KPI no topo</div>
+    </div>
+
+    <h2>Cards de resumo (no topo)</h2>
+    <table>
+        <tr><td><strong>Ativos</strong></td><td>Total de animais com status "ativo" da espécie filtrada</td></tr>
+        <tr><td><strong>Peso médio</strong></td><td>Média do último evento de pesagem de cada animal</td></tr>
+        <tr><td><strong>Vendidos</strong></td><td>Vendidos no mês corrente</td></tr>
+        <tr><td><strong>Baixas</strong></td><td>Mortes/abates no mês corrente</td></tr>
+    </table>
+
+    <h2>Pesquisa</h2>
+    <p>Caixa "Buscar por brinco ou nome..." no topo. Digite parte do brinco ou nome e a lista filtra em tempo real.</p>
+
+    <h2>Filtros</h2>
+    <p>Clique em "Mostrar filtros" pra abrir os filtros adicionais:</p>
+    <ul style="padding-left: 25px; margin: 8px 0;">
+        <li><strong>Categoria</strong>: leite, corte, reprodução…</li>
+        <li><strong>Lote</strong>: filtra animais de um lote específico</li>
+        <li><strong>Local</strong>: filtra animais que estão num pasto</li>
+        <li><strong>Status</strong>: ativo, vendido, morto, abatido</li>
+    </ul>
+
+    <h2>Ações em cada linha</h2>
+    <p>Em cada animal da lista aparecem ícones do lado direito:</p>
+    <ul style="padding-left: 25px; margin: 8px 0;">
+        <li><strong>✓ verde</strong>: Status ativo (clica pra ver outros status)</li>
+        <li><strong>⚖️ azul</strong>: Pesar rápido</li>
+        <li><strong>🕒 cinza</strong>: Ver histórico (linha do tempo)</li>
+        <li><strong>✏️ cinza</strong>: Editar</li>
+        <li><strong>🗑️ vermelho</strong>: Excluir</li>
+    </ul>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== TIMELINE ============================== -->
+<section class="pagina" id="timeline-animal">
+    <h1 class="titulo-secao">14. Linha do tempo do animal</h1>
+    <p class="subtitulo-secao">O histórico completo de cada bicho</p>
+
+    <p>Clique no nome de qualquer animal da lista. Abre uma tela com o histórico completo dele em três abas: Linha do tempo, Evolução de peso e (para leiteiras) Evolução leiteira.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/modais/animal-show-timeline.png" alt="Timeline do animal">
+        <div class="legenda">Linha do tempo · todos os eventos do animal em ordem cronológica</div>
+    </div>
+</section>
+
+<section class="pagina">
+    <h2>Linha do tempo</h2>
+    <p>Lista todos os eventos registrados (pesagem, vacinação, ordenha, mortalidade, etc.) em ordem do mais recente pro mais antigo. Cada evento mostra ícone, tipo, data e detalhes específicos.</p>
+
+    <h2>Evolução de peso</h2>
+    <p>Gráfico de linha mostrando o peso do animal ao longo do tempo (a partir das pesagens registradas). Útil pra ver se o animal está ganhando peso bem ou parado. Precisa de pelo menos 2 pesagens.</p>
+
+    <h2>Evolução leiteira (só pra Bovino/Caprino/Búfalo leiteiros)</h2>
+    <p>Gráfico de produção mensal de leite, somando as ordenhas registradas. Identifica quedas e picos.</p>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ "Pesagens registradas" no card</div>
+        Quando o card mostra "0" e o aviso "Ainda sem avaliação", significa que você não pesou esse animal nenhuma vez. Registre uma pesagem (botão "+ Novo evento" → Pesar) e o gráfico começa.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== EVENTOS · PESAR ============================== -->
+<section class="pagina" id="evento-pesar">
+    <h1 class="titulo-secao">15. Pesar um animal</h1>
+    <p class="subtitulo-secao">A ação mais comum no rebanho</p>
+
+    <h2>Onde está</h2>
+    <p>Tem 3 maneiras de pesar:</p>
+
+    <ol style="padding-left: 25px; margin: 8px 0;">
+        <li>No <strong>dashboard da espécie</strong>: card "Pesar" nas Ações Rápidas.</li>
+        <li>Na <strong>lista de animais</strong>: ícone de balança ⚖️ na linha do animal.</li>
+        <li>No <strong>show do animal</strong>: botão "+ Novo evento" → Pesar.</li>
+    </ol>
+
+    <div class="mockup-modal">
+        <div class="mockup-header">⚖️ Pesar animal</div>
+        <div class="mockup-body">
+            <div class="campo">
+                <div class="lbl">Animal *</div>
+                BR-001 — Mimosa <span style="color: var(--cinza-3);">(último peso: 380kg)</span>
+            </div>
+            <div class="campo">
+                <div class="lbl">Peso (kg) *</div>
+                425.5
+            </div>
+            <div class="campo">
+                <div class="lbl">Data</div>
+                28/04/2026
+            </div>
+            <div class="campo">
+                <div class="lbl">Observação</div>
+                <span style="color: var(--cinza-3);">opcional…</span>
+            </div>
+        </div>
+        <div class="botoes">
+            <span class="botao secundario">Cancelar</span>
+            <span class="botao primario">Salvar</span>
+        </div>
+    </div>
+    <div class="legenda" style="text-align: center; font-size: 9pt; color: var(--cinza-2); font-style: italic; margin-top: 4px;">Layout do modal de pesagem rápida</div>
+
+    <h2>Passo a passo</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><strong>Animal</strong>: digite o brinco ou nome (autocompleta). Mostra peso anterior pra comparação.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo"><strong>Peso (kg)</strong>: ex. 425.5. Aceita decimais.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo"><strong>Data da pesagem</strong>: hoje por padrão. Pode mudar pra data passada.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo"><strong>Observação</strong> (opcional).</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">Clique <strong>"Salvar"</strong>. Aparece o toast verde de confirmação.</div>
+    </div>
+
+    <div class="box box-dica">
+        <div class="titulo">💡 Pesagem em massa</div>
+        Se for pesar muitos animais de uma vez, use o atalho do dashboard da espécie. Cada Salvar limpa o campo Animal e mantém você no modal — basta digitar o próximo brinco.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== EVENTOS · VACINAÇÃO ============================== -->
+<section class="pagina" id="evento-vacinar">
+    <h1 class="titulo-secao">16. Vacinar / medicar / vermifugar</h1>
+    <p class="subtitulo-secao">Eventos sanitários</p>
+
+    <p>Vacinação, medicação e vermifugação seguem o mesmo padrão: dashboard da espécie → ação rápida → preencher modal.</p>
+
+    <div class="mockup-modal">
+        <div class="mockup-header">💉 Vacinar</div>
+        <div class="mockup-body">
+            <div class="campo">
+                <div class="lbl">Aplicar em *</div>
+                ◯ Animal individual &nbsp;&nbsp; ⬤ Lote inteiro
+            </div>
+            <div class="campo">
+                <div class="lbl">Lote *</div>
+                BL-002 — Vacas Leiteiras 2026 (32 cabeças)
+            </div>
+            <div class="campo">
+                <div class="lbl">Vacina *</div>
+                Aftosa Polivalente
+            </div>
+            <div class="campo">
+                <div class="lbl">Dose</div>
+                5ml
+            </div>
+            <div class="campo">
+                <div class="lbl">Via de aplicação</div>
+                Subcutânea
+            </div>
+            <div class="campo">
+                <div class="lbl">Responsável</div>
+                Dr. Carlos (vet)
+            </div>
+        </div>
+        <div class="botoes">
+            <span class="botao secundario">Cancelar</span>
+            <span class="botao primario">Salvar</span>
+        </div>
+    </div>
+    <div class="legenda" style="text-align: center; font-size: 9pt; color: var(--cinza-2); font-style: italic; margin-top: 4px;">Layout do modal de vacinação</div>
+
+    <h2>Vacinação</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Card "Vacinar" no dashboard da espécie.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Escolher: <strong>animal individual</strong> ou <strong>lote inteiro</strong>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Preencher: nome da vacina, dose, via de aplicação (subcutânea, intramuscular, oral), responsável.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Salvar. Vacinação aparece no histórico de cada animal afetado.</div>
+    </div>
+
+    <h2>Medicação</h2>
+    <p>Igual à vacinação, mas com nome do medicamento e dose específica. Útil pra registrar tratamentos (antibiótico, anti-inflamatório).</p>
+
+    <h2>Vermifugação</h2>
+    <p>Idem. Sistema separa pra você ter histórico claro de quando cada animal foi vermifugado.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== ORDENHA ============================== -->
+<section class="pagina" id="evento-ordenha">
+    <h1 class="titulo-secao">17. Registrar ordenha</h1>
+    <p class="subtitulo-secao">Para Bovino/Caprino/Búfalo leiteiros</p>
+
+    <p>A ordenha é registrada por animal, podendo informar até 3 ordenhas no mesmo dia (manhã, tarde, noite).</p>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Dashboard da espécie → card <strong>"Registrar ordenha"</strong>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Escolha a vaca/cabra/búfala.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Preencha:
+            <ul style="padding-left: 20px; margin: 4px 0;">
+                <li>Litros 1ª ordenha (manhã)</li>
+                <li>Litros 2ª ordenha (tarde)</li>
+                <li>Litros 3ª ordenha (noite, opcional)</li>
+            </ul>
+        </div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Salvar. Total do dia entra no Controle Leiteiro do mês.</div>
+    </div>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Ordenha vs Controle Leiteiro</div>
+        Ordenha = evento individual de uma vaca em um dia. <a href="#controle-leiteiro">Controle Leiteiro</a> = visão consolidada do mês inteiro de todas as vacas. As ordenhas individuais alimentam o Controle.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== MOVIMENTAÇÃO ============================== -->
+<section class="pagina" id="evento-mover">
+    <h1 class="titulo-secao">18. Mudar de lote ou local</h1>
+    <p class="subtitulo-secao">Movimentação de animais</p>
+
+    <p>Quando você quer mover um animal pra outro lote (organização) ou pra outro pasto/curral (localização física), usa a ação "Mudar de lote".</p>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Dashboard da espécie → card <strong>"Mudar de lote"</strong>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Escolha o animal (ou lote inteiro).</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Selecione o lote de destino (opcional) e/ou o local de destino (pasto, curral).</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Adicione observação (motivo da movimentação, por exemplo).</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">Salvar. Movimentação registrada no histórico, animal/lote atualizado.</div>
+    </div>
+
+    <h2>Para lotes agregados (Ave/Peixe)</h2>
+    <p>Pode transferir parte das cabeças de um lote pra outro. Ex.: separar 100 frangos do galpão A pro galpão B. O sistema decrementa o lote A e incrementa o lote B automaticamente.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== REPRODUÇÃO ============================== -->
+<section class="pagina" id="evento-reproducao">
+    <h1 class="titulo-secao">19. Cobertura, exame de toque, parto</h1>
+    <p class="subtitulo-secao">Manejo reprodutivo</p>
+
+    <h2>Cobertura</h2>
+    <p>Registra a cobertura de uma fêmea por monta natural ou inseminação artificial.</p>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Dashboard da espécie → "Cobertura".</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Escolha a fêmea, informe o reprodutor (macho da fazenda) ou o sêmen utilizado, data e responsável.</div>
+    </div>
+
+    <h2>Exame de toque (palpação)</h2>
+    <p>Cerca de 60 dias após a cobertura, fazer o exame pra confirmar prenhez.</p>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Dashboard da espécie → "Exame de toque".</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Escolha a fêmea, informe o resultado: <strong>positivo</strong> (prenhe) ou <strong>negativo</strong>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Se positivo, o sistema cria automaticamente uma <strong>tarefa</strong> de "Registrar parto" pro veterinário/dono, programada pra data prevista do parto (~280 dias após cobertura).</div>
+    </div>
+
+    <h2>Parto</h2>
+    <p>Quando a tarefa de parto chegar, abre o wizard de parto:</p>
+    <ul style="padding-left: 25px; margin: 8px 0;">
+        <li>Confirma data e horário do parto</li>
+        <li>Cadastra cada cria nascida (sexo, peso, identificação, status — viva/natimorta)</li>
+        <li>O sistema vincula automaticamente a mãe à cria (linhagem)</li>
+    </ul>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== MORTALIDADE ============================== -->
+<section class="pagina" id="evento-mortalidade">
+    <h1 class="titulo-secao">20. Mortalidade</h1>
+    <p class="subtitulo-secao">Quando um animal morre ou é abatido</p>
+
+    <p>Registrar mortalidade tira o animal do "ativo" e registra a baixa.</p>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Dashboard da espécie → "Mortalidade" / "Registrar morte".</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Escolha o animal (individual) ou o lote (massa, pra Ave/Peixe).</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Pra lote agregado: informe quantas cabeças morreram (ex.: 12 frangos do galpão A).</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Causa: doença, predador, acidente, idade, abate sanitário.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">Data e observação.</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo">Salvar. Animal vai pra status "morto" / lote tem cabeças decrementadas. Total do rebanho atualiza.</div>
+    </div>
+
+    <div class="box box-aviso">
+        <div class="titulo">⚠️ Mortalidade em lote agregado zerado</div>
+        Se você registra a morte de TODAS as cabeças de um lote (ex.: lote tinha 100, morreram 100), o sistema marca o lote com data de fim. O lote fica visível no histórico mas não conta mais como ativo.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== APAGAR EVENTO ============================== -->
+<section class="pagina" id="evento-apagar">
+    <h1 class="titulo-secao">21. Apagar um evento errado</h1>
+    <p class="subtitulo-secao">Quando você lançou pesagem com peso errado, vacinou o animal trocado, etc.</p>
+
+    <p>Vai acontecer. Pra desfazer:</p>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Abra o animal pela lista (ou pelo ícone de timeline 🕒).</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Vai pra aba "Linha do tempo".</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Encontre o evento errado e clique no <strong>ícone de lixeira vermelha</strong> à direita do card.</div>
+    </div>
+
+    <div class="mockup-modal alerta">
+        <div class="mockup-header">⚠️ Apagar registro de pesagem?</div>
+        <div class="mockup-body">
+            <p style="margin: 0 0 8px;"><strong>Animal:</strong> BR-001 — Mimosa</p>
+            <p style="margin: 0 0 8px;"><strong>Data:</strong> 28/04/2026 · 14:35</p>
+            <p style="margin: 0 0 8px;"><strong>Peso registrado:</strong> 425,5 kg</p>
+            <p style="margin: 12px 0 0; padding: 8px 10px; background: #fef2f2; border-left: 3px solid var(--vermelho); border-radius: 4px; font-size: 9.5pt;">
+                ❗ Ao apagar este evento, o peso atual do animal volta ao valor da pesagem anterior. Esta ação não pode ser desfeita.
+            </p>
+        </div>
+        <div class="botoes">
+            <span class="botao secundario">Cancelar</span>
+            <span class="botao perigo">Sim, apagar registro</span>
+        </div>
+    </div>
+    <div class="legenda" style="text-align: center; font-size: 9pt; color: var(--cinza-2); font-style: italic; margin-top: 4px;">Layout do modal de confirmação de exclusão</div>
+
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Aparece a confirmação <strong>"Apagar registro de [tipo]?"</strong>. Confira data e clique <strong>"Sim, apagar registro"</strong>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">O sistema mostra um aviso explicando exatamente o que aconteceu.</div>
+    </div>
+
+    <h2>O que o sistema reverte ao apagar</h2>
+    <table>
+        <tr><th>Tipo do evento apagado</th><th>O que reverte</th></tr>
+        <tr><td>Pesagem</td><td>peso_atual do animal volta ao valor da pesagem anterior</td></tr>
+        <tr><td>Venda</td><td>Animal volta a "ativo" + receita estornada (cria contra-lançamento no financeiro)</td></tr>
+        <tr><td>Mortalidade/Morte/Abate</td><td>Animal volta a "ativo"</td></tr>
+        <tr><td>Vacinação/Medicação/Outros</td><td>Apenas tira do histórico (sem reversão de estado)</td></tr>
+    </table>
+
+    <div class="box box-aviso">
+        <div class="titulo">⚠️ Cuidado com apagar venda</div>
+        Apagar evento de venda CRIA UM ESTORNO no financeiro (despesa de mesmo valor, descrita como "Estorno · venda do animal X"). É a forma correta de desfazer venda — preserva histórico e mantém saldo do caixa coerente.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== LOTES ============================== -->
+<section class="pagina" id="lotes">
+    <h1 class="titulo-secao">22. Lotes</h1>
+    <p class="subtitulo-secao">Agrupar animais que andam juntos</p>
+
+    <p>Lote é o agrupamento organizacional. "Vacas Leiteiras 2026", "Engorda Galpão A", "Lote Cria Junho".</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/13-rebanho-lotes.png" alt="Lista de lotes">
+        <div class="legenda">Lista de lotes</div>
+    </div>
+
+    <h2>Cadastrar novo lote</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Em <em>Rebanho → Lotes</em>, clique em "+ Novo lote".</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Preencha: código (BL-001), nome, espécie, finalidade (corte/leite/postura/recria/engorda/outro).</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Pra <strong>lote agregado</strong> (Ave/Peixe): informe quantidade inicial de cabeças e peso médio.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Salvar.</div>
+    </div>
+
+    <div class="caixa-print">
+        <img src="screenshots/forms/form-novo-lote.png" alt="Formulário de novo lote">
+        <div class="legenda">Formulário de cadastro de lote</div>
+    </div>
+
+    <h2>Excluir lote</h2>
+    <p>Só dá pra excluir lote VAZIO (sem animais nem cabeças). Se tem cabeças, registre mortalidade total ou venda primeiro.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== LOCAIS ============================== -->
+<section class="pagina" id="locais">
+    <h1 class="titulo-secao">23. Locais (pastos, currais, tanques)</h1>
+    <p class="subtitulo-secao">Onde os animais ficam fisicamente</p>
+
+    <p>Local é o lugar físico. Tipos disponíveis: pasto, piquete, curral, baia, tanque, galpão, outro.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/14-rebanho-locais.png" alt="Lista de locais">
+        <div class="legenda">Lista de locais</div>
+    </div>
+
+    <h2>Cadastrar local</h2>
+    <p>Em <em>Rebanho → Locais</em>, "+ Novo local". Informe nome, tipo, capacidade (cabeças que aguenta) e observações. Salvar.</p>
+
+    <h2>Diferença entre Lote e Local</h2>
+    <p><strong>Lote</strong>: agrupamento organizacional (pode misturar lotes em mesmo pasto).<br>
+    <strong>Local</strong>: ponto físico onde estão os animais.</p>
+
+    <p>Um animal tem um lote (organizacional) e um local (físico). Pode pertencer ao "Lote Engorda 2026" e estar no "Pasto da Sede". Mover de um pasto pra outro NÃO muda o lote.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== CONTROLE LEITEIRO ============================== -->
+<section class="pagina" id="controle-leiteiro">
+    <h1 class="titulo-secao">24. Controle Leiteiro</h1>
+    <p class="subtitulo-secao">Quadro mensal por vaca · só pra fazendas leiteiras</p>
+
+    <p>O Controle Leiteiro é a planilha mensal do gado leiteiro: cada vaca em uma linha, dias do mês nas colunas, ordenhas registradas.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/15-rebanho-controle-leiteiro.png" alt="Controle Leiteiro">
+        <div class="legenda">Controle Leiteiro · Abril 2026</div>
+    </div>
+
+    <h2>KPIs do topo</h2>
+    <table>
+        <tr><td><strong>Total do mês</strong></td><td>Soma de litros de todas as vacas</td></tr>
+        <tr><td><strong>Vacas ordenhadas</strong></td><td>Vacas com pelo menos 1 ordenha no mês</td></tr>
+        <tr><td><strong>Média por vaca</strong></td><td>Total ÷ vacas ordenhadas</td></tr>
+        <tr><td><strong>Top produtora</strong></td><td>Quem mais produziu</td></tr>
+    </table>
+
+    <h2>Como adicionar produção</h2>
+    <p>Cada ordenha registrada (via dashboard espécie → "Registrar ordenha") aparece automaticamente aqui. Ou você pode usar o botão "+ Novo controle do mês" pra adicionar tudo de uma vez.</p>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Navegação por mês</div>
+        Use as setas ← → no topo pra navegar entre meses (abril, maio, etc.). O mês atual é o padrão.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== VENDER ANIMAL ============================== -->
+<section class="pagina" id="vender-animal">
+    <h1 class="titulo-secao">25. Vender animal (wizard)</h1>
+    <p class="subtitulo-secao">A ação que mais gera valor · cuidado especial</p>
+
+    <p>Vender um animal é uma ação cara — gera receita, baixa o animal do ativo, atualiza o caixa. O sistema usa um <strong>wizard guiado em 5 passos</strong> pra você não errar.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/wizards/wizard-venda-animal.png" alt="Wizard de venda">
+        <div class="legenda">Wizard de venda de animal</div>
+    </div>
+
+    <h2>Passo a passo</h2>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><strong>Modo de venda</strong>: escolha entre:
+            <ul style="padding-left: 20px; margin: 4px 0;">
+                <li><strong>Individual</strong>: vendendo 1 animal específico</li>
+                <li><strong>Múltiplos</strong>: vários animais, cada um identificado</li>
+                <li><strong>Lote inteiro</strong>: lote agregado (Ave/Peixe) inteiro</li>
+                <li><strong>Por quantidade</strong>: massa de cabeças sem identificação individual</li>
+                <li><strong>Por peso</strong>: vendendo X kg do lote</li>
+            </ul>
+        </div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo"><strong>Selecionar animais/lote</strong>: marque os animais ou o lote a vender.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo"><strong>Comprador</strong>: escolha o cliente (cadastrado em Parceiros). Se não tiver, cadastra inline.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo"><strong>Valores</strong>: informe a unidade real do mercado:
+            <ul style="padding-left: 20px; margin: 4px 0;">
+                <li>Bovino corte: arroba (R$/@)</li>
+                <li>Bovino leite: cabeça (R$/cabeça)</li>
+                <li>Suíno: kg (R$/kg)</li>
+                <li>Ave/Peixe: cabeça ou kg</li>
+            </ul>
+            Sistema calcula o valor total automaticamente.
+        </div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo"><strong>Forma de pagamento</strong>: à vista ou parcelado. Data prevista de recebimento.</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo"><strong>Confirmar e Salvar</strong>. O sistema:
+            <ul style="padding-left: 20px; margin: 4px 0;">
+                <li>Marca os animais como "vendido"</li>
+                <li>Cria o evento de venda no histórico de cada um</li>
+                <li>Cria a receita no Financeiro automaticamente</li>
+                <li>Atualiza KPIs em tempo real</li>
+            </ul>
+        </div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== FINANCEIRO HUB ============================== -->
+<section class="pagina" id="financeiro-hub">
+    <h1 class="titulo-secao">26. Hub Financeiro</h1>
+    <p class="subtitulo-secao">Receitas, despesas, faturas e saldo</p>
+
+    <p>Quando você clica em "Financeiro" no menu, abre o Hub Financeiro com saldo do mês, KPIs e atalhos.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/20-financeiro-hub.png" alt="Hub Financeiro">
+        <div class="legenda">Hub Financeiro</div>
+    </div>
+
+    <h2>O que aparece no Hub</h2>
+    <ul style="padding-left: 25px; margin: 8px 0;">
+        <li><strong>Receitas do mês</strong>: soma das pagas</li>
+        <li><strong>Despesas do mês</strong>: soma das pagas</li>
+        <li><strong>Saldo do mês</strong>: receitas menos despesas</li>
+        <li><strong>Atrasadas</strong>: despesas vencidas e ainda não pagas</li>
+        <li><strong>A pagar nos próximos 30d</strong>: contas que vão vencer em breve</li>
+        <li><strong>A receber nos próximos 30d</strong>: receitas previstas</li>
+    </ul>
+
+    <p>Atalhos rápidos: Lançar Despesa, Lançar Receita, Ver Transações.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== CADASTRAR DESPESA ============================== -->
+<section class="pagina" id="cadastrar-despesa">
+    <h1 class="titulo-secao">27. Cadastrar despesa</h1>
+    <p class="subtitulo-secao">Quando você compra algo ou paga uma conta</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/forms/form-nova-despesa.png" alt="Form despesa">
+        <div class="legenda">Formulário de nova despesa</div>
+    </div>
+
+    <h2>Passo a passo</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Em <em>Financeiro → Transações</em>, clique em <strong>"+ Nova despesa"</strong>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo"><strong>Descrição</strong>: o que foi (ex.: "Compra de ração 50 sacos · maio 2026").</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo"><strong>Categoria</strong>: Insumos pecuários / agrícolas / Combustível / Manutenção / Salários / Outras.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo"><strong>Valor</strong>: em R$ (formato brasileiro: 1.234,56).</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo"><strong>Fornecedor</strong>: escolha do cadastro de Parceiros. Se não tem, cadastra novo inline.</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo"><strong>Data de vencimento</strong>: quando vence.</div>
+    </div>
+    <div class="passo">
+        <div class="num">7</div>
+        <div class="conteudo"><strong>Já está paga?</strong> Se sim, marca a opção e informa data do pagamento + método (PIX/Transferência/Dinheiro/Boleto/Cartão). Se não, deixa pendente.</div>
+    </div>
+    <div class="passo">
+        <div class="num">8</div>
+        <div class="conteudo"><strong>Anexar comprovante</strong>: foto da nota, PDF do boleto. Opcional mas recomendado.</div>
+    </div>
+    <div class="passo">
+        <div class="num">9</div>
+        <div class="conteudo">Salvar. Despesa entra na lista, saldo do mês atualiza.</div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== CADASTRAR RECEITA ============================== -->
+<section class="pagina" id="cadastrar-receita">
+    <h1 class="titulo-secao">28. Cadastrar receita</h1>
+    <p class="subtitulo-secao">Quando entra dinheiro</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/forms/form-nova-receita.png" alt="Form receita">
+        <div class="legenda">Formulário de nova receita</div>
+    </div>
+
+    <p>Mesmo fluxo da despesa, mas escolhendo "+ Nova receita". Categorias específicas: Venda de animais, Venda de safra, Venda de leite, Outras receitas.</p>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Receitas automáticas</div>
+        Quando você vende um animal pelo wizard de venda (seção 25), o sistema cria a receita automaticamente — você não precisa lançar manualmente. Receita manual aqui é pra casos avulsos (aluguel, prestação de serviço, etc.).
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== MARCAR PAGA ============================== -->
+<section class="pagina" id="marcar-paga">
+    <h1 class="titulo-secao">29. Marcar transação como paga</h1>
+    <p class="subtitulo-secao">Quando uma despesa pendente foi quitada</p>
+
+    <p>Quando você cadastra uma despesa pendente (boleto que ainda vai vencer), ela aparece em amarelo. Quando você paga:</p>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Em <em>Financeiro → Transações</em>, encontre a despesa pendente.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Clique no <strong>botão verde "Quitar"</strong> ou no ícone 💰 da linha.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Modal pergunta:
+            <ul style="padding-left: 20px; margin: 4px 0;">
+                <li>Data do pagamento (hoje por padrão)</li>
+                <li>Método: PIX, Transferência, Dinheiro, Boleto, Cartão, Outro</li>
+                <li>ID da transação (opcional, ex.: E2E PIX)</li>
+                <li>Anexar comprovante (opcional)</li>
+            </ul>
+        </div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Confirmar. Status muda pra "Pago", saldo do mês atualiza.</div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== ESTORNAR ============================== -->
+<section class="pagina" id="estornar">
+    <h1 class="titulo-secao">30. Estornar transação paga</h1>
+    <p class="subtitulo-secao">Quando você precisa "desfazer" um pagamento</p>
+
+    <p>Você pagou e depois descobriu que era valor errado, ou o boleto foi cancelado. Não dá pra simplesmente APAGAR a transação paga — o saldo do caixa ficaria errado. A solução é estornar.</p>
+
+    <h2>Como estornar</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Encontre a transação paga.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Clique em <strong>Excluir</strong>. O sistema avisa: "Esta transação já foi paga. Use a opção 'Estornar' para reverter o pagamento."</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Clique em <strong>"Estornar"</strong>. Sistema cria automaticamente um <strong>contra-lançamento</strong> de mesmo valor com tipo invertido (despesa paga → vira receita "Estorno"; receita paga → vira despesa "Estorno"). A transação original fica marcada como "estornada".</div>
+    </div>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Por que estornar em vez de apagar?</div>
+        Pra preservar histórico fiscal e contábil. Você consegue auditar todos os movimentos depois (vejo "tive uma despesa, foi estornada, ficou em zero"). Apagar simplesmente esconderia o erro — não é o jeito certo.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== ANEXAR ============================== -->
+<section class="pagina" id="anexar">
+    <h1 class="titulo-secao">31. Anexar comprovante / nota fiscal</h1>
+    <p class="subtitulo-secao">Em despesas, receitas, manutenções, documentos</p>
+
+    <p>Em vários lugares do sistema você pode anexar um arquivo (PDF, JPG, PNG). Limite de 5 MB por arquivo.</p>
+
+    <h2>Onde aparece o botão de anexar</h2>
+    <ul style="padding-left: 25px; margin: 8px 0;">
+        <li>Cadastro/edição de transação financeira</li>
+        <li>Modal "Quitar" (ao marcar como paga)</li>
+        <li>OS de manutenção</li>
+        <li>Documentos (sempre obrigatório)</li>
+        <li>Validação de comprovante (master)</li>
+    </ul>
+
+    <h2>Como anexar (no celular)</h2>
+    <p>Toque em "Escolher arquivo". O celular abre opções: Câmera (tira foto na hora), Galeria (escolhe foto existente), Arquivos (escolhe PDF). Tira/escolhe e o arquivo é enviado.</p>
+
+    <h2>Como anexar (no computador)</h2>
+    <p>Clique em "Escolher arquivo". Abre o seletor de arquivos do sistema (Windows/Mac). Escolhe o PDF/JPG/PNG.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== CATEGORIAS ============================== -->
+<section class="pagina" id="categorias-fin">
+    <h1 class="titulo-secao">32. Categorias e centro de custo</h1>
+    <p class="subtitulo-secao">Organizando suas finanças</p>
+
+    <h2>Categorias</h2>
+    <p>Toda receita e despesa precisa de uma categoria. O sistema vem com categorias padrão:</p>
+
+    <table>
+        <tr><th>Despesas</th><th>Receitas</th></tr>
+        <tr>
+            <td>
+                Insumos agrícolas<br>
+                Insumos pecuários<br>
+                Combustível<br>
+                Manutenção<br>
+                Salários<br>
+                Outras despesas
+            </td>
+            <td>
+                Venda de animais<br>
+                Venda de safra<br>
+                Venda de leite<br>
+                Outras receitas
+            </td>
+        </tr>
+    </table>
+
+    <p>Você pode criar mais categorias quando precisar. Em qualquer formulário de transação, no campo categoria, tem opção "+ Nova categoria" — cadastra inline sem sair do form.</p>
+
+    <h2>Centro de custo</h2>
+    <p>Centro de custo é uma camada de organização opcional, útil pra fazendas grandes que querem ver quanto cada área custa. Ex.: "Gado de Leite", "Lavoura Soja", "Frota". Pode atribuir centro de custo a cada transação.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== FATURAS ============================== -->
+<section class="pagina" id="faturas">
+    <h1 class="titulo-secao">33. Faturas (mensalidade do sistema)</h1>
+    <p class="subtitulo-secao">Cobranças do plano contratado</p>
+
+    <p>Em <em>Faturas</em> você vê todas as suas faturas do sistema (mensalidade do plano contratado): pagas, pendentes, atrasadas.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/22-faturas.png" alt="Faturas">
+        <div class="legenda">Faturas do tenant</div>
+    </div>
+
+    <h2>Pagar uma fatura</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Clique na fatura pendente.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Veja o boleto / código PIX / dados pra transferência.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Pague pelo seu banco / PIX.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Volte ao sistema, clique em "Enviar comprovante" e anexe a foto/PDF do pagamento.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">Status muda pra "Aguardando aprovação". O administrador da plataforma valida em até 1 dia útil e marca como Pago.</div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== AGRÍCOLA ============================== -->
+<section class="pagina" id="agricola-hub">
+    <h1 class="titulo-secao">34. Agrícola · Talhões, Plantios, Safras</h1>
+    <p class="subtitulo-secao">Gestão da lavoura</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/30-agricola-hub.png" alt="Hub Agrícola">
+        <div class="legenda">Hub Agrícola</div>
+    </div>
+
+    <h2>Talhões</h2>
+    <p>Cada pedaço de terra cultivada é um talhão. <em>Agrícola → Talhões</em>:</p>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">"+ Novo talhão" → nome (ex.: "Talhão 1 - Encosta"), área em hectares, localização (lat/lng opcional), observações.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Salvar.</div>
+    </div>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/31-agricola-talhoes.png" alt="Lista talhões">
+        <div class="legenda">Lista de talhões</div>
+    </div>
+
+    <h2>Plantios</h2>
+    <p>Cada plantio é uma cultura plantada num talhão numa safra. <em>Agrícola → Plantios</em>:</p>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">"+ Novo plantio" → escolha o talhão, a cultura (Soja, Milho, Algodão, Café), a safra, a área plantada e a data de plantio.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Acompanhe ao longo do ciclo. Quando colher: clique em "Registrar colheita" e informe os kg colhidos.</div>
+    </div>
+
+    <h2>Safras</h2>
+    <p>Safra agrupa plantios. "Safra 2025/26 - Verão" pode ter múltiplos plantios. Útil pra ver custo total e produtividade da safra.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== APLICAÇÃO ============================== -->
+<section class="pagina" id="aplicacao">
+    <h1 class="titulo-secao">35. Aplicação de defensivo</h1>
+    <p class="subtitulo-secao">Wizard com impacto cross-modules</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/wizards/wizard-aplicar-produto.png" alt="Wizard aplicar produto">
+        <div class="legenda">Wizard de aplicação de produto</div>
+    </div>
+
+    <p>Aplicação de herbicida, fertilizante ou outro defensivo num talhão. O sistema faz 3 coisas ao mesmo tempo: registra a aplicação no histórico do talhão, reduz o estoque do produto E cria uma despesa.</p>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Hub Início → "Aplicar produto" (ou Agrícola → Aplicações → "+ Nova aplicação").</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo"><strong>Talhão</strong>: onde vai aplicar.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo"><strong>Tipo</strong>: herbicida, fungicida, inseticida, adubação, etc.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo"><strong>Produto</strong>: escolha o item do estoque (ex.: "Glifosato 480"). Se não tem cadastrado, cadastre primeiro em Estoque.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo"><strong>Quantidade</strong>: kg/litros aplicados. Sistema valida que tem em estoque.</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo"><strong>Custo</strong>: valor total da aplicação (mão de obra + produto). Vai gerar despesa.</div>
+    </div>
+    <div class="passo">
+        <div class="num">7</div>
+        <div class="conteudo">Salvar. Estoque diminui, despesa criada, registro no histórico do talhão.</div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== ESTOQUE ============================== -->
+<section class="pagina" id="estoque-hub">
+    <h1 class="titulo-secao">36. Estoque · Itens, Movimentações, Armazéns</h1>
+    <p class="subtitulo-secao">Insumos: ração, sementes, vacinas, peças, combustível</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/40-estoque-hub.png" alt="Hub Estoque">
+        <div class="legenda">Hub Estoque</div>
+    </div>
+
+    <h2>Cadastrar item</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><em>Estoque → Itens → "+ Novo item"</em>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Preencha: nome ("Ração Vacas Lactantes"), categoria (Ração, Vacina, Combustível…), unidade (kg, L, sacos, unidades), valor unitário, estoque mínimo (alerta quando cair abaixo), armazém.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Salvar.</div>
+    </div>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/41-estoque-itens.png" alt="Lista itens">
+        <div class="legenda">Lista de itens</div>
+    </div>
+
+    <p>Cada item tem saldo atual calculado a partir das movimentações. Itens abaixo do mínimo aparecem em amarelo.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== RECEBER ============================== -->
+<section class="pagina" id="receber-mercadoria">
+    <h1 class="titulo-secao">37. Receber mercadoria (entrada)</h1>
+    <p class="subtitulo-secao">Quando você compra ração, sementes, etc.</p>
+
+    <p>Use o wizard "Receber mercadoria" — registra entrada no estoque E cria despesa no financeiro automaticamente.</p>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Hub Início → "Receber mercadoria" (ou Estoque → Movimentações → "+ Entrada").</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Escolha o item, quantidade, valor unitário, fornecedor, número da nota fiscal.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Anexe a NF (PDF ou foto).</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Salvar. Estoque sobe, despesa criada com status pendente (você marca como paga depois quando quitar).</div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== SAÍDA ============================== -->
+<section class="pagina" id="saida-estoque">
+    <h1 class="titulo-secao">38. Saída de estoque</h1>
+    <p class="subtitulo-secao">Quando o item sai sem ser por aplicação agrícola</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/wizards/wizard-saida-estoque.png" alt="Wizard saída">
+        <div class="legenda">Wizard de saída de estoque</div>
+    </div>
+
+    <p>Use quando o item sai pra uso interno que não cai em outro fluxo (vacinação interna, troca de óleo, ração consumida no curral).</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== MÁQUINAS ============================== -->
+<section class="pagina" id="maquinas-hub">
+    <h1 class="titulo-secao">39. Máquinas · Veículos</h1>
+    <p class="subtitulo-secao">Caminhonete, trator, implementos</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/50-maquinas-hub.png" alt="Hub Máquinas">
+        <div class="legenda">Hub Máquinas</div>
+    </div>
+
+    <h2>Cadastrar veículo</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><em>Máquinas → Veículos → "+ Novo veículo"</em>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Preencha: tipo (caminhonete, trator, implemento), placa (formato Mercosul aceito), marca, modelo, ano, hodômetro/horímetro inicial.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Salvar.</div>
+    </div>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/51-maquinas-veiculos.png" alt="Veículos">
+        <div class="legenda">Lista de veículos</div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== MANUTENÇÃO ============================== -->
+<section class="pagina" id="manutencao">
+    <h1 class="titulo-secao">40. Criar OS de manutenção</h1>
+    <p class="subtitulo-secao">Preventiva ou corretiva</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/wizards/wizard-manutencao.png" alt="Wizard manutenção">
+        <div class="legenda">Wizard de manutenção</div>
+    </div>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Hub Início → "Manutenção" (ou Máquinas → Manutenções → "+ Nova OS").</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Escolha o veículo.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Tipo: <strong>preventiva</strong> (troca de óleo, revisão) ou <strong>corretiva</strong> (quebrou e está consertando).</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Descrição do serviço.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">Custo total. Pode incluir peças (busca no estoque) e mão de obra.</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo">Quando concluir: marca como concluída e o sistema gera a despesa no financeiro.</div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== TAREFAS ============================== -->
+<section class="pagina" id="tarefas">
+    <h1 class="titulo-secao">41. Tarefas</h1>
+    <p class="subtitulo-secao">Atribuir, acompanhar e concluir</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/60-tarefas-lista.png" alt="Lista tarefas">
+        <div class="legenda">Lista de tarefas</div>
+    </div>
+
+    <h2>Criar tarefa</h2>
+    <div class="caixa-print">
+        <img src="screenshots/forms/form-nova-tarefa.png" alt="Form nova tarefa">
+        <div class="legenda">Formulário de nova tarefa</div>
+    </div>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><em>Tarefas → "+ Nova tarefa"</em>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Título (ex.: "Vacinar lote A com Aftosa") e descrição.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Atribuído a: escolha o funcionário (ou múltiplos).</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Prazo de vencimento.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">Prioridade: baixa, média, alta, urgente.</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo">Vincular a entidade (opcional): animal, talhão, veículo. Útil pra contextualizar.</div>
+    </div>
+    <div class="passo">
+        <div class="num">7</div>
+        <div class="conteudo">Salvar.</div>
+    </div>
+
+    <h2>Concluir tarefa</h2>
+    <p>O funcionário abre a tarefa, executa, volta no sistema e clica em <strong>"Concluir"</strong>. Pode anexar foto da execução. Status muda pra "Concluída".</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== DOCUMENTOS ============================== -->
+<section class="pagina" id="documentos">
+    <h1 class="titulo-secao">42. Documentos</h1>
+    <p class="subtitulo-secao">Contratos, NFs, certificados, GTAs</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/70-documentos-lista.png" alt="Documentos">
+        <div class="legenda">Lista de documentos</div>
+    </div>
+
+    <h2>Cadastrar documento</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><em>Documentos → "+ Novo documento"</em>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Categoria: contrato, NF, certificado sanitário, GTA, escritura, etc.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Nome / título do documento.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Data de emissão e <strong>data de validade</strong> (importante! sistema avisa antes do vencimento).</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">Vincular a entidade (animal, veículo, parceiro, talhão).</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo">Anexar arquivo (PDF, JPG).</div>
+    </div>
+    <div class="passo">
+        <div class="num">7</div>
+        <div class="conteudo">Salvar.</div>
+    </div>
+
+    <h2>Alertas de vencimento</h2>
+    <p>Documentos vencendo em 30 dias aparecem no badge da sidebar. Documentos vencidos ficam destacados em vermelho na lista.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== PARCEIROS ============================== -->
+<section class="pagina" id="parceiros">
+    <h1 class="titulo-secao">43. Parceiros (clientes/fornecedores)</h1>
+    <p class="subtitulo-secao">Quem você compra ou vende</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/80-parceiros-lista.png" alt="Parceiros">
+        <div class="legenda">Lista de parceiros</div>
+    </div>
+
+    <div class="caixa-print">
+        <img src="screenshots/forms/form-novo-parceiro.png" alt="Form parceiro">
+        <div class="legenda">Formulário de cadastro de parceiro</div>
+    </div>
+
+    <h2>Cadastrar parceiro</h2>
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><em>Parceiros → "+ Novo parceiro"</em>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Tipo: cliente, fornecedor ou ambos.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Pessoa física (CPF) ou jurídica (CNPJ). Sistema valida o documento.</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Nome, telefone (com máscara), e-mail, endereço.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">Salvar.</div>
+    </div>
+
+    <h2>Histórico de transações</h2>
+    <p>Clicando em um parceiro você vê o histórico completo de transações: tudo que comprou dele (se for fornecedor) ou vendeu pra ele (se for cliente).</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== USUÁRIOS ============================== -->
+<section class="pagina" id="usuarios">
+    <h1 class="titulo-secao">44. Cadastrar funcionário (usuário do sistema)</h1>
+    <p class="subtitulo-secao">Pra que ele consiga entrar com login próprio</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/95-usuarios.png" alt="Usuários">
+        <div class="legenda">Lista de usuários</div>
+    </div>
+
+    <div class="caixa-print">
+        <img src="screenshots/forms/form-novo-funcionario.png" alt="Form funcionário">
+        <div class="legenda">Formulário de cadastro de usuário</div>
+    </div>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo"><em>Usuários → "+ Novo usuário"</em>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo"><strong>Nome completo</strong> e <strong>e-mail válido</strong> (vai receber a senha temp aqui).</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo"><strong>Cargo</strong>: gerente, veterinário, ordenhador, tratorista, etc. (livre).</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo"><strong>Perfil</strong>: escolha um da lista (dono, gerente, vet, agrônomo, financeiro, administrativo, funcionário, auditor, visitante). Veja seção 3 pra entender o que cada um faz.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo"><strong>Acesso a fazendas</strong>: se sua conta tem múltiplas, escolha quais o funcionário pode acessar. Em branco = todas.</div>
+    </div>
+    <div class="passo">
+        <div class="num">6</div>
+        <div class="conteudo">Salvar. Sistema gera senha temporária e envia por e-mail. O funcionário troca no primeiro acesso.</div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== PERMISSÕES ============================== -->
+<section class="pagina" id="permissoes">
+    <h1 class="titulo-secao">45. Perfis e permissões</h1>
+    <p class="subtitulo-secao">Quem pode fazer o que</p>
+
+    <p>Cada perfil tem um conjunto de permissões fixo. Você não cria permissões avulsas — escolhe o perfil que mais combina com a função.</p>
+
+    <p>Resumo (detalhes na seção 3):</p>
+
+    <table>
+        <tr><th>Perfil</th><th>Acesso resumido</th></tr>
+        <tr><td>Dono</td><td>Tudo</td></tr>
+        <tr><td>Gerente</td><td>Operação completa, sem mexer em usuários</td></tr>
+        <tr><td>Veterinário</td><td>Rebanho clínico</td></tr>
+        <tr><td>Agrônomo</td><td>Agrícola</td></tr>
+        <tr><td>Financeiro</td><td>Financeiro</td></tr>
+        <tr><td>Administrativo</td><td>Documentos, parceiros</td></tr>
+        <tr><td>Funcionário</td><td>Tarefas e ações de campo</td></tr>
+        <tr><td>Auditor</td><td>Tudo, em modo leitura</td></tr>
+        <tr><td>Visitante</td><td>Muito limitado</td></tr>
+    </table>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== RELATÓRIOS ============================== -->
+<section class="pagina" id="relatorios">
+    <h1 class="titulo-secao">46. Relatórios consolidados</h1>
+    <p class="subtitulo-secao">Visão de todos os módulos com filtros</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/desktop/90-relatorios.png" alt="Relatórios">
+        <div class="legenda">Relatórios consolidados</div>
+    </div>
+
+    <p>O Relatórios mostra dados agregados de todos os módulos com filtros de período (de/até). 7 seções: Financeiro, Rebanho, Tarefas, Estoque, Agrícola, Máquinas, Despesas por categoria.</p>
+
+    <div class="box box-info">
+        <div class="titulo">ℹ️ Diferentes seções, diferentes filtros</div>
+        Algumas seções (Financeiro, Agrícola, Máquinas, Despesas) respeitam o filtro de período (mostram dados do intervalo escolhido). Outras (Rebanho, Tarefas, Estoque) mostram snapshot atual independente do período.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== MOBILE ============================== -->
+<section class="pagina" id="mob-acesso">
+    <h1 class="titulo-secao">47. Acessando pelo celular</h1>
+    <p class="subtitulo-secao">Mobile · primeiro acesso</p>
+
+    <p>O sistema funciona no Chrome (Android) ou Safari (iPhone) — não precisa instalar aplicativo. Abra o navegador, digite o endereço, faça login.</p>
+
+    <div class="caixa-print mobile">
+        <img src="screenshots/mobile/01-login.png" alt="Login mobile">
+        <div class="legenda">Tela de login no celular</div>
+    </div>
+
+    <div class="box box-dica">
+        <div class="titulo">💡 Adicione à tela inicial</div>
+        Depois de logar, vá no menu do navegador e escolha <em>"Adicionar à tela inicial"</em>. Sistema vira ícone de aplicativo. Próximas vezes você abre como qualquer app.
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<section class="pagina" id="mob-sidebar">
+    <h1 class="titulo-secao">48. Menu mobile (hambúrguer)</h1>
+    <p class="subtitulo-secao">Como navegar pelos módulos no celular</p>
+
+    <p>No celular, o menu lateral fica escondido por padrão pra dar mais espaço ao conteúdo. Toque no <strong>ícone de três traços (☰)</strong> no canto superior esquerdo pra abrir.</p>
+
+    <div class="comparacao">
+        <div>
+            <div class="titulo-comparacao">Menu fechado</div>
+            <div class="caixa-print mobile">
+                <img src="screenshots/mobile/02-inicio-hub.png" alt="Mobile menu fechado">
+            </div>
+        </div>
+        <div>
+            <div class="titulo-comparacao">Menu aberto</div>
+            <div class="caixa-print mobile">
+                <img src="screenshots/mobile/sidebar-aberta.png" alt="Mobile menu aberto">
+            </div>
+        </div>
+    </div>
+
+    <p>Toque em qualquer item pra ir pra ele. O menu fecha sozinho.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<section class="pagina" id="mob-fluxos">
+    <h1 class="titulo-secao">49. Fluxos rápidos no campo</h1>
+    <p class="subtitulo-secao">A tela mais usada pelo funcionário</p>
+
+    <p>O caso de uso principal do mobile: funcionário no curral / pasto registrando o que está fazendo.</p>
+
+    <h2>Pesar um boi pelo celular</h2>
+
+    <div class="passo">
+        <div class="num">1</div>
+        <div class="conteudo">Login → Início.</div>
+    </div>
+    <div class="passo">
+        <div class="num">2</div>
+        <div class="conteudo">Toque no card <strong>"Pesar bovino"</strong>.</div>
+    </div>
+    <div class="passo">
+        <div class="num">3</div>
+        <div class="conteudo">Modal abre. Digite o brinco do animal (vai autocompletar).</div>
+    </div>
+    <div class="passo">
+        <div class="num">4</div>
+        <div class="conteudo">Digite o peso. Teclado numérico abre automaticamente.</div>
+    </div>
+    <div class="passo">
+        <div class="num">5</div>
+        <div class="conteudo">Salvar. Toast verde confirma.</div>
+    </div>
+
+    <div class="mockup-modal celular">
+        <div class="mockup-header">⚖️ Pesar bovino</div>
+        <div class="mockup-body">
+            <div class="campo">
+                <div class="lbl">Brinco / Nome</div>
+                BR-001
+            </div>
+            <div class="campo">
+                <div class="lbl">Peso (kg)</div>
+                <span style="font-size: 14pt; font-weight: 700;">425,5</span>
+                <div style="font-size: 8.5pt; color: var(--cinza-3); margin-top: 2px;">teclado numérico aberto automaticamente</div>
+            </div>
+        </div>
+        <div class="botoes">
+            <span class="botao secundario">Cancelar</span>
+            <span class="botao primario">Salvar</span>
+        </div>
+    </div>
+    <div class="legenda" style="text-align: center; font-size: 9pt; color: var(--cinza-2); font-style: italic; margin-top: 4px;">Modal de pesagem otimizado pra celular (campos grandes, teclado numérico)</div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<section class="pagina" id="mob-comparacao">
+    <h1 class="titulo-secao">50. Comparação Computador × Celular</h1>
+    <p class="subtitulo-secao">Mesma tela em dois mundos</p>
+
+    <div class="comparacao">
+        <div>
+            <div class="titulo-comparacao">Hub Rebanho · Computador</div>
+            <div class="caixa-print"><img src="screenshots/desktop/10-rebanho-hub.png" alt=""></div>
+        </div>
+        <div>
+            <div class="titulo-comparacao">Hub Rebanho · Celular</div>
+            <div class="caixa-print mobile"><img src="screenshots/mobile/10-rebanho-hub.png" alt=""></div>
+        </div>
+    </div>
+
+    <div class="comparacao">
+        <div>
+            <div class="titulo-comparacao">Financeiro · Computador</div>
+            <div class="caixa-print"><img src="screenshots/desktop/20-financeiro-hub.png" alt=""></div>
+        </div>
+        <div>
+            <div class="titulo-comparacao">Financeiro · Celular</div>
+            <div class="caixa-print mobile"><img src="screenshots/mobile/20-financeiro-hub.png" alt=""></div>
+        </div>
+    </div>
+
+    <div class="comparacao">
+        <div>
+            <div class="titulo-comparacao">Tarefas · Computador</div>
+            <div class="caixa-print"><img src="screenshots/desktop/60-tarefas-lista.png" alt=""></div>
+        </div>
+        <div>
+            <div class="titulo-comparacao">Tarefas · Celular</div>
+            <div class="caixa-print mobile"><img src="screenshots/mobile/60-tarefas-lista.png" alt=""></div>
+        </div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== MASTER ============================== -->
+<section class="pagina" id="master-intro">
+    <h1 class="titulo-secao">51. Área Master</h1>
+    <p class="subtitulo-secao">Para administradores da plataforma · não da fazenda</p>
+
+    <p>A <strong>área Master</strong> é exclusiva para a equipe que administra a plataforma (quem oferece o sistema). Não é para usuários comuns da fazenda.</p>
+
+    <p>O endereço Master é diferente: <code>fazendamacaybas.com.br</code> (sem o "app").</p>
+
+    <p>Esta seção é informativa — para que você saiba que essa área existe, quem usa, e o que faz.</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/master/master-dashboard.png" alt="Master dashboard">
+        <div class="legenda">Dashboard Master · KPIs da plataforma</div>
+    </div>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<section class="pagina" id="master-tenants">
+    <h1 class="titulo-secao">52. Gestão de clientes (tenants)</h1>
+    <p class="subtitulo-secao">Master · cada cliente é um "tenant"</p>
+
+    <p>O Master gerencia os clientes contratantes. Pode criar tenant novo, editar dados, suspender, impersonar (entrar como o cliente para ajudar/auditar).</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/master/master-tenants.png" alt="Master tenants">
+        <div class="legenda">Lista de clientes</div>
+    </div>
+
+    <p>Cada cliente tem dados próprios totalmente isolados — um cliente nunca vê dado de outro.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<section class="pagina" id="master-planos">
+    <h1 class="titulo-secao">53. Planos e features</h1>
+    <p class="subtitulo-secao">Master · controle de pacotes contratados</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/master/master-planos.png" alt="Master planos">
+        <div class="legenda">Planos cadastrados</div>
+    </div>
+
+    <p>Master define os planos disponíveis (Básico, Premium, Enterprise) com preço mensal, número máximo de fazendas, número máximo de usuários e quais módulos estão incluídos. Quando o Master desativa um módulo de um plano, os clientes daquele plano deixam de ver aquele menu na hora.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<section class="pagina" id="master-cobrancas">
+    <h1 class="titulo-secao">54. Cobranças e validar comprovantes</h1>
+    <p class="subtitulo-secao">Master · checa pagamentos enviados pelos clientes</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/master/master-cobrancas.png" alt="Master cobranças">
+        <div class="legenda">Cobranças</div>
+    </div>
+
+    <p>Quando um cliente paga uma fatura e envia o comprovante, vai parar aqui aguardando aprovação. O Master clica no comprovante, confere valor e data, e:</p>
+    <ul style="padding-left: 25px; margin: 8px 0;">
+        <li><strong>Aprovar</strong>: marca como Pago e gera protocolo</li>
+        <li><strong>Rejeitar</strong>: informa o motivo (ex.: "comprovante de outro valor"), cliente é notificado</li>
+    </ul>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<section class="pagina" id="master-atividades">
+    <h1 class="titulo-secao">55. Auditoria (atividades)</h1>
+    <p class="subtitulo-secao">Master · log de tudo que acontece</p>
+
+    <div class="caixa-print">
+        <img src="screenshots/master/master-atividades.png" alt="Master atividades">
+        <div class="legenda">Log de auditoria</div>
+    </div>
+
+    <p>Toda ação importante (criação de tenant, edição de plano, validação de comprovante, login do master) fica registrada com data/hora/usuário. Filtra por evento, usuário, tenant e período.</p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== FAQ ============================== -->
+<section class="pagina" id="faq">
+    <h1 class="titulo-secao">56. Perguntas frequentes</h1>
+    <p class="subtitulo-secao">Dúvidas que aparecem no dia a dia</p>
+
+    <div class="qa">
+        <div class="pergunta">Como cadastro um animal?</div>
+        Vai em Rebanho → escolhe a espécie → "+ Cadastrar [espécie]". Detalhes em <a href="#cadastrar-animal">seção 12</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como vendo um animal?</div>
+        No Hub Início, card "Vender animal", ou Rebanho → "Vender animal". Wizard guiado em 5 passos. Detalhes em <a href="#vender-animal">seção 25</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como peso um boi rapidamente?</div>
+        Dashboard da espécie Bovino → card "Pesar". Modal abre, escolhe o animal e o peso. <a href="#evento-pesar">Seção 15</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Esqueci minha senha. E agora?</div>
+        Tela de login → "Esqueci minha senha" → e-mail → confere caixa (e spam) → link válido por 1 hora. <a href="#login">Seção 4</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como troco minha senha?</div>
+        Avatar (canto superior direito) → "Alterar senha". <a href="#trocar-senha">Seção 5</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como mudo de fazenda?</div>
+        Topbar (canto superior direito) → clica no nome da fazenda atual → escolhe outra. <a href="#trocar-fazenda">Seção 9</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Cadastrei o animal errado. Como apago?</div>
+        Lista de animais → encontre o errado → ícone vermelho de lixeira na linha. Confirme.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Lancei pesagem com peso errado. Como corrijo?</div>
+        Abre o animal → aba "Linha do tempo" → ícone de lixeira na linha do evento errado → confirma. <a href="#evento-apagar">Seção 21</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Vendi um animal mas não apareceu no financeiro</div>
+        Verifique se a venda foi pelo wizard "Vender animal" (não por edit do animal). Pelo wizard, a receita é gerada automaticamente. <a href="#vender-animal">Seção 25</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como pago uma despesa pendente?</div>
+        Lista de transações → ícone "Quitar" verde na linha → modal de pagamento. <a href="#marcar-paga">Seção 29</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Paguei errado. Como estorno?</div>
+        Abre a transação paga → "Excluir" → sistema sugere "Estornar" → cria contra-lançamento. <a href="#estornar">Seção 30</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como atribuo tarefa pra alguém?</div>
+        Tarefas → "+ Nova tarefa" → preenche e escolhe "Atribuído a". <a href="#tarefas">Seção 41</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Sou novo no sistema. Por onde começo?</div>
+        Vai em <a href="#primeiros-passos">★ Primeiros passos</a>. Roteiro de 5 etapas pra terminar o Dia 1 com o sistema pronto pra operar.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Comprei animais pra engordar. Como faço o ciclo todo?</div>
+        Veja <a href="#cenarios-reais">★ Cenário 1</a>: do cadastro da compra até a venda do lote, com cada passo amarrado.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como sei o que vai vencer essa semana?</div>
+        Painel + Hub Financeiro mostram tarefas, contas, faturas e documentos próximos do prazo. Veja <a href="#cenarios-reais">★ Cenário 5</a> que consolida todos os alertas.
+    </div>
+</section>
+
+<section class="pagina">
+    <h2>Mais perguntas</h2>
+
+    <div class="qa">
+        <div class="pergunta">Como cadastro um funcionário pra usar o sistema?</div>
+        Usuários → "+ Novo usuário" → preenche dados, escolhe perfil. Sistema envia senha temp por e-mail. <a href="#usuarios">Seção 44</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Posso usar o sistema no celular?</div>
+        Sim. Abra Chrome ou Safari, acesse o endereço (app.fazendamacaybas.com.br), faça login. Dá pra adicionar à tela inicial pra ficar como app. <a href="#mob-acesso">Seção 47</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Funciona offline (sem internet)?</div>
+        Não. Precisa de internet. Em fazendas com sinal ruim, registre quando estiver perto da casa ou usando 4G.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como aplico defensivo num talhão?</div>
+        Hub Início → "Aplicar produto" (ou Agrícola → Aplicações). Sistema reduz estoque + cria despesa automaticamente. <a href="#aplicacao">Seção 35</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como cadastro um talhão?</div>
+        Agrícola → Talhões → "+ Novo talhão". <a href="#agricola-hub">Seção 34</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como cadastro um veículo?</div>
+        Máquinas → Veículos → "+ Novo veículo". Aceita placa Mercosul. <a href="#maquinas-hub">Seção 39</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como registro manutenção?</div>
+        Hub Início → "Manutenção", ou Máquinas → Manutenções → "+ Nova OS". <a href="#manutencao">Seção 40</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como anexo nota fiscal numa despesa?</div>
+        No formulário de despesa, campo "Anexar arquivo". Pode tirar foto na hora pelo celular. <a href="#anexar">Seção 31</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como vejo o histórico de um cliente/fornecedor?</div>
+        Parceiros → clica no nome do parceiro → Histórico aparece com todas as transações vinculadas. <a href="#parceiros">Seção 43</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">O sistema mostra "Você não tem permissão"</div>
+        Seu perfil não tem acesso àquela função. Procure o dono → ele muda seu perfil ou libera a permissão. <a href="#perfis">Seção 3</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Os números do Painel mudaram sozinhos</div>
+        Alguém da equipe lançou ou apagou algo. Confira a auditoria (se for dono) ou pergunte na equipe. Sistema é multi-usuário em tempo real.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Tem como exportar um relatório em PDF?</div>
+        Não nesta versão. Próxima atualização vai incluir export PDF/CSV nos relatórios.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como vejo quanto produzi de leite no mês?</div>
+        Rebanho → Controle Leiteiro. Mostra total do mês, top produtora, média por vaca. <a href="#controle-leiteiro">Seção 24</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Cadastrei um animal mas a raça que ele tem não está na lista</div>
+        Em qualquer campo de raça/categoria/fornecedor, digite o nome novo: aparece "+ Adicionar nova: [o que digitou]". Clica e fica disponível. Veja <a href="#cenarios-reais">Cenário 6</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como cadastro uma despesa que se repete todo mês (ex.: aluguel, salário)?</div>
+        No formulário de despesa, marque a opção "Recorrente" e escolha frequência (mensal, semanal, anual) e quando termina (data fim ou sem fim). Sistema cria os lançamentos automaticamente.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como vejo o histórico completo de um animal?</div>
+        Lista de animais → clica no nome (ou ícone 🕒). Abre a Linha do Tempo: cada pesagem, vacina, ordenha, movimentação, em ordem. <a href="#timeline-animal">Seção 14</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Quanto custou criar esse boi até hoje?</div>
+        Esta versão não rateia automaticamente custo por animal. Workaround: use <em>centro de custo</em> "Lote X" nas despesas vinculadas, e em Relatórios filtra por centro de custo + período. Próxima atualização vai trazer "Custo por animal" dedicado.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Posso anexar várias fotos numa despesa?</div>
+        Sim — pode anexar múltiplos arquivos (PDF, JPG, PNG), até 5MB cada. Útil pra anexar boleto + comprovante PIX juntos.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como sei quem da equipe lançou ou apagou tal coisa?</div>
+        Cada registro tem o usuário que criou (e quem editou por último). Em <em>Relatórios</em> ou Auditoria você vê o log. Se for dono, abra o detalhe da transação/animal.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Tenho que cadastrar transações antigas (ano passado)?</div>
+        Não obrigatório. Comece do mês atual. Cadastro retroativo só vale a pena se for importante pra um relatório anual ou pra fechar fiscal — nesse caso lance manualmente os lançamentos principais.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Posso importar dados de planilha do Excel?</div>
+        Não nesta versão. Próxima atualização inclui importação de animais e parceiros via Excel/CSV. Por ora, cadastre manualmente.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">O sistema faz backup dos meus dados?</div>
+        Sim. A plataforma faz backup automático diário. Em caso de problema, peça à equipe de suporte. <a href="#suporte">Seção 59</a>.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">O que acontece se eu tentar excluir um parceiro com transações vinculadas?</div>
+        Sistema bloqueia e avisa: "Este parceiro tem N transações. Apague ou transfira as transações antes." Isso preserva a integridade do histórico. Você pode "Inativar" o parceiro (deixa de aparecer em listas novas mas mantém histórico).
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Cadastrei errado o sexo do animal. Como corrijo?</div>
+        Lista de animais → ícone de lápis ✏️ na linha → corrija → salvar. Edição não apaga o histórico de eventos.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Como sei qual é a versão do sistema que estou usando?</div>
+        Footer da tela (rodapé): aparece "v.YYYY-MM-DD". Útil pra reportar bugs.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Vou usar pela primeira vez. Demoro quanto pra dominar?</div>
+        Numa fazenda média: 1 dia pra cadastros iniciais, 1 semana usando todo dia, 1 mês operando confortável. Use o roteiro <a href="#primeiros-passos">Primeiros passos</a> pra acelerar.
+    </div>
+
+    <div class="qa">
+        <div class="pergunta">Fui afastado e quero passar acesso pra outra pessoa</div>
+        Se você é dono: cadastre a outra pessoa com perfil "Dono" também (sistema permite múltiplos donos por fazenda). Se for funcionário: o dono cadastra o substituto e remove você (Usuários → Editar → Inativar). Histórico do que você lançou continua.
+    </div>
+</section>
+
+<!-- ============================== SOLUÇÃO DE PROBLEMAS ============================== -->
+<section class="pagina" id="solucao">
+    <h1 class="titulo-secao">57. Soluções rápidas</h1>
+    <p class="subtitulo-secao">Quando algo não funciona como esperado</p>
+
+    <table>
+        <tr><th>Problema</th><th>Solução</th></tr>
+        <tr>
+            <td>A página não carrega</td>
+            <td>Confira a internet. Aperte F5 (Ctrl+F5 forte). Se for celular, fecha e reabre o navegador.</td>
+        </tr>
+        <tr>
+            <td>Botão não responde ao clique</td>
+            <td>Aguarde 1-2 segundos (pode estar carregando). Se não, F5. Se persistir, reporte.</td>
+        </tr>
+        <tr>
+            <td>Campo não aceita o valor digitado</td>
+            <td>Verifique o formato esperado. Datas no formato dd/mm/aaaa. Valor com vírgula (250,00, não 250.00).</td>
+        </tr>
+        <tr>
+            <td>Não recebi o e-mail de boas-vindas</td>
+            <td>Confira spam. Se não tem, peça ao dono pra reenviar.</td>
+        </tr>
+        <tr>
+            <td>Sumiu um botão que eu via antes</td>
+            <td>Pode ter mudado de perfil. Confira com o dono.</td>
+        </tr>
+        <tr>
+            <td>Tela com "Tela não disponível direto"</td>
+            <td>Você acessou uma URL que só funciona como modal. Volte ao hub do módulo e clique no botão "+ Novo X" pra abrir o modal correto.</td>
+        </tr>
+        <tr>
+            <td>Toast vermelho "Você não tem permissão"</td>
+            <td>Seu perfil não permite essa ação. Fale com o dono.</td>
+        </tr>
+        <tr>
+            <td>Modal não fecha</td>
+            <td>Aperte ESC, ou clique fora do modal (na área cinza), ou no X.</td>
+        </tr>
+        <tr>
+            <td>Os números do mês mudaram sozinhos</td>
+            <td>Alguém da equipe lançou/apagou algo. Confira histórico de auditoria.</td>
+        </tr>
+        <tr>
+            <td>iPhone faz zoom quando clico no campo</td>
+            <td>Esperado em iOS Safari quando font-size é menor que 16px. Sistema já força 16px nos campos críticos. Se ainda acontece, reporte a tela específica.</td>
+        </tr>
+    </table>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== GLOSSÁRIO ============================== -->
+<section class="pagina" id="glossario">
+    <h1 class="titulo-secao">58. Glossário</h1>
+    <p class="subtitulo-secao">Palavras que aparecem no sistema</p>
+
+    <dl class="glossario">
+        <dt>Brinco</dt>
+        <dd>Identificação numérica do animal, geralmente plástico amarelo na orelha. No sistema: campo "Identificação".</dd>
+
+        <dt>Cabeça</dt>
+        <dd>Sinônimo de "animal" usado em lotes agregados (Ave, Peixe). "100 cabeças" = 100 animais.</dd>
+
+        <dt>Categoria</dt>
+        <dd>(financeiro) Tipo do gasto/ganho — Insumos, Salários, Venda de animais. <br>(rebanho) Uso do animal — Leite, Corte, Reprodução.</dd>
+
+        <dt>Centro de custo</dt>
+        <dd>Camada extra de organização financeira. Ex.: "Lavoura Soja", "Gado Leite".</dd>
+
+        <dt>Cobertura</dt>
+        <dd>Acasalamento de fêmea com macho (natural ou inseminação artificial).</dd>
+
+        <dt>Dashboard</dt>
+        <dd>Tela com KPIs (números importantes) de uma área. Ex.: Dashboard de espécie Bovino.</dd>
+
+        <dt>Estornar</dt>
+        <dd>Reverter um pagamento criando lançamento contrário em vez de apagar (preserva histórico).</dd>
+
+        <dt>Evento</dt>
+        <dd>Ação registrada no histórico de um animal/lote: pesagem, vacinação, mortalidade, venda…</dd>
+
+        <dt>Fazenda</dt>
+        <dd>Unidade de operação. Sua conta pode ter uma ou mais fazendas.</dd>
+
+        <dt>Fluxo de caixa</dt>
+        <dd>Movimento de dinheiro entrando e saindo no tempo.</dd>
+
+        <dt>GTA</dt>
+        <dd>Guia de Trânsito Animal. Documento oficial pra mover animais entre fazendas.</dd>
+
+        <dt>Hub</dt>
+        <dd>Tela inicial de um módulo, com KPIs e atalhos.</dd>
+
+        <dt>Impersonar</dt>
+        <dd>Recurso do Master onde um administrador entra como cliente para ajudar/auditar (sempre com aviso visível).</dd>
+
+        <dt>KPI</dt>
+        <dd>Indicador-chave. Os números grandes que aparecem nos cards (Total ativos, Saldo do mês, etc.).</dd>
+
+        <dt>Lote</dt>
+        <dd>Agrupamento de animais.</dd>
+
+        <dt>Master</dt>
+        <dd>Administrador da plataforma (não da fazenda). Vê todos os clientes.</dd>
+
+        <dt>Ordenha</dt>
+        <dd>Tirada de leite. Pode ser 1, 2 ou 3 vezes ao dia.</dd>
+
+        <dt>Parto</dt>
+        <dd>Nascimento de cria.</dd>
+
+        <dt>Perfil</dt>
+        <dd>Conjunto de permissões de um usuário (dono, gerente, vet…).</dd>
+
+        <dt>Plantio</dt>
+        <dd>Cultura plantada num talhão numa safra.</dd>
+
+        <dt>Safra</dt>
+        <dd>Ciclo agrícola. Agrupa plantios da mesma temporada.</dd>
+
+        <dt>Talhão</dt>
+        <dd>Pedaço de terra cultivada, com área em hectares.</dd>
+
+        <dt>Tarja amarela</dt>
+        <dd>Faixa visível no topo quando o Master está impersonando um cliente. Indica que a sessão NÃO é do cliente.</dd>
+
+        <dt>Tenant</dt>
+        <dd>Termo técnico pra "cliente" no contexto da plataforma. No sistema usuário-final, aparece como "Fazenda" ou "Cliente".</dd>
+
+        <dt>Toast</dt>
+        <dd>Aviso temporário (verde de sucesso, vermelho de erro) que aparece no canto da tela.</dd>
+
+        <dt>Vermifugar</dt>
+        <dd>Aplicar vermífugo (medicação contra parasitas internos).</dd>
+
+        <dt>Wizard</dt>
+        <dd>Fluxo guiado em passos (1, 2, 3…) usado em ações complexas como vender animal.</dd>
+    </dl>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+<!-- ============================== SUPORTE ============================== -->
+<section class="pagina" id="suporte">
+    <h1 class="titulo-secao">59. Como pedir ajuda</h1>
+    <p class="subtitulo-secao">Quando precisar de suporte</p>
+
+    <p>Algo deu errado e nada na seção 57 resolve? Faça assim:</p>
+
+    <ol style="padding-left: 25px; margin: 15px 0;">
+        <li><strong>Documente o problema</strong>: tire um screenshot da tela, anote o que estava fazendo, em qual perfil estava logado, em qual horário.</li>
+        <li><strong>Tente reproduzir</strong>: o erro acontece de novo? Se sim, é consistente (mais fácil de resolver).</li>
+        <li><strong>Reporte ao dono</strong>: ele tem o canal direto com o suporte da plataforma.</li>
+    </ol>
+
+    <div class="box box-dica">
+        <div class="titulo">💡 Quanto mais detalhe, mais rápido o fix</div>
+        Em vez de "tá dando erro", manda assim:<br><br>
+        <em>"Hoje, 10/06 às 14h, no celular, com perfil de Financeiro, ao clicar em 'Salvar' na tela de cadastrar despesa, aparece um quadro vermelho com a mensagem 'X'. Tela está em anexo."</em>
+    </div>
+
+    <h2>Tempo de resposta</h2>
+    <table>
+        <tr><th>Severidade</th><th>Exemplo</th><th>Resolução em</th></tr>
+        <tr><td>Crítico</td><td>Sistema fora do ar, login não funciona</td><td>4 horas</td></tr>
+        <tr><td>Alto</td><td>Funcionalidade principal quebrada (criar animal não salva)</td><td>24 horas</td></tr>
+        <tr><td>Médio</td><td>Funcionalidade secundária quebrada, UX confusa</td><td>1 semana</td></tr>
+        <tr><td>Baixo</td><td>Texto incorreto, cor estranha</td><td>Próxima atualização</td></tr>
+    </table>
+
+    <p style="margin-top: 30px; padding: 15px; background: var(--verde-claro); border-radius: 8px; text-align: center;">
+        <strong>Bom trabalho na sua fazenda!</strong><br>
+        <span style="color: var(--cinza-2); font-size: 9pt;">Versão 1.0 do manual · abril 2026 · fazendamacaybas.com.br</span>
+    </p>
+
+    <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
+</section>
+
+</body>
+</html>
