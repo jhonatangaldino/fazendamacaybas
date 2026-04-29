@@ -16,6 +16,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import MasterLayout from '@/Layouts/MasterLayout.vue';
 import { useConfirm } from '@/composables/useConfirm.js';
 import { useToast } from '@/composables/useToast.js';
+import { hojeBR } from '@/utils/format.js';
 
 const { confirm } = useConfirm();
 const { toast } = useToast();
@@ -25,7 +26,11 @@ const props = defineProps({
     memory: { type: Object, default: () => ({ bancos_frequentes: {}, total_aprovacoes: 0 }) },
 });
 
-const dataPagamento = ref(new Date().toISOString().slice(0, 10));
+// CRÍTICO · usa hojeBR() do utils/format.js (timeZone America/Sao_Paulo).
+// `new Date().toISOString()` em UTC fazia a data pré-preenchida virar
+// AMANHÃ entre 21h-23:59 BRT, fazendo `before_or_equal:today` falhar
+// silente no backend (bug detectado pela auditoria QA E2E final 2026-04-29).
+const dataPagamento = ref(hojeBR());
 const externalPaymentId = ref(props.invoice.external_payment_id || '');
 const motivoRejeicao = ref('');
 const aprovando = ref(false);
@@ -428,7 +433,7 @@ async function rejeitar() {
                     <div class="space-y-3">
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Data do pagamento</label>
-                            <input type="date" v-model="dataPagamento" :max="new Date().toISOString().slice(0, 10)" class="form-input">
+                            <input type="date" v-model="dataPagamento" :max="hojeBR()" class="form-input">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">

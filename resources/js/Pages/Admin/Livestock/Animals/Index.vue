@@ -578,7 +578,7 @@ function doDelete() {
                     <div class="space-y-3">
                         <div>
                             <InputLabel :value="`Data *`" />
-                            <InputDate v-model="eventoForm.data_evento" :max="new Date().toISOString().slice(0,10)" required />
+                            <InputDate v-model="eventoForm.data_evento" :max="hojeBR()" required />
                         </div>
                         <div v-if="eventoTipo === 'pesagem' || eventoTipo === 'biometria_amostral'">
                             <InputLabel :value="eventoTipo === 'biometria_amostral' ? 'Peso médio do lote (kg) *' : 'Peso (kg) *'" />
@@ -630,7 +630,7 @@ function doDelete() {
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div>
                             <InputLabel value="Data da venda *" />
-                            <InputDate v-model="vendaForm.data_venda" :max="new Date().toISOString().slice(0,10)" required />
+                            <InputDate v-model="vendaForm.data_venda" :max="hojeBR()" required />
                         </div>
                         <div>
                             <InputLabel value="Comprador" />

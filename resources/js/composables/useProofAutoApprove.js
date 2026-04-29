@@ -13,6 +13,7 @@
  *   - Auto-disparo no MasterLayout pós-login (futuro Fase 3.5, opt-in)
  */
 import { ref } from 'vue';
+import { hojeBR } from '@/utils/format.js';
 
 const BANCOS_REGEX = [
     { nome: 'PicPay',     re: /picpay/i },
@@ -103,7 +104,7 @@ async function processarUm(invoice, Tesseract) {
         }
         // Aprova!
         const ok = await aprovarFatura(invoice.id, {
-            data_pagamento: new Date().toISOString().slice(0, 10),
+            data_pagamento: hojeBR(),
             external_payment_id: ocr.e2e,
             ocr_banco: ocr.banco,
             ocr_pattern: ocr.hintPattern,

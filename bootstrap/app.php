@@ -83,5 +83,28 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        // BUG-C-04 fix · 403 em POST sem permissão não mostrava toast.
+        // Spatie Permission lança UnauthorizedException → Laravel renderizava
+        // página 403 default. Em POST via Inertia/AJAX, isso virava redirect
+        // silencioso (usuário não sabia por que a ação não rolou).
         //
+        // Agora: capturamos UnauthorizedException, redirecionamos com flash
+        // de erro descritivo. Inertia entrega o flash, FlashMessages converte
+        // em toast vermelho.
+        $exceptions->render(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, \Illuminate\Http\Request $request) {
+            $perm = method_exists($e, 'requiredPermissions') && $e->requiredPermissions
+                ? implode(', ', (array) $e->requiredPermissions)
+                : null;
+            $msg = $perm
+                ? "Você não tem permissão para esta ação ({$perm}). Fale com o administrador da sua fazenda."
+                : 'Você não tem permissão para esta ação. Fale com o administrador da sua fazenda.';
+
+            // Inertia/AJAX → redirect com flash (FlashMessages.vue mostra toast)
+            if ($request->header('X-Inertia') || $request->expectsJson()) {
+                return back()->with('error', $msg);
+            }
+
+            // Navegação tradicional → mantém página 403 mas com mensagem clara
+            abort(403, $msg);
+        });
     })->create();

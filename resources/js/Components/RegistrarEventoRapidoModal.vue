@@ -24,6 +24,7 @@ import InputDecimal from '@/Components/InputDecimal.vue';
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 import { useToast } from '@/composables/useToast';
 import { EVENT_CATALOG } from '@/utils/animalProfile.js';
+import { hojeBR } from '@/utils/format.js';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -86,7 +87,7 @@ const animaisFiltrados = computed(() => {
 watch(() => props.open, (open) => {
     if (open) {
         // Reset ao abrir
-        form.value = { data: new Date().toISOString().slice(0, 10), observacoes: '' };
+        form.value = { data: hojeBR(), observacoes: '' };
         animalSelecionado.value = null;
         loteSelecionado.value = null;
         buscaAnimal.value = '';
@@ -276,7 +277,7 @@ function salvar() {
                     <!-- Data (todos os eventos) -->
                     <div>
                         <InputLabel value="Data *" />
-                        <InputDate v-model="form.data" :max="new Date().toISOString().slice(0, 10)" />
+                        <InputDate v-model="form.data" :max="hojeBR()" />
                     </div>
 
                     <!-- PESAGEM -->

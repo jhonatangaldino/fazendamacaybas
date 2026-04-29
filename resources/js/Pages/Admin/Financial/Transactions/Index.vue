@@ -214,7 +214,7 @@ const modoReceber = computed(() =>
                     <div class="space-y-3">
                         <div>
                             <InputLabel :value="payModal.tipo === 'receita' ? 'Quando o dinheiro caiu?' : 'Quando você pagou?'" />
-                            <InputDate v-model="payForm.data_pagamento" :max="new Date().toISOString().slice(0,10)" required />
+                            <InputDate v-model="payForm.data_pagamento" :max="hojeBR()" required />
                             <p v-if="payForm.errors.data_pagamento" class="text-xs text-red-600 mt-1">{{ payForm.errors.data_pagamento }}</p>
                         </div>
                         <div>

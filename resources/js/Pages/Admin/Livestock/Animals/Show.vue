@@ -1179,7 +1179,7 @@ watch(tiposPermitidosNoModal, (lista) => {
                         </div>
                         <div>
                             <InputLabel value="Data *" />
-                            <InputDate v-model="eventForm.data_evento" :max="new Date().toISOString().slice(0,10)" required />
+                            <InputDate v-model="eventForm.data_evento" :max="hojeBR()" required />
                             <p v-if="eventForm.errors.data" class="text-xs text-red-600 mt-1">{{ eventForm.errors.data }}</p>
                         </div>
 

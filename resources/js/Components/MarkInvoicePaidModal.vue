@@ -19,6 +19,7 @@
 import { ref, watch, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
+import { hojeBR } from '@/utils/format.js';
 
 const props = defineProps({
     invoice: { type: Object, default: null }, // null = fechado
@@ -28,7 +29,7 @@ const emit = defineEmits(['close', 'success']);
 const aberto = computed(() => props.invoice !== null);
 useBodyScrollLock(aberto);
 
-const dataPagamento = ref(new Date().toISOString().slice(0, 10));
+const dataPagamento = ref(hojeBR());
 const metodoPagamento = ref('pix');
 const observacao = ref('');
 const externalPaymentId = ref('');
@@ -46,7 +47,7 @@ const METODOS = [
 watch(() => props.invoice, (n) => {
     if (n) {
         // reset ao abrir
-        dataPagamento.value = new Date().toISOString().slice(0, 10);
+        dataPagamento.value = hojeBR();
         metodoPagamento.value = 'pix';
         observacao.value = '';
         externalPaymentId.value = '';
@@ -127,7 +128,7 @@ function confirmar() {
                     <div class="px-5 py-4 space-y-3">
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Data do pagamento</label>
-                            <input type="date" v-model="dataPagamento" :max="new Date().toISOString().slice(0,10)"
+                            <input type="date" v-model="dataPagamento" :max="hojeBR()"
                                    class="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
                         </div>
 

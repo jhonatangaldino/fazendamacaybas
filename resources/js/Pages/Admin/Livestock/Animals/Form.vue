@@ -10,6 +10,7 @@ import InputMoney from '@/Components/InputMoney.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
 import { router } from '@inertiajs/vue3';
 import { emojiEspecie } from '@/utils/emojiEspecie.js';
+import { hojeBR } from '@/utils/format.js';
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 import InputDecimal from '@/Components/InputDecimal.vue';
 
@@ -400,7 +401,7 @@ onMounted(() => {
         if (qs.get('origem') === 'nascimento') {
             modoNascimento.value = true;
             form.origem = 'nascido';
-            if (!form.data_nascimento) form.data_nascimento = new Date().toISOString().slice(0, 10);
+            if (!form.data_nascimento) form.data_nascimento = hojeBR();
         }
     }
 });

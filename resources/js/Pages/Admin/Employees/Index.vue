@@ -490,7 +490,7 @@ function confirmarDesligamento() {
                             <InputDate
                                 v-model="desligForm.data_demissao"
                                 :min="desligamento.data_admissao || null"
-                                :max="new Date().toISOString().slice(0,10)"
+                                :max="hojeBR()"
                                 required
                             />
                             <p v-if="desligForm.errors.data_demissao" class="text-xs text-red-600 mt-1">{{ desligForm.errors.data_demissao }}</p>
