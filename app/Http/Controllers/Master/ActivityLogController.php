@@ -123,11 +123,15 @@ class ActivityLogController extends Controller
     {
         $atividade->load(['causer:id,name,email', 'subject']);
 
+        $farmId = $atividade->getAttribute('farm_id');
+
         return Inertia::render('Master/Atividades/Show', [
             'atividade' => [
                 'id' => $atividade->id,
                 'tenant_id' => $atividade->tenant_id,
                 'tenant_nome' => $atividade->tenant_id ? optional(Tenant::find($atividade->tenant_id))->nome : null,
+                'farm_id' => $farmId,
+                'farm_nome' => $farmId ? optional(Farm::find($farmId))->nome : null,
                 'log_name' => $atividade->log_name,
                 'description' => $atividade->description,
                 'event' => $atividade->event,

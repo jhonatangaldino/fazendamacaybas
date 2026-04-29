@@ -48,8 +48,13 @@ const eventLabel = {
 
             <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                    <div class="text-xs uppercase text-slate-500">Cliente (tenant)</div>
-                    <div class="mt-1 font-medium">{{ atividade.tenant_nome || 'Plataforma (master)' }}</div>
+                    <div class="text-xs uppercase text-slate-500">Cliente</div>
+                    <div class="mt-1 font-medium">
+                        {{ atividade.tenant_nome || '— ação interna da plataforma —' }}
+                    </div>
+                    <div v-if="atividade.farm_nome" class="text-xs text-slate-500 mt-0.5">
+                        🏠 {{ atividade.farm_nome }}
+                    </div>
                 </div>
                 <div>
                     <div class="text-xs uppercase text-slate-500">Quem fez</div>
@@ -60,22 +65,22 @@ const eventLabel = {
                     <div v-else class="mt-1 text-slate-400">Sistema</div>
                 </div>
                 <div>
-                    <div class="text-xs uppercase text-slate-500">Tabela</div>
-                    <div class="mt-1 font-mono text-xs">{{ atividade.subject_type }}</div>
+                    <div class="text-xs uppercase text-slate-500">Tipo de registro</div>
+                    <div class="mt-1 text-sm">{{ atividade.subject_type_curto || '—' }}<span v-if="atividade.subject_id" class="text-slate-500"> #{{ atividade.subject_id }}</span></div>
                 </div>
                 <div v-if="atividade.batch_uuid">
-                    <div class="text-xs uppercase text-slate-500">Lote</div>
-                    <div class="mt-1 font-mono text-xs">{{ atividade.batch_uuid }}</div>
+                    <div class="text-xs uppercase text-slate-500">ID da operação em lote</div>
+                    <div class="mt-1 font-mono text-[10px] text-slate-500">{{ atividade.batch_uuid }}</div>
                 </div>
             </div>
 
-            <div v-if="atividade.description">
+            <div v-if="atividade.description && atividade.description !== atividade.event">
                 <div class="text-xs uppercase text-slate-500">Descrição</div>
                 <div class="mt-1 text-sm">{{ atividade.description }}</div>
             </div>
 
             <div v-if="atividade.properties && Object.keys(atividade.properties).length">
-                <div class="text-xs uppercase text-slate-500 mb-1">Detalhes (antes/depois)</div>
+                <div class="text-xs uppercase text-slate-500 mb-1">Dados da operação (antes / depois)</div>
                 <pre class="bg-slate-900 text-slate-100 text-xs p-4 rounded-lg overflow-x-auto">{{ propertiesPretty }}</pre>
             </div>
         </div>
