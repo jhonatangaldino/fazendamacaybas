@@ -26,6 +26,20 @@ export const EVENT_CATALOG = {
     alimentacao:          { label: 'Alimentação',         icon: '🌽', action: 'scale',      color: 'success' },
     mortalidade:          { label: 'Mortalidade',         icon: '⚰️', action: 'delete',     color: 'danger'  },
     observacao:           { label: 'Observação',          icon: '📝', action: 'edit',       color: 'slate'   },
+    // F10 fix · esses tipos eram inseridos no banco mas faltavam aqui no
+    // catálogo. Resultado: o usuário via "controle_leiteiro" cru no modal
+    // de exclusão e em outros lugares que dependiam de EVENT_CATALOG.
+    // Bug detectado pelo dono em produção 2026-04-29.
+    controle_leiteiro:    { label: 'Controle leiteiro',   icon: '🥛', action: 'scale',      color: 'info'    },
+    exame_toque:          { label: 'Exame de toque',      icon: '🩺', action: 'syringe',    color: 'warning' },
+    parto:                { label: 'Parto',               icon: '🐣', action: 'heart',      color: 'success' },
+    nascimento:           { label: 'Nascimento',          icon: '🐣', action: 'heart',      color: 'success' },
+    cobertura:            { label: 'Cobertura',           icon: '❤️', action: 'heart',      color: 'danger'  },
+    desmame:              { label: 'Desmame',             icon: '🍼', action: 'scale',      color: 'info'    },
+    morte:                { label: 'Morte',               icon: '⚰️', action: 'delete',     color: 'danger'  },
+    abate:                { label: 'Abate',               icon: '🥩', action: 'delete',     color: 'danger'  },
+    venda:                { label: 'Venda',               icon: '💰', action: 'pay',        color: 'success' },
+    compra:               { label: 'Compra',              icon: '🛒', action: 'add',        color: 'info'    },
 };
 
 /**
