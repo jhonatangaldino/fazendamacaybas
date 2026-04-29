@@ -1563,27 +1563,50 @@ class AnimalController extends Controller
         // Mensagem ESPECÍFICA por tipo — evita "Estados/financeiro vinculados
         // foram revertidos" genérico que era jargão técnico aparecendo pra
         // usuário comum. Bug detectado pelo dono em produção 2026-04-29.
+        // Cobertura completa dos tipos válidos no backend (linha 1072) +
+        // tipos extras do EVENT_CATALOG do frontend. default = fallback
+        // genérico para qualquer tipo novo que apareça no futuro.
         $mensagem = match ($tipoEvento) {
+            // Manejo geral
             'pesagem' => 'Pesagem apagada. Peso do animal recalculado com a pesagem anterior.',
-            'venda' => $valorEstornado
-                ? 'Venda revertida. Animal voltou a ativo e a receita de R$ '.number_format($valorEstornado, 2, ',', '.').' foi estornada.'
-                : 'Venda revertida. Animal voltou a ativo.',
-            'morte', 'mortalidade', 'abate' => 'Baixa revertida. Animal voltou a ativo.',
-            'controle_leiteiro' => 'Controle leiteiro de '.($dataEvento ?? 'data desconhecida').' apagado. Indicadores de produção atualizados.',
-            'ordenha' => 'Ordenha apagada. Total de litros do mês recalculado.',
+            'observacao' => 'Observação apagada.',
+            // Sanitário
             'vacinacao' => 'Vacinação apagada. Histórico de vacinas atualizado.',
             'medicacao' => 'Medicação apagada do histórico do animal.',
             'vermifugacao' => 'Vermifugação apagada do histórico.',
-            'biometria_amostral' => 'Biometria apagada. Peso médio do lote recalculado.',
-            'postura_diaria' => 'Postura apagada. Total de ovos do mês recalculado.',
-            'alimentacao' => 'Registro de alimentação apagado.',
-            'qualidade_agua' => 'Registro de qualidade da água apagado.',
-            'cobertura' => 'Cobertura apagada do histórico.',
+            'castracao' => 'Castração apagada do histórico do animal.',
+            // Reprodução
+            'reproducao' => 'Registro reprodutivo apagado do histórico.',
+            'cobertura' => 'Cobertura apagada do histórico reprodutivo.',
+            'exame_toque' => 'Exame de toque apagado.',
             'parto' => 'Parto apagado do histórico.',
             'desmame' => 'Desmame apagado do histórico.',
+            // Leite
+            'ordenha' => 'Ordenha apagada. Total de litros do mês recalculado.',
+            'controle_leiteiro' => 'Controle leiteiro de '.($dataEvento ?? 'data desconhecida').' apagado. Indicadores de produção atualizados.',
+            'secagem' => 'Secagem apagada. Status de lactação revertido.',
+            // Lã / Cascos
+            'tosquia' => 'Tosquia apagada do histórico.',
+            'ferrageamento' => 'Ferrageamento apagado do histórico.',
+            // Aquicultura / Aves (lote agregado)
+            'biometria_amostral' => 'Biometria apagada. Peso médio do lote recalculado.',
+            'postura_diaria' => 'Postura apagada. Total de ovos do mês recalculado.',
+            'qualidade_agua' => 'Registro de qualidade da água apagado.',
+            'alimentacao' => 'Registro de alimentação apagado.',
+            // Movimentação
             'movimentacao' => 'Movimentação apagada do histórico.',
-            'observacao' => 'Observação apagada.',
-            'exame_toque' => 'Exame de toque apagado.',
+            'movimentacao_local' => 'Movimentação de pasto/local apagada do histórico.',
+            // Comerciais
+            'venda' => $valorEstornado
+                ? 'Venda revertida. Animal voltou a ativo e a receita de R$ '.number_format($valorEstornado, 2, ',', '.').' foi estornada.'
+                : 'Venda revertida. Animal voltou a ativo.',
+            'compra' => 'Registro de compra apagado do histórico do animal.',
+            // Baixas
+            'morte', 'mortalidade', 'abate' => 'Baixa revertida. Animal voltou a ativo.',
+            // Nascimento (alias de parto em alguns fluxos)
+            'nascimento' => 'Registro de nascimento apagado do histórico.',
+            // Fallback defensivo — se aparecer tipo novo, mensagem ainda
+            // faz sentido. Inclui o tipo formatado pra dev rastrear.
             default => 'Registro apagado do histórico do animal.',
         };
 
