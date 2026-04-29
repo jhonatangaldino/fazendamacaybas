@@ -112,4 +112,43 @@ return Application::configure(basePath: dirname(__DIR__))
             // Navegação tradicional → mantém página 403 mas com mensagem clara
             abort(403, $msg);
         });
+
+        // F10 fix · 404/405/500 default do Symfony aparecia em INGLÊS
+        // quando user acessava direto rotas que só existem como POST/PUT
+        // (ex.: /admin/agricola/talhoes/novo após F5). "Oops! An Error
+        // Occurred. Something is broken..." é cru e em inglês.
+        // Detectado em produção 2026-04-29.
+        //
+        // Agora: 404/405 em rota /admin/* → redirect amigável pra hub do
+        // módulo correspondente com flash de aviso. Outros 4xx/5xx caem
+        // numa view Blade pt-BR ao invés do default Symfony.
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            $status = $e->getStatusCode();
+
+            // 404/405 em /admin/*/novo → tenta voltar pra /admin/*/index
+            if (in_array($status, [404, 405], true) && str_starts_with($request->path(), 'admin/')) {
+                $path = $request->path();
+                // Se URL termina em /novo, tira o /novo e redirect
+                if (str_ends_with($path, '/novo')) {
+                    $base = '/' . preg_replace('#/novo$#', '', $path);
+                    return redirect($base)->with('warning', 'Esta tela usa um modal de cadastro — clique em "+ Novo" para abrir.');
+                }
+                // /admin/agricola/safras só GET? redirect pro hub /admin/agricola
+                if (preg_match('#^admin/[^/]+/[^/]+$#', $path) && $status === 405) {
+                    $hubModule = '/' . preg_replace('#/[^/]+$#', '', $path);
+                    return redirect($hubModule)->with('warning', 'Esta tela está disponível apenas como modal — abra pelo hub do módulo.');
+                }
+            }
+
+            // Inertia/AJAX → flash error genérico em pt-BR
+            if ($request->header('X-Inertia') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Não foi possível processar a requisição. Tente novamente ou volte pra tela anterior.',
+                ], $status);
+            }
+
+            // Navegação tradicional → renderiza view custom em pt-BR
+            // (Laravel já tem resources/views/errors/{status}.blade.php se houver)
+            // Fallback pro default permite que páginas customizadas sobrevivam.
+        });
     })->create();
