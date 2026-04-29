@@ -26,6 +26,7 @@ class AnimalLotController extends Controller
     private const FINALIDADES = [
         'corte' => 'Corte (engorda)',
         'leite' => 'Leite',
+        'postura' => 'Postura (ovos)',     // adicionado pós-QA E1 — ave_postura existia como profile mas faltava finalidade
         'reproducao' => 'Reprodução',
         'recria' => 'Recria',
         'engorda' => 'Engorda',
