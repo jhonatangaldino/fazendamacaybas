@@ -165,6 +165,15 @@ class UserController extends Controller
             abort(403, 'Você não tem acesso a este usuário.');
         }
 
+        // Edição de OUTRO usuário só permitida pra Dono da Fazenda ou Master.
+        // Cada usuário pode editar a si próprio (seu perfil/avatar/senha).
+        $autor = $request->user();
+        if ($autor->id !== $user->id
+            && ! $autor->hasRole('admin_master')
+            && ! $autor->hasRole('dono_fazenda')) {
+            abort(403, 'Apenas o Dono da Fazenda pode editar outros usuários. Você pode editar apenas seu próprio perfil.');
+        }
+
         return Inertia::render('Admin/Users/Form', [
             'user' => [
                 'id' => $user->id,
@@ -187,13 +196,23 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        $autor = $request->user();
+
+        // Edição de OUTRO usuário só permitida pra Dono da Fazenda ou Master.
+        // Cada usuário pode editar apenas a si próprio (seu perfil).
+        if ($autor->id !== $user->id
+            && ! $autor->hasRole('admin_master')
+            && ! $autor->hasRole('dono_fazenda')) {
+            return back()->with('error', 'Apenas o Dono da Fazenda pode editar outros usuários. Você pode editar apenas seu próprio perfil.');
+        }
+
         // Não-masters não podem editar um admin_master
-        if ($user->hasRole('admin_master') && ! $request->user()->hasRole('admin_master')) {
+        if ($user->hasRole('admin_master') && ! $autor->hasRole('admin_master')) {
             return back()->with('error', 'Você não tem permissão para editar este usuário.');
         }
 
         // Defesa multi-tenant
-        $tenantIdAtivo = (int) (app()->bound('tenant_id') ? app('tenant_id') : ($request->user()->tenant_id ?? 0));
+        $tenantIdAtivo = (int) (app()->bound('tenant_id') ? app('tenant_id') : ($autor->tenant_id ?? 0));
         if ($user->tenant_id !== $tenantIdAtivo) {
             abort(403, 'Você não tem acesso a este usuário.');
         }
@@ -283,8 +302,21 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $autor = request()->user();
+
+        // 1. Auto-exclusão NUNCA permitida (mesmo pra dono/master)
+        if ($autor->id === $user->id) {
+            return back()->with('error', 'Você não pode excluir a sua própria conta. Peça a outro administrador.');
+        }
+
+        // 2. Não exclui admin_master
         if ($user->hasRole('admin_master')) {
-            return back()->with('error', 'Não é possível excluir um Admin Master.');
+            return back()->with('error', 'Não é possível excluir um Administrador da Plataforma.');
+        }
+
+        // 3. Apenas dono_fazenda OU admin_master pode excluir outros
+        if (! $autor->hasRole('admin_master') && ! $autor->hasRole('dono_fazenda')) {
+            return back()->with('error', 'Apenas o Dono da Fazenda ou Administrador da Plataforma pode excluir usuários.');
         }
 
         $user->delete();

@@ -53,6 +53,11 @@ class AppServiceProvider extends ServiceProvider
         // cliente + fazenda a ação pertence — mesmo que tenha sido feita
         // via impersonação (sessão master entrando como cliente).
         \Spatie\Activitylog\Models\Activity::observe(\App\Observers\ActivityLogTenantFarmObserver::class);
+
+        // Invalida cache de KPIs do master quando users mudam (criar, editar
+        // tenant_id/is_active, deletar). Sem isso, dashboard mostrava número
+        // antigo até TTL_STANDARD do cache expirar.
+        \App\Models\User::observe(\App\Observers\UserObserver::class);
     }
 
     /**

@@ -1,6 +1,6 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, reactive } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ref, reactive, computed } from 'vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import DataTable from '@/Components/DataTable.vue';
@@ -10,6 +10,7 @@ import { dataHoraBR } from '@/utils/format.js';
 import { useConfirm } from '@/composables/useConfirm.js';
 
 const { confirm } = useConfirm();
+const page = usePage();
 
 const props = defineProps({
     users: Object,
@@ -17,6 +18,26 @@ const props = defineProps({
     roles: Array,
     plan_info: { type: Object, default: () => ({ max_users: 0, usuarios_ativos: 0, plano_nome: null, limite_atingido: false }) },
 });
+
+// Controla quais ações cada usuário logado pode fazer:
+//   - Apenas dono_fazenda OU admin_master pode editar/excluir outros usuários
+//   - Auto-exclusão NUNCA é permitida (mesmo pra dono/master)
+//   - Usuário comum só edita o próprio perfil (não aparece na lista)
+const usuarioLogado = computed(() => page.props.auth?.user);
+const podeGerenciarOutros = computed(() => {
+    const roles = usuarioLogado.value?.roles ?? [];
+    return roles.includes('admin_master') || roles.includes('dono_fazenda');
+});
+function podeEditar(row) {
+    if (! usuarioLogado.value) return false;
+    if (row.id === usuarioLogado.value.id) return true; // edita próprio perfil
+    return podeGerenciarOutros.value;
+}
+function podeExcluir(row) {
+    if (! usuarioLogado.value) return false;
+    if (row.id === usuarioLogado.value.id) return false; // nunca auto-exclui
+    return podeGerenciarOutros.value;
+}
 
 const filtros = reactive({ ...props.filters });
 const confirmDelete = ref(null);
@@ -179,11 +200,25 @@ async function copiarSenha(senha) {
             </template>
             <template #cell-acoes="{ row }">
                 <div class="flex items-center gap-1 justify-end">
-                    <ActionIcon type="reset-password" title="Resetar senha" @click="resetPassword(row.id)" />
-                    <Link :href="route('admin.users.edit', row.id)" class="inline-flex">
-                        <ActionIcon type="edit" title="Editar usuário" />
+                    <ActionIcon
+                        v-if="podeGerenciarOutros && row.id !== usuarioLogado?.id"
+                        type="reset-password"
+                        title="Resetar senha"
+                        @click="resetPassword(row.id)"
+                    />
+                    <Link
+                        v-if="podeEditar(row)"
+                        :href="route('admin.users.edit', row.id)"
+                        class="inline-flex"
+                    >
+                        <ActionIcon type="edit" :title="row.id === usuarioLogado?.id ? 'Editar meu perfil' : 'Editar usuário'" />
                     </Link>
-                    <ActionIcon type="delete" title="Excluir usuário" @click="askDelete(row)" />
+                    <ActionIcon
+                        v-if="podeExcluir(row)"
+                        type="delete"
+                        title="Excluir usuário"
+                        @click="askDelete(row)"
+                    />
                 </div>
             </template>
         </DataTable>
