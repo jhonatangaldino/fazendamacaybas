@@ -146,7 +146,8 @@ const locaisLocal = ref([...(props.locais ?? [])]);
 
 // Modal: novo lote inline
 const novoLoteAberto = ref(false);
-const novoLoteForm = useForm({ nome: '', codigo: '' });
+// codigo NÃO é editável — gerado automaticamente no backend (LT-####)
+const novoLoteForm = useForm({ nome: '' });
 function abrirNovoLote() { novoLoteForm.reset(); novoLoteAberto.value = true; }
 function salvarNovoLote() {
     novoLoteForm.post(route('admin.rebanho.lotes.store'), {
@@ -938,10 +939,7 @@ function reiniciar() {
                             <input v-model="novoLoteForm.nome" class="form-input" placeholder="Ex.: Engorda Q1 2026" required>
                             <p v-if="novoLoteForm.errors.nome" class="text-xs text-red-600 mt-1">{{ novoLoteForm.errors.nome }}</p>
                         </div>
-                        <div>
-                            <InputLabel value="Código (opcional)" />
-                            <input v-model="novoLoteForm.codigo" class="form-input" placeholder="Ex.: ENG-Q1-26">
-                        </div>
+                        <!-- Código é gerado automático (LT-####) — não editável -->
                     </div>
                     <div class="mt-5 flex justify-end gap-2">
                         <button @click="novoLoteAberto = false" class="btn-outline">Cancelar</button>

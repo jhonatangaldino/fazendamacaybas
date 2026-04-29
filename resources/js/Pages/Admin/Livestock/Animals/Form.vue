@@ -313,11 +313,12 @@ function csrfHeader() {
 }
 
 const novoLoteAberto = ref(false);
-const novoLoteForm = ref({ nome: '', codigo: '' });
+// codigo NÃO é editável — gerado automaticamente no backend (LT-####)
+const novoLoteForm = ref({ nome: '' });
 const novoLoteError = ref(null);
 const salvandoLote = ref(false);
 function abrirNovoLote() {
-    novoLoteForm.value = { nome: '', codigo: '' };
+    novoLoteForm.value = { nome: '' };
     novoLoteError.value = null;
     novoLoteAberto.value = true;
 }
@@ -688,10 +689,7 @@ onMounted(() => {
                             <InputLabel value="Nome do lote *" />
                             <input v-model="novoLoteForm.nome" class="form-input" placeholder="Ex.: Bezerros 2026" required>
                         </div>
-                        <div>
-                            <InputLabel value="Código (opcional)" />
-                            <input v-model="novoLoteForm.codigo" class="form-input" placeholder="Ex.: BZ-26">
-                        </div>
+                        <!-- Código é gerado automático (LT-####) — não editável -->
                     </div>
                     <p v-if="novoLoteError" class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5">
                         {{ novoLoteError }}

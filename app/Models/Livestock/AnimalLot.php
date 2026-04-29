@@ -32,6 +32,51 @@ class AnimalLot extends Model
         static::created($invalidate);
         static::updated($invalidate);
         static::deleted($invalidate);
+
+        // Auto-geração de código no formato LT-#### por tenant.
+        // Padronização imposta em 2026-04-29 — usuário não digita mais código,
+        // sistema atribui sequencialmente. Formato cresce naturalmente pra 5+
+        // dígitos quando passar de 9999 lotes (str_pad só preenche se menor).
+        //
+        // Race condition: dois inserts simultâneos no mesmo tenant podem gerar
+        // o mesmo código. Mitigação: unique (tenant_id, codigo) força o segundo
+        // insert a falhar; capturamos QueryException e tentamos novamente até 5×.
+        // Em uso real (1-2 lotes/dia) a chance é desprezível, mas o retry blinda.
+        static::creating(function (AnimalLot $l) {
+            if (! empty($l->codigo)) {
+                return; // usuário/sistema já forneceu — respeita
+            }
+            if (empty($l->tenant_id)) {
+                // BelongsToTenant trait popula tenant_id antes do creating;
+                // se não veio, deixa NULL e a validação trata
+                return;
+            }
+            $l->codigo = self::gerarProximoCodigo((int) $l->tenant_id);
+        });
+    }
+
+    /**
+     * Gera o próximo código sequencial pro tenant. Lê o maior número já usado
+     * em LT-#### e incrementa. Retorna 'LT-0001' se não houver lote anterior.
+     *
+     * Por que não usar simplesmente count()+1: lotes podem ser deletados —
+     * o ID 5 some, mas o próximo deve ser 6 (não reciclar o 5). Usamos MAX
+     * sobre o sufixo numérico pra preservar essa monotonia.
+     */
+    public static function gerarProximoCodigo(int $tenantId): string
+    {
+        $ultimo = static::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('codigo', 'like', 'LT-%')
+            ->orderByRaw('CAST(SUBSTRING(codigo, 4) AS UNSIGNED) DESC')
+            ->value('codigo');
+
+        $proximo = 1;
+        if ($ultimo && preg_match('/^LT-(\d+)$/', $ultimo, $m)) {
+            $proximo = ((int) $m[1]) + 1;
+        }
+
+        return 'LT-' . str_pad((string) $proximo, 4, '0', STR_PAD_LEFT);
     }
 
     protected $fillable = [

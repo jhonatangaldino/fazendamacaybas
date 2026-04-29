@@ -25,10 +25,11 @@ function speciesIdInicial() {
     return null;
 }
 
+// `codigo` é AUTO-GERADO pelo backend (LT-#### sequencial por tenant) —
+// não enviamos do form. Em edição mantemos só pra exibir em readonly.
 const form = useForm({
     farm_id: props.lot?.farm_id ?? (props.farms[0]?.id ?? null),
     species_id: speciesIdInicial(),
-    codigo: props.lot?.codigo ?? '',
     nome: props.lot?.nome ?? '',
     finalidade: props.lot?.finalidade ?? '',
     descricao: props.lot?.descricao ?? '',
@@ -98,12 +99,15 @@ function submit() {
                     <p v-if="form.errors.nome" class="text-sm text-red-700 mt-1">{{ form.errors.nome }}</p>
                 </div>
 
-                <div>
-                    <InputLabel value="Código curto" />
-                    <input v-model="form.codigo" type="text" maxlength="30" required
-                           placeholder="Ex: ENG-2026-Q1, LEITE, DESCARTE"
-                           class="form-input">
-                    <p v-if="form.errors.codigo" class="text-sm text-red-700 mt-1">{{ form.errors.codigo }}</p>
+                <!-- Código do lote — VISUALIZAÇÃO APENAS.
+                     • No cadastro: não aparece (será gerado automático no save).
+                     • Na edição: aparece desabilitado, sem permitir alteração.
+                     Padrão LT-#### auto-incrementado por tenant — controle interno. -->
+                <div v-if="isEdit && lot?.codigo">
+                    <InputLabel value="Código (gerado automaticamente)" />
+                    <input :value="lot.codigo" type="text" disabled readonly
+                           class="form-input bg-slate-100 text-slate-700 font-mono cursor-not-allowed">
+                    <p class="text-xs text-slate-500 mt-1">Identificador único deste lote no sistema. Não editável.</p>
                 </div>
 
                 <div>

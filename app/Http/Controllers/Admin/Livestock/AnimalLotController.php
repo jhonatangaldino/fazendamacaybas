@@ -138,18 +138,12 @@ class AnimalLotController extends Controller
         abort_unless(app()->bound('farm_id'), 500, 'Contexto de fazenda não resolvido (EnforceFarm).');
         $farmId = app('farm_id');
 
-        // `codigo` é NOT NULL na tabela — se o usuário não informou, geramos
-        // um automático baseado no nome (slug + timestamp curto).
-        $codigo = $data['codigo'] ?? null;
-        if (! $codigo) {
-            $base = \Illuminate\Support\Str::slug($data['nome']);
-            $codigo = strtoupper(substr($base, 0, 8)) . '-' . substr(time(), -4);
-        }
-
+        // codigo é auto-gerado pelo model boot (LT-####). Se o caller passou
+        // um codigo explícito, respeita; senão deixa nulo pro boot preencher.
         $lote = AnimalLot::create([
             'farm_id' => $farmId,
             'nome' => $data['nome'],
-            'codigo' => $codigo,
+            'codigo' => $data['codigo'] ?? null,
             'finalidade' => $data['finalidade'] ?? null,
             'observacoes' => $data['observacoes'] ?? null,
             'is_active' => true,
@@ -239,8 +233,11 @@ class AnimalLotController extends Controller
         return $request->validate([
             'farm_id' => ['nullable', 'exists:farms,id'],
             'species_id' => ['nullable', 'exists:animal_species,id'],
+            // codigo é AUTO-GERADO pelo model boot (LT-####) — não recebido do form.
+            // Mantemos nullable aqui pra retrocompatibilidade caso algum endpoint
+            // antigo ainda envie. O store/update ignora se vier vazio.
             'codigo' => [
-                'required', 'string', 'max:30',
+                'nullable', 'string', 'max:30',
                 Rule::unique('animal_lots', 'codigo')->ignore($ignoreId),
             ],
             'nome' => ['required', 'string', 'max:150'],
