@@ -292,16 +292,14 @@ class ManuaisController extends Controller
                 'manual' => $slug,
                 'destinatario_email' => $user->email,
                 'modo' => $modo,
-                'tamanho_kb' => round($tamanhoBytes / 1024),
+                'tamanho_kb' => $tamanhoKb,
+                'envio_id' => $envio->id,
+                'token' => $envio->token,
             ])
-            ->log("Master enviou manual '{$meta['titulo']}' para {$user->name} (modo: {$modo})");
-
-        $sufixo = $modo === 'anexo'
-            ? 'com manual em anexo'
-            : 'com link de download (manual grande pra anexar)';
+            ->log("Master enviou manual '{$meta['titulo']}' para {$user->name} (link signed)");
 
         return back()->with('success',
-            "Manual enviado para {$user->name} ({$user->email}) {$sufixo}."
+            "Manual enviado para {$user->name} ({$user->email}) com link de download (válido 30 dias)."
         );
     }
 }
