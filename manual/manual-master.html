@@ -374,6 +374,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <h1 class="titulo-secao">3. Como entrar no sistema</h1>
     <p class="subtitulo-secao">Acesso à área Master</p>
 
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/desktop/01-login.png" alt="Tela de login">
+            <div class="callout " style="top: 38%; left: 67%;">1</div>
+            <div class="callout " style="top: 50%; left: 67%;">2</div>
+            <div class="callout azul" style="top: 65%; left: 67%;">3</div>
+            <div class="callout laranja" style="top: 58%; left: 86%;">4</div>
+        </div>
+        <div class="legenda">Tela de login · master usa o mesmo formulário do cliente</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>E-mail</strong>: seu e-mail de master cadastrado.</li>
+            <li><strong>Senha</strong>: senha pessoal (definida no primeiro login).</li>
+            <li><strong>Entrar</strong>: sistema reconhece como master e leva pro Painel Master.</li>
+            <li><strong>Esqueci minha senha</strong>: link pra reset por e-mail.</li>
+        </ol>
+    </div>
+
     <div class="passo">
         <div class="num">1</div>
         <div class="conteudo">Abra o navegador (Chrome, Edge, Firefox ou Safari) e digite <strong>app.fazendamacaybas.com.br/login</strong>.</div>
@@ -423,7 +443,7 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <p class="subtitulo-secao">Todos os clientes cadastrados na plataforma</p>
 
     <div class="caixa-print">
-        <img src="screenshots/master/master-clientes.png" alt="Master · Clientes">
+        <img src="screenshots/master/master-tenants.png" alt="Master · Clientes">
         <div class="legenda">Lista de clientes</div>
     </div>
 
@@ -438,10 +458,30 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <p class="voltar-topo"><a href="#sumario">↑ Voltar ao sumário</a></p>
 </section>
 
-<!-- ============================== 6. CRIAR TENANT ============================== -->
+<!-- ============================== 6. CRIAR CLIENTE ============================== -->
 <section class="pagina" id="criar-cliente">
     <h1 class="titulo-secao">6. Criar novo cliente</h1>
     <p class="subtitulo-secao">Cadastro inicial de um cliente novo</p>
+
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-criar-cliente.png" alt="Form criar cliente">
+            <div class="callout " style="top: 28%; left: 30%;">1</div>
+            <div class="callout " style="top: 28%; left: 60%;">2</div>
+            <div class="callout azul" style="top: 50%; left: 30%;">3</div>
+            <div class="callout laranja" style="top: 70%; left: 50%;">4</div>
+        </div>
+        <div class="legenda">Formulário de novo cliente · dados básicos + plano</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>Nome da fazenda</strong> *: nome do cliente como aparece no sistema.</li>
+            <li><strong>Endereço curto</strong> *: usado em URLs (ex.: "fazenda-do-zé").</li>
+            <li><strong>Documento</strong>: CNPJ ou CPF (com validação automática).</li>
+            <li><strong>Plano</strong>: escolha do catálogo. Define preço, módulos e limites.</li>
+        </ol>
+    </div>
 
     <div class="passo">
         <div class="num">1</div>
@@ -481,6 +521,11 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <h1 class="titulo-secao">7. Editar / suspender cliente</h1>
     <p class="subtitulo-secao">Manutenção de clientes existentes</p>
 
+    <div class="caixa-print">
+        <img src="screenshots/master/master-tenant-editar.png" alt="Editar cliente">
+        <div class="legenda">Tela de edição do cliente</div>
+    </div>
+
     <h2>Editar dados</h2>
     <p>Em <em>Clientes → [cliente] → Editar</em>: muda nome, documento, contato, endereço. Slug NÃO pode mudar depois de criado (usado em URLs públicas e e-mails históricos).</p>
 
@@ -506,6 +551,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <p class="subtitulo-secao">Suporte em primeira pessoa</p>
 
     <p>Quando um cliente reporta um bug ou tem dúvida operacional, em vez de pedir vídeo/print, você <strong>entra como o cliente</strong> — vira o usuário dele temporariamente e vê exatamente o que ele vê.</p>
+
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-tenants.png" alt="Lista de clientes com ação">
+            <div class="callout " style="top: 22%; left: 50%;">1</div>
+            <div class="callout " style="top: 38%; left: 30%;">2</div>
+            <div class="callout azul" style="top: 55%; right: 20%;">3</div>
+            <div class="callout laranja" style="top: 55%; right: 6%;">4</div>
+        </div>
+        <div class="legenda">Lista de clientes · ícone "🎭 Impersonar" em cada linha</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>Filtros</strong>: status, plano, busca por nome.</li>
+            <li><strong>Linha do cliente</strong>: clique no nome pra ver detalhes.</li>
+            <li><strong>🎭 Impersonar</strong>: entra como o cliente. Tudo fica auditado com seu nome master.</li>
+            <li><strong>Ações</strong>: editar · usuários · CMS · suspender.</li>
+        </ol>
+    </div>
 
     <div class="passo">
         <div class="num">1</div>
@@ -542,6 +607,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <h1 class="titulo-secao">9. Reset de senha de funcionários</h1>
     <p class="subtitulo-secao">Cliente liga reclamando que perdeu acesso</p>
 
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-tenant-usuarios.png" alt="Usuários do cliente">
+            <div class="callout " style="top: 22%; left: 50%;">1</div>
+            <div class="callout " style="top: 38%; right: 6%;">2</div>
+            <div class="callout azul" style="top: 55%; right: 14%;">3</div>
+            <div class="callout laranja" style="top: 55%; right: 6%;">4</div>
+        </div>
+        <div class="legenda">Tela "Usuários" · cada usuário do cliente em uma linha</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>+ Novo usuário</strong>: cadastra funcionário novo no cliente (você master, não o dono).</li>
+            <li><strong>Resetar senha</strong>: gera senha temporária e envia por e-mail. Útil quando cliente liga reclamando de acesso.</li>
+            <li><strong>Ativar / Inativar</strong>: bloqueia login sem deletar histórico.</li>
+            <li><strong>Editar</strong>: muda perfil, nome, e-mail.</li>
+        </ol>
+    </div>
+
     <p>Caso de uso comum: dono ou funcionário do cliente esqueceu a senha e ele mesmo não consegue resetar via "Esqueci minha senha" (problema com e-mail, etc.).</p>
 
     <div class="passo">
@@ -574,9 +659,24 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <h1 class="titulo-secao">10. Catálogo de planos</h1>
     <p class="subtitulo-secao">Definição comercial da plataforma</p>
 
-    <div class="caixa-print">
-        <img src="screenshots/master/master-planos.png" alt="Master · Planos">
-        <div class="legenda">Catálogo de planos</div>
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-planos.png" alt="Master · Planos">
+            <div class="callout" style="top: 22%; left: 50%;">1</div>
+            <div class="callout" style="top: 36%; left: 30%;">2</div>
+            <div class="callout azul" style="top: 50%; left: 50%;">3</div>
+            <div class="callout laranja" style="top: 50%; right: 14%;">4</div>
+        </div>
+        <div class="legenda">Catálogo de planos · cada plano em um card</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>KPIs</strong>: total de planos ativos · clientes por plano.</li>
+            <li><strong>+ Novo plano</strong>: cria um plano novo no catálogo.</li>
+            <li><strong>Card do plano</strong>: nome, preço, limites (fazendas/usuários).</li>
+            <li><strong>Ações</strong>: editar · ativar/desativar plano.</li>
+        </ol>
     </div>
 
     <p>Cada plano define o que o cliente recebe: módulos disponíveis, número máximo de fazendas, número máximo de usuários, preço mensal.</p>
@@ -611,6 +711,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 <section class="pagina" id="assinaturas">
     <h1 class="titulo-secao">11. Assinaturas dos clientes</h1>
     <p class="subtitulo-secao">Plano ativo de cada cliente</p>
+
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-tenant-assinatura.png" alt="Assinatura do cliente">
+            <div class="callout " style="top: 25%; left: 30%;">1</div>
+            <div class="callout " style="top: 25%; left: 60%;">2</div>
+            <div class="callout azul" style="top: 50%; left: 30%;">3</div>
+            <div class="callout laranja" style="top: 75%; left: 30%;">4</div>
+        </div>
+        <div class="legenda">Tela de assinatura · plano contratado + status</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>Plano atual</strong>: escolha pra mudar — efeito imediato ou no próximo ciclo.</li>
+            <li><strong>Status</strong>: ativo, suspenso, trial, cancelado.</li>
+            <li><strong>Valor mensal</strong>: pode customizar (descontos comerciais).</li>
+            <li><strong>Cancelar assinatura</strong>: cliente continua até fim do período pago.</li>
+        </ol>
+    </div>
 
     <p>Cada cliente tem 1 assinatura ativa, que define seu plano atual + estado da cobrança. Em <em>Clientes → [cliente] → Assinatura</em> você vê e edita.</p>
 
@@ -663,6 +783,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <h1 class="titulo-secao">13. Gerar faturas em lote</h1>
     <p class="subtitulo-secao">Cobrança mensal automatizada</p>
 
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-gerar-faturas.png" alt="Wizard gerar faturas">
+            <div class="callout " style="top: 25%; left: 30%;">1</div>
+            <div class="callout " style="top: 38%; left: 30%;">2</div>
+            <div class="callout azul" style="top: 55%; left: 50%;">3</div>
+            <div class="callout laranja" style="top: 88%; right: 12%;">4</div>
+        </div>
+        <div class="legenda">Wizard "Gerar faturas" · mensal ou única</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>Tipo</strong>: Mensal (todos clientes ativos) ou Única (1 cliente específico).</li>
+            <li><strong>Período de competência</strong>: mês de referência (ex.: "Maio/2026").</li>
+            <li><strong>Data de vencimento</strong>: quando a fatura vence (ex.: "10/05/2026").</li>
+            <li><strong>Preview / Gerar</strong>: Preview mostra tabela; Gerar cria as faturas + notifica.</li>
+        </ol>
+    </div>
+
     <p>Mensalmente, no dia X, você precisa gerar faturas pra TODOS os clientes ativos. O wizard automatiza isso.</p>
 
     <div class="passo">
@@ -705,6 +845,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <p class="subtitulo-secao">Quando cliente envia comprovante PIX/transferência</p>
 
     <p>Quando o cliente paga uma fatura e clica em "Enviar comprovante" no portal dele, a fatura entra em status <em>Em validação</em>. Você precisa conferir e aprovar.</p>
+
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-cobrancas.png" alt="Lista de cobranças">
+            <div class="callout " style="top: 22%; left: 50%;">1</div>
+            <div class="callout " style="top: 38%; left: 30%;">2</div>
+            <div class="callout azul" style="top: 55%; right: 20%;">3</div>
+            <div class="callout laranja" style="top: 88%; right: 12%;">4</div>
+        </div>
+        <div class="legenda">Lista de cobranças · filtre por "Em validação"</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>KPIs</strong>: Total a receber · Em aberto · Atrasadas · Em validação.</li>
+            <li><strong>Filtro por status</strong>: filtre "Em validação" pra ver pendências.</li>
+            <li><strong>Linha da fatura</strong>: clique pra abrir tela de validação com comprovante anexado.</li>
+            <li><strong>+ Gerar faturas</strong>: wizard pra gerar mensalidades em lote (seção 13).</li>
+        </ol>
+    </div>
 
     <div class="passo">
         <div class="num">1</div>
@@ -855,6 +1015,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <h1 class="titulo-secao">19. Enviar manual por e-mail</h1>
     <p class="subtitulo-secao">Fluxo automatizado · cliente → dono ativo</p>
 
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-manuais.png" alt="Master · Manuais">
+            <div class="callout " style="top: 25%; left: 50%;">1</div>
+            <div class="callout " style="top: 50%; left: 30%;">2</div>
+            <div class="callout azul" style="top: 50%; left: 60%;">3</div>
+            <div class="callout laranja" style="top: 75%; left: 50%;">4</div>
+        </div>
+        <div class="legenda">Tela de Manuais · 2 ações por manual + histórico abaixo</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>Card do manual</strong>: cada manual disponível (Usuário enviável; Master interno).</li>
+            <li><strong>Baixar</strong>: download direto pro seu computador.</li>
+            <li><strong>Enviar manual</strong>: modal pra escolher cliente + dono ativo + mensagem.</li>
+            <li><strong>Histórico</strong>: tabela mostra envios anteriores e status (aberto/aguardando).</li>
+        </ol>
+    </div>
+
     <div class="passo">
         <div class="num">1</div>
         <div class="conteudo">No card do manual, clique em <strong>"Enviar manual"</strong>.</div>
@@ -915,6 +1095,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
     <h1 class="titulo-secao">21. Editar seções, banners, galeria</h1>
     <p class="subtitulo-secao">Como mudar conteúdo da landing</p>
 
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-cliente-cms.png" alt="CMS por cliente">
+            <div class="callout " style="top: 22%; left: 50%;">1</div>
+            <div class="callout " style="top: 40%; left: 30%;">2</div>
+            <div class="callout azul" style="top: 60%; left: 50%;">3</div>
+            <div class="callout laranja" style="top: 88%; right: 12%;">4</div>
+        </div>
+        <div class="legenda">CMS · editor da landing pública do cliente</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>Páginas</strong>: Home, Sobre, Contato (criadas no scaffolding inicial).</li>
+            <li><strong>Seções</strong>: cada bloco editável da página (Hero, Galeria, Depoimentos…).</li>
+            <li><strong>Editar</strong>: clica numa seção pra mudar texto/imagens/CTAs.</li>
+            <li><strong>Publicar</strong>: rascunho → publicado (vai pro público).</li>
+        </ol>
+    </div>
+
     <div class="passo">
         <div class="num">1</div>
         <div class="conteudo">No CMS de um cliente, clique numa <strong>seção</strong> (ex.: "Hero").</div>
@@ -965,6 +1165,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 <section class="pagina" id="boas-praticas">
     <h1 class="titulo-secao">23. Boas práticas operacionais</h1>
     <p class="subtitulo-secao">Como rodar a operação master com qualidade</p>
+
+<div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-dashboard.png" alt="Painel Master">
+            <div class="callout " style="top: 25%; left: 30%;">1</div>
+            <div class="callout " style="top: 25%; left: 70%;">2</div>
+            <div class="callout azul" style="top: 50%; left: 50%;">3</div>
+            <div class="callout laranja" style="top: 75%; left: 50%;">4</div>
+        </div>
+        <div class="legenda">Painel Master · sua referência diária</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>Clientes ativos</strong>: total de assinantes em uso.</li>
+            <li><strong>Receita Mensal Recorrente</strong>: soma das mensalidades dos clientes ativos.</li>
+            <li><strong>Comprovantes pendentes</strong>: clique pra validar (seção 14).</li>
+            <li><strong>Atividades recentes</strong>: log dos últimos eventos significativos.</li>
+        </ol>
+    </div>
 
     <h2>Diário</h2>
     <ul style="padding-left: 25px; margin: 8px 0;">
