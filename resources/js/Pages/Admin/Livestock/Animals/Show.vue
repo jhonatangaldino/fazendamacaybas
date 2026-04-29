@@ -14,6 +14,11 @@ import InputMoney from '@/Components/InputMoney.vue';
 import ActionIcon from '@/Components/ActionIcon.vue';
 import AvatarUpload from '@/Components/AvatarUpload.vue';
 import { dataBR, brl, hojeBR } from '@/utils/format.js';
+// CRÍTICO · sem este import o botão "lixeira" da timeline lança
+// ReferenceError: EVENT_CATALOG is not defined ao clicar — modal de
+// confirmação nunca abre, exclusão silenciosamente quebrada.
+// Bug detectado pelo dono em produção 2026-04-29.
+import { EVENT_CATALOG } from '@/utils/animalProfile.js';
 import {
     Chart as ChartJS, LineElement, PointElement, LinearScale, TimeScale,
     CategoryScale, Tooltip, Legend, Title, Filler,
