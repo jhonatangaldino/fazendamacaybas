@@ -21,6 +21,14 @@ class FinancialTransaction extends Model
     use LogsActivity, SoftDeletes;
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (FinancialTransaction $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'financial');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'account_id', 'category_id', 'cost_center_id', 'partner_id', 'recurrence_id',
         'parent_transaction_id', 'parcela_atual', 'total_parcelas',

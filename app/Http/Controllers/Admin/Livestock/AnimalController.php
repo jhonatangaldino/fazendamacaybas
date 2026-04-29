@@ -348,18 +348,11 @@ class AnimalController extends Controller
         }
 
         if ($profile === 'ave_postura') {
-            // Postura: total ovos no mês + média/dia (últimos 7d) + aves em postura
-            $animalIds = Animal::where('species_id', $species->id)
-                ->where('status', 'ativo')->pluck('id');
-            $ovosMes = (int) AnimalEvent::whereIn('animal_id', $animalIds)
-                ->where('tipo', 'postura_diaria')
-                ->where('data', '>=', now()->startOfMonth()->toDateString())
-                ->sum('peso'); // postura usa coluna `peso` pra qtd ovos (legado)
-            $eventos7d = AnimalEvent::whereIn('animal_id', $animalIds)
-                ->where('tipo', 'postura_diaria')
-                ->where('data', '>=', now()->subDays(7)->toDateString())
-                ->get(['data', 'peso']);
-            $mediaDia = $eventos7d->count() > 0 ? round($eventos7d->sum('peso') / 7, 0) : 0;
+            // Postura: service unifica fórmula. Antes este controller tinha
+            // queries inline (alta-8) — agora delega ao LivestockMetricsService
+            // pra ser fonte única (mesmo padrão de litrosNoMes/vacasEmLactacao).
+            $ovosMes = $metrics->ovosNoMes($species->id);
+            $mediaDia = $metrics->mediaOvosPorDia($species->id, 7);
 
             return [
                 'profile' => 'ave_postura',
@@ -372,18 +365,16 @@ class AnimalController extends Controller
         }
 
         if ($profile === 'aquicultura_lote') {
-            // Última biometria + total cabeças nos lotes agregados
-            $ultimaBio = AnimalEvent::whereHas('animal', fn ($q) => $q->where('species_id', $species->id))
-                ->where('tipo', 'biometria_amostral')
-                ->orderByDesc('data')
-                ->first(['data', 'peso']);
+            // Última biometria via service. Antes inline aqui (alta-8) —
+            // agora canonizado para garantir paridade com Dashboard espécie.
+            $ultimaBio = $metrics->ultimaBiometria($species->id);
 
             return [
                 'profile' => 'aquicultura_lote',
                 'titulo' => '🐟 Indicadores de aquicultura',
                 'cards' => [
-                    ['label' => 'Última biometria', 'valor' => $ultimaBio?->data?->format('d/m/Y') ?? '—', 'cor' => 'sky', 'icon' => '📏'],
-                    ['label' => 'Peso médio amostra', 'valor' => $ultimaBio?->peso ? round($ultimaBio->peso, 2).' g' : '—', 'cor' => 'slate', 'icon' => '⚖️'],
+                    ['label' => 'Última biometria', 'valor' => $ultimaBio['data'] ?? '—', 'cor' => 'sky', 'icon' => '📏'],
+                    ['label' => 'Peso médio amostra', 'valor' => isset($ultimaBio['peso']) && $ultimaBio['peso'] !== null ? round($ultimaBio['peso'], 2).' g' : '—', 'cor' => 'slate', 'icon' => '⚖️'],
                 ],
             ];
         }

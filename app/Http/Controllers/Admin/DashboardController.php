@@ -7,7 +7,10 @@ use App\Models\Financial\FinancialTransaction;
 use App\Models\Stock\StockItem;
 use App\Models\Task\Task;
 use App\Services\Livestock\LivestockMetricsService;
+use App\Services\Metrics\AgricolaMetrics;
+use App\Services\Metrics\EstoqueMetrics;
 use App\Services\Metrics\FinancialMetrics;
+use App\Services\Metrics\MaquinasMetrics;
 use App\Services\Metrics\TarefasMetrics;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -49,12 +52,16 @@ class DashboardController extends Controller
         Request $request,
         FinancialMetrics $financeiro,
         TarefasMetrics $tarefas,
+        AgricolaMetrics $agricola,
+        EstoqueMetrics $estoque,
+        MaquinasMetrics $maquinas,
     ): Response {
         $tenant = app()->bound('tenant_id') ? app('tenant_id') : 'null';
         $farm   = app()->bound('farm_id') ? app('farm_id') : 'null';
         $user   = $request->user()?->id ?? 'guest';
-        // Cache key versionado: bump v3 invalida caches anteriores (refator pra Metrics services).
-        $cacheKey = "dashboard:v3:{$tenant}:{$farm}:{$user}";
+        // Cache key versionado: bump v4 invalida caches v3 anteriores (Fase 3:
+        // adiciona widgets agricola/maquinas e usa EstoqueMetrics em vez de inline).
+        $cacheKey = "dashboard:v4:{$tenant}:{$farm}:{$user}";
 
         if ($request->query('refresh') === '1') {
             Cache::forget($cacheKey);
@@ -63,7 +70,14 @@ class DashboardController extends Controller
         $payload = Cache::remember(
             $cacheKey,
             now()->addSeconds(90),
-            fn () => $this->buildPayload(app(LivestockMetricsService::class), $financeiro, $tarefas),
+            fn () => $this->buildPayload(
+                app(LivestockMetricsService::class),
+                $financeiro,
+                $tarefas,
+                $agricola,
+                $estoque,
+                $maquinas,
+            ),
         );
 
         return Inertia::render('Admin/Dashboard', $payload);
@@ -73,6 +87,9 @@ class DashboardController extends Controller
         LivestockMetricsService $metrics,
         FinancialMetrics $financeiro,
         TarefasMetrics $tarefas,
+        AgricolaMetrics $agricola,
+        EstoqueMetrics $estoque,
+        MaquinasMetrics $maquinas,
     ): array {
         $hoje = Carbon::today();
         $inicioMes = Carbon::now()->startOfMonth();
@@ -125,13 +142,16 @@ class DashboardController extends Controller
                 'total'   => $s['animals_count'],
             ])->sortByDesc('total')->values();
 
-        // ═══════════ ESTOQUE — query inline (EstoqueMetrics fica para Fase 4) ═══════════
-        // BUG FIX B4.4: usar StockItem model (não DB::table) pra preservar scopes.
-        // BUG FIX METRICS-AUDIT alta-6: KPI antes era count() da lista limitada.
-        // Se houver 50 itens abaixo, mostrava 10. Agora count REAL via subquery.
-        $itensBaixoEstoqueQuery = StockItem::query()
+        // ═══════════ ESTOQUE — via EstoqueMetrics (fonte única, Fase 3) ═══════════
+        // KPI canônico: count REAL (não capped). Lista de drill-down (top 10)
+        // permanece via query separada. Bug METRICS-AUDIT alta-6 corrigido aqui +
+        // alinhado com lista de itens.
+        $itensBaixoEstoqueCount = $estoque->itensComEstoqueBaixo();
+
+        $itensBaixoEstoqueList = StockItem::query()
             ->leftJoin('stock_movements', 'stock_items.id', '=', 'stock_movements.item_id')
             ->where('stock_items.is_active', true)
+            ->where('stock_items.estoque_minimo', '>', 0)
             ->select(
                 'stock_items.id',
                 'stock_items.nome',
@@ -140,10 +160,15 @@ class DashboardController extends Controller
                 DB::raw("SUM(CASE WHEN stock_movements.tipo IN ('entrada','ajuste') THEN stock_movements.quantidade WHEN stock_movements.tipo = 'saida' THEN -stock_movements.quantidade ELSE 0 END) as saldo")
             )
             ->groupBy('stock_items.id', 'stock_items.nome', 'stock_items.unidade', 'stock_items.estoque_minimo')
-            ->havingRaw('COALESCE(saldo, 0) < stock_items.estoque_minimo');
+            ->havingRaw('COALESCE(saldo, 0) < stock_items.estoque_minimo AND COALESCE(saldo, 0) > 0')
+            ->limit(10)
+            ->get();
 
-        $itensBaixoEstoqueList = (clone $itensBaixoEstoqueQuery)->limit(10)->get();
-        $itensBaixoEstoqueCount = (clone $itensBaixoEstoqueQuery)->get()->count();
+        // ═══════════ AGRÍCOLA — via AgricolaMetrics (fonte única, Fase 3) ═══════════
+        $agricolaResumo = $agricola->resumoHub();
+
+        // ═══════════ MÁQUINAS — via MaquinasMetrics (fonte única, Fase 3) ═══════════
+        $maquinasResumo = $maquinas->resumo();
 
         // ═══════════ TAREFAS — via TarefasMetrics (fonte única) ═══════════
         // Antes Painel incluía em_andamento; AlertsService só pendente.
@@ -174,6 +199,18 @@ class DashboardController extends Controller
                 'tarefas' => [
                     'pendentes' => $tarefasResumo['pendentes'],
                     'atrasadas' => $tarefasResumo['atrasadas'],
+                ],
+                'agricola' => [
+                    'plantios_ativos'  => $agricolaResumo['plantios_ativos'],
+                    'safras_andamento' => $agricolaResumo['safras_andamento'],
+                    'aplicacoes_mes'   => $agricolaResumo['aplicacoes_mes'],
+                    'total_hectares'   => $agricolaResumo['total_hectares'],
+                ],
+                'maquinas' => [
+                    'veiculos_ativos'    => $maquinasResumo['veiculos_ativos'],
+                    'em_manutencao'      => $maquinasResumo['em_manutencao'],
+                    'manutencoes_abertas'=> $maquinasResumo['manutencoes_abertas'],
+                    'custo_mes'          => $maquinasResumo['custo_mes'],
                 ],
             ],
             'contas_a_pagar' => $contasAPagar,

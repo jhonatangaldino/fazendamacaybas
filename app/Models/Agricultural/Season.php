@@ -11,6 +11,14 @@ class Season extends Model
 {
     use BelongsToTenant;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (Season $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'agricola');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = ['nome', 'data_inicio', 'data_fim', 'is_active', 'tenant_id'];
 
     protected $casts = [

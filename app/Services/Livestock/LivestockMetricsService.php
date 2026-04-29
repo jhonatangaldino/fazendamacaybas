@@ -545,6 +545,98 @@ class LivestockMetricsService
     }
 
     // ─────────────────────────────────────────────────────────────────────
+    // Profile-específicos: postura (aves), aquicultura
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * Ovos no mês — total agregado de eventos `postura_diaria`.
+     *
+     * Fórmula canônica:
+     *   SUM(animal_events.peso) WHERE tipo='postura_diaria'
+     *   AND data BETWEEN [inicioMes, fimMes]
+     *   AND animal_id IN (animais ativos da espécie)
+     *
+     * Coluna `peso` é usada por legado para armazenar quantidade de ovos
+     * em eventos de postura (mesmo schema reaproveitado).
+     *
+     * Bug corrigido (alta-8): AnimalController::kpisProfileEspecie tinha
+     * essa fórmula inline; agora vive aqui pra ser canônica.
+     */
+    public function ovosNoMes(int $speciesId, ?Carbon $mesRef = null, ?int $tenantId = null, ?int $farmId = null): int
+    {
+        [$ini, $fim] = $this->resolveMes($mesRef);
+
+        $animalIds = $this->animalQuery($tenantId, $farmId)
+            ->where('species_id', $speciesId)
+            ->where('status', 'ativo')
+            ->pluck('id');
+
+        if ($animalIds->isEmpty()) {
+            return 0;
+        }
+
+        return (int) $this->eventQuery($tenantId, $farmId)
+            ->whereIn('animal_id', $animalIds)
+            ->where('tipo', 'postura_diaria')
+            ->whereBetween('data', [$ini->toDateString(), $fim->toDateString()])
+            ->sum('peso');
+    }
+
+    /**
+     * Média de ovos por dia nos últimos N dias (default 7).
+     *
+     * Fórmula: SUM(peso) eventos postura_diaria nos últimos N dias / N.
+     * Usa N (não COUNT(distinct dias)) — média conta dias zerados também.
+     */
+    public function mediaOvosPorDia(int $speciesId, int $dias = 7, ?int $tenantId = null, ?int $farmId = null): float
+    {
+        $animalIds = $this->animalQuery($tenantId, $farmId)
+            ->where('species_id', $speciesId)
+            ->where('status', 'ativo')
+            ->pluck('id');
+
+        if ($animalIds->isEmpty() || $dias <= 0) {
+            return 0.0;
+        }
+
+        $total = (int) $this->eventQuery($tenantId, $farmId)
+            ->whereIn('animal_id', $animalIds)
+            ->where('tipo', 'postura_diaria')
+            ->where('data', '>=', now()->subDays($dias)->toDateString())
+            ->sum('peso');
+
+        return round($total / $dias, 1);
+    }
+
+    /**
+     * Última biometria (aquicultura) — evento mais recente de
+     * `biometria_amostral` para qualquer animal/lote da espécie.
+     *
+     * Retorna ['data' => 'd/m/Y', 'peso' => float] ou null.
+     */
+    public function ultimaBiometria(int $speciesId, ?int $tenantId = null, ?int $farmId = null): ?array
+    {
+        $ev = $this->eventQuery($tenantId, $farmId)
+            ->where('tipo', 'biometria_amostral')
+            ->where(function ($q) use ($speciesId) {
+                $q->whereHas('animal', fn ($qq) => $qq->where('species_id', $speciesId))
+                  ->orWhereHas('lot', fn ($qq) => $qq->where('species_id', $speciesId));
+            })
+            ->orderByDesc('data')
+            ->first(['data', 'peso']);
+
+        if (! $ev) {
+            return null;
+        }
+
+        return [
+            'data' => $ev->data?->format('d/m/Y'),
+            'data_iso' => $ev->data?->toDateString(),
+            'peso' => $ev->peso !== null ? (float) $ev->peso : null,
+        ];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     // Internals
     // ─────────────────────────────────────────────────────────────────────
 

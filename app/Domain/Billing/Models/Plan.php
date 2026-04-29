@@ -16,6 +16,15 @@ class Plan extends Model
 {
     protected $table = 'plans';
 
+    protected static function booted(): void
+    {
+        // Plano afeta MRR (preco_mensal × subscriptions ativas).
+        $invalidate = fn (Plan $m) => \App\Services\Metrics\MetricsCache::forgetMaster();
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'slug',
         'nome',

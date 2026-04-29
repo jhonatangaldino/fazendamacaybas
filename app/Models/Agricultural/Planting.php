@@ -15,6 +15,14 @@ class Planting extends Model
     use SoftDeletes;
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (Planting $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'agricola');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'field_id', 'crop_id', 'season_id', 'data_plantio', 'previsao_colheita',
         'area_plantada_ha', 'custo_previsto', 'custo_real', 'status', 'observacoes',

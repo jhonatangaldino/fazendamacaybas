@@ -28,6 +28,8 @@ class Animal extends Model
     {
         $invalidate = function (Animal $a) {
             \Illuminate\Support\Facades\Cache::forget("tenant_species_with_count.{$a->tenant_id}");
+            // Invalidação centralizada das métricas (livestock e qualquer derivada).
+            \App\Services\Metrics\MetricsCache::forgetForTenant((int) $a->tenant_id, 'livestock');
         };
         static::created($invalidate);
         static::updated($invalidate);

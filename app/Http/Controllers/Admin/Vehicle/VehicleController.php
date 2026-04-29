@@ -9,6 +9,7 @@ use App\Models\Financial\FinancialTransaction;
 use App\Models\Partner;
 use App\Models\Vehicle\MaintenanceOrder;
 use App\Models\Vehicle\Vehicle;
+use App\Services\Metrics\MaquinasMetrics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -16,14 +17,18 @@ use Inertia\Inertia;
 
 class VehicleController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, MaquinasMetrics $metrics)
     {
+        // KPIs canônicos via service. Antes essa query rodava inline a CADA hit;
+        // agora cacheada via MetricsCache (TTL_FAST). Bate com Hub e Painel.
+        $resumo = $metrics->resumo();
+
         $totals = [
-            'veiculos' => Vehicle::where('is_active', true)->count(),
-            'manutencoes_abertas' => MaintenanceOrder::whereIn('status', ['agendada', 'em_andamento'])->count(),
-            'custo_mes' => (float) MaintenanceOrder::whereYear('data_realizada', now()->year)
-                ->whereMonth('data_realizada', now()->month)
-                ->sum('valor_total'),
+            'veiculos'             => $resumo['veiculos_ativos'],
+            'em_manutencao'        => $resumo['em_manutencao'],
+            'manutencoes_abertas'  => $resumo['manutencoes_abertas'],
+            'manutencoes_mes'      => $resumo['manutencoes_mes'],
+            'custo_mes'            => $resumo['custo_mes'],
         ];
 
         return Inertia::render('Admin/Vehicle/Index', ['totals' => $totals]);

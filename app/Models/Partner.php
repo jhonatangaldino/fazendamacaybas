@@ -13,6 +13,14 @@ class Partner extends Model
     use SoftDeletes;
     use BelongsToTenant;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (Partner $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'parceiros');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'tipo', 'pessoa', 'nome', 'nome_fantasia', 'documento', 'inscricao_estadual',
         'email', 'telefone', 'celular', 'cep', 'endereco', 'numero', 'complemento',

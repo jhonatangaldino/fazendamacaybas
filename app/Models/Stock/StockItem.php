@@ -16,6 +16,14 @@ class StockItem extends Model
     use SoftDeletes;
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (StockItem $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'estoque');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'category_id', 'codigo', 'codigo_barras', 'nome', 'descricao', 'unidade', 'marca',
         'estoque_minimo', 'estoque_maximo', 'custo_medio', 'tipo', 'registro_ms', 'is_active',

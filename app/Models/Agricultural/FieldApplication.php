@@ -12,6 +12,14 @@ class FieldApplication extends Model
 {
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (FieldApplication $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'agricola');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'field_id', 'planting_id', 'data_aplicacao', 'tipo', 'produto',
         'quantidade', 'unidade', 'valor_total', 'responsavel', 'observacoes',

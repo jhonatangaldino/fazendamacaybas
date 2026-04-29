@@ -26,6 +26,7 @@ class AnimalLot extends Model
     {
         $invalidate = function (AnimalLot $l) {
             \Illuminate\Support\Facades\Cache::forget("tenant_species_with_count.{$l->tenant_id}");
+            \App\Services\Metrics\MetricsCache::forgetForTenant((int) $l->tenant_id, 'livestock');
         };
         static::created($invalidate);
         static::updated($invalidate);

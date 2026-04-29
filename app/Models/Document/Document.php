@@ -16,6 +16,14 @@ class Document extends Model
     use SoftDeletes;
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (Document $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'documentos');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'category_id', 'titulo', 'descricao', 'path', 'nome_arquivo', 'mime_type', 'size',
         'data_documento', 'data_vencimento', 'related_type', 'related_id',

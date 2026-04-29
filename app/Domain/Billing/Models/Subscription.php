@@ -18,6 +18,15 @@ class Subscription extends Model
 {
     protected $table = 'subscriptions';
 
+    protected static function booted(): void
+    {
+        // Subscription afeta MRR + status overdue → invalida métricas master.
+        $invalidate = fn (Subscription $m) => \App\Services\Metrics\MetricsCache::forgetMaster();
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'tenant_id',
         'plan_id',

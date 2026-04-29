@@ -13,6 +13,7 @@ use App\Models\Agricultural\Planting;
 use App\Models\Agricultural\Season;
 use App\Models\Farm;
 use App\Models\Stock\StockItem;
+use App\Services\Metrics\AgricolaMetrics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,8 +22,13 @@ use Inertia\Inertia;
 
 class AgriculturalController extends Controller
 {
-    public function index()
+    public function index(AgricolaMetrics $metrics)
     {
+        // KPIs canônicos via service — alinha Hub Agrícola com Painel/Listas.
+        // Antes: cada controller calculava sua versão (Hub vs Lista divergiam
+        // em "área total" porque Lista só somava ativos e Hub somava todos).
+        $resumo = $metrics->resumoHub();
+
         $fields = Field::where('is_active', true)->orderBy('nome')->get(['id', 'nome', 'codigo', 'area_ha']);
         $plantings = Planting::with(['field:id,nome', 'crop:id,nome'])
             ->where('status', 'em_andamento')
@@ -42,10 +48,11 @@ class AgriculturalController extends Controller
 
         return Inertia::render('Admin/Agricultural/Index', [
             'totals' => [
-                'fields' => $fields->count(),
-                'plantings_ativos' => $plantings->count(),
-                'seasons' => $seasons->count(),
-                'area_total' => (float) $fields->sum('area_ha'),
+                'fields'           => $resumo['total_talhoes'],
+                'plantings_ativos' => $resumo['plantios_ativos'],
+                'seasons'          => $resumo['safras_andamento'],
+                'area_total'       => $resumo['total_hectares'],
+                'aplicacoes_mes'   => $resumo['aplicacoes_mes'],
             ],
             // Listas leves pra alimentar os drawers de drill-down (clique no KPI)
             'drillFields' => $fields,

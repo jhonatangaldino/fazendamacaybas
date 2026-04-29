@@ -16,6 +16,14 @@ class Vehicle extends Model
     use SoftDeletes;
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (Vehicle $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'maquinas');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'farm_id', 'tipo', 'nome', 'marca', 'modelo', 'ano_fabricacao', 'ano_modelo',
         'placa', 'renavam', 'chassi', 'cor', 'combustivel',

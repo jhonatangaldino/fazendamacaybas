@@ -25,6 +25,15 @@ class Tenant extends Model
 {
     protected $table = 'tenants';
 
+    protected static function booted(): void
+    {
+        // Tenant ativação/criação afeta KPIs master (count de tenants ativos etc).
+        $invalidate = fn (Tenant $m) => \App\Services\Metrics\MetricsCache::forgetMaster();
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'nome',
         'slug',

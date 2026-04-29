@@ -78,7 +78,7 @@ class MetricsCache
     {
         $modules = $module
             ? [$module]
-            : ['livestock', 'financial', 'agricola', 'estoque', 'maquinas', 'tarefas', 'documentos'];
+            : ['livestock', 'financial', 'agricola', 'estoque', 'maquinas', 'tarefas', 'documentos', 'parceiros'];
 
         foreach ($modules as $mod) {
             foreach (self::knownKeysFor($mod) as $template) {
@@ -154,7 +154,10 @@ class MetricsCache
                 'total_hectares.t{t}',
                 'plantios_ativos.t{t}',
                 'safras_ativas.t{t}',
+                'aplicacoes_periodo.t{t}',
                 'aplicacoes_mes.t{t}',
+                'colheitas_periodo.t{t}',
+                'custo_por_hectare.t{t}',
                 'produtividade_periodo.t{t}',
             ],
             'estoque' => [
@@ -163,12 +166,16 @@ class MetricsCache
                 'abaixo_minimo.t{t}',
                 'sem_estoque.t{t}',
                 'movimentacoes_mes.t{t}',
+                'movimentacoes_periodo.t{t}',
+                'por_categoria.t{t}',
             ],
             'maquinas' => [
                 'veiculos_ativos.t{t}',
                 'veiculos_em_manutencao.t{t}',
                 'manutencoes_abertas.t{t}',
+                'manutencoes_periodo.t{t}',
                 'custo_manutencao_mes.t{t}',
+                'custo_manutencao_periodo.t{t}',
             ],
             'tarefas' => [
                 'pendentes.t{t}',
@@ -181,14 +188,30 @@ class MetricsCache
             'documentos' => [
                 'total.t{t}',
                 'vencendo_30d.t{t}',
+                'vencendo_7d.t{t}',
                 'vencidos.t{t}',
+                'por_categoria.t{t}',
+            ],
+            'parceiros' => [
+                'total_ativos.t{t}',
+                'clientes.t{t}',
+                'fornecedores.t{t}',
+                'vendas_mes_top.t{t}',
             ],
             'platform' => [
                 'master_kpis',
-                'tenants_count',
+                'tenants_total',
+                'tenants_ativos',
+                'tenants_inativos',
                 'mrr',
+                'cobrancas_pendentes',
+                'cobrancas_overdue',
                 'cobrancas_overdue_plano',
                 'cobrancas_aguardando_validacao',
+                'recebido_mes',
+                'total_pendente',
+                'inadimplencia',
+                'usuarios',
             ],
             default => [],
         };

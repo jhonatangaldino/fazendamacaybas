@@ -15,6 +15,14 @@ class StockMovement extends Model
 {
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (StockMovement $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'estoque');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'item_id', 'warehouse_id', 'partner_id', 'tipo', 'motivo',
         'data', 'quantidade', 'valor_unitario', 'valor_total',

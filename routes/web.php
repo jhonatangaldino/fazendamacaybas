@@ -583,7 +583,14 @@ Route::middleware(['auth', 'tenant.user.only', 'enforce.subscription', 'enforce.
 
     // ------- ESTOQUE -------
     Route::middleware('permission:operational.estoque.view')->group(function () {
-        Route::get('estoque', fn () => Inertia::render('Admin/Stock/Index'))->name('estoque.index');
+        // Hub Estoque — resume métricas via EstoqueMetrics (Fase 3 unificação).
+        // Mantém renderização leve do Index.vue, mas agora populando `resumo`
+        // pra que o Hub mostre os mesmos KPIs canônicos da Lista de itens.
+        Route::get('estoque', function (\App\Services\Metrics\EstoqueMetrics $metrics) {
+            return Inertia::render('Admin/Stock/Index', [
+                'resumo' => $metrics->resumo(),
+            ]);
+        })->name('estoque.index');
 
         // Inline JSON — criar item de estoque sem sair de wizards (Ajustar, Receber, etc.)
         Route::post('estoque/itens/inline', [StockItemController::class, 'storeInline'])

@@ -16,6 +16,20 @@ class Invoice extends Model
 {
     protected $table = 'invoices';
 
+    protected static function booted(): void
+    {
+        $invalidate = function (Invoice $m) {
+            // Invalida métricas master + tenant (faturas afetam ambos).
+            \App\Services\Metrics\MetricsCache::forgetMaster();
+            if ($m->tenant_id) {
+                \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'financial');
+            }
+        };
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'tenant_id',
         'subscription_id',

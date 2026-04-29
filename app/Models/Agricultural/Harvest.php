@@ -12,6 +12,14 @@ class Harvest extends Model
 {
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (Harvest $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'agricola');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'planting_id', 'data_colheita', 'quantidade_colhida', 'unidade',
         'produtividade_por_ha', 'valor_total', 'observacoes',

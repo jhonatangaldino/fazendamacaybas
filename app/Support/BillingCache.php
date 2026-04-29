@@ -75,6 +75,9 @@ class BillingCache
         Cache::forget(self::masterKpisKey());
         Cache::forget(self::alertsKey(null));        // master
         Cache::forget(self::menuBadgesKey(null));    // master
+        // PlatformMetrics — invalida cache do Dashboard master e badges
+        // (faturas overdue, MRR, inadimplência etc. mudam quando invoice/sub muda).
+        \App\Services\Metrics\MetricsCache::forgetMaster();
         // Dashboard tenant é por (tenant, farm, user). Sem registry de farm/user
         // ativos, deixamos o TTL natural (5min). Para refresh imediato pós-ação,
         // a query string `?refresh=1` continua válida.
@@ -86,6 +89,7 @@ class BillingCache
         Cache::forget(self::alertsKey(null));
         Cache::forget(self::menuBadgesKey(null));
         Cache::forget(self::masterKpisKey());
+        \App\Services\Metrics\MetricsCache::forgetMaster();
     }
 
     /**

@@ -15,6 +15,14 @@ class MaintenanceOrder extends Model
 {
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (MaintenanceOrder $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'maquinas');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'vehicle_id', 'partner_id', 'tipo', 'descricao', 'data_prevista', 'data_realizada',
         'medidor', 'valor_pecas', 'valor_servico', 'valor_total', 'status',

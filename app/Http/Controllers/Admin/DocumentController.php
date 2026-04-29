@@ -10,6 +10,7 @@ use App\Models\Document\DocumentCategory;
 use App\Models\Financial\FinancialTransaction;
 use App\Models\Livestock\Animal;
 use App\Models\Partner;
+use App\Services\Metrics\DocumentosMetrics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -89,7 +90,7 @@ class DocumentController extends Controller
         'comprovante' => [], // sem regra
     ];
 
-    public function index(Request $request)
+    public function index(Request $request, DocumentosMetrics $metrics)
     {
         $q = Document::with('category:id,nome,cor,icon')
             ->when($request->search, fn ($qq) => $qq->where(fn ($w) => $w
@@ -104,7 +105,13 @@ class DocumentController extends Controller
                 ->where('data_vencimento', '<', now()))
             ->orderByDesc('data_documento');
 
+        // Resumo via DocumentosMetrics — fonte canônica para Hub Cadastros
+        // e Badge "documentos vencendo" do menu. Antes não havia resumo
+        // (UI mostrava só lista paginada).
+        $resumo = $metrics->resumo();
+
         return Inertia::render('Admin/Documents/Index', [
+            'resumo' => $resumo,
             'documents' => $q->paginate(25)->withQueryString()->through(fn ($d) => [
                 'id' => $d->id,
                 'titulo' => $d->titulo,

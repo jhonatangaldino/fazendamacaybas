@@ -8,6 +8,7 @@ use App\Domain\Billing\Models\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Services\Billing\PixPayloadGenerator;
+use App\Services\Metrics\PlatformMetrics;
 use App\Support\BillingCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

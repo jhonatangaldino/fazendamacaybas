@@ -16,6 +16,14 @@ class AnimalEvent extends Model
 
     protected $table = 'animal_events';
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (AnimalEvent $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'livestock');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'animal_id', 'lot_id', 'quantidade_animais',
         'tipo', 'data', 'peso', 'vacina', 'medicamento',

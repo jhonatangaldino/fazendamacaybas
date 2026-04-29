@@ -16,6 +16,14 @@ class Field extends Model
     use SoftDeletes;
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (Field $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'agricola');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'farm_id', 'codigo', 'nome', 'area_ha', 'tipo_solo', 'descricao',
         'localizacao', 'latitude', 'longitude', 'is_active',

@@ -20,6 +20,14 @@ class Task extends Model
     use SoftDeletes;
     use BelongsToTenant, BelongsToFarm;
 
+    protected static function booted(): void
+    {
+        $invalidate = fn (Task $m) => \App\Services\Metrics\MetricsCache::forgetForTenant((int) $m->tenant_id, 'tarefas');
+        static::created($invalidate);
+        static::updated($invalidate);
+        static::deleted($invalidate);
+    }
+
     protected $fillable = [
         'farm_id', 'titulo', 'descricao', 'prioridade', 'status',
         'data_inicio', 'data_vencimento', 'concluida_em', 'modulo',

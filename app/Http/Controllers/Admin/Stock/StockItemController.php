@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Stock\StockItem;
 use App\Models\Stock\Warehouse;
 use App\Services\BarcodeLookup\ProductLookupService;
+use App\Services\Metrics\EstoqueMetrics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -48,7 +49,7 @@ class StockItemController extends Controller
         'insumo' => "Ex.: 'NPK 08-28-16 para plantio de milho' ou 'Calcário dolomítico para correção de solo'.",
     ];
 
-    public function index(Request $request)
+    public function index(Request $request, EstoqueMetrics $metrics)
     {
         $q = StockItem::with('category:id,nome')
             ->when($request->search, fn ($qq) => $qq->where(fn ($w) => $w
@@ -84,33 +85,21 @@ class StockItemController extends Controller
             ];
         });
 
-        // Resumo de valor — ajuda o dono a decidir o que comprar HOJE,
-        // sem precisar varrer a tabela procurando vermelhos. A subquery
-        // é agregada, então impacto no MySQL é baixo.
-        // BUG FIX B4.4: usar StockItem model com scopes (não DB::table)
-        $resumo = StockItem::query()
-            ->leftJoin('stock_movements', 'stock_items.id', '=', 'stock_movements.item_id')
-            ->where('stock_items.is_active', true)
-            ->select(
-                'stock_items.id',
-                'stock_items.estoque_minimo',
-                DB::raw("SUM(CASE WHEN stock_movements.tipo IN ('entrada','ajuste') THEN stock_movements.quantidade WHEN stock_movements.tipo = 'saida' THEN -stock_movements.quantidade ELSE 0 END) as saldo")
-            )
-            ->groupBy('stock_items.id', 'stock_items.estoque_minimo')
-            ->get();
-
-        $abaixoMinimo = $resumo->filter(fn ($r) => (float) ($r->saldo ?? 0) < (float) $r->estoque_minimo)->count();
-        $semEstoque  = $resumo->filter(fn ($r) => (float) ($r->saldo ?? 0) <= 0)->count();
-        $totalItens  = $resumo->count();
+        // Resumo via EstoqueMetrics — fonte canônica. Antes essa query rodava
+        // inline em CADA hit da lista; agora cacheada (TTL_FAST). Bate com
+        // Hub Estoque, Painel e badge de Alertas.
+        $resumo = $metrics->resumo();
 
         return Inertia::render('Admin/Stock/Items/Index', [
             'items' => $items,
             'filters' => $request->only(['search', 'tipo', 'category_id', 'status']),
             'categories' => Category::where('tipo', 'estoque')->where('is_active', true)->orderBy('nome')->get(['id', 'nome']),
             'resumo' => [
-                'total_itens' => $totalItens,
-                'abaixo_minimo' => $abaixoMinimo,
-                'sem_estoque' => $semEstoque,
+                'total_itens'       => $resumo['total_itens'],
+                'abaixo_minimo'     => $resumo['abaixo_minimo'],
+                'sem_estoque'       => $resumo['sem_estoque'],
+                'saldo_valorizado'  => $resumo['saldo_valorizado'],
+                'movimentacoes_mes' => $resumo['movimentacoes_mes'],
             ],
         ]);
     }

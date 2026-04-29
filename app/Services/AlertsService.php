@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Subscription;
 use App\Domain\Billing\Models\Tenant;
+use App\Services\Metrics\DocumentosMetrics;
 use App\Services\Metrics\FinancialMetrics;
+use App\Services\Metrics\PlatformMetrics;
 use App\Services\Metrics\TarefasMetrics;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -56,6 +58,8 @@ class AlertsService
     public function __construct(
         private readonly FinancialMetrics $financialMetrics,
         private readonly TarefasMetrics $tarefasMetrics,
+        private readonly DocumentosMetrics $documentosMetrics,
+        private readonly PlatformMetrics $platformMetrics,
     ) {}
 
     public function forTenant(int $tenantId, ?int $farmId = null): array
