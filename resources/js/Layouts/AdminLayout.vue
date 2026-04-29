@@ -15,6 +15,7 @@ import { useBodyScrollLock } from '@/composables/useBodyScrollLock';
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const perms = computed(() => page.props.auth.user?.permissions ?? []);
+const userRoles = computed(() => page.props.auth.user?.roles ?? []);
 const siteLogo = computed(() => page.props.settings?.logo || null);
 const siteNome = computed(() => page.props.settings?.nome || 'Macaybas');
 const menuUsage = computed(() => page.props.menuUsage || {});
@@ -206,8 +207,10 @@ const menu = computed(() => [
             // middleware desde B4.4). Antes estava como perm:null, fazendo
             // visitante/auditor verem o link e pegarem 403 ao clicar (BUG-C-01).
             { label: 'Faturas', route: 'admin.faturas.index', icon: 'invoice', perm: 'operational.financeiro.view' },
-            { label: 'Usuários', route: 'admin.users.index', icon: 'user-cog', perm: 'operational.usuarios.view' },
-            { label: 'Perfis e permissões', route: 'admin.roles.index', icon: 'shield', perm: 'platform.roles.view' },
+            // Usuários: além da permission, exige role dono_fazenda OU admin_master.
+            // Demais perfis (gerente, vet, etc.) não veem mesmo tendo a permission.
+            { label: 'Usuários', route: 'admin.users.index', icon: 'user-cog', perm: 'operational.usuarios.view', anyRole: ['admin_master', 'dono_fazenda'] },
+            { label: 'Perfis e permissões', route: 'admin.roles.index', icon: 'shield', perm: 'platform.roles.view', anyRole: ['admin_master', 'dono_fazenda'] },
         ],
     },
 ]);
@@ -227,7 +230,18 @@ const menu = computed(() => [
  * no plano NÃO vê o menu Rebanho.
  */
 function isItemAvailable(item) {
+    // Filtro por permission (perm:) - granular, modelo Spatie
     if (item.perm != null && ! can(item.perm)) return false;
+
+    // Filtro por role (anyRole:) - mais restritivo que permission.
+    // Útil quando uma feature só faz sentido pra papéis específicos
+    // (ex.: gestão de usuários só pra dono/master, não pra qualquer
+    // usuário com permission users.view).
+    if (Array.isArray(item.anyRole) && item.anyRole.length > 0) {
+        const matched = item.anyRole.some((r) => userRoles.value.includes(r));
+        if (! matched) return false;
+    }
+
     if (! item.feature) return true; // item sem feature gate é sempre visível
     // null = master global (libera). Array (incluindo vazio) = filtra pelo conteúdo.
     if (tenantFeatures.value === null) return true;
