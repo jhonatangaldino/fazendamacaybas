@@ -195,7 +195,25 @@ class AnimalLotController extends Controller
         if ($lote->animals()->exists()) {
             return back()->with('error', 'Este lote tem animais. Mova os animais antes de excluir.');
         }
-        $lote->delete();
+
+        // Defensivo: ANTES retornávamos sucesso mesmo se o delete silenciosamente
+        // falhasse. Bug detectado pelo QA E2E (BUG-B-002): toast confirmava
+        // remoção mas o lote persistia em produção. Agora checamos retorno
+        // do delete() e capturamos exceções FK explicitamente, surfaçando
+        // a causa real ao usuário em vez de mentir com sucesso.
+        try {
+            $ok = $lote->delete();
+            if (! $ok) {
+                \Log::warning('AnimalLot::delete retornou false', ['lot_id' => $lote->id]);
+                return back()->with('error', 'Não foi possível remover o lote. Tente novamente ou contate o suporte.');
+            }
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('AnimalLot delete falhou', ['lot_id' => $lote->id, 'error' => $e->getMessage()]);
+            if (str_contains($e->getMessage(), 'foreign key') || str_contains($e->getMessage(), 'a foreign key constraint fails')) {
+                return back()->with('error', 'Este lote tem registros vinculados (eventos, movimentações ou vendas). Desative o lote ao invés de excluir.');
+            }
+            return back()->with('error', 'Erro ao remover lote: ' . $e->getMessage());
+        }
 
         return back()->with('success', 'Lote removido.');
     }

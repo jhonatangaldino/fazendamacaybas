@@ -202,8 +202,10 @@ const menu = computed(() => [
     {
         section: 'Administração',
         items: [
-            // Faturas: sem permissão restrita; tenant sempre vê suas próprias
-            { label: 'Faturas', route: 'admin.faturas.index', icon: 'invoice', perm: null },
+            // Faturas: requer operational.financeiro.view (mesma rota tem essa
+            // middleware desde B4.4). Antes estava como perm:null, fazendo
+            // visitante/auditor verem o link e pegarem 403 ao clicar (BUG-C-01).
+            { label: 'Faturas', route: 'admin.faturas.index', icon: 'invoice', perm: 'operational.financeiro.view' },
             { label: 'Usuários', route: 'admin.users.index', icon: 'user-cog', perm: 'operational.usuarios.view' },
             { label: 'Perfis e permissões', route: 'admin.roles.index', icon: 'shield', perm: 'platform.roles.view' },
         ],

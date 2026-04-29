@@ -39,27 +39,32 @@ function exit() {
       Altura útil: 40px (h-10 em CSS data-attr abaixo). z-[70] fica acima de tudo
       (sidebar fixed mobile, popovers, modais comuns).
     -->
+    <!-- Mobile (<640px): icone + nome truncado + botão SAIR. Texto
+         "IMPERSONAÇÃO Operando como" some pra caber em 360px. Bug
+         detectado pelo QA E2E: scrollW=266 vs clientW=228 = overflow
+         visível em 60+ rotas em mobile. -->
     <div
         v-if="impersonation"
-        class="fixed top-0 left-0 right-0 z-[70] bg-amber-500 text-slate-900 shadow-md h-10 flex items-center"
+        class="fixed top-0 left-0 right-0 z-[70] bg-amber-500 text-slate-900 shadow-md h-10 flex items-center overflow-hidden"
         data-impersonation-banner
     >
-        <div class="px-4 lg:px-8 w-full flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5 min-w-0">
+        <div class="px-2 sm:px-4 lg:px-8 w-full flex items-center justify-between gap-2 min-w-0">
+            <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1">
                 <!-- ícone aviso -->
                 <svg class="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2L1 21h22L12 2zm0 4.1L19.5 19h-15L12 6.1zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/>
                 </svg>
-                <div class="text-sm min-w-0 truncate">
-                    <span class="font-semibold uppercase tracking-wider text-[11px] mr-1.5">Impersonação</span>
-                    <span class="hidden sm:inline">Operando como</span>
-                    <strong class="ml-1 truncate inline-block align-bottom max-w-[160px] sm:max-w-none">{{ impersonation.tenant_nome }}</strong>
+                <div class="text-sm min-w-0 truncate flex-1">
+                    <!-- "IMPERSONAÇÃO" e "Operando como" só aparecem em sm+ -->
+                    <span class="hidden sm:inline font-semibold uppercase tracking-wider text-[11px] mr-1.5">Impersonação</span>
+                    <span class="hidden md:inline">Operando como</span>
+                    <strong class="md:ml-1 truncate inline-block align-bottom max-w-full sm:max-w-[200px] md:max-w-none">{{ impersonation.tenant_nome }}</strong>
                 </div>
             </div>
 
             <button
                 @click="exit"
-                class="flex-shrink-0 inline-flex items-center justify-center px-4 py-2 min-h-9 md:min-h-0 rounded-md bg-slate-900 text-amber-300 text-sm md:text-xs font-semibold hover:bg-slate-800 active:bg-slate-700 touch-manipulation focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 focus:ring-offset-amber-500"
+                class="flex-shrink-0 inline-flex items-center justify-center px-3 sm:px-4 py-2 min-h-9 md:min-h-0 rounded-md bg-slate-900 text-amber-300 text-sm md:text-xs font-semibold hover:bg-slate-800 active:bg-slate-700 touch-manipulation focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 focus:ring-offset-amber-500"
             >
                 Sair
             </button>
