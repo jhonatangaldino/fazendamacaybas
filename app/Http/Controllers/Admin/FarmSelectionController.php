@@ -124,6 +124,14 @@ class FarmSelectionController extends Controller
             return back()->with('error', 'Fazenda não encontrada ou inativa.');
         }
 
+        // BUG-HIGH-F6-02 (QA Deep 2026-04-29): valida que user TEM acesso à
+        // farm (user_farm_access). Antes user com farm_ids:[83] conseguia
+        // mudar pra farm 85 — vazamento cross-farm dentro do mesmo tenant.
+        // Lista vazia = sem restrição (admin/dono).
+        if (! $user->podeAcessarFarm((int) $farm->id)) {
+            return back()->with('error', 'Você não tem acesso a essa fazenda.');
+        }
+
         // Persiste escolha no usuário (saveQuietly — evita disparar eventos em User)
         $user->forceFill(['current_farm_id' => (int) $farm->id])->saveQuietly();
 

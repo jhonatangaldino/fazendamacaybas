@@ -180,6 +180,13 @@ class EnforceFarm
      * Usa `Farm::query()` (passa pelo BelongsToTenantScope R2.4) — leitura
      * já isolada por tenant_id. Retorna apenas colunas baratas; o nome da
      * fazenda é usado no seletor, topbar e no Inertia share.
+     *
+     * BUG-HIGH-F6-02 (QA Deep 2026-04-29): se o user tem `farm_ids` no
+     * `user_farm_access` (vínculo restrito), filtra pra mostrar APENAS
+     * essas. Funcionário restrito à Farm 1 não pode ver Farm 2 no
+     * dropdown nem mudar contexto via /admin/fazenda/trocar.
+     *
+     * User SEM vínculos = acesso a TODAS (admin/dono).
      */
     private function tenantFarms()
     {
@@ -187,11 +194,22 @@ class EnforceFarm
             return app('tenant_farms');
         }
 
-        $farms = Farm::query()
+        $query = Farm::query()
             ->select(['id', 'nome', 'cidade', 'estado', 'is_active'])
             ->where('is_active', true)
-            ->orderBy('nome')
-            ->get();
+            ->orderBy('nome');
+
+        // Filtra por vínculo do user se houver. User sem vínculos = sem
+        // restrição (admin/dono vê tudo).
+        $user = auth()->user();
+        if ($user && $user->tenant_id !== null) {
+            $permitidas = $user->farmsPermitidas();
+            if (! empty($permitidas)) {
+                $query->whereIn('id', $permitidas);
+            }
+        }
+
+        $farms = $query->get();
 
         app()->instance('tenant_farms', $farms);
 
