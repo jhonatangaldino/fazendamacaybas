@@ -133,10 +133,16 @@ return Application::configure(basePath: dirname(__DIR__))
                     $base = '/' . preg_replace('#/novo$#', '', $path);
                     return redirect($base)->with('warning', 'Esta tela usa um modal de cadastro — clique em "+ Novo" para abrir.');
                 }
-                // /admin/agricola/safras só GET? redirect pro hub /admin/agricola
-                if (preg_match('#^admin/[^/]+/[^/]+$#', $path) && $status === 405) {
+                // admin/X/Y (2 segmentos depois de admin) → redirect pro hub /admin/X
+                // Cobre 404 (rota inexistente, ex.: /admin/financeiro/categorias só
+                // tem POST inline) e 405 (rota só POST/PUT). Antes só pegava 405,
+                // deixando 404 mostrar página default em inglês.
+                if (preg_match('#^admin/[^/]+/[^/]+$#', $path)) {
                     $hubModule = '/' . preg_replace('#/[^/]+$#', '', $path);
-                    return redirect($hubModule)->with('warning', 'Esta tela está disponível apenas como modal — abra pelo hub do módulo.');
+                    $msg = $status === 405
+                        ? 'Esta tela está disponível apenas como modal — abra pelo hub do módulo.'
+                        : 'Esta tela não existe ou foi movida — abra pelo hub do módulo.';
+                    return redirect($hubModule)->with('warning', $msg);
                 }
             }
 
