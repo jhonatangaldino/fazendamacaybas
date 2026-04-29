@@ -7,10 +7,11 @@ use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsAtividade;
 
 class Category extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, LogsAtividade;
 
     protected $fillable = ['parent_id', 'tipo', 'nome', 'slug', 'cor', 'icon', 'order_column', 'is_active', 'tenant_id'];
 

@@ -8,10 +8,11 @@ use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\LogsAtividade;
 
 class TaskAssignment extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, LogsAtividade;
 
     public $timestamps = false;
 

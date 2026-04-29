@@ -8,6 +8,7 @@ use App\Models\Farm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsAtividade;
 
 /**
  * Localização física onde um animal se encontra.
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class AnimalLocation extends Model
 {
-    use BelongsToTenant, BelongsToFarm;
+    use BelongsToTenant, BelongsToFarm, LogsAtividade;
 
     protected $table = 'animal_locations';
 

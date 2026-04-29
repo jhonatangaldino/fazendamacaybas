@@ -7,10 +7,11 @@ use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\LogsAtividade;
 
 class ChecklistItem extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, LogsAtividade;
 
     protected $fillable = ['checklist_id', 'descricao', 'is_done', 'done_at', 'done_by', 'order_column', 'tenant_id'];
 

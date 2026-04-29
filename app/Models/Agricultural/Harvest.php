@@ -7,10 +7,11 @@ use App\Domain\Tenancy\Traits\BelongsToTenant;
 use App\Domain\Tenancy\Traits\BelongsToFarm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\LogsAtividade;
 
 class Harvest extends Model
 {
-    use BelongsToTenant, BelongsToFarm;
+    use BelongsToTenant, BelongsToFarm, LogsAtividade;
 
     protected static function booted(): void
     {

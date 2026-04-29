@@ -9,10 +9,11 @@ use App\Models\Farm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsAtividade;
 
 class AnimalLot extends Model
 {
-    use BelongsToTenant, BelongsToFarm;
+    use BelongsToTenant, BelongsToFarm, LogsAtividade;
 
     protected $table = 'animal_lots';
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\LogsAtividade;
 
 /**
  * Centro de custo — catálogo do tenant. Cross-farm intencional (cada tenant
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CostCenter extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, LogsAtividade;
 
     protected $fillable = ['tenant_id', 'codigo', 'nome', 'descricao', 'is_active'];
 

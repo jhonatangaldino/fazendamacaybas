@@ -8,10 +8,11 @@ use App\Domain\Tenancy\Traits\BelongsToFarm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsAtividade;
 
 class Checklist extends Model
 {
-    use BelongsToTenant, BelongsToFarm;
+    use BelongsToTenant, BelongsToFarm, LogsAtividade;
 
     protected $fillable = ['task_id', 'titulo', 'descricao', 'tenant_id', 'farm_id'];
 

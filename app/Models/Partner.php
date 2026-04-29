@@ -7,10 +7,11 @@ use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\LogsAtividade;
 
 class Partner extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsAtividade;
     use BelongsToTenant;
 
     protected static function booted(): void

@@ -6,10 +6,11 @@ use App\Domain\Billing\Models\Tenant;
 use App\Domain\Tenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\LogsAtividade;
 
 class Crop extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, LogsAtividade;
 
     protected $fillable = ['nome', 'slug', 'variedade', 'ciclo_dias', 'unidade_producao', 'is_active', 'tenant_id'];
 

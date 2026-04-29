@@ -14,10 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\LogsAtividade;
 
 class Task extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsAtividade;
     use BelongsToTenant, BelongsToFarm;
 
     protected static function booted(): void

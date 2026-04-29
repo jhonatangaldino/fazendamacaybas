@@ -8,10 +8,11 @@ use App\Domain\Tenancy\Traits\BelongsToFarm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsAtividade;
 
 class FinancialRecurrence extends Model
 {
-    use BelongsToTenant, BelongsToFarm;
+    use BelongsToTenant, BelongsToFarm, LogsAtividade;
 
     protected $fillable = [
         'account_id', 'category_id', 'partner_id', 'tipo', 'descricao', 'valor',
