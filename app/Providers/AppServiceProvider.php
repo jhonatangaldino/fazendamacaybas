@@ -47,6 +47,12 @@ class AppServiceProvider extends ServiceProvider
         // transações pagas (receitas somam, despesas subtraem). Antes disso,
         // o saldo ficava preso em saldo_inicial mesmo com transações registradas.
         \App\Models\Financial\FinancialTransaction::observe(\App\Observers\FinancialTransactionObserver::class);
+
+        // Popula tenant_id + farm_id em todo Activity registrado pelo Spatie
+        // Activitylog. Garante que master, ao listar auditoria, veja a qual
+        // cliente + fazenda a ação pertence — mesmo que tenha sido feita
+        // via impersonação (sessão master entrando como cliente).
+        \Spatie\Activitylog\Models\Activity::observe(\App\Observers\ActivityLogTenantFarmObserver::class);
     }
 
     /**

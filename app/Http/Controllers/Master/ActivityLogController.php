@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Master;
 
 use App\Http\Controllers\Controller;
 use App\Domain\Billing\Models\Tenant;
+use App\Models\Farm;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,12 +50,20 @@ class ActivityLogController extends Controller
 
         $atividades = $query->paginate(50)->withQueryString();
 
-        // Mapeia para payload Vue-friendly: causer name, tenant name, subject readable
-        $atividades->getCollection()->transform(function (Activity $a) {
+        // Pré-carrega tenants + farms pra evitar N+1 queries no transform
+        $tenantIds = $atividades->getCollection()->pluck('tenant_id')->filter()->unique()->values();
+        $farmIds = $atividades->getCollection()->pluck('farm_id')->filter()->unique()->values();
+        $tenantsCache = Tenant::whereIn('id', $tenantIds)->pluck('nome', 'id');
+        $farmsCache = Farm::whereIn('id', $farmIds)->pluck('nome', 'id');
+
+        // Mapeia para payload Vue-friendly: causer name, tenant name, farm name, subject readable
+        $atividades->getCollection()->transform(function (Activity $a) use ($tenantsCache, $farmsCache) {
             return [
                 'id' => $a->id,
                 'tenant_id' => $a->tenant_id,
-                'tenant_nome' => $a->tenant_id ? optional(Tenant::find($a->tenant_id))->nome : null,
+                'tenant_nome' => $a->tenant_id ? ($tenantsCache[$a->tenant_id] ?? null) : null,
+                'farm_id' => $a->getAttribute('farm_id'),
+                'farm_nome' => $a->getAttribute('farm_id') ? ($farmsCache[$a->getAttribute('farm_id')] ?? null) : null,
                 'log_name' => $a->log_name,
                 'description' => $a->description,
                 'event' => $a->event,

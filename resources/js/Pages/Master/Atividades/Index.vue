@@ -134,7 +134,7 @@ function eventBadge(ev) {
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr class="text-left text-xs uppercase tracking-wider text-slate-600">
                             <th class="px-4 py-2.5">Quando</th>
-                            <th class="px-4 py-2.5">Cliente</th>
+                            <th class="px-4 py-2.5">Cliente / Fazenda</th>
                             <th class="px-4 py-2.5">Quem</th>
                             <th class="px-4 py-2.5">Ação</th>
                             <th class="px-4 py-2.5">O quê</th>
@@ -144,7 +144,10 @@ function eventBadge(ev) {
                     <tbody class="divide-y divide-slate-100">
                         <tr v-for="a in atividades.data" :key="a.id" class="hover:bg-slate-50">
                             <td class="px-4 py-2.5 text-xs text-slate-700 font-mono whitespace-nowrap">{{ a.created_at_br }}</td>
-                            <td class="px-4 py-2.5 text-sm">{{ a.tenant_nome || '—' }}</td>
+                            <td class="px-4 py-2.5 text-sm">
+                                <div class="text-slate-900">{{ a.tenant_nome || '—' }}</div>
+                                <div v-if="a.farm_nome" class="text-xs text-slate-500 mt-0.5">🏠 {{ a.farm_nome }}</div>
+                            </td>
                             <td class="px-4 py-2.5 text-sm">
                                 <div v-if="a.causer">
                                     <div class="text-slate-900">{{ a.causer.name }}</div>
@@ -183,6 +186,7 @@ function eventBadge(ev) {
                         <div class="min-w-0 flex-1">
                             <div class="text-xs text-slate-500 font-mono">{{ a.created_at_br }}</div>
                             <div class="font-semibold text-sm text-slate-900 mt-0.5">{{ a.tenant_nome || '—' }}</div>
+                            <div v-if="a.farm_nome" class="text-xs text-slate-500">🏠 {{ a.farm_nome }}</div>
                         </div>
                         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold flex-shrink-0"
                               :class="eventBadge(a.event).color">
