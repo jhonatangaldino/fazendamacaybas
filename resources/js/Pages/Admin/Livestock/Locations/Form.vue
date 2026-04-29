@@ -13,9 +13,10 @@ const props = defineProps({
 
 const isEdit = !!props.location?.id;
 
+// `codigo` é AUTO-GERADO pelo backend (MP-##### sequencial por tenant) —
+// não enviamos do form. Em edição mantemos só pra exibir em readonly.
 const form = useForm({
     farm_id: props.location?.farm_id ?? (props.farms[0]?.id ?? null),
-    codigo: props.location?.codigo ?? '',
     nome: props.location?.nome ?? '',
     tipo: props.location?.tipo ?? 'pasto',
     area_ha: props.location?.area_ha ?? '',
@@ -71,13 +72,15 @@ const precisaArea = () => ['pasto', 'piquete'].includes(form.tipo);
                     <p v-if="form.errors.nome" class="text-sm text-red-700 mt-1">{{ form.errors.nome }}</p>
                 </div>
 
-                <div>
-                    <InputLabel value="Código curto (opcional)" />
-                    <input v-model="form.codigo" type="text" maxlength="30"
-                           placeholder="Ex: PASTO-1, CURRAL-A"
-                           class="form-input">
-                    <p class="text-xs text-slate-500 mt-1">Serve para achar rápido. Se não preencher, a gente deixa em branco.</p>
-                    <p v-if="form.errors.codigo" class="text-sm text-red-700 mt-1">{{ form.errors.codigo }}</p>
+                <!-- Código do local — VISUALIZAÇÃO APENAS.
+                     • No cadastro: não aparece (será gerado automático no save).
+                     • Na edição: aparece desabilitado, sem permitir alteração.
+                     Padrão MP-##### auto-incrementado por tenant — controle interno. -->
+                <div v-if="isEdit && location?.codigo">
+                    <InputLabel value="Código (gerado automaticamente)" />
+                    <input :value="location.codigo" type="text" disabled readonly
+                           class="form-input bg-slate-100 text-slate-700 font-mono cursor-not-allowed">
+                    <p class="text-xs text-slate-500 mt-1">Identificador único deste local no sistema. Não editável.</p>
                 </div>
 
                 <div v-if="precisaArea()" class="grid grid-cols-2 gap-3">

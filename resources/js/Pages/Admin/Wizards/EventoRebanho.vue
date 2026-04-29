@@ -174,7 +174,8 @@ function salvarNovoLote() {
 
 // Modal: novo local inline
 const novoLocalAberto = ref(false);
-const novoLocalForm = useForm({ nome: '', codigo: '', tipo: 'pasto' });
+// codigo NÃO é editável — gerado automaticamente no backend (MP-#####)
+const novoLocalForm = useForm({ nome: '', tipo: 'pasto' });
 
 // Trava scroll do body quando qualquer modal interno está aberto.
 // Sem isso, no mobile o scroll vaza pra fora do modal e dispara
@@ -977,10 +978,7 @@ function reiniciar() {
                                 </button>
                             </div>
                         </div>
-                        <div>
-                            <InputLabel value="Código (opcional)" />
-                            <input v-model="novoLocalForm.codigo" class="form-input" placeholder="Ex.: P3-N">
-                        </div>
+                        <!-- Código é gerado automático (MP-#####) — não editável -->
                     </div>
                     <div class="mt-5 flex justify-end gap-2">
                         <button @click="novoLocalAberto = false" class="btn-outline">Cancelar</button>

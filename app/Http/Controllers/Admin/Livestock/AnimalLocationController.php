@@ -68,18 +68,13 @@ class AnimalLocationController extends Controller
         abort_unless(app()->bound('farm_id'), 500, 'Contexto de fazenda não resolvido (EnforceFarm).');
         $farmId = app('farm_id');
 
-        // `codigo` defensivamente auto-gerado se vazio (coluna pode ser NOT NULL).
-        $codigo = $data['codigo'] ?? null;
-        if (! $codigo) {
-            $base = \Illuminate\Support\Str::slug($data['nome']);
-            $codigo = strtoupper(substr($base, 0, 8)) . '-' . substr(time(), -4);
-        }
-
+        // codigo é auto-gerado pelo model boot (MP-#####). Se o caller passou
+        // codigo explícito, respeita; senão deixa nulo pro boot preencher.
         $local = AnimalLocation::create([
             'farm_id' => $farmId,
             'nome' => $data['nome'],
             'tipo' => $data['tipo'],
-            'codigo' => $codigo,
+            'codigo' => $data['codigo'] ?? null,
             'is_active' => true,
         ]);
 

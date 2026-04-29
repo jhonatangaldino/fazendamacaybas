@@ -350,7 +350,8 @@ async function salvarNovoLote() {
 }
 
 const novoLocalAberto = ref(false);
-const novoLocalForm = ref({ nome: '', codigo: '', tipo: 'pasto' });
+// codigo NÃO é editável — gerado automaticamente no backend (MP-#####)
+const novoLocalForm = ref({ nome: '', tipo: 'pasto' });
 const novoLocalError = ref(null);
 const salvandoLocal = ref(false);
 
@@ -359,7 +360,7 @@ const salvandoLocal = ref(false);
 // o componente inteiro com "Cannot access X before initialization").
 useBodyScrollLock(computed(() => novoLoteAberto.value || novoLocalAberto.value));
 function abrirNovoLocal() {
-    novoLocalForm.value = { nome: '', codigo: '', tipo: 'pasto' };
+    novoLocalForm.value = { nome: '', tipo: 'pasto' };
     novoLocalError.value = null;
     novoLocalAberto.value = true;
 }
@@ -728,10 +729,7 @@ onMounted(() => {
                                 </button>
                             </div>
                         </div>
-                        <div>
-                            <InputLabel value="Código (opcional)" />
-                            <input v-model="novoLocalForm.codigo" class="form-input" placeholder="Ex.: P-N">
-                        </div>
+                        <!-- Código é gerado automático (MP-#####) — não editável -->
                     </div>
                     <p v-if="novoLocalError" class="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5">
                         {{ novoLocalError }}
