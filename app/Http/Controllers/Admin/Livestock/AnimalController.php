@@ -1503,20 +1503,24 @@ class AnimalController extends Controller
     {
         abort_if($event->animal_id !== $animal->id, 404);
 
-        \DB::transaction(function () use ($animal, $event) {
+        // Captura info pra mensagem ANTES de mexer (evento já vai sumir)
+        $tipoEvento = $event->tipo;
+        $dataEvento = $event->data ? \Carbon\Carbon::parse($event->data)->format('d/m/Y') : null;
+        $valorEstornado = null;
+        $mensagem = null;
+
+        \DB::transaction(function () use ($animal, $event, &$valorEstornado) {
             // F8-E4 · venda: reverte animal + estorna receita
             if ($event->tipo === 'venda') {
                 $animal->update([
                     'status' => 'ativo',
                     'data_saida' => null,
                 ]);
-                // Receita gerada via AnimalSaleToRevenueService usa
-                // numero_documento = "ANIMAL_EVENT:{event_id}". Estorna
-                // criando contra-lançamento em vez de hard-delete.
                 $receita = \App\Models\Financial\FinancialTransaction::where('numero_documento', 'ANIMAL_EVENT:'.$event->id)
                     ->where('status', 'pago')
                     ->first();
                 if ($receita) {
+                    $valorEstornado = (float) $receita->valor;
                     \App\Models\Financial\FinancialTransaction::create([
                         'tenant_id' => $receita->tenant_id,
                         'farm_id' => $receita->farm_id,
@@ -1556,7 +1560,34 @@ class AnimalController extends Controller
             $event->delete();
         });
 
-        return back()->with('success', 'Evento removido. Estados/financeiro vinculados foram revertidos.');
+        // Mensagem ESPECÍFICA por tipo — evita "Estados/financeiro vinculados
+        // foram revertidos" genérico que era jargão técnico aparecendo pra
+        // usuário comum. Bug detectado pelo dono em produção 2026-04-29.
+        $mensagem = match ($tipoEvento) {
+            'pesagem' => 'Pesagem apagada. Peso do animal recalculado com a pesagem anterior.',
+            'venda' => $valorEstornado
+                ? 'Venda revertida. Animal voltou a ativo e a receita de R$ '.number_format($valorEstornado, 2, ',', '.').' foi estornada.'
+                : 'Venda revertida. Animal voltou a ativo.',
+            'morte', 'mortalidade', 'abate' => 'Baixa revertida. Animal voltou a ativo.',
+            'controle_leiteiro' => 'Controle leiteiro de '.($dataEvento ?? 'data desconhecida').' apagado. Indicadores de produção atualizados.',
+            'ordenha' => 'Ordenha apagada. Total de litros do mês recalculado.',
+            'vacinacao' => 'Vacinação apagada. Histórico de vacinas atualizado.',
+            'medicacao' => 'Medicação apagada do histórico do animal.',
+            'vermifugacao' => 'Vermifugação apagada do histórico.',
+            'biometria_amostral' => 'Biometria apagada. Peso médio do lote recalculado.',
+            'postura_diaria' => 'Postura apagada. Total de ovos do mês recalculado.',
+            'alimentacao' => 'Registro de alimentação apagado.',
+            'qualidade_agua' => 'Registro de qualidade da água apagado.',
+            'cobertura' => 'Cobertura apagada do histórico.',
+            'parto' => 'Parto apagado do histórico.',
+            'desmame' => 'Desmame apagado do histórico.',
+            'movimentacao' => 'Movimentação apagada do histórico.',
+            'observacao' => 'Observação apagada.',
+            'exame_toque' => 'Exame de toque apagado.',
+            default => 'Registro apagado do histórico do animal.',
+        };
+
+        return back()->with('success', $mensagem);
     }
 
     /**
