@@ -78,6 +78,20 @@ class LoginRequest extends FormRequest
             ? $user->isAdminMaster()
             : ($user?->tenant_id === null);
 
+        // F5-S04 (QA Deep 2026-04-29): bloqueia master logando em
+        // contexto tenant (app.fazendamacaybas.com.br). Antes passava com
+        // status 200, violando o "login isolado por contexto" descrito na
+        // reestruturação 2026-04-27. Master deve logar APENAS na raiz
+        // (fazendamacaybas.com.br), tenants APENAS em app.* ou subdomínio.
+        if ($isMasterAdmin && $expectedTenantId !== null) {
+            Auth::logout();
+            $this->session()->invalidate();
+            RateLimiter::hit($this->throttleKey());
+            throw ValidationException::withMessages([
+                'email' => 'Master deve logar em fazendamacaybas.com.br/login (não em app.*).',
+            ]);
+        }
+
         if ($expectedTenantId !== null && ! $isMasterAdmin) {
             if ((int) $user->tenant_id !== (int) $expectedTenantId) {
                 Auth::logout();

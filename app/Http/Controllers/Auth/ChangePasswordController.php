@@ -34,6 +34,16 @@ class ChangePasswordController extends Controller
 
         $request->validate($rules);
 
+        // SEGURANÇA · F5-S03 (QA Deep 2026-04-29): bloqueia troca pra senha
+        // igual à atual/temporária. Antes o user podia "trocar" pra mesma
+        // senha temp e o flag must_change_password virava false sem trocar
+        // nada de fato. Vale tanto pra forced quanto pra troca normal.
+        if (Hash::check($request->password, $user->password)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'password' => ['A nova senha precisa ser diferente da atual. Escolha uma nova.'],
+            ]);
+        }
+
         // Atualiza senha definitiva
         $user->forceFill([
             'password' => Hash::make($request->password),

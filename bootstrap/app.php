@@ -39,6 +39,11 @@ return Application::configure(basePath: dirname(__DIR__))
             // possa enxergar o tenant já resolvido (uso futuro em R2+).
             // Em rotas públicas ou sem user, o middleware passa sem efeito.
             ResolveTenant::class,
+            // F5-S02: força user com must_change_password=true a trocar
+            // senha antes de acessar qualquer rota /admin/* ou /master/*.
+            // Antes o redirect só ocorria no momento do login; depois o
+            // user navegava livremente sem trocar.
+            \App\Http\Middleware\EnforcePasswordChange::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
