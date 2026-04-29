@@ -105,6 +105,14 @@ class SubscriptionController extends Controller
             $msg = 'Assinatura de '.$tenant->nome.' atualizada.';
         }
 
+        // Mantém tenants.plan_id sincronizado com subscriptions.plan_id.
+        // O campo legado tenants.plan_id é usado em alguns lugares antigos
+        // (ex.: relação direta tenant->plan). Mantemos sincronizado pra evitar
+        // inconsistência onde admin via "Plano X" mas master via "Plano Y".
+        if ($tenant->plan_id !== $validated['plan_id']) {
+            $tenant->update(['plan_id' => $validated['plan_id']]);
+        }
+
         // Troca de plano altera as features disponíveis para o tenant.
         // Invalida cache `tenantFeatures` para o menu refletir imediatamente.
         BillingCache::forgetForTenant($tenant->id);

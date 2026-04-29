@@ -36,12 +36,23 @@ const statusLabel = {
 
 // Form de alteração de assinatura
 const editMode = ref(false);
+const formRef = ref(null);
 const form = useForm({
     plan_id: props.subscription?.plan_id ?? (props.plans[0]?.id ?? null),
     status: props.subscription?.status ?? 'active',
     current_period_start: null,
     current_period_end: null,
 });
+
+function abrirEdicao() {
+    editMode.value = true;
+    // Scroll automático pro form (caso esteja abaixo da fold)
+    setTimeout(() => {
+        if (formRef.value) {
+            formRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 50);
+}
 
 function salvarAssinatura() {
     form.put(route('master.tenants.subscription.update', props.tenant.id), {
@@ -142,7 +153,7 @@ function gerarCobranca() {
                     <div class="pt-4 border-t border-slate-100 flex items-center gap-2">
                         <button
                             type="button"
-                            @click="editMode = true"
+                            @click="abrirEdicao"
                             class="px-3 py-1.5 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800"
                         >Alterar plano/status</button>
                         <button
@@ -158,14 +169,17 @@ function gerarCobranca() {
                     <p class="text-sm text-slate-600 mb-4">Este cliente ainda não tem assinatura.</p>
                     <button
                         type="button"
-                        @click="editMode = true"
+                        @click="abrirEdicao"
                         class="px-4 py-2 rounded-lg bg-macaybas-primary-700 text-white text-sm font-semibold hover:bg-macaybas-primary-800 shadow-sm"
                     >Atribuir plano</button>
                 </div>
 
                 <!-- Form de edição de assinatura -->
-                <div v-if="editMode" class="mt-6 pt-6 border-t border-slate-100">
-                    <h4 class="text-sm font-semibold text-slate-800 mb-3">{{ subscription ? 'Alterar assinatura' : 'Nova assinatura' }}</h4>
+                <div v-if="editMode" ref="formRef" class="mt-6 pt-6 border-t-2 border-macaybas-primary-200 bg-macaybas-primary-50/40 -mx-6 px-6 pb-6 rounded-b-2xl">
+                    <h4 class="text-sm font-semibold text-macaybas-primary-800 mb-3 flex items-center gap-2">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        {{ subscription ? 'Alterar assinatura' : 'Nova assinatura' }}
+                    </h4>
                     <form @submit.prevent="salvarAssinatura" class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Plano</label>

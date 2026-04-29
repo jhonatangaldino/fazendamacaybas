@@ -283,19 +283,26 @@ class UserController extends Controller
     /**
      * Info do plano sobre uso de usuários — pra o Form mostrar "5 de 10 usuários"
      * e impedir cadastro quando atinge o teto.
+     *
+     * IMPORTANTE: lê o plano da SUBSCRIPTION (fonte de verdade), não de
+     * tenants.plan_id (campo legado redundante). A tela de Assinatura permite
+     * trocar plano e isso atualiza Subscription — tenants.plan_id pode ficar
+     * desatualizado.
      */
     private function planUsageInfo(Request $request): array
     {
         $tenantIdAtivo = (int) (app()->bound('tenant_id') ? app('tenant_id') : ($request->user()->tenant_id ?? 0));
-        $tenant = \App\Domain\Billing\Models\Tenant::with('plan:id,max_users,nome')->find($tenantIdAtivo);
-        $maxUsers = $tenant?->plan?->max_users ?? 0; // 0 = ilimitado
+        // Plano canônico = via Subscription do tenant (não via tenants.plan_id direto)
+        $tenant = \App\Domain\Billing\Models\Tenant::with('subscription.plan:id,max_users,nome')->find($tenantIdAtivo);
+        $plan = $tenant?->subscription?->plan ?? $tenant?->plan ?? null; // fallback se não tem subscription
+        $maxUsers = $plan?->max_users ?? 0; // 0 = ilimitado
         $usuariosAtivos = User::where('tenant_id', $tenantIdAtivo)
             ->where('is_active', true)
             ->count();
         return [
             'max_users' => $maxUsers,
             'usuarios_ativos' => $usuariosAtivos,
-            'plano_nome' => $tenant?->plan?->nome,
+            'plano_nome' => $plan?->nome,
             'limite_atingido' => $maxUsers > 0 && $usuariosAtivos >= $maxUsers,
         ];
     }
