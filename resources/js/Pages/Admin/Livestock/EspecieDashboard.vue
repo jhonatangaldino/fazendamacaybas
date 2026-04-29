@@ -335,8 +335,17 @@ function chartPieData(c) {
                 Lotes ({{ lots.length }})
             </h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <!-- Destino do clique depende do tipo de gestão:
+                     - LOTE AGREGADO (Ave/Peixe/Abelha): vai pra edição do lote, que mostra
+                       quantidade_atual, peso médio, histórico — o "estado" do lote.
+                       NÃO vai pra Animals/Index porque agregadas não têm registro
+                       individual (rebanho gerido em massa, sem 1 row por cabeça).
+                     - LOTE INDIVIDUAL (Bovino/Equino/etc.): vai pra lista de animais
+                       filtrada por espécie + lot_id, mostrando os indivíduos do lote. -->
                 <Link v-for="lot in lots" :key="lot.id"
-                      :href="route('admin.rebanho.animais.index', { species_id: species.id, lot_id: lot.id })"
+                      :href="lot.gestao_modo === 'agregada'
+                        ? route('admin.rebanho.lotes.edit', lot.id)
+                        : route('admin.rebanho.animais.index', { species_id: species.id, lot_id: lot.id })"
                       class="group block p-4 rounded-xl bg-white ring-1 ring-slate-200 hover:ring-macaybas-primary-400 hover:shadow-md transition">
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">

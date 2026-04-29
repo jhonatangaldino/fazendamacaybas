@@ -306,8 +306,14 @@ function doDelete() {
         <PageHeader :title="tituloHeader" :subtitle="subtituloHeader">
             <template #actions>
                 <!-- BLOCO 4.3 — Hierarquia invertida: Vender é a ação core do dono (faz mais), Cadastrar é raro -->
-                <!-- Dashboard leiteiro só aparece se a fazenda PRATICA manejo leiteiro (raça/categoria leite ou eventos) -->
-                <Link v-if="tem_manejo_leiteiro" :href="route('admin.rebanho.controle-leiteiro.dashboard')" class="btn-outline" title="Quadro mensal DROVET com produção, categorias e histórico">
+                <!-- Dashboard leiteiro só aparece se:
+                     1. a fazenda PRATICA manejo leiteiro (categoria leite ou eventos), E
+                     2. estamos na visão geral (sem filtro de espécie) OU na espécie de leite (ruminante_leite).
+                     Sem (2), o botão poluía Aves/Suínos/Equinos com algo irrelevante — galinha não dá leite. -->
+                <Link v-if="tem_manejo_leiteiro && (!especieAtiva || especieAtiva.profile === 'ruminante_leite')"
+                      :href="route('admin.rebanho.controle-leiteiro.dashboard')"
+                      class="btn-outline"
+                      title="Quadro mensal DROVET com produção, categorias e histórico">
                     📊 Dashboard leiteiro
                 </Link>
                 <Link :href="linkNovoAnimal" class="btn-outline" :title="labelBotaoNovo">
