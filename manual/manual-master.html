@@ -907,6 +907,26 @@ th { background: var(--slate-900); color: white; font-weight: 700; }
 
     <p>Validar manual cada comprovante toma tempo. O sistema pode <strong>tentar aprovar sozinho</strong> via OCR (lê o comprovante PIX, extrai valor + E2E ID + beneficiário, e compara com a fatura).</p>
 
+    <div class="caixa-print">
+        <div class="print-com-callouts">
+            <img src="screenshots/master/master-cobrancas.png" alt="Cobranças com config auto-aprovação">
+            <div class="callout" style="top: 18%; right: 22%;">1</div>
+            <div class="callout" style="top: 18%; right: 8%;">2</div>
+            <div class="callout azul" style="top: 38%; left: 30%;">3</div>
+            <div class="callout laranja" style="top: 60%; left: 50%;">4</div>
+        </div>
+        <div class="legenda">Cobranças → "Configurações" no topo · ligar a auto-aprovação</div>
+    </div>
+
+    <div class="callouts-lista">
+        <ol>
+            <li><strong>+ Gerar faturas</strong>: ao lado, wizard pra criar mensalidades em lote (seção 13).</li>
+            <li><strong>Configurações</strong>: link no topo abre opções de cobrança incluindo auto-aprovação.</li>
+            <li><strong>Filtro "Em validação"</strong>: depois de ligar, comprovantes que falharam ficam aqui pra revisão manual.</li>
+            <li><strong>Linha da fatura</strong>: badge "Aprovação automática" aparece nas que sistema aprovou sozinho.</li>
+        </ol>
+    </div>
+
     <h2>Como ligar</h2>
     <div class="passo">
         <div class="num">1</div>
