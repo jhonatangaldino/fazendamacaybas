@@ -47,17 +47,18 @@ try {
     $farms1061 = DB::table('farms')->where('tenant_id', TENANT_REMOVER)->pluck('id')->toArray();
     echo "▶ Farms a remover: " . count($farms1061) . "\n";
 
-    // ── 3. NULL referências em activity_log (preserva registros) ──
-    // Spatie activity_log tem causer_id (polimórfico, pode ser FK em alguns setups).
-    // Setamos NULL pra preservar histórico mas permitir delete dos users.
-    echo "▶ Anonimizando causer_id em activity_log de users do tenant 1061...\n";
-    $logsAfetados = 0;
+    // ── 3. APAGA logs de users do tenant a remover ────────────────
+    // Quando o subject (animal/transação) também já foi apagado, o log
+    // fica sem nada que faça sentido — é lixo. Apaga direto.
+    // Preserva apenas logs de users do tenant master (fazenda-macaybas).
+    echo "▶ Apagando logs de activity_log dos users do tenant a remover...\n";
+    $logsApagados = 0;
     if (!empty($users1061)) {
-        $logsAfetados = DB::table('activity_log')
+        $logsApagados = DB::table('activity_log')
             ->where('causer_type', 'App\\Models\\User')
             ->whereIn('causer_id', $users1061)
-            ->update(['causer_id' => null]);
-        echo "  ✓ $logsAfetados logs anonimizados (causer_id setado pra NULL)\n";
+            ->delete();
+        echo "  ✓ $logsApagados logs apagados\n";
     }
 
     // ── 4. Tabelas tenant-scoped: deleta por tenant_id ────────────
@@ -184,12 +185,12 @@ try {
     // ── 9. QA admin master ────────────────────────────────────────
     echo "\n▶ Apagando user master qa.admin_master:\n";
     if ($qaMaster) {
-        // Anonimiza logs dele primeiro
+        // Apaga logs dele primeiro
         $logsQa = DB::table('activity_log')
             ->where('causer_type', 'App\\Models\\User')
             ->where('causer_id', $qaMaster->id)
-            ->update(['causer_id' => null]);
-        echo "  ✓ $logsQa logs do qa.admin_master anonimizados\n";
+            ->delete();
+        echo "  ✓ $logsQa logs do qa.admin_master apagados\n";
 
         DB::table('model_has_roles')
             ->where('model_type', 'App\\Models\\User')
