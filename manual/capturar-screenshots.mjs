@@ -84,8 +84,8 @@ for (const vp of VIEWPORTS) {
             if (! cur.includes('/admin/')) {
                 await page.goto('https://app.fazendamacaybas.com.br/login');
                 await sleep(800);
-                await page.fill('input[id=email]', '<QA_TENANT_EMAIL>').catch(() => {});
-                await page.fill('input[id=password]', '<QA_PASSWORD>').catch(() => {});
+                await page.fill('input[id=email]', process.env.QA_TENANT_EMAIL ?? 'set-QA_TENANT_EMAIL-env').catch(() => {});
+                await page.fill('input[id=password]', process.env.QA_PASSWORD ?? 'set-QA_PASSWORD-env').catch(() => {});
                 await page.click('button[type=submit]').catch(() => {});
                 await page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {});
             }

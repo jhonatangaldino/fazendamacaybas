@@ -22,8 +22,8 @@ console.log('\n=== TENANT (dono) DESKTOP ===');
     const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
     await page.goto('https://app.fazendamacaybas.com.br/login');
-    await page.fill('input[id=email]', '<QA_TENANT_EMAIL>');
-    await page.fill('input[id=password]', '<QA_PASSWORD>');
+    await page.fill('input[id=email]', process.env.QA_TENANT_EMAIL ?? 'set-QA_TENANT_EMAIL-env');
+    await page.fill('input[id=password]', process.env.QA_PASSWORD ?? 'set-QA_PASSWORD-env');
     await page.click('button[type=submit]');
     await page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {});
 
@@ -136,8 +136,8 @@ console.log('\n=== MOBILE sidebar aberta ===');
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
     await page.goto('https://app.fazendamacaybas.com.br/login');
-    await page.fill('input[id=email]', '<QA_TENANT_EMAIL>');
-    await page.fill('input[id=password]', '<QA_PASSWORD>');
+    await page.fill('input[id=email]', process.env.QA_TENANT_EMAIL ?? 'set-QA_TENANT_EMAIL-env');
+    await page.fill('input[id=password]', process.env.QA_PASSWORD ?? 'set-QA_PASSWORD-env');
     await page.click('button[type=submit]');
     await page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {});
 
@@ -179,8 +179,8 @@ console.log('\n=== MASTER ===');
     const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
     await page.goto('https://fazendamacaybas.com.br/login');
-    await page.fill('input[id=email]', '<QA_MASTER_EMAIL>');
-    await page.fill('input[id=password]', '<QA_PASSWORD>');
+    await page.fill('input[id=email]', process.env.QA_MASTER_EMAIL ?? 'set-QA_MASTER_EMAIL-env');
+    await page.fill('input[id=password]', process.env.QA_PASSWORD ?? 'set-QA_PASSWORD-env');
     await page.click('button[type=submit]');
     await page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {});
 

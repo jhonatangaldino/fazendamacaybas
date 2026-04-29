@@ -21,8 +21,8 @@ console.log('\n=== MASTER ===');
     await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
     await sleep(800);
     await page.waitForSelector('input[id=email]', { timeout: 15000 });
-    await page.fill('input[id=email]', '<QA_MASTER_EMAIL>');
-    await page.fill('input[id=password]', '<QA_PASSWORD>');
+    await page.fill('input[id=email]', process.env.QA_MASTER_EMAIL ?? 'set-QA_MASTER_EMAIL-env');
+    await page.fill('input[id=password]', process.env.QA_PASSWORD ?? 'set-QA_PASSWORD-env');
     await Promise.all([
         page.waitForLoadState('networkidle', { timeout: 25000 }).catch(()=>{}),
         page.click('button[type=submit]'),
@@ -62,8 +62,8 @@ console.log('\n=== MODAIS (Pesar/Vacinar) ===');
     await page.goto('https://app.fazendamacaybas.com.br/login', { waitUntil: 'networkidle' });
     await sleep(800);
     await page.waitForSelector('input[id=email]', { timeout: 10000 });
-    await page.fill('input[id=email]', '<QA_TENANT_EMAIL>');
-    await page.fill('input[id=password]', '<QA_PASSWORD>');
+    await page.fill('input[id=email]', process.env.QA_TENANT_EMAIL ?? 'set-QA_TENANT_EMAIL-env');
+    await page.fill('input[id=password]', process.env.QA_PASSWORD ?? 'set-QA_PASSWORD-env');
     await page.click('button[type=submit]');
     await sleep(3500);
     if (! page.url().includes('/admin/')) throw new Error('login tenant falhou');
@@ -185,8 +185,8 @@ console.log('\n=== MODAIS (Pesar/Vacinar) ===');
     await pageM.goto('https://app.fazendamacaybas.com.br/login', { waitUntil: 'networkidle' });
     await sleep(800);
     await pageM.waitForSelector('input[id=email]', { timeout: 10000 });
-    await pageM.fill('input[id=email]', '<QA_TENANT_EMAIL>');
-    await pageM.fill('input[id=password]', '<QA_PASSWORD>');
+    await pageM.fill('input[id=email]', process.env.QA_TENANT_EMAIL ?? 'set-QA_TENANT_EMAIL-env');
+    await pageM.fill('input[id=password]', process.env.QA_PASSWORD ?? 'set-QA_PASSWORD-env');
     await pageM.click('button[type=submit]');
     await sleep(3500);
 

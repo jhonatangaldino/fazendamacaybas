@@ -21,10 +21,10 @@ const SS = 'manual/screenshots';
 const SUBDIRS = ['desktop', 'mobile', 'master', 'modais', 'forms', 'especies', 'wizards', 'perfis'];
 for (const d of SUBDIRS) await fs.mkdir(`${SS}/${d}`, { recursive: true });
 
-const ADMIN_EMAIL = '<QA_TENANT_EMAIL>';
-const ADMIN_PWD = '<QA_PASSWORD>';
-const MASTER_EMAIL = '<QA_MASTER_EMAIL>';
-const MASTER_PWD = '<QA_PASSWORD>';
+const ADMIN_EMAIL = process.env.QA_TENANT_EMAIL ?? 'set-QA_TENANT_EMAIL-env';
+const ADMIN_PWD = process.env.QA_PASSWORD ?? 'set-QA_PASSWORD-env';
+const MASTER_EMAIL = process.env.QA_MASTER_EMAIL ?? 'set-QA_MASTER_EMAIL-env';
+const MASTER_PWD = process.env.QA_PASSWORD ?? 'set-QA_PASSWORD-env';
 const BASE_ADMIN = 'https://app.fazendamacaybas.com.br';
 const BASE_MASTER = 'https://fazendamacaybas.com.br';
 

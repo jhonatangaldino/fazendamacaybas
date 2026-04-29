@@ -30,6 +30,15 @@ Thumbs.db
 *.key
 id_rsa
 id_ed25519
+
+# Evidências QA contêm credenciais embutidas (DB pass, senhas QA, hosts).
+# NUNCA commitar — manter local apenas.
+/qa-evidence
+/qa-output
+/qa-ux
+
+# Audit visual do manual (gerado dinamicamente)
+/manual/audit
 macaybas_deploy
 macaybas_deploy.pub
 
