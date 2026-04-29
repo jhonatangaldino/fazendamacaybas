@@ -27,6 +27,8 @@ const props = defineProps({
     partners: Array,
     resumo: { type: Object, default: () => ({ ativos: 0, vendidos: 0, baixas: 0, peso_total: 0, ativos_com_peso: 0 }) },
     tem_manejo_leiteiro: { type: Boolean, default: false },
+    // null = sem filtro de espécie (visão geral); true/false = espécie aceita ordenha
+    especie_aceita_ordenha: { type: [Boolean, null], default: null },
 });
 
 // Peso médio do rebanho (apenas considera animais com peso registrado)
@@ -306,11 +308,14 @@ function doDelete() {
         <PageHeader :title="tituloHeader" :subtitle="subtituloHeader">
             <template #actions>
                 <!-- BLOCO 4.3 — Hierarquia invertida: Vender é a ação core do dono (faz mais), Cadastrar é raro -->
-                <!-- Dashboard leiteiro só aparece se:
-                     1. a fazenda PRATICA manejo leiteiro (categoria leite ou eventos), E
-                     2. estamos na visão geral (sem filtro de espécie) OU na espécie de leite (ruminante_leite).
-                     Sem (2), o botão poluía Aves/Suínos/Equinos com algo irrelevante — galinha não dá leite. -->
-                <Link v-if="tem_manejo_leiteiro && (!especieAtiva || especieAtiva.profile === 'ruminante_leite')"
+                <!-- Dashboard leiteiro aparece quando:
+                     1. a fazenda PRATICA manejo leiteiro (categoria leite ou evento ordenha), E
+                     2. (a) NÃO há filtro de espécie (visão geral), OU
+                        (b) a espécie filtrada ACEITA ordenha (allowed_events inclui 'ordenha').
+                     Bovino: profile='ruminante_corte' MAS allowed_events tem ordenha (Girolando,
+                     Holandesa…) → mostra. Aves/Suínos/Equinos: sem ordenha em allowed_events
+                     → não mostra. Caprino/Búfalo: profile='ruminante_leite' → mostra. -->
+                <Link v-if="tem_manejo_leiteiro && (especie_aceita_ordenha === null || especie_aceita_ordenha === true)"
                       :href="route('admin.rebanho.controle-leiteiro.dashboard')"
                       class="btn-outline"
                       title="Quadro mensal DROVET com produção, categorias e histórico">

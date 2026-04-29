@@ -184,6 +184,11 @@ class AnimalController extends Controller
             'lots' => $lots,
             'locations' => $locations,
             'animals' => $animaisLista,
+            // Sinaliza se a fazenda PRATICA manejo leiteiro (categoria leite ou
+            // evento ordenha registrado em algum animal). Combinado com
+            // species.allowed_events.includes('ordenha') no front, decide se
+            // mostra o atalho "Dashboard leiteiro" pra esta espécie.
+            'tem_manejo_leiteiro' => $metrics->temManejoLeiteiro(),
         ]);
     }
 
@@ -490,7 +495,37 @@ class AnimalController extends Controller
             //   2. existe ao menos 1 evento de controle_leiteiro/ordenha
             // Basta um pra mostrar. Query barata (existência, não count).
             'tem_manejo_leiteiro' => $metrics->temManejoLeiteiro(),
+            // Filtro adicional por espécie: o dashboard leiteiro só faz sentido
+            // pra espécies que ACEITAM ordenha. Bovino tem profile=ruminante_corte
+            // mas allowed_events inclui ordenha (Girolando/Holandesa/Jersey) — então
+            // checamos allowed_events, não profile. Aves/Suínos/Equinos não têm
+            // ordenha em allowed_events → botão fica escondido na página deles.
+            // Sem species_id (visão geral), retorna true se algum bovino-like existir.
+            'especie_aceita_ordenha' => $this->especieAceitaOrdenha($request->species_id),
         ]);
+    }
+
+    /**
+     * Verifica se a espécie filtrada aceita ordenha (allowed_events inclui 'ordenha').
+     * Sem species_id (visão geral), retorna null — frontend interpreta como
+     * "não aplicável, mostra/esconde só pelo tem_manejo_leiteiro".
+     */
+    private function especieAceitaOrdenha($speciesId): ?bool
+    {
+        if (! $speciesId) {
+            return null;
+        }
+        $species = AnimalSpecies::withoutGlobalScopes()
+            ->where('id', $speciesId)
+            ->first(['id', 'allowed_events']);
+        if (! $species) {
+            return false;
+        }
+        $events = $species->allowed_events ?? [];
+        if (is_string($events)) {
+            $events = json_decode($events, true) ?: [];
+        }
+        return in_array('ordenha', $events, true);
     }
 
     /**

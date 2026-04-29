@@ -31,7 +31,20 @@ const props = defineProps({
     lots: { type: Array, default: () => [] },
     locations: { type: Array, default: () => [] },
     animals: { type: Array, default: () => [] },
+    // Flag tenant-wide: fazenda registra leite (categoria leite ou evento ordenha)
+    tem_manejo_leiteiro: { type: Boolean, default: false },
 });
+
+// Mostra atalho "Dashboard leiteiro" se a fazenda pratica leite E a espécie
+// aceita ordenha. Bovino: profile=ruminante_corte mas allowed_events tem
+// ordenha (Girolando/Holandesa) → mostra. Caprino/Búfalo profile=ruminante_leite
+// → mostra. Aves/Suínos/Equinos sem ordenha em allowed_events → não mostra.
+const especieAceitaOrdenha = computed(() =>
+    Array.isArray(props.species?.allowed_events) && props.species.allowed_events.includes('ordenha')
+);
+const mostrarDashboardLeiteiro = computed(() =>
+    props.tem_manejo_leiteiro && especieAceitaOrdenha.value
+);
 
 const emoji = computed(() => emojiEspecie(props.species.nome));
 const isLote = computed(() => props.species.gestao === 'lote');
@@ -219,6 +232,13 @@ function chartPieData(c) {
                             ? `Nenhum lote de ${species.nome.toLowerCase()} cadastrado ainda — comece criando um lote abaixo`
                             : `Nenhum ${species.nome.toLowerCase()} cadastrado ainda — comece pelo botão de cadastro abaixo`)">
             <template #actions>
+                <!-- Dashboard leiteiro só pra espécies que aceitam ordenha + fazenda com manejo leiteiro -->
+                <Link v-if="mostrarDashboardLeiteiro"
+                      :href="route('admin.rebanho.controle-leiteiro.dashboard')"
+                      class="btn-outline"
+                      title="Quadro mensal DROVET com produção, categorias e histórico">
+                    📊 Dashboard leiteiro
+                </Link>
                 <Link :href="route('admin.rebanho.animais.index', { species_id: species.id })" class="btn-outline">
                     📋 Ver todos
                 </Link>
