@@ -9,7 +9,13 @@
     $siteNome = \App\Models\Setting::getValue('site.nome', 'Fazenda Macaybas');
     $email = \App\Models\Setting::getValue('contato.email');
     $telefone = \App\Models\Setting::getValue('contato.telefone');
-    $endereco = \App\Models\Setting::getValue('contato.endereco');
+    // Endereço — fonte canônica é `landing.map.endereco` (editado em Master → Clientes
+    // → form do tenant, mais detalhado e com CEP). Cai pro legado `contato.endereco`
+    // se o canônico não estiver preenchido. Sem essa cascata, o rodapé mostrava CEP
+    // antigo enquanto a seção 'Fale conosco' já usava o novo — divergência reportada
+    // pelo dono em 2026-04-29 (35458 vs 35450).
+    $endereco = trim((string) \App\Models\Setting::getValue('landing.map.endereco', ''))
+        ?: \App\Models\Setting::getValue('contato.endereco');
     $instagram = \App\Models\Setting::getValue('social.instagram');
     $facebook = \App\Models\Setting::getValue('social.facebook');
     $youtube = \App\Models\Setting::getValue('social.youtube');

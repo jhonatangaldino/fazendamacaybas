@@ -29,7 +29,11 @@
 
     @php
         // F4 fix · JSON-LD Schema.org LocalBusiness pra rich results no Google.
-        $endereco = \App\Models\Setting::getValue('site.endereco');
+        // Mesma cascata do footer/contact pra evitar divergência de endereço entre
+        // as 3 telas (rodapé / Fale conosco / SEO).
+        $endereco = trim((string) \App\Models\Setting::getValue('landing.map.endereco', ''))
+            ?: \App\Models\Setting::getValue('contato.endereco')
+            ?: \App\Models\Setting::getValue('site.endereco');
         $telefone = \App\Models\Setting::getValue('site.telefone');
         $emailContato = \App\Models\Setting::getValue('site.email');
     @endphp
